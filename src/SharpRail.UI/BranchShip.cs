@@ -60,11 +60,9 @@ public sealed partial class WorkbenchWindow
 
     private void UpdateShipSegments()
     {
-        var remoteSegment = this.FindControl<Border>("RemoteSegment")!;
         var remoteRow = this.FindControl<StackPanel>("RemoteRow")!;
         remoteRow.Children.Clear();
         var status = branchStatus;
-        remoteSegment.IsVisible = status is not null;
         repoSurface?.Raise();
         if (status is null) return;
         var remoteAction = RemoteAction(status);

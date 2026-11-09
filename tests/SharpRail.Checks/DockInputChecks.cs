@@ -244,7 +244,7 @@ internal static class DockInputChecks
         // The top bar's window menu belongs to its empty space: the pickers, items and Settings open nothing.
         var topBar = Find<Grid>("MainHeader");
         var barControls = 0;
-        foreach (var controlName in new[] { "ScopeProject", "ScopeWorkspace", "ScopeBranch", "RemotePublish", "RemotePush", "RemoteSync", "SettingsButton" })
+        foreach (var controlName in new[] { "ScopeProject", "ScopeBranch", "RemotePublish", "RemotePush", "RemoteSync", "SettingsButton" })
         {
             var control = window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(item => item.Name == controlName && item.IsVisible);
             if (control is null) continue;

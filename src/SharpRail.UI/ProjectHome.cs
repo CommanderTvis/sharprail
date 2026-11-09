@@ -96,23 +96,9 @@ public sealed partial class WorkbenchWindow
 
     private void UpdateScopeLabels()
     {
-        // A header rename belongs to the workspace it started on; leaving that workspace abandons it.
-        if (renameInHeader && renaming is not null && (atHome || renaming != workspaceRoot))
-        { renaming = null; renameBox = null; renameCommitPending = false; }
         projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : state.Current.ProjectName(projectRoot);
         this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
-        workspaceLabel.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
-        this.FindControl<Border>("WorkspaceSegment")!.IsVisible = projectRoot.Length > 0;
-        var project = this.FindControl<Button>("ScopeProject")!;
-        var workspace = this.FindControl<Button>("ScopeWorkspace")!;
-        AutomationProperties.SetName(project, "Project " + projectLabel.Text);
-        AutomationProperties.SetName(workspace, "Workspace " + workspaceLabel.Text);
-        var input = this.FindControl<ContentControl>("ScopeRename")!;
-        var editing = renameInHeader && renaming is not null;
-        workspace.IsVisible = !editing; input.IsVisible = editing;
-        if (!editing) input.Content = null;
-        else input.Content ??= RenameBox(new Thickness(0), 22);
-        UpdateSettledCaption();
+        this.FindControl<Button>("ScopeProject")!.SetValue(AutomationProperties.NameProperty, "Project " + projectLabel.Text);
         UpdateBranchSegment();
     }
 
@@ -548,7 +534,7 @@ public sealed partial class WorkbenchWindow
             // A menu wider than the room left of the kebab slides along the screen edge instead of flipping over the row.
             PlacementConstraintAdjustment = Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.SlideX | Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.FlipY
         };
-        var openIn = AddWorkspaceActions(menu, worktree, header: false);
+        var openIn = AddWorkspaceActions(menu, worktree);
         // The Open in submenu lists the host's editors; the menu opens once they are read.
         MenuFill.FillBeforeOpening(menu, kebab, async token => editors ?? await host.ListEditorsAsync(token), found =>
         {
@@ -559,12 +545,18 @@ public sealed partial class WorkbenchWindow
         return menu;
     }
 
-    /// <summary>The one set of workspace actions, shown by a Projects row and by the header's workspace menu.</summary>
-    private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree, bool header)
+    /// <summary>The one set of workspace actions, shown by a Projects row.</summary>
+    private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree)
     {
         var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path), ActionIcon.CopyAbsolutePath);
         copy.Name = "WorkspaceCopyPath";
         menu.Items.Add(copy);
+        // The link names the window's current location, so it applies to the active workspace only.
+        var link = Ui.Menu("Copy link", () => _ = CopyTextAsync(Location.Serialize()));
+        link.Name = "WorkspaceCopyLink";
+        void ScopeLink() => link.IsEnabled = !atHome && worktree.Path == workspaceRoot;
+        ScopeLink(); menu.Opening += (_, _) => ScopeLink();
+        menu.Items.Add(link);
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);
         menu.Items.Add(openIn);
@@ -583,7 +575,7 @@ public sealed partial class WorkbenchWindow
         // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
         if (worktree.Kind == WorkspaceKinds.Managed)
         {
-            var rename = Ui.Menu("Rename", () => StartRename(worktree.Path, header));
+            var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
             rename.Name = "WorkspaceRename";
             menu.Items.Add(rename);
         }
@@ -636,12 +628,11 @@ public sealed partial class WorkbenchWindow
         if (Clipboard is not null) await Clipboard.SetTextAsync(text);
     }
 
-    private void StartRename(string path, bool header = false)
+    private void StartRename(string path)
     {
         renaming = path; renameDraft = renameOriginal = WorkspaceName(path); renameCommitPending = false;
-        renameInHeader = header; renameBox = null;
-        UpdateScopeLabels();
-        if (!header) RefreshRailWorkspace(path);
+        renameBox = null;
+        RefreshRailWorkspace(path);
     }
 
     private Control RenameBox(Thickness margin, double height)
@@ -695,9 +686,8 @@ public sealed partial class WorkbenchWindow
 
     private void EndRename()
     {
-        var path = renameInHeader ? null : renaming;
+        var path = renaming;
         renaming = null; renameBox = null; renameCommitPending = false;
-        UpdateScopeLabels();
         if (path is not null) RefreshRailWorkspace(path);
         else UpdateRailSelection();
     }

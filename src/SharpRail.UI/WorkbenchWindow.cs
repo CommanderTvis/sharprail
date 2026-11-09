@@ -38,7 +38,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly Dictionary<string, Control> documentContent = [];
     private readonly Dictionary<string, FileDocument> documents = [];
     private readonly TextBlock projectLabel;
-    private readonly TextBlock workspaceLabel;
     private readonly TextBlock branchLabel;
     private readonly Control branchIcon;
     private readonly TextBlock status;
@@ -96,14 +95,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         StartupPhases.Mark("window-xaml-loaded");
         root = this.FindControl<Grid>("WorkbenchRoot")!;
         projectLabel = this.FindControl<TextBlock>("ProjectLabel")!;
-        workspaceLabel = this.FindControl<TextBlock>("WorkspaceLabel")!;
         branchLabel = this.FindControl<TextBlock>("BranchLabel")!;
         status = this.FindControl<TextBlock>("ConnectionStatus")!;
         statusDot = this.FindControl<TextBlock>("ConnectionDot")!;
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
-        this.FindControl<ContentControl>("WorkspaceIcon")!.Content = Ui.Icon("layout", Ui.Muted, 14);
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout);

@@ -16,7 +16,7 @@ using static SharpRail.Checks.E2E.WorkspaceFixture;
 
 namespace SharpRail.Checks;
 
-/// <summary>The header's captioned Project, Workspace and Branch segments, after upstream's shell/locationBar unit tests.</summary>
+/// <summary>The header's captioned Project and Branch segments, after upstream's shell/locationBar unit tests.</summary>
 internal static class LocationBarChecks
 {
     internal static void Run(string root)
@@ -44,8 +44,7 @@ internal static class LocationBarChecks
 
     internal static void Switch(E2eWorkspace app, string workspace)
     {
-        var menu = OpenMenu(app, "ScopeWorkspace");
-        app.Click(menu.Items.OfType<MenuItem>().Single(item => item.Name == "ScopeWorkspaceOption" && Equals(item.Tag, workspace)), freshGesture: false);
+        app.Click(Select(app, workspace));
         Until(() => Active(app, workspace) && Shown(app, "BranchSegment") && Label(app, "BranchLabel").Length > 0);
     }
 
@@ -54,18 +53,17 @@ internal static class LocationBarChecks
     private static void Switchers(string directory)
     {
         using var app = OpenFixtureProject(directory);
-        Require(Shown(app, "ProjectSegment") && Shown(app, "WorkspaceSegment") && !Shown(app, "BranchSegment") && !Shown(app, "RemoteSegment") && !Shown(app, "PullRequestSegment"),
-            "Project Home shows the Project and Workspace segments and no Branch segment.");
-        Require(Label(app, "ProjectLabel") == "sample-project" && Label(app, "WorkspaceLabel") == "Project home",
-            "Project Home names the project and reads Project home.");
+        Require(Shown(app, "ProjectSegment") && !Shown(app, "BranchSegment") && !Shown(app, "PullRequestSegment"),
+            "Project Home shows the Project segment and no Branch segment.");
+        Require(Label(app, "ProjectLabel") == "sample-project", "Project Home names the project.");
         var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["Project", "Workspace", "Branch", "Remote", "Pull request"]), "Each segment carries its sentence-case caption.");
-        Require(new[] { "ProjectSegment", "WorkspaceSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
+        Require(captions.SequenceEqual(["Project", "Branch", "Pull request"]), "Each segment carries its sentence-case caption.");
+        Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
-        Require(new[] { "ProjectChevron", "WorkspaceChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
+        Require(new[] { "ProjectChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
             "A pill's chevron is hidden at rest.");
-        Require(Label(app, "ProjectInitial") == "S" && app.Find<Button>("ScopeProject").Foreground == Ui.Muted && app.Find<Button>("ScopeWorkspace").FontSize == Typography.TitleSection.FontSize,
+        Require(Label(app, "ProjectInitial") == "S" && app.Find<Button>("ScopeProject").Foreground == Ui.Muted && app.Find<Button>("ScopeBranch").FontSize == Typography.TitleSection.FontSize,
             "The project tile shows the name's initial and every value rests muted in the section title style.");
 
         var projects = OpenMenu(app, "ScopeProject");
@@ -75,20 +73,15 @@ internal static class LocationBarChecks
             "The project switcher checks the current project, disables Project home there and offers Add project.");
         CloseMenu(projects);
 
-        var workspaces = OpenMenu(app, "ScopeWorkspace");
-        Require(MenuEntry(workspaces, "WorkspaceCopyPath") is null && MenuEntry(workspaces, "WorkspaceRename") is null &&
-            MenuEntry(workspaces, "ScopeWorkspaceNew") is not null,
-            "At Project Home the workspace menu offers only the switcher and creation.");
-        CloseMenu(workspaces);
         Switch(app, app.Root);
-        Until(() => Label(app, "WorkspaceLabel") == "Default" && Shown(app, "BranchSegment") && Label(app, "BranchLabel") == "main");
+        Until(() => Shown(app, "BranchSegment") && Label(app, "BranchLabel") == "main");
         Require(Label(app, "ScopeBase").Length == 0, "The Default workspace's branch caption is plain.");
 
         projects = OpenMenu(app, "ScopeProject");
         Require(MenuEntry(projects, "ScopeProjectHome") is { IsEnabled: true }, "Project home is reachable from a workspace.");
         Choose(app, projects, "ScopeProjectHome");
-        Until(() => app.Window.AtProjectHome && Label(app, "WorkspaceLabel") == "Project home" && !Shown(app, "BranchSegment"));
-        Console.WriteLine("PASS location bar: project and workspace switchers move between Project Home and workspaces");
+        Until(() => app.Window.AtProjectHome && !Shown(app, "BranchSegment"));
+        Console.WriteLine("PASS location bar: the project switcher and the rail move between Project Home and workspaces");
     }
 
     private static void SharedActions(string directory)
@@ -98,37 +91,17 @@ internal static class LocationBarChecks
         var name = Path.GetFileName(workspace);
         var ready = app.Window.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "WorkspaceReadyBranch").Text!;
         var from = ready.Contains(" · from ", StringComparison.Ordinal) ? "· from " + ready[(ready.IndexOf(" · from ", StringComparison.Ordinal) + 8)..] : "";
-        Require(Label(app, "WorkspaceLabel") == name && Label(app, "ScopeBase") == from, "A managed workspace names itself and what it was cut from.");
+        Require(Label(app, "ScopeBase") == from, "A managed workspace names what it was cut from.");
 
-        var menu = OpenMenu(app, "ScopeWorkspace");
-        Require(MenuEntry(menu, "WorkspaceOpenIn") is not null && MenuEntry(menu, "WorkspaceCopyPath") is not null &&
-            MenuEntry(menu, "WorkspaceRemove") is { IsEnabled: true } &&
-            menu.Items.OfType<MenuItem>().Single(item => item.Name == "ScopeWorkspaceOption").Tag is string other && other == app.Root,
-            "The header menu carries the workspace actions above the sibling switcher.");
-        Choose(app, menu, "WorkspaceRename");
-        var host = app.Find<ContentControl>("ScopeRename");
-        Until(() => host.Content is TextBox { IsFocused: true });
-        var input = (TextBox)host.Content!;
-        Require(input.Text == name && !app.Find<Button>("ScopeWorkspace").IsVisible &&
-            !Item(app, workspace).GetLogicalChildren().OfType<TextBox>().Any(),
-            "A header rename replaces the pill with one input and opens none in Projects.");
-        input.Text = "Header Name";
-        Press(input, Key.Enter);
-        Until(() => host.Content is null && Label(app, "WorkspaceLabel") == "Header Name" && ItemText(app, workspace, "WorkspaceName") == "Header Name");
-        Require(app.State!.Current.WorkspaceLabels.GetValueOrDefault(workspace) == "Header Name", "The header rename is one host label change.");
+        var menu = OpenWorkspaceMenu(app, workspace);
+        Require(MenuEntry(menu, "WorkspaceCopyLink") is { IsEnabled: true },
+            "The active workspace's menu offers Copy link, which moved there from the header.");
+        CloseMenu(menu);
+        menu = OpenWorkspaceMenu(app, app.Root);
+        Require(MenuEntry(menu, "WorkspaceCopyLink") is { IsEnabled: false }, "Copy link applies to the active workspace only.");
+        CloseMenu(menu);
 
-        Choose(app, OpenMenu(app, "ScopeWorkspace"), "WorkspaceRename");
-        Until(() => host.Content is TextBox { IsFocused: true });
-        ((TextBox)host.Content!).Text = "Abandoned";
-        _ = app.Window.OpenProjectHomeAsync(app.Root);
-        Until(() => app.Window.AtProjectHome && app.Window.WorkspaceMounted);
-        Settle();
-        Require(host.Content is null && app.Find<Button>("ScopeWorkspace").IsVisible && Label(app, "WorkspaceLabel") == "Project home" &&
-            app.State.Current.WorkspaceLabels.GetValueOrDefault(workspace) == "Header Name",
-            "Leaving the workspace abandons a header rename without renaming anything.");
-
-        Switch(app, workspace);
-        Choose(app, OpenMenu(app, "ScopeWorkspace"), "WorkspaceRemove");
+        Choose(app, OpenWorkspaceMenu(app, workspace), "WorkspaceRemove");
         var confirm = Dialog(app);
         Require(Text(confirm).Contains(workspace, StringComparison.Ordinal), "The Remove dialog names the workspace it was opened for.");
         _ = app.Window.OpenProjectHomeAsync(app.Root);
@@ -137,9 +110,7 @@ internal static class LocationBarChecks
         Require(Directory.Exists(workspace) && WorktreePaths(app).Contains(workspace),
             "A Remove dialog dismissed by a workspace change removes nothing.");
         app.Dispose();
-        Require(new ProfileStore(app.Root + "-profile").OpenState().Current.WorkspaceLabels.GetValueOrDefault(workspace) == "Header Name",
-            "The header's label persists in host state.");
-        Console.WriteLine("PASS location bar: header workspace actions share Projects' rename and removal, bound to their workspace");
+        Console.WriteLine("PASS location bar: the rail's workspace menu carries Copy link and removal bound to its workspace");
     }
 
     private static void BranchCard(string directory)
@@ -150,7 +121,8 @@ internal static class LocationBarChecks
         app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
         // Upstream #771: Remote is present for a branch even without an origin; the provider's Pull request item hides itself on a plain remote (W28).
-        Until(() => app.Find<Border>("RemoteSegment").IsVisible);
+        Until(() => app.Find<StackPanel>("RemoteRow").Children.Count > 0);
+        Require(app.Find<StackPanel>("RemoteRow").GetVisualAncestors().Contains(app.Find<Border>("BranchSegment")), "The sync state lives in the Branch segment.");
         Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && !app.Find<Border>("PullRequestSegment").IsVisible &&
             !Buttons(app).Any(button => button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
             "Without an origin the header says so and offers no push.");
@@ -200,16 +172,14 @@ internal static class LocationBarChecks
         Require(app.Window.WindowState == WindowState.Normal, "A pill must not act as title-bar chrome.");
         ((Flyout)pill.Flyout!).Hide();
 
-        app.Find<TextBlock>("WorkspaceLabel").Text = "A workspace name long enough to fill the location bar segment";
-        var widths = new List<(bool Project, bool Workspace, bool Branch)>();
+        var widths = new List<(bool Project, bool Branch)>();
         for (var width = 900; width >= 390; width -= 30)
         {
             app.Window.Width = width; Settle(60);
-            widths.Add((Shown(app, "ProjectSegment"), Shown(app, "WorkspaceSegment"), Shown(app, "BranchSegment")));
+            widths.Add((Shown(app, "ProjectSegment"), Shown(app, "BranchSegment")));
         }
-        Require(widths[0] == (true, true, true) && widths.All(state => state.Workspace) && widths.Any(state => state.Project && !state.Branch) &&
-            !widths.Any(state => state.Branch && !state.Project) && widths[^1] == (false, true, false),
-            "As the window narrows the branch yields before the project and the workspace stays: " + string.Join(" ", widths));
+        Require(widths[0] == (true, true) && widths.Any(state => state.Project && !state.Branch) && !widths.Any(state => state.Branch && !state.Project),
+            "As the window narrows the branch yields before the project: " + string.Join(" ", widths));
         var bar = app.Find<Control>("LocationBar");
         var settings = app.Find<Button>("SettingsButton");
         Require(bar.TranslatePoint(new Point(bar.Bounds.Width, 0), app.Window)!.Value.X <= settings.TranslatePoint(default, app.Window)!.Value.X,
@@ -219,12 +189,10 @@ internal static class LocationBarChecks
         var fields = new List<(string Segment, Control Icon)>
         {
             ("ProjectSegment", app.Window.GetLogicalDescendants().OfType<Border>().First(border => border.Classes.Contains("location-initial"))),
-            ("WorkspaceSegment", app.Find<ContentControl>("WorkspaceIcon")),
             ("BranchSegment", app.Find<ContentControl>("BranchIcon"))
         };
-        foreach (var name in new[] { "RemoteIcon", "PullRequestIcon" })
-            if (app.Window.GetLogicalDescendants().OfType<ContentControl>().FirstOrDefault(control => control.Name == name) is { } icon)
-                fields.Add((name == "RemoteIcon" ? "RemoteSegment" : "PullRequestSegment", icon));
+        if (app.Window.GetLogicalDescendants().OfType<ContentControl>().FirstOrDefault(control => control.Name == "PullRequestIcon") is { } prIcon)
+            fields.Add(("PullRequestSegment", prIcon));
         foreach (var (segmentName, icon) in fields)
         {
             var caption = app.Find<Border>(segmentName).GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("location-caption"));

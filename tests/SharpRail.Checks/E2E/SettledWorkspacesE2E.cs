@@ -10,7 +10,7 @@ using static SharpRail.Checks.E2E.WorkspaceFixture;
 
 namespace SharpRail.Checks.E2E;
 
-/// <summary>Settled workspaces in the rail, the header switcher and Settings, with a client clock moved past the idle window.</summary>
+/// <summary>Settled workspaces in the rail and Settings, with a client clock moved past the idle window.</summary>
 internal static class SettledWorkspacesE2E
 {
     private const long Day = 24L * 60 * 60 * 1000;
@@ -50,21 +50,10 @@ internal static class SettledWorkspacesE2E
         Until(() => Chip(app, quiet) == "idle 8d" && Chip(app, older) is null);
         Console.WriteLine("PASS settled workspaces: idle rows settle on the client clock while pinned and active ones stay live, announced once");
 
-        // The switcher lists live siblings and the shelf in a submenu.
-        var pill = app.Find<Button>("ScopeWorkspace");
-        app.Click(pill);
-        var menu = pill.ContextMenu!;
-        Until(() => menu.IsOpen);
-        var settled = MenuEntry(menu, "ScopeWorkspaceSettled") ?? throw new InvalidOperationException("The switcher has no Settled submenu.");
-        Require(Equals(settled.Header, "Settled · 1") && settled.Items.OfType<MenuItem>().Single().Tag as string == quiet &&
-            menu.Items.OfType<MenuItem>().Where(item => item.Name == "ScopeWorkspaceOption").Select(item => item.Tag as string).SequenceEqual([app.Window.ProjectRoot, older]),
-            "The switcher lists live siblings, then the shelf.");
-        CloseMenu(menu);
-
-        // Opening a settled workspace keeps it on the shelf and says so in the header.
+        // Opening a settled workspace keeps it on the shelf.
         app.Click(Select(app, quiet));
-        Until(() => Active(app, quiet) && app.Find<TextBlock>("ScopeSettled").IsVisible && Shelf(app) is not null);
-        Console.WriteLine("PASS settled workspaces: the switcher's Settled submenu, and an opened settled workspace stays settled with its caption");
+        Until(() => Active(app, quiet) && Shelf(app) is not null);
+        Console.WriteLine("PASS settled workspaces: an opened settled workspace stays settled");
 
         // Never settles nothing automatically; the header follows.
         app.Click(app.Find<Button>("SettingsButton"));
@@ -73,7 +62,7 @@ internal static class SettledWorkspacesE2E
         app.Click(Named<Button>(settings, "Settings_Workspaces"));
         Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "SettleIdle_Never"));
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettleIdle_Never"));
-        Until(() => host.Current.Settings.SettleIdleDays is null && Shelf(app) is null && !app.Find<TextBlock>("ScopeSettled").IsVisible);
+        Until(() => host.Current.Settings.SettleIdleDays is null && Shelf(app) is null);
         settings.Close();
         Console.WriteLine("PASS settled workspaces: Settings › Workspaces sets the shared idle window, Never included");
     }

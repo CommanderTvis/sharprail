@@ -242,8 +242,8 @@ internal static class NewWorkspaceE2E
         Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         var workspace = WorktreePaths(app).Single();
         Until(() => Active(app, workspace));
-        Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "workspace-1",
-            "The scope context names the project and the new workspace.");
+        Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project",
+            "The scope context names the project.");
         Until(() => Text(app.Find<StackPanel>("WorkspacePlaceholder")).Contains("from main", StringComparison.Ordinal));
         var tip = ToolTip.GetTip(app.Find<TextBlock>("WorkspaceReadyBranch")) as string ?? "";
         Require(tip.Contains("cut from main", StringComparison.Ordinal) && tip.Contains("measured against it", StringComparison.Ordinal),
@@ -267,7 +267,7 @@ internal static class NewWorkspaceE2E
             var toast = app.Window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(control => control.Name == "GestureToastMessage")?.Text;
             throw new InvalidOperationException($"Edited workspace did not settle: owned windows [{windows}], rail worktrees [{paths}], active workspace {app.Window.WorkspaceRoot}, notice {toast}.", error);
         }
-        Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework");
+        Until(() => ItemText(app, app.Window.WorkspaceRoot, "WorkspaceName") == "Login Rework");
         Require(Git(WorktreePaths(app).Single(), "branch", "--show-current") == "login-rework",
             "The entered workspace name must also name its Git branch.");
         dialog = OpenNewWorkspaceDialog(app);
@@ -275,7 +275,7 @@ internal static class NewWorkspaceE2E
         Named<TextBox>(dialog, "WsName").Text = "Login Rework!";
         app.Click(Create(dialog), freshGesture: false);
         Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 2);
-        Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework!");
+        Until(() => ItemText(app, app.Window.WorkspaceRoot, "WorkspaceName") == "Login Rework!");
         Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "login-rework-2",
             "Names that normalize to an existing branch must receive a unique suffix.");
         Console.WriteLine("PASS upstream new-workspace.spec.ts: an edited name names the worktree, and the placeholder leaves naming to the host");

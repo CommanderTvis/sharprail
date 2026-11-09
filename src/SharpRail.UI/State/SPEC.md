@@ -120,8 +120,8 @@ A window that sees a protocol version other than its own logs it and shows a non
 ## Workspace partition
 
 `WorkspaceSettling.Partition` is the one pure derivation of a project's rows into live rows and the Settled
-shelf, used by the Projects rail, the header's Switch to menu and its `Workspace · settled` caption so they
-never disagree. The caller supplies the clock, the host's `SettleIdleDays` and the active-selection latch.
+shelf, used by the Projects rail so it
+never disagrees with itself. The caller supplies the clock, the host's `SettleIdleDays` and the active-selection latch.
 Rules in order: Default is live; `SettledOverride` `settled` settles (reason by you) and `active` keeps live,
 both beating the latch; the latched active workspace is live; a row idle longer than the window settles
 (reason idle); otherwise live. `Created` order (the rail) is newest created first; `Recent` order (the

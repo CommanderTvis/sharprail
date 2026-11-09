@@ -53,7 +53,6 @@ internal static class DefaultWorkspaceE2E
         using var app = OpenFixtureProject(directory);
         EnterDefaultWorkspace(app);
         Until(() => app.Find<TextBlock>("BranchLabel").Text == "main");
-        Require(app.Find<TextBlock>("WorkspaceLabel").Text == "Default", "The scope must name the Default workspace.");
         var first = Controls(app).OfType<Grid>().First(item => item.Name == "WorkspaceItem");
         Require(Equals(first.Tag, app.Root) && ItemText(app, app.Root, "WorkspaceName") == "Default" && ItemText(app, app.Root, "WorkspaceBranch") == "main",
             "The Default row comes first, named Default on main.");

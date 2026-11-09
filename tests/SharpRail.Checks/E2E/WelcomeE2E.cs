@@ -49,7 +49,7 @@ internal static class WelcomeE2E
         Require(!terminals.Any(entry => entry.Workspace.StartsWith("home:", StringComparison.Ordinal)),
             "Project Home must not expose synthetic terminal workspaces to plugins.");
         Require(WelcomeTitle(app) == "sample-project", "Project Home must be titled with the project name.");
-        Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "Project home" &&
+        Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" &&
             app.Find<TextBlock>("WelcomeScope").Text == "PROJECT HOME", "The scope context must say Project home.");
         var actions = Buttons(app).Where(button => button.Name == "WelcomeAction").ToArray();
         Require(actions.Length == 1 && Text(actions[0]).Contains("Work in project folder", StringComparison.Ordinal),

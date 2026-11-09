@@ -74,7 +74,7 @@ Domain records belong in Abstractions; serialized DTOs in Protocol. Keep both ad
 | `FileTree.cs` / `WorkspaceWatcher.cs` | File-tree reconciliation and file-change subscriptions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, change-tree projection, cancellable workspace-scoped snapshot refreshes. |
 | `GitPanelReconciliation.cs` / `ChangeReverts.cs` / `ReviewPull.cs` | Updating Git controls, revert/undo, pull-request actions in Review. |
-| `LocationBar.cs` | Header Project/Workspace/Branch segments, switchers, branch card. |
+| `LocationBar.cs` | Header Project/Branch segments, project switcher, branch card. |
 | `WindowNavigation.cs` | Window locations, serialized links, Back/Forward. |
 | `ApplicationMenu.cs` / `WindowChrome.cs` | macOS menu bar; title-bar double-click preference, pinch zoom. |
 | `AppCommands.cs` / `QuitConfirmation.cs` | App-wide commands; busy-terminal quit confirmation. |

@@ -13,14 +13,14 @@ using SharpRail.UI.Rendering;
 namespace SharpRail.UI;
 
 /// <summary>
-/// Lays the header's Project, Workspace, Branch, Remote and Pull request segments in a row. As width shrinks Remote
-/// yields first, then Pull request, the branch and the project; a segment too narrow to read is dropped, and the workspace takes what is left.
+/// Lays the header's Project, Branch and Pull request segments in a row. As width shrinks the Pull request
+/// yields first, then the branch; a segment too narrow to read is dropped, and the project takes what is left.
 /// </summary>
 public sealed class LocationStrip : Panel
 {
     private const double Least = 72;
-    // Remote, then Pull request, then the branch, then the project yield; the workspace keeps what is left.
-    private static readonly int[] YieldOrder = [3, 4, 2, 0];
+    // The Pull request yields first, then the branch; the project keeps what is left.
+    private static readonly int[] YieldOrder = [2, 1];
     private double[] widths = [];
 
     /// <summary>The width every segment wants, before any yields; the header weighs it against the room it has.</summary>
@@ -43,7 +43,7 @@ public sealed class LocationStrip : Panel
             over -= widths[index] - kept;
             widths[index] = kept;
         }
-        if (over > 0 && widths.Length > 1) widths[1] = Math.Max(0, widths[1] - over);
+        if (over > 0 && widths.Length > 0) widths[0] = Math.Max(0, widths[0] - over);
         var height = 0.0;
         for (var index = 0; index < widths.Length; index++)
         {
@@ -65,22 +65,18 @@ public sealed class LocationStrip : Panel
     }
 }
 
-/// <summary>The header's captioned location segments: project and workspace switchers and the branch card.</summary>
+/// <summary>The header's captioned location segments: the project switcher and the branch card.</summary>
 public sealed partial class WorkbenchWindow
 {
     private readonly Flyout branchCard = new() { Placement = PlacementMode.BottomEdgeAlignedLeft };
-    // The header and the Projects rail share one rename; this says which of them shows its input.
-    private bool renameInHeader;
-
     /// <summary>Raised after the window lands on another project, workspace or Project Home.</summary>
     private event Action? LocationChanged;
 
     private void WireLocationBar()
     {
-        foreach (var name in new[] { "ProjectChevron", "WorkspaceChevron", "BranchChevron" })
+        foreach (var name in new[] { "ProjectChevron", "BranchChevron" })
             this.FindControl<ContentControl>(name)!.Content = Ui.Icon("arrowDown", Ui.Hint, 14);
         Switcher("ScopeProject", FillProjectSwitcher);
-        Switcher("ScopeWorkspace", FillWorkspaceSwitcher);
         var branch = this.FindControl<Button>("ScopeBranch")!;
         branchCard.Opening += (_, _) => { branchCard.Content = BranchCard(); branch.Classes.Set("open", true); };
         branchCard.Closed += (_, _) => branch.Classes.Set("open", false);
@@ -126,69 +122,6 @@ public sealed partial class WorkbenchWindow
         var add = Ui.IconMenu("Add project…", () => _ = PickProjectAsync(), ActionIcon.Add);
         add.Name = "ScopeProjectAdd";
         menu.Items.Add(add);
-    }
-
-    private void FillWorkspaceSwitcher(ContextMenu menu)
-    {
-        // The same rows as the Projects rail: the host's registry, with the folder standing in until it is listed.
-        var worktrees = RailWorkspaces(projectRoot);
-        var active = atHome ? null : worktrees.FirstOrDefault(tree => tree.Path == workspaceRoot)
-            ?? new WorkspaceRecord("", projectRoot, workspaceRoot == projectRoot ? WorkspaceKinds.Default : WorkspaceKinds.Managed, workspaceRoot, branchLabel.Text ?? "", "");
-        if (active is not null)
-        {
-            menu.Items.Add(MenuLabel(WorkspaceName(active.Path)));
-            _ = LoadEditorsAsync(AddWorkspaceActions(menu, active, header: true), active.Path);
-            var link = Ui.Menu("Copy link", () => _ = Clipboard?.SetTextAsync(Location.Serialize()));
-            link.Name = "ScopeCopyLink";
-            menu.Items.Insert(menu.Items.IndexOf(menu.Items.OfType<MenuItem>().Single(item => item.Name == "WorkspaceCopyPath")) + 1, link);
-            menu.Items.Add(new Separator());
-        }
-        menu.Items.Add(MenuLabel("Switch to"));
-        // Live siblings most recently active first, then the shelf in a submenu: the rail's partition and clock.
-        var partition = PartitionOf(projectRoot, WorkspaceOrder.Recent);
-        var others = partition.Live.Where(tree => tree.Path != active?.Path).ToArray();
-        var settled = partition.Settled.Where(row => row.Workspace.Path != active?.Path).ToArray();
-        if (others.Length == 0 && settled.Length == 0)
-            menu.Items.Add(new MenuItem { Header = gitLoading ? "Loading…" : "No other workspaces", IsEnabled = false });
-        foreach (var worktree in others) menu.Items.Add(SwitchOption(worktree, null));
-        if (settled.Length > 0)
-        {
-            var shelf = new MenuItem { Name = "ScopeWorkspaceSettled", Header = $"Settled · {settled.Length}" };
-            foreach (var row in settled) shelf.Items.Add(SwitchOption(row.Workspace, row));
-            menu.Items.Add(shelf);
-        }
-        menu.Items.Add(new Separator());
-        var create = Ui.IconMenu("New workspace", () => _ = CreateWorkspaceDialogAsync(), ActionIcon.Add, git.IsRepository);
-        create.Name = "ScopeWorkspaceNew";
-        create.InputGesture = WindowShortcuts.NewWorkspace.Gesture is { Key: not Avalonia.Input.Key.None } newWorkspaceChord ? newWorkspaceChord : null;
-        menu.Items.Add(create);
-    }
-
-    private MenuItem SwitchOption(WorkspaceRecord worktree, SettledRow? settled)
-    {
-        {
-            var name = WorkspaceName(worktree.Path);
-            var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { Ui.Text(name, Ui.TextBrush) } };
-            if (worktree.Branch.Length > 0 && worktree.Branch != name)
-                label.Children.Add(new TextBlock { Text = worktree.Branch, Foreground = Ui.Hint, FontSize = 12, FontFamily = Ui.CodeFont, VerticalAlignment = VerticalAlignment.Center });
-            var item = new MenuItem
-            {
-                Name = "ScopeWorkspaceOption",
-                Tag = worktree.Path,
-                Header = label,
-                Icon = ActionIcons.Create(worktree.Kind switch { WorkspaceKinds.Default => ActionIcon.Home, WorkspaceKinds.External => ActionIcon.OpenFolder, _ => ActionIcon.Branch })
-            };
-            if (settled is not null)
-            {
-                var chip = Ui.Text(WorkspaceSettling.Chip(settled, SettlingClock()), settled.Reason == SettledReason.ByYou ? Ui.Warning : Ui.Hint, 11);
-                chip.VerticalAlignment = VerticalAlignment.Center;
-                ToolTip.SetTip(chip, WorkspaceSettling.Explanation(settled, SettlingClock()));
-                label.Children.Add(chip);
-            }
-            item.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
-            AutomationProperties.SetName(item, name);
-            return item;
-        }
     }
 
     private void SetBranch(string branch)

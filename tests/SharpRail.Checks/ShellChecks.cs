@@ -491,7 +491,7 @@ internal static class ShellChecks
 
         bool Zoomed(double factor) => Math.Abs(window.Preferences.Zoom - factor) < 1e-9 && Math.Abs(InterfaceZoom.Current - factor) < 1e-9;
         Require(Zoomed(1), "The zoom fixture starts at 100%.");
-        double LabelHeight() { window.UpdateLayout(); var label = window.FindControl<TextBlock>("WorkspaceLabel")!; return label.Bounds.Height * label.TransformToVisual(window)!.Value.M22; }
+        double LabelHeight() { window.UpdateLayout(); var label = window.FindControl<TextBlock>("ProjectLabel")!; return label.Bounds.Height * label.TransformToVisual(window)!.Value.M22; }
         var labelAt100 = LabelHeight();
         Require(WorkbenchWindow.HeaderScale(0.5, 600, 900) == 1 && WorkbenchWindow.HeaderScale(1.5, 600, 900) == 1.5 && WorkbenchWindow.HeaderScale(1.5, 600, 300) == 1.5,
             "A header that fits stays at 100% when zooming out and zooms in as usual.");

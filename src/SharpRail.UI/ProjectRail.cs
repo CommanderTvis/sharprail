@@ -695,7 +695,7 @@ public sealed partial class WorkbenchWindow
         item.LostFocus += (_, _) => Reveal();
         menu.Opened += (_, _) => Reveal();
         menu.Closed += (_, _) => Reveal();
-        var main = renaming == worktree.Path && !renameInHeader ? RenameBox(new Thickness(4, 0, 32, 0), 28) : button;
+        var main = renaming == worktree.Path ? RenameBox(new Thickness(4, 0, 32, 0), 28) : button;
         Ui.Place(item, main);
         Grid.SetColumnSpan(main, 3);
         ShowSettle();

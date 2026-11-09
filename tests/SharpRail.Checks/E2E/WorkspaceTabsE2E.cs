@@ -86,7 +86,6 @@ internal static class WorkspaceTabsE2E
         Settle(100);
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"));
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot != project && app.Find<TextBlock>("BranchLabel").Text == name);
-        Require(app.Find<TextBlock>("WorkspaceLabel").Text == name, "The title bar must show the active workspace name.");
         return app.Window.WorkspaceRoot;
     }
 
@@ -98,8 +97,6 @@ internal static class WorkspaceTabsE2E
         Until(() => Target() is not null);
         app.Click(Target()!);
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == path && (branch is null || app.Find<TextBlock>("BranchLabel").Text == branch));
-        Require(app.Find<TextBlock>("WorkspaceLabel").Text == (path == app.Root ? "Default" : Path.GetFileName(path)),
-            "Switching workspaces must update the title bar scope.");
     }
 
     private static void DocumentIsolation(string root)

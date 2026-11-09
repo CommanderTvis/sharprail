@@ -218,7 +218,7 @@ confirmation gesture. Other platforms have no menu bar and keep their chords.
 
 ## Location bar
 
-`LocationBar.cs` renders the header's captioned segments — Project, Workspace, Branch — each a 14px row
+`LocationBar.cs` renders the header's captioned segments — Project and Branch — each a 14px row
 holding a sentence-case `ui.metadata` caption (12px, `Ui.Hint`) centred over a 20px value pill. Segments
 carry no hairlines: an 8px inset plus the pills' own padding is the separation, because full-height rules
 read as a table and never line up with the tab strip's dividers. Every pill value is one style and one
@@ -226,28 +226,21 @@ resting colour, `title.section` in `Ui.Muted`, brightening to `Ui.TextBrush` on 
 card is open (the pill's `open` class, which also gives it the selected fill). The chevron is hidden at rest
 and appears on hover, keyboard focus or while open. The project's initial sits in a neutral 16px tile
 (`Ui.Selected` fill, `Ui.Muted` `ui.caption` glyph), so the least important glyph is not the only coloured
-one. While the active workspace is settled the Workspace caption adds `· settled` in the warning tone. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
+one. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
 host state: it shows what the window already knows and calls the same methods as the panels.
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
   Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
-  project the segment reads `SharpRail` and the other two are absent.
-- WORKSPACE shows the active workspace's actions above Switch to (its live siblings from the host's workspace
-  registry, most recently active first after Default, with their branch when it differs from the name, then
-  a `Settled · N` submenu of the shelf's rows with their reason chips; an older host keeps its registry
-  order and no shelf) and New
-  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Copy absolute path, Open in,
-  Copy name, Reveal in file manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
-  attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
-  switcher and creation.
+  project the segment reads `SharpRail`.
+- The workspace has no cell here: the Projects rail names the active workspace, switches, creates and settles, and its
+  rows carry the workspace actions (Copy absolute path, Copy link for the active one, Open in, Copy name, Reveal in file
+  manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
+  attached one, Remove from SharpRail).
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
   untracked files will be permanently lost. Cancel has focus; only an explicit Delete anyway action
   retries with force. The committed branch remains, locked worktrees still refuse, and other deletion
   failures do not offer force removal. Cancelling or a failed retry leaves the workspace registered.
-- Rename replaces the pill with the same inline input and the same single rename state the Projects rail
-  uses; a flag says which of the two shows the input, so there is never a second request or a second
-  draft. A header rename is bound to the workspace it started on: landing anywhere else abandons it,
-  including a commit left pending while the host was unreachable.
+- Rename uses the Projects rail's inline input only.
 - Remove asks through the shared confirmation, which names the workspace it was opened for. When that was
   the active workspace and the window lands elsewhere before the answer, the dialog dismisses itself, so
   confirming can never remove a different workspace.
@@ -256,17 +249,17 @@ host state: it shows what the window already knows and calls the same methods as
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
   transient notice confirms), and Compare to, which is the Changes panel's own picker
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
-- REMOTE (ThinkRail #771, `BranchShip.cs`) is present for a mounted workspace's branch whenever the host reports a
+- The branch's sync state (ThinkRail #771, `BranchShip.cs`) sits beside the branch pill, inside the Branch segment, whenever the host reports a
   branch status. PULL REQUEST (ThinkRail #776) is not core: it is the location item of the repo hosting provider that
   owns the remote (Plugin API W28; today [GitHub](../SharpRail.Plugins.GitHub/SPEC.md)), absent without one, and the two
-  together turn the status into the branch's next step through one rule (`ShipActions`: Remote's step first, the
-  provider's after it). Remote reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync (the
+  together turn the status into the branch's next step through one rule (`ShipActions`: the sync step first, the
+  provider's after it). The sync state reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync (the
   shell-inert `git pull --rebase origin <branch>` to copy; never a force push). Pushing a branch that is its own
   base asks first and names it. The Pull request item shows `PR #N`, `Draft #N`, `Merged #N` or `Closed #N` (opening the
   pull request) with a checks glyph, or No PR / — ; its next step is Open PR and Draft (the Review panel's compose
   dialog), Ready for review, Merge PR (a dialog offering only the repository's methods and branch deletion,
   remembered per project in the profile), Reopen, or Delete remote branch. While the branch and origin differ the
-  step stays with Remote. Merge follows the provider's mergeability, never approvals. The status is read when the branch
+  step stays with the sync state. Merge follows the provider's mergeability, never approvals. The status is read when the branch
   changes, at most every 15 seconds on Git refreshes, after every action, and every 20 seconds while checks run.
   Not ported: Fix with agent and Ask agent to integrate (embedded chat is not ported yet), description sources,
   PR templates and Generate with agent, Merge locally, split-button menus (each step is one
@@ -274,11 +267,10 @@ host state: it shows what the window already knows and calls the same methods as
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
   title bar.
 - Every field is a muted caption over a value whose first element is a `LayoutRoles.LocationIconSlot` icon column
-  (project badge, workspace, branch, remote and pull-request icons; an empty state keeps its icon, muted, beside muted
+  (project badge, branch and pull-request icons; an empty state keeps its icon, muted, beside muted
   text), so the caption and the value's first element share one left edge in every field.
-- `LocationStrip` lays the segments out. As width shrinks Remote yields first, then the provider items, the branch and the project; a
-  segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
-  identity stays visible at the minimum window width.
+- `LocationStrip` lays the segments out. As width shrinks the provider items yield first, then the branch; a
+  segment that would fall under 72px is dropped whole, and the project keeps what is left.
 
 ## Resource renderers
 

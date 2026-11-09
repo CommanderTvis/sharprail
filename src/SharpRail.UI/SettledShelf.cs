@@ -37,11 +37,7 @@ public sealed partial class WorkbenchWindow
     {
         settleClock.Tick += (_, _) => RefreshSettling();
         settledNoticeDelay.Tick += (_, _) => { settledNoticeDelay.Stop(); ShowSettledNotice(); };
-        LocationChanged += () =>
-        {
-            if (ObserveActiveWorkspace()) UpdateRailSelection();
-            UpdateSettledCaption();
-        };
+        LocationChanged += () => { if (ObserveActiveWorkspace()) UpdateRailSelection(); };
         state.HandshakeChanged += SettlingHandshakeChanged;
         Closed += (_, _) => { settleClock.Stop(); settledNoticeDelay.Stop(); state.HandshakeChanged -= SettlingHandshakeChanged; };
         settleClock.Start();
@@ -137,13 +133,6 @@ public sealed partial class WorkbenchWindow
         var item = Ui.Menu(settled ? "Keep active" : "Settle", () => _ = SetSettledAsync(current, !settled));
         item.Name = settled ? "WorkspaceKeepActive" : "WorkspaceSettle";
         return item;
-    }
-
-    private void UpdateSettledCaption()
-    {
-        var caption = this.FindControl<TextBlock>("ScopeSettled");
-        if (caption is null) return;
-        caption.IsVisible = !atHome && workspaceRoot.Length > 0 && SettledRowOf(workspaceRoot) is not null;
     }
 
     /// <summary>
