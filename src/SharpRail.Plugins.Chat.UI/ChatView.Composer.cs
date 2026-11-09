@@ -112,6 +112,8 @@ internal sealed partial class ChatView
             Name = "ChatMenuPopup",
             PlacementTarget = input,
             Placement = PlacementMode.Top,
+            // The menu keeps its rows' height: where it cannot fit it slides or flips, and is never resized to the room the positioner finds.
+            PlacementConstraintAdjustment = MenuConstraintAdjustment,
             IsLightDismissEnabled = false,
             Child = menuFrame
         };
@@ -1334,6 +1336,8 @@ internal sealed partial class ChatView
 
     private Border menuFrame = null!;
     internal Border MenuFrame => menuFrame;
+    internal const Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment MenuConstraintAdjustment = Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.SlideX | Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.FlipY;
+    internal Popup MenuPopup => menu;
 
     // One row per entry, one line each: the name in a column of its own, the description after it, ellipsized and muted, the whole text in a
     // tooltip and the accessible name. A section title is a small muted label with room above it. The list virtualizes, so only the rows in

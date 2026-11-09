@@ -2673,8 +2673,19 @@ internal static class ClaudeChatUiChecks
             view.Input.Text = "@/tmp-fixture/"; view.Input.CaretIndex = view.Input.Text.Length;
             E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 4);
             Require(view.Menu.Items.Cast<object>().Select(item => item.ToString()!).SequenceEqual(["@/tmp-fixture/sub/", "@/tmp-fixture/my dir/", "@/tmp-fixture/a.txt", "@/tmp-fixture/b c.txt"]), "A path after @ lists that directory's entries, directories first with a trailing slash.");
+            // The popup sizes to its rows: every row is a full row high and the frame holds them all, after the list grew and after it shrank.
+            void RequireFullRows(int count, string when)
+            {
+                Frame(window); Frame(window);
+                var shown = view.Menu.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+                Require(shown.Count == count && shown.All(row => row.Bounds.Height >= ChatPopup.RowHeight - 0.5), $"{when}: {count} rows, each a full row high ({string.Join(", ", shown.Select(row => row.Bounds.Height.ToString("0")))}).");
+                Require(view.MenuFrame.Bounds.Height >= count * ChatPopup.RowHeight, $"{when}: the frame holds every row ({view.MenuFrame.Bounds.Height:0}).");
+            }
+            RequireFullRows(4, "Path menu");
+            Require((view.MenuPopup.PlacementConstraintAdjustment & (Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.ResizeX | Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.ResizeY)) == 0, "The menu popup is never resized by the positioner, so it keeps its rows' height.");
             view.Input.Text = "@/tmp-fixture/S"; view.Input.CaretIndex = view.Input.Text.Length;
             E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 1);
+            RequireFullRows(1, "Narrowed path menu");
             view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
             E2eWorkspace.Until(() => view.Input.Text == "@/tmp-fixture/sub/" && view.MenuOpen && view.Menu.ItemCount == 1 && view.Menu.Items.Cast<object>().Single().ToString() == "@/tmp-fixture/sub/deep.md");
             view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
