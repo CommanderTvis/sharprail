@@ -64,6 +64,8 @@ public sealed partial class WorkbenchWindow
         remoteRow.Children.Clear();
         var status = branchStatus;
         repoSurface?.Raise();
+        // An empty row takes no room, its left margin included, so the branch pill runs to the row's end.
+        remoteRow.IsVisible = status is not null;
         if (status is null) return;
         var remoteAction = RemoteAction(status);
         // Remote: its icon slot, its state, then its one action.

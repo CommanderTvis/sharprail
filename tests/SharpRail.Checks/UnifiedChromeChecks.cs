@@ -82,9 +82,16 @@ internal static class UnifiedChromeChecks
             Math.Abs(Left(app.Find<TextBlock>("ProjectLabel")) - Left(app.Find<TextBlock>("BranchLabel"))) < 0.5,
             "The project and branch values share one icon column and one text column.");
         var remote = app.Find<StackPanel>("RemoteRow");
-        var branchEnd = remote.Bounds.Width == 0 ? Right(branch) : Right(remote);
-        Require(Math.Abs(Right(project) - branchEnd) < 8.5 && header.Bounds.Width - Right(project) < 16.5 && project.Bounds.Width > header.Bounds.Width / 2,
-            $"The values fill the rail's width, the sync state at the right end of the branch row ({Right(project)}, {branchEnd}, {header.Bounds.Width}).");
+        var row = (Control)remote.Parent!;
+        // The value row ends one segment inset (8) before the rail's edge; its last cell ends exactly there.
+        var rowEnd = Right(row);
+        Require(Math.Abs(header.Bounds.Width - 8 - rowEnd) <= 1, $"The branch row ends one inset before the rail's edge ({rowEnd}, {header.Bounds.Width}).");
+        var lastEnd = remote.IsVisible && remote.Bounds.Width > 0 ? Right(remote) : Right(branch);
+        Require(Math.Abs(lastEnd - rowEnd) <= 1, $"The sync state (or the branch pill without one) sits flush at the right end of the branch row ({lastEnd}, {rowEnd}).");
+        Require(!OperatingSystem.IsMacOS() || Math.Abs(Right(project) - rowEnd) <= 1 && project.Bounds.Width > header.Bounds.Width / 2, "The project value fills the rail's width.");
+        var credits = app.Window.GetLogicalDescendants().OfType<Border>().FirstOrDefault(border => border.Name == "CreditsSegment");
+        if (credits is { IsVisible: true })
+            Require(credits.GetLogicalDescendants().OfType<Button>().Where(button => button.IsVisible).All(button => Math.Abs(Right(button) - rowEnd) <= 1), "The credits value fills the row like the others.");
         Require(Math.Abs(header.Bounds.Width - Right(app.Find<Button>("AppMenuButton"))) < 0.5 || !OperatingSystem.IsMacOS(), "The three-dots button ends the first row.");
     }
 
