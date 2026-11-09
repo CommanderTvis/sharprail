@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.UI;
@@ -35,6 +37,7 @@ internal static class UnifiedChromeChecks
             var entries = Entries(menu.Items).ToArray();
             Require(entries.Any(item => item.Name == "NewWindow") && entries.Any(item => Equals(item.Header, "Reset frame")) && entries.Any(item => Equals(item.Header, "Toggle right")),
                 $"The View menu lists its entries on round {round}: " + string.Join("|", entries.Select(item => item.Name + "/" + item.Header)));
+            Require(!unified || entries.Any(item => item.Name == "AboutMenu"), "The overflow menu keeps About reachable.");
             foreach (var entry in entries.Where(item => item.Items.Count > 0)) { entry.Open(); entry.Close(); }
             menu.Close();
             Until(() => !menu.IsOpen);
@@ -64,6 +67,25 @@ internal static class UnifiedChromeChecks
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any());
         app.Window.OpenSettingsViews.Single().Close();
+    }
+
+    /// <summary>The header's blocks share one left edge for their icon column, and their values fill the rail's width.</summary>
+    private static void Layout(E2eWorkspace app, StackPanel header)
+    {
+        double Left(Control control) => control.TranslatePoint(default, header)!.Value.X;
+        double Right(Control control) => Left(control) + control.Bounds.Width;
+        var project = app.Find<Button>("ScopeProject");
+        var branch = app.Find<Button>("ScopeBranch");
+        var initial = project.GetLogicalDescendants().OfType<Border>().Single(border => border.Classes.Contains("location-initial"));
+        var icon = app.Find<ContentControl>("BranchIcon");
+        Require(Math.Abs(Left(initial) - Left(icon)) < 0.5 && Math.Abs(Left(project) - Left(branch)) < 0.5 &&
+            Math.Abs(Left(app.Find<TextBlock>("ProjectLabel")) - Left(app.Find<TextBlock>("BranchLabel"))) < 0.5,
+            "The project and branch values share one icon column and one text column.");
+        var remote = app.Find<StackPanel>("RemoteRow");
+        var branchEnd = remote.Bounds.Width == 0 ? Right(branch) : Right(remote);
+        Require(Math.Abs(Right(project) - branchEnd) < 8.5 && header.Bounds.Width - Right(project) < 16.5 && project.Bounds.Width > header.Bounds.Width / 2,
+            $"The values fill the rail's width, the sync state at the right end of the branch row ({Right(project)}, {branchEnd}, {header.Bounds.Width}).");
+        Require(Math.Abs(header.Bounds.Width - Right(app.Find<Button>("AppMenuButton"))) < 0.5 || !OperatingSystem.IsMacOS(), "The three-dots button ends the first row.");
     }
 
     private static void Classic(string directory)
@@ -118,9 +140,16 @@ internal static class UnifiedChromeChecks
             var all = app.Window.GetLogicalDescendants().OfType<Control>().ToArray();
             Require(!all.Any(control => control.Name is "Tab_projects" or "leftRail" or "PaneTitle" && control.GetLogicalAncestors().Any(a => (a as Control)?.Name == "AuxiliaryRegion_left")) &&
                 !all.OfType<Button>().Any(button => button.Name == "Tab_projects"), "The rail has no title, icon or tool tabs.");
+            Require(InHeader(app.Find<Button>("AddProjectMenu")) && !all.OfType<TextBlock>().Any(text => text.Text == "PROJECTS"),
+                "The add button sits in the rail header and there is no caption row.");
+            var panel = app.Find<Grid>("ProjectsPanel");
+            Require(panel.RowDefinitions.Count == 1 && panel.Margin.Top == 0, "The project list starts right below the header blocks.");
+            Require(all.OfType<StackPanel>().Where(panel => panel.Name == "ProjectWorkspaces").All(panel => panel.IsVisible == panel.Children.Any(child => child.IsVisible)),
+                "A project with nothing visible under it takes no room beyond its own row, whether closed or expanded.");
             var footer = app.Find<StackPanel>("RailFooter");
-            Require(footer.IsLogicalAncestorOf(app.Find<Button>("SettingsButton")) && footer.IsLogicalAncestorOf(app.Find<Button>("AboutButton")),
-                "Settings and About close the right tool bar.");
+            Require(footer.IsLogicalAncestorOf(app.Find<Button>("SettingsButton")) && footer.GetLogicalChildren().Count() == 1,
+                "Settings alone closes the right tool bar.");
+            Layout(app, header);
             ViewMenu(app, unified: true);
             HeaderPopups(app);
             Console.WriteLine("PASS unified chrome: no top bar, the rail header, its menus and popups open, the right bar's Settings");

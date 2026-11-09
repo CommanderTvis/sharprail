@@ -409,6 +409,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         window.Name = "NewWindow";
         window.InputGesture = WindowShortcuts.NewWindow.Gesture is { Key: not Key.None } newWindowChord ? newWindowChord : null;
         menu.Items.Add(window);
+        // Without the top bar the app menu is the only other way to About on platforms that have none.
+        if (unified)
+        {
+            var about = Ui.Menu("About " + AboutInfo.Name, () => Dialogs.About(this));
+            about.Name = "AboutMenu";
+            menu.Items.Add(about);
+        }
     }
 
     /// <summary>The window-local default preset; a custom one deleted or renamed elsewhere falls back to Balanced.</summary>

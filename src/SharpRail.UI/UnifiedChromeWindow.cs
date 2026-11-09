@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Panels;
@@ -11,7 +12,7 @@ namespace SharpRail.UI;
 
 /// <summary>
 /// The window without a top bar (<see cref="UnifiedChrome"/>): the controls the bar carried move into a header on top of the Projects
-/// rail, and Settings and About into the footer of the right tool bar. The moved controls keep their names, so
+/// rail, and Settings into the footer of the right tool bar. The moved controls keep their names, so
 /// every reader of them is unchanged.
 /// </summary>
 public sealed partial class WorkbenchWindow
@@ -45,12 +46,15 @@ public sealed partial class WorkbenchWindow
         // Opening fires for a right-click only, so the button fills the menu itself.
         more.Click += (_, _) => { FillViewMenu(viewMenu); viewMenu.Open(more); };
 
+        // The add-project button leaves the rail's caption row (there is none) and sits beside the overflow button.
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { NewAddProjectButton(), more } };
+
         var header = new StackPanel { Name = "RailHeader", Spacing = 4, Margin = new Thickness(0, 0, 0, 8) };
         if (OperatingSystem.IsMacOS())
         {
             // The traffic lights sit over the top-left of this row, which is the window's draggable title region.
             railLightsRow = new Grid { Name = "RailLightsRow", ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-            Ui.Place(railLightsRow, more, 0, 1);
+            Ui.Place(railLightsRow, actions, 0, 1);
             header.Children.Add(railLightsRow);
         }
 
@@ -68,25 +72,51 @@ public sealed partial class WorkbenchWindow
         {
             // Without window chrome to clear, the overflow button shares the project's row.
             var line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-            Ui.Place(line, project); Ui.Place(line, more, 0, 1);
+            Ui.Place(line, project); Ui.Place(line, actions, 0, 1);
             header.Children.Add(line);
         }
         else header.Children.Add(project);
-        // The sync state wraps under the branch pill: a rail is narrower than the bar's cell.
+        // Every block is one pattern: a caption over a value row with the same insets, icon column and height. The value pill fills the
+        // rail's width, and the branch's sync state sits at the right end of its own row.
+        foreach (var pill in new[] { "ScopeProject", "ScopeBranch" }) this.FindControl<Button>(pill)!.HorizontalAlignment = HorizontalAlignment.Stretch;
         var remote = this.FindControl<StackPanel>("RemoteRow")!;
         if (remote.Parent is Grid branchLine)
         {
-            branchLine.ColumnDefinitions = new ColumnDefinitions("*");
-            branchLine.RowDefinitions = new RowDefinitions("Auto,Auto");
-            Grid.SetColumn(remote, 0); Grid.SetRow(remote, 1);
-            remote.Margin = new Thickness(8, 2, 0, 0);
+            branchLine.ColumnDefinitions = new ColumnDefinitions("*,Auto");
+            remote.HorizontalAlignment = HorizontalAlignment.Right;
         }
         header.Children.Add(branch);
         header.Children.Add(pullRequest);
 
-        // The status marks and the plugins' header items share one wrapping row under the branch block.
-        var marks = new WrapPanel { Name = "RailStatus", Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0, 8, 0) };
+        // The plugins' header items (the credits) take the same captioned block under the branch.
         var tools = this.FindControl<StackPanel>("HeaderTools")!;
+        var items = tools.Children.OfType<Plugins.PluginHeaderItems>().Single();
+        tools.Children.Remove(items);
+        var credits = new Border { Name = "CreditsSegment", Padding = new Thickness(8, 0, 8, 0), IsVisible = false };
+        var creditsCaption = new TextBlock { Text = "Credits" };
+        creditsCaption.Classes.Add("location-caption"); creditsCaption.Classes.Add("tr-text-metadata");
+        var creditsRows = new Grid { RowDefinitions = new RowDefinitions("14,20"), VerticalAlignment = VerticalAlignment.Center };
+        Ui.Place(creditsRows, creditsCaption); creditsRows.Children.Add(items); Grid.SetRow(items, 1);
+        items.Orientation = Orientation.Vertical; items.HorizontalAlignment = HorizontalAlignment.Stretch;
+        credits.Child = creditsRows;
+        var adopted = new HashSet<Button>();
+        items.LayoutUpdated += (_, _) =>
+        {
+            var buttons = items.GetLogicalDescendants().OfType<Button>().ToArray();
+            credits.IsVisible = buttons.Any(button => button.IsVisible);
+            foreach (var button in buttons.Where(adopted.Add))
+            {
+                // The value is a pill like the project's: the same inset, icon column and text role, filling the row.
+                button.Padding = new Thickness(8, 0); button.Height = 20; button.HorizontalAlignment = HorizontalAlignment.Stretch;
+                button.HorizontalContentAlignment = HorizontalAlignment.Left;
+                button.Classes.Add("location-pill"); button.Classes.Add("tr-title-section");
+                foreach (var text in button.GetLogicalDescendants().OfType<TextBlock>()) Typography.Apply(text, Typography.TitleSection);
+            }
+        };
+        header.Children.Add(credits);
+
+        // The remaining status marks share one wrapping row, inset to the icon column.
+        var marks = new WrapPanel { Name = "RailStatus", Orientation = Orientation.Horizontal, Margin = new Thickness(12, 0, 8, 0) };
         var settings = this.FindControl<Button>("SettingsButton")!;
         foreach (var control in tools.Children.Where(child => !ReferenceEquals(child, settings)).ToArray())
         {
@@ -95,27 +125,13 @@ public sealed partial class WorkbenchWindow
         }
         header.Children.Add(marks);
 
-        // Settings and About close the right tool bar; Settings keeps its name, chord and tooltip.
+        // Settings closes the right tool bar and keeps its name, chord and tooltip.
         tools.Children.Remove(settings);
         settings.IsVisible = true;
-        var about = new Button
-        {
-            Name = "AboutButton",
-            Content = Ui.Icon("alertInfo"),
-            Width = 32,
-            Height = 32,
-            Padding = new Thickness(0),
-            Background = Avalonia.Media.Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(0)
-        };
-        ((Border)about.Content!).Bind(Border.BackgroundProperty, about.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
-        ToolTip.SetTip(about, "About"); AutomationProperties.SetName(about, "About");
-        about.Click += (_, _) => Dialogs.About(this);
         SuppressButtonMenus(header);
         header.ContextMenu = NewViewMenu();
         surface.LeftHeader = header;
-        surface.RightRailFooter = new StackPanel { Name = "RailFooter", Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4), Children = { about, settings } };
+        surface.RightRailFooter = new StackPanel { Name = "RailFooter", Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4), Children = { settings } };
         ApplyChromeZoom();
     }
 

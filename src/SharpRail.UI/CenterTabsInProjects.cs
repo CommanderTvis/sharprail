@@ -114,6 +114,7 @@ public sealed partial class WorkbenchWindow
                     }
                 ReconcileRailChildren(strips, children);
                 if (!ReferenceEquals(host.Content, strips)) host.Content = strips;
+                host.IsVisible = children.Count > 0;
                 foreach (var extra in workspaceTabSegments.GetValueOrDefault(workspace) ?? []) { extra.Content = null; extra.IsVisible = false; }
             }
             else
@@ -131,6 +132,8 @@ public sealed partial class WorkbenchWindow
                 workspaceTabPreviewSignatures[workspace] = signature;
                 var segments = WorkspaceTabsPreview(workspace, breaks);
                 host.Content = segments[0];
+                // An empty list takes no room, its bottom margin and the rail's spacing included.
+                host.IsVisible = host.Content is not null;
                 var hosts = workspaceTabSegments.GetValueOrDefault(workspace) ?? [];
                 for (var index = 0; index < hosts.Count; index++)
                 {
@@ -139,6 +142,14 @@ public sealed partial class WorkbenchWindow
                 }
             }
         }
+        ShowOccupiedWorkspaces();
+    }
+
+    /// <summary>An expanded project whose workspace panel holds nothing visible takes the room of a closed one: none beyond its own row.</summary>
+    private void ShowOccupiedWorkspaces()
+    {
+        foreach (var (project, entry) in projectRailRows)
+            entry.Workspaces.IsVisible = !Collapsed(project) && entry.Workspaces.Children.Any(child => child.IsVisible);
     }
 
     // Another workspace's tabs, read-only, from its retained documents, drawn like the live strip: one section per group,

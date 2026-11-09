@@ -160,7 +160,8 @@ internal sealed class AirCreditsHeader : Button
 {
     private readonly AirCreditsFeed feed;
     private readonly TextBlock label;
-    private readonly ContentControl icon = new();
+    // One 16 wide icon column, as the header's other values have.
+    private readonly ContentControl icon = new() { Width = 16, HorizontalContentAlignment = HorizontalAlignment.Center };
     private Window? window;
     private bool warning;
 

@@ -158,6 +158,7 @@ public sealed partial class WorkbenchWindow
         FillTabTails();
         foreach (var update in railSelection.Values) update();
         placeProjectTrailing?.Invoke();
+        ShowOccupiedWorkspaces();
     }
 
     // Rows listed under a tab of the open workspace, by tab id, and filled into that tab's slot in the live strip.
@@ -344,26 +345,36 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    private Control ProjectsPanel()
+    /// <summary>The button that adds a project or starts work from the project menu.</summary>
+    private Button NewAddProjectButton()
     {
-        railSignature = RailSignature();
-        railStats.Clear();
-        railSelection.Clear(); projectRailRows.Clear(); workspaceTabHosts.Clear(); workspaceTabPreviewSignatures.Clear();
-        pendingWorkspaceTabs = null;
-        var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12, 12, 0, 12), RowDefinitions = new RowDefinitions("28,8,*") };
-        projectsPanel = panel;
-        ConfigureProjectsTouch(panel, OperatingSystem.IsAndroid());
-        var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 16, 0) };
-        var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
-        Ui.Place(toolbar, title);
         var open = Ui.IconButton("add", "Add project", () => { });
         open.Name = "AddProjectMenu";
         var addMenu = ProjectMenu();
         open.ContextMenu = addMenu;
         open.Click += (_, _) => { FillProjectMenu(addMenu); addMenu.Open(open); };
         open.Width = open.Height = 28;
-        Ui.Place(toolbar, open, 0, 1);
-        Ui.Place(panel, toolbar);
+        return open;
+    }
+
+    private Control ProjectsPanel()
+    {
+        railSignature = RailSignature();
+        railStats.Clear();
+        railSelection.Clear(); projectRailRows.Clear(); workspaceTabHosts.Clear(); workspaceTabPreviewSignatures.Clear();
+        pendingWorkspaceTabs = null;
+        var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12, unified ? 0 : 12, 0, 12), RowDefinitions = new RowDefinitions(unified ? "*" : "28,8,*") };
+        projectsPanel = panel;
+        ConfigureProjectsTouch(panel, OperatingSystem.IsAndroid());
+        // The unified rail has no caption row: its header carries the add button.
+        if (!unified)
+        {
+            var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 16, 0) };
+            var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
+            Ui.Place(toolbar, title);
+            Ui.Place(toolbar, NewAddProjectButton(), 0, 1);
+            Ui.Place(panel, toolbar);
+        }
         // The gutter belongs inside the scroller, beside the rows' trailing buttons.
         projectsTree = new StackPanel { Name = "ProjectsTree", Spacing = 4, Margin = new Thickness(0, 0, 12, 0) };
         // A tab strip in a rail row reveals its active tab inside the strip; the request must not also scroll the rail,
@@ -388,7 +399,7 @@ public sealed partial class WorkbenchWindow
             add.IsEnabled = WorkspaceMounted;
         };
         UpdateRailSelection();
-        Ui.Place(panel, railScroller = new ScrollViewer { Content = projectsTree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
+        Ui.Place(panel, railScroller = new ScrollViewer { Content = projectsTree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, unified ? 0 : 2);
         return panel;
     }
 
@@ -439,7 +450,7 @@ public sealed partial class WorkbenchWindow
             countText.Text = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             countText.IsVisible = folded && count > 0;
             ToolTip.SetTip(toggle, folded ? "Expand project" : "Collapse project");
-            workspaces.IsVisible = !folded;
+            workspaces.IsVisible = !folded && workspaces.Children.Any(child => child.IsVisible);
         };
         select.Content = projectLabel;
         select.Background = Avalonia.Media.Brushes.Transparent;
