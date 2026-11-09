@@ -184,6 +184,12 @@ the window (a second double-click restores it), `Minimize` minimizes, anything e
 double-click arriving while the previous one is still resolving is dropped, and full screen ignores it.
 Other platforms, and windows with no native handle, zoom.
 
+## Popups
+
+Popups never leave the window: every context menu, submenu, flyout, dropdown and autocomplete list slides and flips to lie
+inside the window that opened it, with a menu's icons inside the menu. Tooltips are exempt. One app-level rule enforces
+this, so no menu or dropdown places itself.
+
 ## Application menu
 
 On macOS the native menu bar is installed before the first window opens. Every item is only a second way into

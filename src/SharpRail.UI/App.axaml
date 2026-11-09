@@ -137,6 +137,7 @@
       <Setter Property="MaxHeight" Value="480" />
       <Setter Property="MaxWidth" Value="420" />
       <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+      <Setter Property="PlacementConstraintAdjustment" Value="SlideX, SlideY, FlipX, FlipY" />
     </Style>
     <!-- Every menu row, built in XAML or code, gets the same inner padding; the chevron keeps Fluent's own column. -->
     <Style Selector="ContextMenu">
@@ -152,6 +153,7 @@
     <!-- Menus, flyouts and tooltips scale with the page zoom of the window that opened them. -->
     <Style Selector="Popup">
       <Setter Property="InheritsTransform" Value="True" />
+      <Setter Property="PlacementConstraintAdjustment" Value="SlideX, SlideY, FlipX, FlipY" />
     </Style>
     <Style Selector="TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
       <Setter Property="Width" Value="16" />

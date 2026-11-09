@@ -53,6 +53,18 @@ public sealed partial class App : Application
                 item.SubmenuOpened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() => SnapSubmenu(item, popup), Avalonia.Threading.DispatcherPriority.Loaded);
         });
         MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
+        // No popup leaves its window: the positioner slides and flips against the screen, which lets a menu opened near the window's
+        // edge hang outside it, so every opened popup (menu, submenu, flyout, dropdown, autocomplete; not tooltips) is kept inside.
+        Avalonia.Controls.Primitives.Popup.IsOpenProperty.Changed.AddClassHandler<Avalonia.Controls.Primitives.Popup>((popup, change) =>
+        {
+            if (change.NewValue is true) Avalonia.Threading.Dispatcher.UIThread.Post(() => KeepPopupInWindow(popup, 3), Avalonia.Threading.DispatcherPriority.Loaded);
+            else if (PopupShifts.TryGetValue(popup, out var shift))
+            {
+                popup.HorizontalOffset -= shift.Value.X;
+                popup.VerticalOffset -= shift.Value.Y;
+                PopupShifts.Remove(popup);
+            }
+        });
         // Fluent's menu rows share icon, shortcut and chevron columns, which only settle after the first layout pass. A native
         // popup sized from that pass is narrower than its rows (clipping the icons and chevrons of mixed menus), so measure again.
         MenuBase.OpenedEvent.AddClassHandler<ContextMenu>((menu, _) =>
@@ -143,14 +155,53 @@ public sealed partial class App : Application
     // room of its own: shift it so the submenu's visible edge touches the parent menu's visible edge, as a native menu does.
     private static void SnapSubmenu(MenuItem item, Avalonia.Controls.Primitives.Popup popup)
     {
-        if (!popup.IsOpen || popup.Child is not Visual child || TopLevel.GetTopLevel(item) is not { } top) return;
+        // Only a real, open submenu popup of a row that has a submenu: anything else (and a submenu the positioner flipped or slid
+        // far from its parent) keeps the placement it was given.
+        if (!item.HasSubMenu || !item.IsSubMenuOpen || !popup.IsOpen || popup.Child is not Visual child || TopLevel.GetTopLevel(item) is not { } top) return;
         var surface = item.GetVisualAncestors().TakeWhile(visual => visual != top).LastOrDefault() ?? item;
         if (TopLevel.GetTopLevel(child) is not { } childTop || surface.TranslatePoint(default, top) is not { } origin
             || child.TranslatePoint(default, childTop) is not { } childOrigin) return;
         var parentRight = top.PointToScreen(new Point(origin.X + surface.Bounds.Width, 0)).X;
         var childLeft = childTop.PointToScreen(childOrigin).X;
-        var gap = (childLeft - parentRight) / top.RenderScaling;
-        if (Math.Abs(gap) > 0.5) popup.HorizontalOffset -= gap;
+        // The window clamp's own shift is not part of the gap to correct.
+        var kept = PopupShifts.TryGetValue(popup, out var shift) ? shift.Value.X : 0;
+        var gap = (childLeft - parentRight) / top.RenderScaling - kept;
+        if (Math.Abs(gap) > 0.5 && Math.Abs(gap) <= SnapReach) popup.HorizontalOffset -= gap;
+        KeepPopupInWindow(popup, 2);
+    }
+
+    // The most a submenu may be off its parent's edge and still be snapped to it.
+    private const double SnapReach = 24;
+
+    // What the window clamp shifted each popup by, so closing the popup gives back the offset it was opened with.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Avalonia.Controls.Primitives.Popup, System.Runtime.CompilerServices.StrongBox<Vector>> PopupShifts = [];
+
+    // Moves an open popup by the least it takes to lie inside the window that owns it (or aligns it to the window's top left when it is bigger).
+    // Positions are compared on screen, so native popup windows and overlay popups are treated alike.
+    private static void KeepPopupInWindow(Avalonia.Controls.Primitives.Popup popup, int attempts)
+    {
+        if (!popup.IsOpen || popup.Child is not Visual child || popup.Child is ToolTip || popup.Parent is ToolTip) return;
+        var owner = TopLevel.GetTopLevel(popup.PlacementTarget) ?? TopLevel.GetTopLevel(popup) ?? (popup.Parent is Visual parent ? TopLevel.GetTopLevel(parent) : null);
+        while (owner is PopupRoot root && root.ParentTopLevel is { } outer) owner = outer;
+        if (owner is null or PopupRoot || TopLevel.GetTopLevel(child) is not { } host || child.Bounds.Width <= 0 || child.Bounds.Height <= 0
+            || child.TranslatePoint(default, host) is not { } local) return;
+        var origin = host.PointToScreen(local);
+        var bounds = owner.PointToScreen(default);
+        var dx = Shift(origin.X, origin.X + child.Bounds.Width * host.RenderScaling, bounds.X, bounds.X + owner.ClientSize.Width * owner.RenderScaling) / owner.RenderScaling;
+        var dy = Shift(origin.Y, origin.Y + child.Bounds.Height * host.RenderScaling, bounds.Y, bounds.Y + owner.ClientSize.Height * owner.RenderScaling) / owner.RenderScaling;
+        if (dx == 0 && dy == 0) return;
+        popup.HorizontalOffset += dx;
+        popup.VerticalOffset += dy;
+        var total = PopupShifts.GetOrCreateValue(popup);
+        total.Value += new Vector(dx, dy);
+        if (attempts > 1) Avalonia.Threading.Dispatcher.UIThread.Post(() => KeepPopupInWindow(popup, attempts - 1), Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    // How far [low, high] must move to lie inside [min, max]; a span wider than the room starts at min. Whole pixels below one are ignored.
+    private static double Shift(double low, double high, double min, double max)
+    {
+        var shift = high - low >= max - min ? min - low : low < min ? min - low : high > max ? max - high : 0;
+        return Math.Abs(shift) < 1 ? 0 : shift;
     }
 
     // The icon presenter is 16 wide plus the icon gap: the room a row's icon needs in the icon column from the first pass.

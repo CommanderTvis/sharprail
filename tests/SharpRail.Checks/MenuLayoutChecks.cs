@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -155,6 +156,99 @@ internal static class MenuLayoutChecks
         LazyTabMenu();
         BottomPadding();
         ShortcutsFit();
+        PopupsStayInWindow();
+    }
+
+    // Every menu the app builds, by the shape its builder gives it. A new menu is added here, and a menu that leaves the window fails the sweep.
+    private static (string Name, Func<ContextMenu> Build)[] SweptMenus() =>
+    [
+        ("project row", () => Menu(("Copy absolute path", ActionIcon.CopyAbsolutePath), ("Start work", ActionIcon.Add), ("Open existing worktree", ActionIcon.Branch), ("Rename", ActionIcon.EnterPath), ("Close project", ActionIcon.Close))),
+        ("workspace row", () => Menu(("Rename", ActionIcon.EnterPath), ("Copy path", ActionIcon.CopyPath), ("Delete workspace", ActionIcon.Delete))),
+        ("tab", () => { var menu = Menu(("Close", ActionIcon.Close), ("Copy path", ActionIcon.CopyPath), ("Copy absolute path", ActionIcon.CopyAbsolutePath)); menu.Items.Add(Ui.Menu("Close group", () => { })); var split = new MenuItem { Header = "Split" }; split.Items.Add(Ui.Menu("Right", () => { })); menu.Items.Add(split); return menu; }),
+        ("tab with Group with", () => { var menu = Menu(("Close", ActionIcon.Close)); DockSurface.AddGroupWith(menu, [new("GroupWith_a", "A", () => { }), new("GroupWith_b", "B", () => { })]); return menu; }),
+        ("header View", () => { var menu = Menu(("Files", ActionIcon.Check), ("Changes", ActionIcon.Check)); menu.Items.Add(new Separator()); menu.Items.Add(Ui.Menu("Reset layout", () => { })); return menu; }),
+        ("branch", () => Menu(("Check out", ActionIcon.Check), ("Copy name", ActionIcon.CopyPath), ("Delete branch", ActionIcon.Delete))),
+        ("file tree", () => Menu(("New file…", ActionIcon.NewFile), ("Rename…", ActionIcon.EnterPath), ("Copy path", ActionIcon.CopyPath), ("Delete file", ActionIcon.Delete))),
+        ("settings theme choice", () => { var menu = new ContextMenu { MinWidth = 280 }; foreach (var label in new[] { "SharpRail Light", "Solarized Light", "GitHub Light" }) menu.Items.Add(Ui.Menu(label, () => { })); return menu; }),
+        ("long labels", () => { var menu = Menu(("Open build definition for the selected project in the workspace", ActionIcon.EnterPath)); for (var i = 0; i < 40; i++) menu.Items.Add(Ui.Menu("Commit " + i, () => { })); return menu; }),
+    ];
+
+    private static ContextMenu Menu(params (string Label, ActionIcon Icon)[] rows)
+    {
+        var menu = new ContextMenu();
+        foreach (var (label, icon) in rows) menu.Items.Add(Ui.IconMenu(label, () => { }, icon));
+        return menu;
+    }
+
+    private static (double X, double Y, double Width, double Height) ScreenBounds(Control control)
+    {
+        var top = TopLevel.GetTopLevel(control)!;
+        var origin = top.PointToScreen(control.TranslatePoint(default, top)!.Value);
+        return (origin.X, origin.Y, control.Bounds.Width * top.RenderScaling, control.Bounds.Height * top.RenderScaling);
+    }
+
+    private static bool Inside((double X, double Y, double Width, double Height) inner, (double X, double Y, double Width, double Height) outer) =>
+        inner.X >= outer.X - 1 && inner.Y >= outer.Y - 1 && inner.X + inner.Width <= outer.X + outer.Width + 1 && inner.Y + inner.Height <= outer.Y + outer.Height + 1;
+
+    private static void Settle()
+    {
+        for (var i = 0; i < 4; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    // Popups never leave the window: every menu, opened with its anchor against each edge of a narrow window and under each placement, lies inside
+    // the window with its icons inside the menu, and so do a combo box dropdown and a flyout.
+    private static void PopupsStayInWindow()
+    {
+        var alignments = new (string Name, HorizontalAlignment Horizontal, VerticalAlignment Vertical)[]
+        {
+            ("left", HorizontalAlignment.Left, VerticalAlignment.Center), ("right", HorizontalAlignment.Right, VerticalAlignment.Center),
+            ("top", HorizontalAlignment.Center, VerticalAlignment.Top), ("bottom", HorizontalAlignment.Center, VerticalAlignment.Bottom),
+            ("top left", HorizontalAlignment.Left, VerticalAlignment.Top), ("bottom right", HorizontalAlignment.Right, VerticalAlignment.Bottom),
+        };
+        foreach (var (name, build) in SweptMenus())
+            foreach (var placement in new[] { Avalonia.Controls.PlacementMode.Pointer, Avalonia.Controls.PlacementMode.BottomEdgeAlignedLeft, Avalonia.Controls.PlacementMode.BottomEdgeAlignedRight })
+                foreach (var (edge, horizontal, vertical) in alignments)
+                {
+                    var anchor = new Button { Content = "x", Width = 60, Height = 24, HorizontalAlignment = horizontal, VerticalAlignment = vertical };
+                    var window = new Window { Width = 480, Height = 320, Content = new Grid { Children = { anchor } } };
+                    window.Show();
+                    var menu = build();
+                    menu.Placement = placement;
+                    anchor.ContextMenu = menu;
+                    menu.Open(anchor);
+                    Settle();
+                    var label = $"{name} menu, {placement}, anchor at the {edge}";
+                    Require(menu.IsOpen, $"{label}: the menu did not open.");
+                    var popup = ScreenBounds(menu);
+                    var area = ScreenBounds(window);
+                    Require(Inside(popup, area), $"{label}: the popup spans {popup} but the window is {area}.");
+                    foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null))
+                    {
+                        var icon = ScreenBounds(item.GetVisualDescendants().OfType<ContentControl>().First(part => part.Name == "PART_IconPresenter"));
+                        Require(Inside(icon, popup), $"{label}: the icon of '{item.Header}' spans {icon}, outside the menu {popup}.");
+                    }
+                    menu.Close();
+                    window.Close();
+                }
+        foreach (var (edge, horizontal, vertical) in alignments)
+        {
+            var combo = new ComboBox { Width = 120, HorizontalAlignment = horizontal, VerticalAlignment = vertical, ItemsSource = Enumerable.Range(1, 30).Select(i => "Option " + i).ToArray(), SelectedIndex = 0 };
+            var window = new Window { Width = 480, Height = 320, Content = new Grid { Children = { combo } } };
+            window.Show();
+            combo.IsDropDownOpen = true;
+            Settle();
+            var child = combo.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Popup>().Single().Child!;
+            var bounds = ScreenBounds(child);
+            Require(Inside(bounds, ScreenBounds(window)), $"combo box dropdown, anchor at the {edge}: the dropdown spans {bounds} but the window is {ScreenBounds(window)}.");
+            combo.IsDropDownOpen = false;
+            window.Close();
+        }
+        Console.WriteLine("PASS menu layout: every swept menu, a combo box dropdown and their icons stay inside the window at every edge");
     }
 
     // A menu with shortcuts (the editor's language menu): the popup is born wide enough for the widest label, a gap and the widest shortcut, at several font sizes.
