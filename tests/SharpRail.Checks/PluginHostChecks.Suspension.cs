@@ -48,7 +48,11 @@ internal static partial class PluginHostChecks
             await Status(composed, "the fixture to start", PluginStatus.Active, "trunk", "leaf-a", "leaf-b", "twig");
 
             // A cascade remembers who was on, and what it waited for; the one the user had off is not remembered.
-            await composed.Enable("trunk", false);
+            // The marks land in the very batch that switches the dependency off, before the runtime reacts to it.
+            await composed.State.ChangeAsync([HostStateChange.PluginEnabled("trunk", false)]);
+            Require(Suspended(composed, "leaf-a") == "trunk" && Suspended(composed, "twig") == "leaf-a" && Suspended(composed, "leaf-off") is null,
+                "The cascade and the marks are one batch.");
+            await composed.Runtime.Schedule();
             await Marked(composed, "the cascade to be remembered", ("leaf-a", "trunk"), ("leaf-b", "trunk"), ("twig", "leaf-a"), ("leaf-off", null), ("trunk", null));
             await Status(composed, "the cascade to settle", PluginStatus.Disabled, "leaf-a", "leaf-b", "twig");
             var roster = (await composed.Runtime.ListAsync()).ToDictionary(entry => entry.Id);

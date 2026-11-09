@@ -124,8 +124,11 @@ public sealed partial class HostStateStore : IHostStateService
     /// </summary>
     public Func<string, JsonElement, JsonElement>? PluginNamespaceValidator { get; set; }
 
-    /// <summary>Every transitive dependent of a plugin, so turning it off turns them off in the same batch.</summary>
-    public Func<string, IReadOnlyList<string>>? PluginDependents { get; set; }
+    /// <summary>
+    /// Every transitive dependent of a plugin given the namespaces stored now, so turning it off turns them off in the same
+    /// batch. A dependent that was on carries the dependency that took it down, which the batch writes as its suspension mark.
+    /// </summary>
+    public Func<string, IReadOnlyDictionary<string, JsonElement>, IReadOnlyList<(string Id, string? Cause)>>? PluginDependents { get; set; }
 
     /// <summary>Opens the store; when the directory has no state file yet, <paramref name="seed"/> supplies migrated state.</summary>
     /// <param name="verticalCenterTabs">The embedded desktop profile's fallback for a previously unset tab mode.</param>
@@ -924,8 +927,14 @@ public sealed partial class HostStateStore : IHostStateService
         if (patch is not null && PluginNamespaceValidator is { } validate) element = validate(id, element);
         namespaces[id] = element;
         if (patch?["enabled"]?.GetValue<bool>() == false && PluginDependents is { } dependents)
-            foreach (var dependent in dependents(id))
-                namespaces[dependent] = JsonSerializer.SerializeToElement(Merge(namespaces.GetValueOrDefault(dependent), new JsonObject { ["enabled"] = false }), HostJson.Default.JsonObject);
+            foreach (var (dependent, cause) in dependents(id, current.PluginSettings))
+            {
+                var off = new JsonObject { ["enabled"] = false };
+                // The memory of what was switched off goes in the same batch; an older mark is kept.
+                if (cause is not null && !(namespaces.GetValueOrDefault(dependent) is { ValueKind: JsonValueKind.Object } held && held.TryGetProperty("suspendedBy", out _)))
+                    off["suspendedBy"] = cause;
+                namespaces[dependent] = JsonSerializer.SerializeToElement(Merge(namespaces.GetValueOrDefault(dependent), off), HostJson.Default.JsonObject);
+            }
         var changed = namespaces.Count != current.PluginSettings.Count || namespaces.Any(entry =>
             !current.PluginSettings.TryGetValue(entry.Key, out var previous) || !JsonElement.DeepEquals(previous, entry.Value));
         return changed ? current with { PluginSettings = namespaces } : current;

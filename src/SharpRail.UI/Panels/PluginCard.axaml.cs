@@ -112,7 +112,7 @@ internal sealed partial class PluginCard : Border
         status.Foreground = troubled ? Ui.Danger : Ui.Hint;
         Text(description, entry.Description);
         Text(contributions, Summary(entry));
-        Text(reason, troubled ? entry.Reason ?? entry.Status.ToString().ToLowerInvariant() : model.Locked);
+        Text(reason, troubled ? entry.Reason ?? entry.Status.ToString().ToLowerInvariant() : entry.Status == Status.Disabled && entry.Reason is { Length: > 0 } why ? "off \u00b7 " + why : model.Locked);
         Text(dependents, model.Dependents.Count > 0 ? $"Also used by {string.Join(", ", model.Dependents)}. Disabling turns them off too." : null);
         retry.IsVisible = entry.Status == Status.Failed;
         AutomationProperties.SetName(toggle, entry.Label + " enabled");

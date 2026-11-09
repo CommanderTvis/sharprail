@@ -55,7 +55,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     public Task Start()
     {
         Seams.State.PluginNamespaceValidator = ValidateNamespace;
-        Seams.State.PluginDependents = id => { lock (gate) return registry.Dependents(id); };
+        Seams.State.PluginDependents = Cascade;
         Seams.State.LanguageServerSource = LanguageServerSpecs;
         if (Seams.Terminals is { } terminals)
         {
@@ -107,9 +107,34 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             {
                 var row = entry.Roster();
                 return row is { Status: PluginStatus.Disabled, Reason: null } && settings.TryGetValue(entry.Id, out var space) && PluginSuspension.Mark(space) is { } cause
-                    ? row with { Reason = "requires " + cause }
+                    ? row with { Reason = "requires " + (registry.Get(cause)?.Manifest.Label is { Length: > 0 } label ? label : cause) }
                     : row;
             }).ToArray();
+    }
+
+    // The dependents a switch-off takes down, nearest first, each with the dependency that was on and is now going off
+    // (null when the dependent was not on, so there is nothing to remember).
+    private IReadOnlyList<(string Id, string? Cause)> Cascade(string id, IReadOnlyDictionary<string, JsonElement> settings)
+    {
+        lock (gate)
+        {
+            var down = new HashSet<string>();
+            if (registry.Get(id) is { } root && Enabled(root, settings, Seams.Kind)) down.Add(id);
+            var result = new List<(string, string?)>();
+            foreach (var dependent in registry.Dependents(id))
+            {
+                var entry = registry.Get(dependent);
+                string? cause = null;
+                if (entry is not null && Enabled(entry, settings, Seams.Kind) &&
+                    entry.Manifest.DependsOn.Select(dependency => dependency.Id).FirstOrDefault(down.Contains) is { } found)
+                {
+                    cause = found;
+                    down.Add(dependent);
+                }
+                result.Add((dependent, cause));
+            }
+            return result;
+        }
     }
 
     // Suspension: a dependent switched off by its dependency's switch-off comes back with it.
