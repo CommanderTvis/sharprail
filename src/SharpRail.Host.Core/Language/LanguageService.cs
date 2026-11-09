@@ -333,7 +333,8 @@ public sealed partial class LanguageService : IAsyncDisposable
                 deadline.CancelAfter(TimeSpan.FromMinutes(15));
                 // A workspace just created is still receiving its cloned restore and build outputs; starting without them costs a full restore.
                 candidate.Detail = "Waiting for the workspace's cloned build outputs…";
-                await WorkspaceClone.WhenClonedAsync(workspace, LanguageLimits.CloneWait, deadline.Token);
+                try { await WorkspaceClone.WhenClonedAsync(workspace, LanguageLimits.CloneWait, deadline.Token); }
+                finally { candidate.Detail = "Installing or locating the language server…"; }
                 // A host with no processes runs the servers it has in its own page, and has no others to start.
                 ILanguageProcess? link = null;
                 if (OperatingSystem.IsBrowser())
