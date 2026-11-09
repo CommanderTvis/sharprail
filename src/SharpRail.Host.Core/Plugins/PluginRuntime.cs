@@ -101,7 +101,43 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     private IReadOnlyList<PluginRosterEntry> Roster()
     {
-        lock (gate) return registry.All.Select(entry => entry.Roster()).ToArray();
+        var settings = Seams.State.Current.PluginSettings;
+        lock (gate)
+            return registry.All.Select(entry =>
+            {
+                var row = entry.Roster();
+                return row is { Status: PluginStatus.Disabled, Reason: null } && settings.TryGetValue(entry.Id, out var space) && PluginSuspension.Mark(space) is { } cause
+                    ? row with { Reason = "requires " + cause }
+                    : row;
+            }).ToArray();
+    }
+
+    // Suspension: a dependent switched off by its dependency's switch-off comes back with it.
+    private void Suspend(HostState? previous, HostState state)
+    {
+        IReadOnlyList<string> order;
+        Dictionary<string, string[]> dependencies;
+        Dictionary<string, bool> before = [], now = [];
+        Dictionary<string, string?> marks = [];
+        lock (gate)
+        {
+            order = registry.TopologicalOrder().Order.Select(entry => entry.Id).ToArray();
+            dependencies = registry.All.ToDictionary(entry => entry.Id, entry => entry.Manifest.DependsOn.Select(dependency => dependency.Id).ToArray());
+            foreach (var entry in registry.All)
+            {
+                before[entry.Id] = Enabled(entry, (previous ?? state).PluginSettings, Seams.Kind);
+                now[entry.Id] = Enabled(entry, state.PluginSettings, Seams.Kind);
+                marks[entry.Id] = state.PluginSettings.TryGetValue(entry.Id, out var space) ? PluginSuspension.Mark(space) : null;
+            }
+        }
+        foreach (var change in PluginSuspension.Plan(order, dependencies, before, now, marks))
+            Rewrite(change);
+    }
+
+    private void Rewrite(SuspensionChange change)
+    {
+        var space = Seams.State.Current.PluginSettings.GetValueOrDefault(change.Id);
+        if (PluginSuspension.Apply(space, change) is { } next) Seams.State.ReplacePluginSettings(change.Id, next);
     }
 
     internal void Log(string scope, string level, string message, IReadOnlyDictionary<string, string>? fields)
@@ -190,6 +226,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             {
                 await DeactivateAsync(entry);
                 lock (gate) registry.Remove(entry);
+                if (Seams.State.Current.PluginSettings.TryGetValue(entry.Id, out var space) && PluginSuspension.Mark(space) is not null) Rewrite(new(entry.Id, false, null));
             }
             foreach (var found in discovered)
             {
@@ -496,6 +533,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         var rest = JsonObject.Create(merged.Clone()) ?? throw new ArgumentException($"plugin {id} settings must be an object");
         var enabled = rest["enabled"]?.DeepClone();
         rest.Remove("enabled");
+        var suspended = rest[PluginSuspension.Key]?.DeepClone();
+        rest.Remove(PluginSuspension.Key);
         JsonObject normalized;
         if (contract.SettingsType is not { } type)
         {
@@ -513,6 +552,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             catch (JsonException error) { throw new ArgumentException($"plugin {id} settings {PluginErrors.Describe(error)}"); }
         }
         if (enabled is not null) normalized["enabled"] = enabled;
+        if (suspended is not null) normalized[PluginSuspension.Key] = suspended;
         return PluginJson.SerializeToElement(normalized);
     }
 
@@ -533,6 +573,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             Log(id, "warn", $"{error.Message}; using the defaults", null);
             var reset = new JsonObject();
             if (stored.TryGetProperty("enabled", out var enabled)) reset["enabled"] = JsonNode.Parse(enabled.GetRawText());
+            if (stored.TryGetProperty(PluginSuspension.Key, out var suspended)) reset[PluginSuspension.Key] = JsonNode.Parse(suspended.GetRawText());
             Seams.State.ReplacePluginSettings(id, ValidateNamespace(id, PluginJson.SerializeToElement(reset)));
         }
     }
@@ -544,6 +585,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     {
         var rest = space.ValueKind == JsonValueKind.Object ? JsonObject.Create(space.Clone())! : [];
         rest.Remove("enabled");
+        rest.Remove(PluginSuspension.Key);
         var type = PluginJson.TypeInfo<T>();
         try { return rest.Deserialize(type) ?? new JsonObject().Deserialize(type)!; }
         catch (JsonException) { return new JsonObject().Deserialize(type)!; }
@@ -557,6 +599,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         {
             await foreach (var state in Seams.State.WatchAsync(lifetime.Token).ConfigureAwait(false))
             {
+                Suspend(previous, state);
                 if (previous is not null)
                 {
                     var changed = state.PluginSettings.Keys.Union(previous.PluginSettings.Keys).Where(id =>

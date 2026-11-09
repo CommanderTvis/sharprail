@@ -348,8 +348,9 @@ render-time provider in the app; those are registered into a core slot instead, 
 icons reach another plugin's file picker without a plugin-to-plugin edge.
 
 A plugin cannot be enabled while a dependency is off, and the Settings toggle offers to enable both. Turning a
-dependency off also turns off its dependents, which are named first. Turning it back on does not re-enable them,
-since the user decides what runs.
+dependency off also turns off its dependents, which are named first. Turning it back on re-enables exactly those
+that were on before, since the host remembers them as suspended; a dependent the user had off, or switched
+themselves meanwhile, is left as the user set it.
 
 Dependencies make one plugin's failure into another's, and a dependency chain is a load-order constraint in a
 system that otherwise has none. Two edges are manageable. A third is the point to ask whether the shared part

@@ -165,6 +165,7 @@ internal static partial class PluginHostChecks
         ManifestIntake();
         Discovery(Path.Combine(directory, "discovery"));
         await Registry(Path.Combine(directory, "registry"));
+        await Suspension(Path.Combine(directory, "suspension"));
         await HostKinds(Path.Combine(directory, "host-kinds"));
         await LanguageServersByHostKind(Path.Combine(directory, "language-host-kinds"));
         await HeadlessClassification(Path.Combine(directory, "headless"));
@@ -536,8 +537,9 @@ internal static partial class PluginHostChecks
         Require(blocked is { Status: PluginStatus.Refused } && blocked.Reason == "depends on trunk, which is off",
             "A plugin enabled while its dependency is off is refused, naming it: " + blocked.Reason);
         await composed.Enable("trunk");
-        Require((await composed.Row("branch")).Status == PluginStatus.Active && (await composed.Row("twig")).Status == PluginStatus.Disabled,
-            "Turning a dependency back on brings back what is enabled, and nothing the cascade turned off.");
+        await Status(composed, "the dependency's return to bring back what the cascade turned off", PluginStatus.Active, "branch", "twig");
+        Require((await composed.Row("bystander")).Status == PluginStatus.Active && Suspended(composed, "twig") is null,
+            "Turning a dependency back on brings back what is enabled and what the cascade turned off.");
 
         await composed.Enable("needs-absent");
         Require((await composed.Row("needs-absent")).Reason == "depends on absent, which is not installed", "A missing dependency refuses the dependent, naming it.");

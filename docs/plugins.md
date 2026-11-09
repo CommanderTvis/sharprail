@@ -13,7 +13,7 @@ Plugins without restarting the app, where they are grouped by the categories bel
 | Codex | Off | Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools. |
 | omp | Off | Very early support. Runs [omp](https://omp.sh) in the terminal with SharpRail's MCP tools and shows its context files. |
 | Processes | On | Shows language servers, agents and the agents they spawned as a tree with CPU and memory, and stops the processes agents report as theirs when their terminal closes or SharpRail quits. |
-| Code Intelligence | On | The language features: Settings > Code Intelligence, the Language tool window, and hover, go to definition, usages and diagnostics in the editor. The language server plugins and Air Context require it, so switching it off turns them off too. Agents and headless SharpRail keep their language tools. |
+| Code Intelligence | On | The language features: Settings > Code Intelligence, the Language tool window, and hover, go to definition, usages and diagnostics in the editor. The language server plugins and Air Context require it, so switching it off turns them off too, and switching it on again brings back the ones that were on. Agents and headless SharpRail keep their language tools. |
 | Air Context | Off | Semantic code search through [JetBrains Air Context](https://www.jetbrains.com/air/context/). Indexing is cloud processing that you enable per project. |
 | Air Gateway | Off | Starts Claude Code, Codex and omp through [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) with the Central CLI, or leaves them on their own accounts. |
 
@@ -78,6 +78,7 @@ Swift run the SDK's own executable when it is allowed for that server.
 - The agent plugins integrate external command-line tools, which must be installed on the machine running the
   workspace.
 - Agent sessions run in terminals; the Claude Code plugin can also present a session as a chat tab.
+- Switching a plugin off also switches off the plugins that require it. Switching it on again brings back exactly those that were on before. One you had turned off stays off, and one you switch yourself meanwhile keeps your choice.
 - PDFs preview with built-in support and need no plugin.
 - Android includes the builtin plugin interfaces. Plugin UI beyond the default workbench has not yet been verified on a
   device.

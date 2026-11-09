@@ -63,14 +63,16 @@ internal static partial class PluginHostChecks
         Require(LayoutSession.IsValid(saved), "A saved layout naming the Language tool stays valid with the plugin off.");
 
         await composed.Enable(CodeIntelligence);
+        await Until(async () => (await composed.Runtime.ListAsync()).Count(entry => entry.DependsOn.Contains(CodeIntelligence) && entry.Status == PluginStatus.Active) == expected.Length - 1,
+            "every dependent the switch-off turned off to return");
         var again = await composed.Runtime.ListAsync();
-        Require(again.Single(entry => entry.Id == CodeIntelligence).Status == PluginStatus.Active && again.Single(entry => entry.Id == "lsp-css").Status == PluginStatus.Active,
-            "Back on: Code Intelligence runs and the dependent that was enabled meanwhile activates; the ones the switch-off turned off stay off.");
-        Require(again.Count(entry => entry.DependsOn.Contains(CodeIntelligence) && entry.Status == PluginStatus.Active) == 1, "Back on: only the dependent enabled meanwhile is active.");
+        Require(again.Single(entry => entry.Id == CodeIntelligence).Status == PluginStatus.Active, "Back on: Code Intelligence runs.");
+        Require(again.Where(entry => entry.DependsOn.Contains(CodeIntelligence)).All(entry => entry.Status == PluginStatus.Active),
+            "Back on: the dependents the switch-off turned off return with it, and the one enabled meanwhile stays on.");
         Require(SharpRail.UI.Plugins.PluginRegistry.ToEnable("lsp-css", off).SequenceEqual([CodeIntelligence]), "Enabling a plugin that requires a disabled one turns the base on with it.");
         LanguageSupport.Update(again);
         session.SetLanguageAvailable(LanguageSupport.Available);
         Require(LanguageSupport.Available && LanguageSupport.Serves("site.css") && session.IsToolAvailable("lsp"), "Back on: the language features and the Language tool return.");
-        Console.WriteLine("PASS code intelligence plugin: off removes the language UI and leaves dependents unavailable naming it, on restores them; no dependency cycle");
+        Console.WriteLine("PASS code intelligence plugin: off removes the language UI and leaves dependents unavailable naming it, on brings back the ones it turned off; no dependency cycle");
     }
 }

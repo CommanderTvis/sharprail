@@ -174,8 +174,8 @@ internal sealed class PluginRegistry
         foreach (var type in DeclaredTypes(contract))
             if (Uncovered(type) is { } missing) return $"plugin {contract.Id} declares {type.Name}, which has no JSON metadata: {missing}";
         if (contract.SettingsType is { } settings &&
-            PluginJson.Options.GetTypeInfo(settings).Properties.Any(property => property.Name == "enabled"))
-            return $"plugin {contract.Id} settings type may not declare \"enabled\"";
+            PluginJson.Options.GetTypeInfo(settings).Properties.Any(property => property.Name is "enabled" or PluginSuspension.Key))
+            return $"plugin {contract.Id} settings type may not declare \"enabled\" or \"{PluginSuspension.Key}\"";
         return null;
     }
 
