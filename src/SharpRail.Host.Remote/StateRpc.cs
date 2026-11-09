@@ -89,6 +89,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             WindowDecorations = state.Settings.WindowDecorations,
             ActiveKeymap = state.Settings.ActiveKeymap,
             EditorTabWidth = state.Settings.EditorTabWidth,
+            Accent = state.Settings.Accent,
             EditorLineNumbersHidden = !state.Settings.EditorLineNumbers,
             LanguageServers = state.Settings.LanguageServers,
             LanguageTools = state.Settings.LanguageTools,

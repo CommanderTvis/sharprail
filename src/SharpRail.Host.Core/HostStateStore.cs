@@ -601,6 +601,9 @@ public sealed partial class HostStateStore : IHostStateService
 
     private static bool ValidPath(string value) => value.Length > 0 && !value.Contains('\0') && Path.IsPathFullyQualified(value);
 
+    /// <summary>An accent is opaque to the host like a theme id: empty, a curated slug or a custom <c>#rrggbb</c>; the UI resolves it.</summary>
+    private static bool ValidAccent(string value) => value.Length == 0 || Regex.IsMatch(value, "^(?:[a-z][a-z0-9-]{0,31}|#[0-9a-f]{6})$");
+
     private static bool ValidText(string value) => !string.IsNullOrWhiteSpace(value) && !value.Contains('\0');
 
     private static HostState Normalize(HostState value)
@@ -616,6 +619,7 @@ public sealed partial class HostStateStore : IHostStateService
             {
                 ThemeMode = value.Settings.ThemeMode is "fixed" ? "fixed" : "system",
                 Theme = Clean(value.Settings.Theme),
+                Accent = ValidAccent(Clean(value.Settings.Accent)) ? Clean(value.Settings.Accent) : "",
                 SystemLight = light,
                 SystemDark = dark,
                 FileLineWidth = Width(value.Settings.FileLineWidth),
@@ -743,6 +747,7 @@ public sealed partial class HostStateStore : IHostStateService
                 settings = key switch
                 {
                     "theme" when ValidText(value) => settings with { Theme = value.Trim() },
+                    "accent" when ValidAccent(value) => settings with { Accent = value },
                     "theme-mode" when value is "fixed" or "system" => settings with { ThemeMode = value },
                     "system-light" when ValidText(value) => settings with { SystemLight = value.Trim() },
                     "system-dark" when ValidText(value) => settings with { SystemDark = value.Trim() },

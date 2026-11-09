@@ -23,6 +23,8 @@ public sealed class Preferences
     public int EditorTabWidth { get; set; } = Host.Abstractions.HostSettings.DefaultEditorTabWidth;
     /// <summary>The host-shared visibility of the line-number column in code editors.</summary>
     public bool EditorLineNumbers { get; set; } = true;
+    /// <summary>The host-shared accent colour: a curated id or custom <c>#rrggbb</c>; empty is the theme's own accent.</summary>
+    public string Accent { get; set; } = "";
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
     /// <summary>The editors' text size, set by pinching one of them.</summary>

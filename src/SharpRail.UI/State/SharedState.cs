@@ -130,6 +130,7 @@ public sealed class SharedState : IDisposable
         Preferences.MarkdownLineWidthBounded = settings.MarkdownLineWidthBounded;
         Preferences.EditorTabWidth = settings.EditorTabWidth is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth ? settings.EditorTabWidth : HostSettings.DefaultEditorTabWidth;
         Preferences.EditorLineNumbers = settings.EditorLineNumbers;
+        Preferences.Accent = settings.Accent ?? "";
         if (settings.VerticalCenterTabs is { } vertical) Preferences.VerticalCenterTabs = vertical;
         if (settings.VerticalTabsInProjects is { } inProjects) Preferences.VerticalTabsInProjects = inProjects;
         var presets = new Dictionary<string, DockState>();

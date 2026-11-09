@@ -35,6 +35,25 @@ internal static class RoleChecks
                 ReferenceEquals(resources["RadioButtonCheckGlyphFillPointerOver"], Ui.OnPrimary) && ReferenceEquals(resources["RadioButtonCheckGlyphFillDisabled"], Ui.ControlDisabledText),
                 $"{theme.Id}: a checked radio button must draw its dot in the on-accent role over the accent fill.");
         }
+        // A chosen accent reaches every accent role through the one derivation: fills, label, tints and the baked colours.
+        foreach (var theme in Themes.All)
+            foreach (var accent in SharpRail.UI.Rendering.Accents.Curated.Select(choice => choice.Id).Append("#3b82f6"))
+            {
+                var derived = SharpRail.UI.Rendering.Accents.Apply(theme, accent);
+                Ui.Apply(derived);
+                var where = $"{theme.Id} with accent {accent}";
+                Require(Ui.Accent.Color == derived["accent"] && Ui.PrimaryFill.Color == derived["accentSolid"] && Ui.PrimaryFillHover.Color == derived["accentHover"] &&
+                    Ui.OnPrimary.Color == derived["onAccent"] && Ui.FileIconData.Color == derived["accent"],
+                    $"{where}: the accent roles must read the derived palette.");
+                Require(Ui.PrimarySubtle.Color == Ui.Alpha(derived["accent"], 10) && Ui.PrimarySoft.Color == Ui.Alpha(derived["accent"], 20) &&
+                    Ui.PrimaryMuted.Color == Ui.Alpha(derived["accent"], 40) && Ui.PdfSelection.Color == Ui.Alpha(derived["accent"], 40) &&
+                    Ui.PrimaryDisabledFill.Color == Ui.Alpha(derived["accent"], 60) && Ui.PrimaryDisabledText.Color == Ui.Alpha(derived["onAccent"], 60),
+                    $"{where}: the accent tints must derive from the accent at the scale's steps.");
+                Require(SharpRail.UI.Rendering.Accents.Contrast(Ui.OnPrimary.Color, Ui.PrimaryFill.Color) >= 4.5 && SharpRail.UI.Rendering.Accents.Contrast(Ui.OnPrimary.Color, Ui.PrimaryFillHover.Color) >= 4.5,
+                    $"{where}: the on-accent label must be legible on both fills.");
+                Require(Ui.Success.Color == theme["success"] && Ui.Danger.Color == theme["danger"] && Ui.Info.Color == theme["info"] && Ui.Warning.Color == theme["warning"],
+                    $"{where}: feedback colours must not follow the accent.");
+            }
         Ui.Apply(original);
 
         var labelled = Ui.Button("Save", () => { }, "check");

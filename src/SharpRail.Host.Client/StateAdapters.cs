@@ -116,6 +116,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             WindowDecorations = reply.Settings.WindowDecorations,
             ActiveKeymap = reply.Settings.ActiveKeymap,
             EditorTabWidth = reply.Settings.EditorTabWidth,
+            Accent = reply.Settings.Accent ?? "",
             EditorLineNumbers = !reply.Settings.EditorLineNumbersHidden,
             LanguageServers = reply.Settings.LanguageServers,
             LanguageTools = reply.Settings.LanguageTools,

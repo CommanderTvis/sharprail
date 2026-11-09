@@ -480,6 +480,7 @@ public sealed partial class SettingsView : UserControl
                 });
             }
         }
+        AccentSettings(panel);
         var fileIcons = PageControl<StackPanel>(panel, "FileTypeIconChoices");
         void FileIconChoices()
         {
@@ -511,6 +512,61 @@ public sealed partial class SettingsView : UserControl
         foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
             PageControl<StackPanel>(panel, name).IsEnabled = !themeChanging;
         return panel;
+    }
+
+    /// <summary>The accent palette and the custom colour, a host setting: the app itself is the preview, so a choice applies to open windows at once.</summary>
+    private void AccentSettings(Control panel)
+    {
+        var choices = PageControl<WrapPanel>(panel, "AccentChoices");
+        var custom = PageControl<TextBox>(panel, "AccentCustom");
+        var apply = PageControl<Button>(panel, "AccentCustomApply");
+        var message = PageControl<TextBlock>(panel, "AccentCustomMessage");
+        var current = state.Preferences.Accent;
+        var isCustom = Accents.ParseCustom(current) is not null && current.StartsWith('#');
+        var theme = Themes.Resolve(state.Preferences, Themes.SystemAppearance).Theme;
+        void Choose(string id) { if (id != current && !(Accents.IsDefault(current) && id == Accents.DefaultId)) Share(HostStateChange.Setting("accent", id)); }
+        foreach (var choice in Accents.Curated)
+        {
+            var id = choice.Id;
+            choices.Children.Add(AccentSwatch("Accent_" + id, choice.Label, Accents.SwatchBrush(theme, id),
+                Accents.IsDefault(current) ? id == Accents.DefaultId : id == current, () => Choose(id)));
+        }
+        if (isCustom) choices.Children.Add(AccentSwatch("Accent_custom", "Custom " + current, Accents.SwatchBrush(theme, current), true, () => { }));
+        custom.Text = isCustom ? current : "";
+        void UseCustom()
+        {
+            if (Accents.ParseCustom(custom.Text) is not { } hex)
+            {
+                message.Text = "Enter a colour as six hex digits, such as #3b82f6.";
+                message.IsVisible = true;
+                return;
+            }
+            message.IsVisible = false;
+            Choose(hex);
+        }
+        apply.Click += (_, _) => UseCustom();
+        custom.KeyDown += (_, e) => { if (e.Key == Key.Enter) { UseCustom(); e.Handled = true; } };
+        if (isCustom)
+        {
+            message.Text = "Each theme adjusts a custom colour’s lightness so it stays legible.";
+            message.IsVisible = true;
+        }
+    }
+
+    private static Button AccentSwatch(string name, string label, IBrush swatch, bool active, Action select)
+    {
+        var button = Ui.Button(label, select);
+        button.Name = name;
+        button.Padding = new(12, 8); button.MinHeight = 36;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(8), Background = swatch, BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(1), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(Ui.Text(label, active ? Ui.TextBrush : Ui.Muted));
+        if (active) row.Children.Add(Ui.Icon("check", Ui.Accent));
+        button.Content = row;
+        button.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
+        button.BorderBrush = active ? Ui.PrimaryMuted : Ui.BorderBrush;
+        AutomationProperties.SetName(button, active ? label + ", selected" : label);
+        return button;
     }
 
     /// <summary>The Linux window frame choice, a host setting: the environment override, when set, wins and the page says so.</summary>

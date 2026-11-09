@@ -69,6 +69,8 @@ public sealed record HostSettings
     public int EditorTabWidth { get; init; }
     /// <summary>Whether code editors show the line-number column.</summary>
     public bool EditorLineNumbers { get; set; } = true;
+    /// <summary>The accent colour: a curated id or a custom <c>#rrggbb</c>, opaque to the host; empty is the theme's own accent.</summary>
+    public string Accent { get; set; } = "";
 
     public const int DefaultEditorTabWidth = 4, MinEditorTabWidth = 1, MaxEditorTabWidth = 8;
     public const int DefaultSettleIdleDays = 7;

@@ -872,7 +872,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var theme = Themes.Resolve(Preferences, ActualThemeVariant == ThemeVariant.Light ? "light" : "dark").Theme;
         if (!system) RequestedThemeVariant = theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
         foreach (var owned in OwnedWindows) owned.RequestedThemeVariant = RequestedThemeVariant;
-        Ui.Apply(theme);
+        Ui.Apply(Accents.Apply(theme, Preferences.Accent));
     }
 
     private void ApplyAppearance()

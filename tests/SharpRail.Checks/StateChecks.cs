@@ -121,6 +121,10 @@ internal static class StateChecks
         using var browserSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(migratedStore), browserPreferences, migratedStore.Current);
         Require(!browserPreferences.VerticalCenterTabs && browserPreferences.VerticalTabsInProjects,
             "A browser's fresh preferences must inherit both saved host tab-mode fields, including false.");
+        var accentPreferences = new SharpRail.UI.State.Preferences();
+        using var accentSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), accentPreferences, new HostState { Settings = new() { Accent = "purple" } });
+        Require(accentPreferences.Accent == "purple" && new SharpRail.UI.State.Preferences().Accent.Length == 0,
+            "The shared accent reaches the preferences, and the default is the theme's own accent.");
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
         Directory.CreateDirectory(project);
@@ -129,7 +133,7 @@ internal static class StateChecks
         [
             HostStateChange.Setting("theme", "light"), HostStateChange.Setting("theme-mode", "system"),
             HostStateChange.Setting("system-light", "light"), HostStateChange.Setting("system-dark", "high-contrast-dark"),
-            HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
+            HostStateChange.Setting("accent", "#3b82f6"), HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.Setting("notifications", "false"), HostStateChange.Setting("window-decorations", "client"), HostStateChange.Setting("file-type-icons", "false"), HostStateChange.Setting("file-type-icon-style", "material"), HostStateChange.Setting("terminal-notifications", "false"), HostStateChange.Setting("bell-features", "title, system"),
             HostStateChange.Setting("vertical-tabs", "true"), HostStateChange.Setting("tabs-in-projects", "false"),
             HostStateChange.Setting("custom-highlighting", """[{"Name":"Example","Scope":"source.example","Patterns":["*.example"],"Grammar":"{\"scopeName\":\"source.example\",\"patterns\":[]}"}]"""),
@@ -171,6 +175,13 @@ internal static class StateChecks
                 throw new InvalidOperationException($"The {name} host accepted an invalid width.");
             }
             catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            foreach (var bad in new[] { "#3B82F6", "#3b82f", "blue!", "rgb(0,0,0)", "Blue" })
+                try
+                {
+                    await service.ChangeAsync([HostStateChange.Setting("accent", bad)]);
+                    throw new InvalidOperationException($"The {name} host accepted the accent {bad}.");
+                }
+                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
             try
             {
                 await service.ChangeAsync([HostStateChange.Setting("window-decorations", "wayland")]);
@@ -195,7 +206,7 @@ internal static class StateChecks
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
         var state = await local.GetStateAsync();
         Require(state.Settings.CustomHighlighting.Contains("source.example", StringComparison.Ordinal), "Custom highlighting did not persist through the host.");
-        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title" } &&
+        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title" } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&

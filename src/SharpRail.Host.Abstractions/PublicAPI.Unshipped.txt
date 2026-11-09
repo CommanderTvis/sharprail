@@ -2420,3 +2420,5 @@ virtual SharpRail.Host.Abstractions.BranchTip.<Clone>$() -> SharpRail.Host.Abstr
 virtual SharpRail.Host.Abstractions.BranchTip.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.BranchTip.Equals(SharpRail.Host.Abstractions.BranchTip? other) -> bool
 virtual SharpRail.Host.Abstractions.BranchTip.PrintMembers(System.Text.StringBuilder! builder) -> bool
+SharpRail.Host.Abstractions.HostSettings.Accent.get -> string!
+SharpRail.Host.Abstractions.HostSettings.Accent.set -> void

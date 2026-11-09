@@ -63,6 +63,8 @@ public sealed class SettingsMessage
     [ProtoMember(31)] public int EditorTabWidth { get; set; }
     /// <summary>Inverted so a host that predates the setting reads as showing them, its default.</summary>
     [ProtoMember(32)] public bool EditorLineNumbersHidden { get; set; }
+    /// <summary>Empty, from a host that predates the setting, is the theme's own accent.</summary>
+    [ProtoMember(33)] public string Accent { get; set; } = "";
 }
 
 [ProtoContract]

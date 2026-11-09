@@ -3567,6 +3567,7 @@ internal static class RpcCodec
         if (value.ActiveKeymap is { } field30) writer.String(30, field30);
         if (value.EditorTabWidth != 0) writer.Int32(31, value.EditorTabWidth);
         if (value.EditorLineNumbersHidden) writer.Bool(32, value.EditorLineNumbersHidden);
+        if (value.Accent is { } field33) writer.String(33, field33);
     }
 
     private static SettingsMessage ReadSettingsMessage(ref ProtoReader reader, SettingsMessage? value)
@@ -3607,6 +3608,7 @@ internal static class RpcCodec
                 case 30: value.ActiveKeymap = reader.String(); break;
                 case 31: value.EditorTabWidth = reader.Int32(); break;
                 case 32: value.EditorLineNumbersHidden = reader.Bool(); break;
+                case 33: value.Accent = reader.String(); break;
                 default: reader.Skip(); break;
             }
         }

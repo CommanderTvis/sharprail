@@ -19,7 +19,36 @@ internal static class ThemeGates
     internal static void Run(List<string> failures)
     {
         Strictness(failures);
-        foreach (var theme in Themes.All) Legibility(theme, failures);
+        foreach (var theme in Themes.All) Legibility(theme, theme.Id, failures);
+        Accents(failures);
+    }
+
+    /// <summary>Colours a user might type: saturated, black, white, grey and a dark blue, each of which a theme must still be able to hold legibly.</summary>
+    private static readonly string[] CustomAccents = ["#ff00ff", "#000000", "#ffffff", "#808080", "#123456", "#ffff00", "#00ffff"];
+
+    /// <summary>Every curated accent and a spread of custom colours in every bundled theme meets the same floors as the bundled accent.</summary>
+    private static void Accents(List<string> failures)
+    {
+        foreach (var theme in Themes.All)
+        {
+            if (!ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, SharpRail.UI.Rendering.Accents.DefaultId), theme) || !ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, ""), theme))
+                failures.Add($"{theme.Id}: the default accent must be the manifest itself.");
+            foreach (var accent in SharpRail.UI.Rendering.Accents.Curated.Select(choice => choice.Id).Concat(CustomAccents))
+            {
+                if (accent == SharpRail.UI.Rendering.Accents.DefaultId) continue;
+                var derived = SharpRail.UI.Rendering.Accents.Apply(theme, accent);
+                var label = $"{theme.Id} with accent {accent}";
+                Legibility(derived, label, failures);
+                foreach (var key in Themes.ColorKeys.Except(["accent", "accentSolid", "accentHover", "onAccent"]))
+                    if (derived.Colors[key] != theme.Colors[key]) failures.Add($"{label}: {key} must not follow the accent.");
+                if (Contrast(derived["onAccent"], Colors.Black) > 1.5 && Contrast(derived["onAccent"], Colors.White) > 1.5)
+                    failures.Add($"{label}: onAccent must be black or white by luminance.");
+                if (Contrast(derived["accentSolid"], derived["accentHover"]) < 1.1)
+                    failures.Add($"{label}: the hover fill is indistinguishable from the solid fill.");
+                if (derived["accent"] == theme["accent"]) failures.Add($"{label}: the accent did not change.");
+                if (!ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, accent), derived)) failures.Add($"{label}: the derivation must be cached per theme and accent.");
+            }
+        }
     }
 
     private static void Strictness(List<string> failures)
@@ -53,12 +82,12 @@ internal static class ThemeGates
         catch (InvalidDataException) { }
     }
 
-    private static void Legibility(ThemeManifest theme, List<string> failures)
+    private static void Legibility(ThemeManifest theme, string label, List<string> failures)
     {
         void Floor(string foreground, Color top, string background, Color bottom, double floor)
         {
             var ratio = Contrast(top, bottom);
-            if (ratio < floor) failures.Add($"{theme.Id}: {foreground} on {background} is {ratio:0.00}:1, below {floor:0.0#}.");
+            if (ratio < floor) failures.Add($"{label}: {foreground} on {background} is {ratio:0.00}:1, below {floor:0.0#}.");
         }
         var high = theme.IsHighContrast;
         foreach (var (key, floor) in Floors)
@@ -76,7 +105,7 @@ internal static class ThemeGates
         if (!high) return;
         foreach (var (foreground, background) in new[] { ("selectionForeground", "selection"), ("editorSelectionForeground", "editorSelection") })
             if (theme.Colors[foreground] is { } color) Floor(foreground, color, background, theme[background], 4.5);
-            else failures.Add($"{theme.Id}: a high-contrast manifest must supply {foreground}.");
+            else failures.Add($"{label}: a high-contrast manifest must supply {foreground}.");
     }
 
     /// <summary>The WCAG contrast ratio of two colours, ignoring alpha as the reference's gate does.</summary>
