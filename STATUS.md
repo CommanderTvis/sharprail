@@ -1048,7 +1048,7 @@ SharpRail counterparts: [Codex](src/SharpRail.Plugins.Codex/SPEC.md), [Claude Co
 
 #### Review and agent-run change gaps
 
-Upstream authorities: [reviews](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/reviews/SPEC.md), [turn receipts](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/turns/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md). SharpRail: [Panels contract](src/SharpRail.UI/Panels.SPEC.md), [continuous review](src/SharpRail.UI/ChangesReviewPane.axaml.cs), [Git contract](src/SharpRail.Host.Core/Git.SPEC.md), [Review panel](src/SharpRail.UI/ReviewPull.cs).
+Upstream authorities: [reviews](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/reviews/SPEC.md), [turn receipts](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/turns/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md). SharpRail: [Panels contract](src/SharpRail.UI/Panels.SPEC.md), [continuous review](src/SharpRail.UI/ChangesReviewPane.axaml.cs), [Git contract](src/SharpRail.Host.Core/Git.SPEC.md).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -1183,12 +1183,12 @@ These entries retain old omissions that a JetBrains-only delta audit would miss.
 | P06 | Partial | Codex IDE reply lists editors per answering frontend. Current app context unions editor tabs across windows in the workspace; background-window focus selection is otherwise implemented. [Codex](src/SharpRail.Plugins.Codex/SPEC.md). |
 | P07 | Partial | Codex failed-state/summary notifications. Its current hook vocabulary has blocked/done but no failed status or summary; cancellation stays silent. Claude has richer failure notifications. |
 | P08 | Partial | Codex skill-file ownership across multiple hosts and shutdown. User edits are protected, but disabling and host shutdown share disposal, and a second host is not coordinated. |
-| P10 | Partial | Input sealing during picker driving is missing: [ClaudeTerminal.cs](src/SharpRail.Plugins.ClaudeCode/UI/ClaudeTerminal.cs) shows a notice without an exclusive-input overlay. Model/effort, attach, usage and plan controls exist; [Pickers.cs](src/SharpRail.Plugins.ClaudeCode/UI/Pickers.cs) implements draft refusal and Esc fallback. Live terminal-facts acceptance is included in V12 below. |
+| P10 | Partial | Input sealing during picker driving is missing: [ClaudeTerminal.cs](src/SharpRail.Plugins.ClaudeCode/UI/ClaudeTerminal.cs) shows a notice without an exclusive-input overlay. Model/effort, attach, usage and plan controls exist; the Claude Code UI implements draft refusal and Esc fallback. Live terminal-facts acceptance is included in V12 below. |
 | P11 | Partial | Codex Windows IDE IPC is absent: [IdeBridge.cs](src/SharpRail.Plugins.Codex/Host/IdeBridge/IdeBridge.cs) declares Windows unsupported and [Codex checks](tests/SharpRail.Checks/CodexChecks.cs) skip it there. The registered model supplier is not consumed by a reactive Start-work selector. The failed recovery check is recorded under V06; installed CLI and native lifecycle acceptance is included in V12. |
 
 #### Notifications and platform acceptance gaps
 
-Authorities: [UI](src/SharpRail.UI/SPEC.md), [terminal contract](src/SharpRail.UI/Terminal/SPEC.md), [browser](src/SharpRail.Browser/SPEC.md) and [browser acceptance](src/SharpRail.Browser/SPEC.md#acceptance). Implementation gaps are listed here; acceptance tasks follow separately.
+Authorities: [UI](src/SharpRail.UI/SPEC.md), [terminal contract](src/SharpRail.UI/Terminal/SPEC.md) and [browser](src/SharpRail.Browser/SPEC.md). Implementation gaps are listed here; acceptance tasks follow separately.
 
 | ID | Status | Gap |
 | --- | --- | --- |

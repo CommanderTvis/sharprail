@@ -166,7 +166,7 @@ or shutdown. No language process runs in a client UI or requires a local RPC hop
 
 ## Workspace Context integration
 
-The host owns [optional Context search](Context/SPEC.md): consent-guarded pinned
+The host owns [optional Context search](../SharpRail.Plugins.AirContext/SPEC.md): consent-guarded pinned
 provisioning, explicit workspace enablement, automatic SharpRail agent-launch indexing,
 managed processes/logs and workspace-bound semantic MCP tools. Local and remote clients
 share the implementation. No global agent setup or vendor watcher controls are invoked.
