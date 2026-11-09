@@ -68,6 +68,7 @@ internal static class ProcessesChecks
     internal static async Task Run(string root)
     {
         Tree();
+        ExpansionRules();
         Workers();
         Sampling();
         await Stopping();
@@ -192,6 +193,37 @@ internal static class ProcessesChecks
         Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 3 && source.Stopped.Order().SequenceEqual(["pid:21", "pid:22", "pid:23"]), "Stop group on spawned processes stops every row under it.");
         source.Stopped.Clear();
         Require(await sampler.StopAsync("pid:1", default) == 0 && await sampler.StopAsync("spawn:999", default) == 0 && source.Stopped.Count == 0, "An id the snapshot does not hold stops nothing.");
+    }
+
+    private static ProcessNode Chain(int depth) =>
+        depth == 0 ? Leaf("n0", 1) : new($"n{depth}", "spawned", $"n{depth}", "", 1, 1, 1, [1], [Chain(depth - 1)], true);
+
+    /// <summary>The pane's default expansion: subtrees that do not fit start collapsed, a user's choice wins, defaults persist, a re-decision spares touched nodes.</summary>
+    private static void ExpansionRules()
+    {
+        // A chain n10 -> n9 -> ... -> n0 under one root row; capacity 5 fits the root plus four levels of children.
+        var roots = new[] { Chain(10) };
+        var none = new Dictionary<string, bool>();
+        var fresh = ProcessesPanel.Expansion(roots, 5, none, none, false);
+        string[] fits = ["n10", "n9", "n8", "n7"];
+        foreach (var id in fits) Require(fresh.GetValueOrDefault(id), $"{id} fits and must start open.");
+        Require(fresh.TryGetValue("n6", out var overflow) && !overflow, "The first subtree that overflows must start collapsed.");
+        Require(!fresh.ContainsKey("n5"), "Nodes below a collapsed one are not decided.");
+        Require(ProcessesPanel.Expansion(roots, int.MaxValue, none, none, false).Values.All(open => open), "With room for everything every node opens.");
+
+        var opened = ProcessesPanel.Expansion(roots, 5, new Dictionary<string, bool> { ["n6"] = true }, fresh, false);
+        Require(opened["n6"] && opened.ContainsKey("n5"), "A user's choice to open an overflowing node wins over the default.");
+        var closed = ProcessesPanel.Expansion(roots, 5, new Dictionary<string, bool> { ["n9"] = false }, fresh, false);
+        Require(!closed["n9"] && !closed.ContainsKey("n8"), "A user's choice to collapse a fitting node wins, and nothing below it is decided.");
+
+        var wide = ProcessesPanel.Expansion(roots, 20, none, fresh, false);
+        Require(wide["n6"] == false && wide.Keys.SequenceEqual(fresh.Keys), "Defaults persist across a refresh even when more room appeared.");
+
+        var redecided = ProcessesPanel.Expansion(roots, 20, new Dictionary<string, bool> { ["n9"] = false }, fresh, true);
+        Require(!redecided["n9"], "A re-decision keeps what the user toggled.");
+        var touched = ProcessesPanel.Expansion(roots, 20, new Dictionary<string, bool> { ["n10"] = true }, fresh, true);
+        Require(touched["n10"] && touched["n6"] && touched["n5"], "A re-decision opens untouched nodes that now fit.");
+        Console.WriteLine("PASS processes expansion: overflowing subtrees start collapsed, a user's choice wins, defaults persist across a refresh, a re-decision spares toggled nodes");
     }
 
     private static ProcessNode Leaf(string id, double cpu, int trend = 3) =>
