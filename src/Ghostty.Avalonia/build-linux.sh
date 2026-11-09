@@ -19,7 +19,7 @@ cache="${2:-$project/obj/native}"
 mkdir -p "$cache"
 cache="$(cd "$cache" && pwd -P)"
 vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
-vt_zig="$GHOSTTY_VT_ZIG"
+vt_zig="$GHOSTTY_ZIG"
 . "$project/../../scripts/lock.sh"
 . "$project/../../scripts/native-cache.sh"
 work="$(sharprail_cache_dir)/ghostty-avalonia"
@@ -45,7 +45,7 @@ if [ ! -f "$result/libGhosttyAvaloniaVt.so" ]; then
 
   rm -rf "$result.partial"
   mkdir -p "$result.partial"
-  sh "$project/../../scripts/zig-deps.sh" tgz
+  sh "$project/../../scripts/zig-deps.sh"
   (cd "$source" && "$zig/zig" build --cache-dir "$work/vt-cache" --prefix "$work/$rid-vt-out" -Demit-lib-vt -Doptimize=ReleaseFast "-Dtarget=$target")
   # The version script exports the bridge alone, so Ghostty's own symbols stay private to the library.
   echo '{ global: gav_*; local: *; };' > "$work/$rid-exports.map"

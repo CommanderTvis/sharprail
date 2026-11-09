@@ -19,7 +19,7 @@ cache="${2:-$project/obj/native}"
 mkdir -p "$cache"
 cache="$(cd "$cache" && pwd -P)"
 vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
-vt_zig="$GHOSTTY_VT_ZIG"
+vt_zig="$GHOSTTY_ZIG"
 case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x86_64 ;; *) echo 'The Android build needs macOS or Linux.' >&2; exit 1 ;; esac
 ndk="${ANDROID_NDK_HOME:-$("$project/../../scripts/tool" android-ndk)}"
 [ -f "$ndk/source.properties" ] || { echo "No Android NDK at $ndk; run scripts/mise install with MISE_ENV=android." >&2; exit 1; }
@@ -48,7 +48,7 @@ if [ ! -f "$result/libGhosttyAvaloniaVt.so" ]; then
 
   rm -rf "$result.partial"
   mkdir -p "$result.partial"
-  sh "$project/../../scripts/zig-deps.sh" tgz
+  sh "$project/../../scripts/zig-deps.sh"
   # Ghostty's build takes bionic's headers and startup objects from the NDK and aligns segments to 16 KB pages.
   (cd "$source" && ANDROID_NDK_HOME="$ndk" "$zig/zig" build --cache-dir "$work/vt-cache" --prefix "$work/android-$abi-vt-out" \
     -Demit-lib-vt -Doptimize=ReleaseFast "-Dtarget=$triple.$api")

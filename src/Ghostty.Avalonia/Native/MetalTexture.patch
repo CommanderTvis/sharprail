@@ -1,6 +1,6 @@
 --- a/src/renderer/Metal.zig
 +++ b/src/renderer/Metal.zig
-@@ -227,6 +227,11 @@
+@@ -235,6 +235,11 @@
  
  /// Present the provided target.
  pub inline fn present(self: *Metal, target: Target, sync: bool) !void {
@@ -14,7 +14,7 @@
      } else {
 --- a/src/renderer/metal/Frame.zig
 +++ b/src/renderer/metal/Frame.zig
-@@ -39,6 +39,12 @@
+@@ -35,6 +35,12 @@
      /// The target is presented via the provided renderer's API when completed.
      target: *Target,
  ) !Self {
@@ -27,7 +27,8 @@
      const buffer = opts.queue.msgSend(
          objc.Object,
          objc.sel("commandBuffer"),
-@@ -91,5 +97,10 @@
+@@ -86,6 +92,11 @@
+             log.err("Failed to present render target: err={}", .{err});
          };
      }
 +    if (health != .healthy) {
@@ -40,10 +41,10 @@
  }
 --- a/src/renderer/metal/Target.zig
 +++ b/src/renderer/metal/Target.zig
-@@ -74,7 +74,7 @@
+@@ -72,7 +72,7 @@
      desc.setProperty("width", @as(c_ulong, @intCast(opts.width)));
      desc.setProperty("height", @as(c_ulong, @intCast(opts.height)));
-     desc.setProperty("pixelFormat", @intFromEnum(opts.pixel_format));
+     desc.setProperty("pixelFormat", @backingInt(opts.pixel_format));
 -    desc.setProperty("usage", mtl.MTLTextureUsage{ .render_target = true });
 +    desc.setProperty("usage", mtl.MTLTextureUsage{ .render_target = true, .shader_read = true });
      desc.setProperty(

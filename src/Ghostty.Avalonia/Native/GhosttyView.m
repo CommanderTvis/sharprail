@@ -70,8 +70,22 @@ static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_acti
     }
     return false;
 }
-static void readClipboard(void *data, ghostty_clipboard_e clipboard, void *state) {
+// Completes a clipboard read with one plain-text representation; every other representation is not offered.
+static void completeText(GAVTerminalView *view, const char *text, size_t length, void *state, bool confirmed) {
+    ghostty_clipboard_content_s content = { .mime = "text/plain", .data = text, .len = length };
+    ghostty_clipboard_complete_s complete = { .contents = &content, .contents_len = 1, .confirmed = confirmed };
+    ghostty_surface_complete_clipboard_request(view.surface, &complete, state);
+}
+static ghostty_clipboard_read_result_e readClipboard(void *data, ghostty_clipboard_e clipboard, void *state,
+                                                      const char *const *mimes, size_t mime_count, bool list) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)data;
+    if (list) {
+        // A listing only names what the clipboard holds; this view serves text.
+        const char *available[] = { "text/plain" };
+        ghostty_clipboard_complete_s complete = { .available = available, .available_len = 1 };
+        ghostty_surface_complete_clipboard_request(view.surface, &complete, state);
+        return GHOSTTY_CLIPBOARD_READ_STARTED;
+    }
     NSPasteboard *pasteboard = NSPasteboard.generalPasteboard;
     NSString *text = [pasteboard stringForType:NSPasteboardTypeString] ?: @"";
     NSData *image = !view.clipboardDirectory ? nil : [pasteboard dataForType:NSPasteboardTypePNG] ?: [pasteboard dataForType:NSPasteboardTypeTIFF];
@@ -86,14 +100,15 @@ static void readClipboard(void *data, ghostty_clipboard_e clipboard, void *state
             alert.messageText = @"Could not paste the clipboard image";
             alert.informativeText = error.localizedDescription ?: @"The clipboard image could not be decoded.";
             [alert runModal];
-            ghostty_surface_complete_clipboard_request(view.surface, "", state, false);
-            return;
+            completeText(view, "", 0, state, false);
+            return GHOSTTY_CLIPBOARD_READ_STARTED;
         }
         text = [NSString stringWithFormat:@"'%@'", [path stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"]];
     }
-    ghostty_surface_complete_clipboard_request(view.surface, text.UTF8String, state, false);
+    completeText(view, text.UTF8String, strlen(text.UTF8String), state, false);
+    return GHOSTTY_CLIPBOARD_READ_STARTED;
 }
-static void confirmClipboard(void *data, const char *text, void *state, ghostty_clipboard_request_e request) {
+static void confirmClipboard(void *data, const ghostty_clipboard_confirm_s *confirm, void *state, ghostty_clipboard_request_e request) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)data;
     NSAlert *alert = [NSAlert new];
     alert.messageText = @"Allow terminal clipboard access?";
@@ -101,11 +116,24 @@ static void confirmClipboard(void *data, const char *text, void *state, ghostty_
     [alert addButtonWithTitle:@"Allow"];
     [alert addButtonWithTitle:@"Cancel"];
     bool allowed = [alert runModal] == NSAlertFirstButtonReturn;
-    // Completing even a cancelled read releases Ghostty's pending request.
-    ghostty_surface_complete_clipboard_request(view.surface, allowed ? text : "", state, true);
+    // Answering even a cancelled read releases Ghostty's pending request.
+    if (!allowed) {
+        ghostty_surface_deny_clipboard_request(view.surface, state);
+        return;
+    }
+    ghostty_clipboard_complete_s complete = {
+        .contents = confirm->contents, .contents_len = confirm->contents_len,
+        .available = confirm->available, .available_len = confirm->available_len, .confirmed = true,
+    };
+    ghostty_surface_complete_clipboard_request(view.surface, &complete, state);
 }
-static void writeClipboard(void *data, const char *text, ghostty_clipboard_e clipboard, bool confirm) {
-    NSString *value = [NSString stringWithUTF8String:text];
+static void writeClipboard(void *data, ghostty_clipboard_e clipboard, const ghostty_clipboard_content_s *contents, size_t count, bool confirm) {
+    NSString *value = nil;
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(contents[i].mime, "text/plain") != 0) continue;
+        value = [[NSString alloc] initWithBytes:contents[i].data length:contents[i].len encoding:NSUTF8StringEncoding];
+        break;
+    }
     if (!value) return;
     if (confirm) {
         NSAlert *alert = [NSAlert new];
@@ -234,7 +262,7 @@ static bool initialize(void) {
     if (self.window.firstResponder != self) return NO;
     if ([self forwardShortcut:event]) return YES;
     ghostty_input_key_s key = { .action = GHOSTTY_ACTION_PRESS, .mods = modifiers(event.modifierFlags), .keycode = event.keyCode, .text = event.characters.UTF8String };
-    if (!ghostty_surface_key_is_binding(self.surface, key)) return NO;
+    if (!ghostty_surface_key_is_binding(self.surface, key, NULL)) return NO;
     [self keyDown:event]; [self keyUp:event]; return YES;
 }
 - (void)insertText:(id)value replacementRange:(NSRange)range {

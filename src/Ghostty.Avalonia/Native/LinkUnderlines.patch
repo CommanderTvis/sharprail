@@ -1,12 +1,12 @@
 --- a/src/renderer/generic.zig
 +++ b/src/renderer/generic.zig
-@@ -77,6 +77,14 @@
- ///
- /// [ Texture ] - An abstraction over a GPU texture.
+@@ -87,6 +87,14 @@
+ ///                     in case that the frame needs to be composited with
+ ///                     UI elements by the graphical toolkit manually.
  ///
 +/// A file-link cell the embedding view asked the renderer to underline, in screen coordinates.
 +pub const GavLink = struct {
-+    screen: terminal.ScreenType,
++    screen: terminal.ScreenSet.Key,
 +    x: terminal.size.CellCountInt,
 +    y: u32,
 +    codepoint: u21,
@@ -15,9 +15,9 @@
  pub fn Renderer(comptime GraphicsAPI: type) type {
      return struct {
          const Self = @This();
-@@ -154,6 +162,23 @@
-         /// cells for the draw call.
-         cells_rebuilt: bool = false,
+@@ -185,6 +193,23 @@
+         /// when a program places an image.
+         images_rebuilt: bool = false,
  
 +        /// Host-resolved file links to underline, set by the embedding view under the renderer state mutex. Each
 +        /// cell is kept in screen coordinates with the codepoint it showed, so the underline moves with the text
@@ -39,25 +39,23 @@
          /// The current GPU uniform values.
          uniforms: shaderpkg.Uniforms,
  
-@@ -761,6 +786,12 @@
+@@ -844,6 +869,12 @@
+             // shaders. Those are freed with `releaseGpuResources`.
  
-         pub fn deinit(self: *Self) void {
-             self.swap_chain.deinit();
+             if (self.overlay) |*overlay| overlay.deinit(self.alloc);
 +            self.gav_links.deinit(self.alloc);
 +            self.gav_visible.deinit(self.alloc);
 +            self.gavClearLineLinks();
 +            self.gav_line_links.deinit(self.alloc);
 +            self.gav_line_codes.deinit(self.alloc);
 +            self.gav_line_cells.deinit(self.alloc);
- 
-             if (DisplayLink != void) {
-                 if (self.display_link) |display_link| {
-@@ -1075,6 +1106,133 @@
-                 @floatFromInt(self.grid_metrics.cell_width),
-                 @floatFromInt(self.grid_metrics.cell_height),
+             self.terminal_state.deinit(self.alloc);
+             if (self.search_selected_match) |*m| m.arena.deinit();
+             if (self.search_matches) |*m| m.arena.deinit();
+@@ -1393,6 +1424,133 @@
              };
-+        }
-+
+         }
+ 
 +        pub const gav_hidden = std.math.maxInt(u32);
 +
 +        /// Reads the logical line through viewport row `row` (from its first wrapped row, possibly in scrollback, to
@@ -140,7 +138,7 @@
 +        fn gavPlaceLinks(self: *Self, t: *terminal.Terminal) !bool {
 +            var next: std.AutoHashMapUnmanaged(u32, void) = .empty;
 +            errdefer next.deinit(self.alloc);
-+            const pages = &t.screen.pages;
++            const pages = &t.screens.active.pages;
 +            if (self.gav_line_links.count() > 0) {
 +                var row: u32 = 0;
 +                while (row < pages.rows) {
@@ -162,7 +160,7 @@
 +                const top_pin = pages.pin(.{ .viewport = .{} }) orelse break :place;
 +                const top = (pages.pointFromPin(.screen, top_pin) orelse break :place).screen.y;
 +                for (self.gav_links.items) |entry| {
-+                    if (entry.screen != t.active_screen or entry.y < top or entry.y - top >= pages.rows or entry.x >= pages.cols) continue;
++                    if (entry.screen != t.screens.active_key or entry.y < top or entry.y - top >= pages.rows or entry.x >= pages.cols) continue;
 +                    const y: terminal.size.CellCountInt = @intCast(entry.y - top);
 +                    const cell = pages.getCell(.{ .viewport = .{ .x = entry.x, .y = y } }) orelse continue;
 +                    const codepoint: u21 = if (cell.cell.codepoint() == 0) ' ' else cell.cell.codepoint();
@@ -183,30 +181,45 @@
 +            self.gav_visible.deinit(self.alloc);
 +            self.gav_visible = next;
 +            return changed;
-         }
- 
++        }
++
          /// Update the frame data.
-@@ -1191,9 +1349,12 @@
-                     try self.prepKittyGraphics(state.terminal);
-                 }
+         pub fn updateFrame(
+             self: *Self,
+@@ -1431,6 +1589,9 @@
+                 overlay_features: []const Overlay.Feature,
+             };
+ 
++            // Whether the file-link underlines changed, which forces a full rebuild of the cells.
++            var gav_changed = false;
++
+             // Update all our data as tightly as possible within the mutex.
+             var critical: Critical = critical: {
+                 // NOTE: This code needs be updated to 0.16.0 before you
+@@ -1512,6 +1673,9 @@
+                     state.terminal,
+                 );
  
 +                // Place the file-link underlines from the same terminal state this frame copies.
-+                const gav_changed = try self.gavPlaceLinks(state.terminal);
++                gav_changed = try self.gavPlaceLinks(state.terminal);
 +
-                 // If we have any terminal dirty flags set then we need to rebuild
-                 // the entire screen. This can be optimized in the future.
--                const full_rebuild: bool = rebuild: {
-+                const full_rebuild: bool = gav_changed or rebuild: {
-                     {
-                         const Int = @typeInfo(terminal.Terminal.Dirty).@"struct".backing_integer.?;
-                         const v: Int = @bitCast(state.terminal.flags.dirty);
-@@ -2719,7 +2880,8 @@
-                     // Give links a single underline, unless they already have
-                     // an underline, in which case use a double underline to
-                     // distinguish them.
--                    const underline: terminal.Attribute.Underline = if (link_match_set.contains(screen, cell_pin))
-+                    const underline: terminal.Attribute.Underline = if (link_match_set.contains(screen, cell_pin) or
-+                        self.gav_visible.contains(@as(u32, @intCast(y)) * screen.pages.cols + @as(u32, @intCast(x))))
-                         if (style.flags.underline == .single)
+                 // If our terminal state is dirty at all we need to redo
+                 // the viewport search.
+                 if (self.terminal_state.dirty != .false) {
+@@ -1591,6 +1755,7 @@
+             // within it. This must be done before anything reads the
+             // render state (e.g. rebuildCells).
+             self.terminal_state.endUpdate();
++            if (gav_changed) self.terminal_state.dirty = .full;
+ 
+             // Outside the critical area we can update our links to contain
+             // our regex results.
+@@ -3275,7 +3440,7 @@
+                     if (links.contains(.{
+                         .x = @intCast(x),
+                         .y = @intCast(y),
+-                    })) {
++                    }) or self.gav_visible.contains(@as(u32, @intCast(y)) * @as(u32, state.cols) + @as(u32, @intCast(x)))) {
+                         break :underline if (style.flags.underline == .single)
                              .double
                          else

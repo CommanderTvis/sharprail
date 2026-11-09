@@ -11,8 +11,8 @@ min_version = "2026.10.13"
 lockfile = true
 
 [tools]
-# libghostty (the macOS view) builds with 0.14.1, libghostty-vt with 0.16.0.
-zig = ["0.14.1", "0.16.0"]
+# One Zig builds every Ghostty library (the macOS view and libghostty-vt): 0.17.1, the one Ghostty 1.4 requires.
+zig = "0.17.1"
 
 # The .NET SDK (global.json must name the same version). mise's core dotnet backend records no URL or checksum, so the
 # archives come from Microsoft's release metadata (builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json,
@@ -40,14 +40,14 @@ checksum = "sha256:c8d5a6714ae9561c2c41f00325a8f9b34f80f520263059921a36a141cddf2
 
 # mise's core Zig has no Windows ARM64 build, so the Windows natives use this archive on both architectures.
 [tools."http:zig-windows"]
-version = "0.16.0"
+version = "0.17.1"
 os = ["windows"]
 [tools."http:zig-windows".platforms.windows-x64]
-url = "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip"
-checksum = "sha256:68659eb5f1e4eb1437a722f1dd889c5a322c9954607f5edcf337bc3684a75a7e"
+url = "https://ziglang.org/download/0.17.1/zig-x86_64-windows-0.17.1.zip"
+checksum = "sha256:b03f477a1943673e02aca0f570e8030dffd536ce1f45cbc4d3326ec31159562e"
 [tools."http:zig-windows".platforms.windows-arm64]
-url = "https://ziglang.org/download/0.16.0/zig-aarch64-windows-0.16.0.zip"
-checksum = "sha256:aee38316ee4111717900f45dd3130145c39289e105541d737eb8c5ed653c78ef"
+url = "https://ziglang.org/download/0.17.1/zig-aarch64-windows-0.17.1.zip"
+checksum = "sha256:4789895bdb1e312a2ea73b2a7c0a0cc8d2ab62ba6976e834a7c54cf443377c15"
 
 # Merman's release publishes its C ABI for Apple platforms as a static xcframework; the UI links it into a dylib.
 [tools."http:merman"]
@@ -104,12 +104,11 @@ checksum = "sha256:00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87
 # NuGet restores in locked mode: each project's packages.lock.json (versions and content hashes) must match, else
 # NU1004/NU1403. `mise run restore:update` is the one task that may change the locks.
 RestoreLockedMode = "true"
-# Pinned Ghostty revisions, fetched by commit by the recipes that build them, with the Zig each builds with
-# (a version listed under [tools]; `scripts/tool zig-<version>`).
-GHOSTTY_VIEW_COMMIT = "6d2dd585a5d87fa745d48188dd096ca6e63014d0" # v1.2.3
-GHOSTTY_VIEW_ZIG = "0.14.1"
-GHOSTTY_VT_COMMIT = "59c2dc032aba42aa5064bf206cc27286add3e9d8"
-GHOSTTY_VT_ZIG = "0.16.0"
+# Pinned Ghostty revisions, fetched by commit by the recipes that build them: libghostty-vt 1.0.0 (vt-1.0.0), the first
+# release of the terminal library, and the same commit for the macOS view. Both build with the one Zig of [tools].
+GHOSTTY_VIEW_COMMIT = "0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec" # vt-1.0.0
+GHOSTTY_VT_COMMIT = "0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec" # vt-1.0.0
+GHOSTTY_ZIG = "0.17.1"
 # The one root of SharpRail's machine-wide build caches, shared by every checkout and worktree (never a repo-local
 # `.tools`): pinned sources, intermediate builds and content-keyed results of the native recipes, Playwright's
 # browsers, downloaded archives. Writers lock (scripts/lock.sh) or publish atomically by rename; scripts/README.md

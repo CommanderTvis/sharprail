@@ -3,20 +3,19 @@
 # depend on codeberg.org at build time. scripts/zig-deps.lock pins a mirror archive (a release
 # asset of this repository, built by scripts/mise run zig-deps:mirror) by SHA-256 and lists each package with its upstream URL.
 # Zig fetches nothing for a package whose p/ entry exists, whatever its URL says.
-# Usage: zig-deps.sh <dir|tgz>   dir = Zig 0.14 (extracted p/<hash>), tgz = Zig 0.16 (p/<hash>.tar.gz)
+# Usage: zig-deps.sh   (Zig keeps each fetched package as p/<hash>.tar.gz in its global cache)
 # Only absent packages are restored, so a warm cache needs no network. A missing or corrupt mirror falls back to the
 # upstream URLs Zig uses; if one of those is unreachable too, this fails naming the package and URL.
 set -eu
 [ -z "${ZIG_DEPS_NO_RESTORE:-}" ] || exit 0
-form="${1:?Usage: zig-deps.sh <dir|tgz>}"
 lock="$(dirname "$0")/zig-deps.lock"
 cache="${ZIG_GLOBAL_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/zig}"
 mkdir -p "$cache/p"
 missing="$cache/zig-deps-missing.$$"
 trap 'rm -rf "$missing" "$cache/zig-deps-extract.$$"' EXIT HUP INT TERM
-awk -v form="$form" -v cache="$cache" '$1 == "pkg" && index($3, form) {
-  if (form == "dir") path = cache "/p/" $2; else path = cache "/p/" $2 ".tar.gz"
-  if (system("test -e \"" path "\"") != 0) print $2, $4 }' "$lock" > "$missing"
+awk -v cache="$cache" '$1 == "pkg" {
+  path = cache "/p/" $2 ".tar.gz"
+  if (system("test -e \"" path "\"") != 0) print $2, $3 }' "$lock" > "$missing"
 [ -s "$missing" ] || exit 0
 
 field() { awk -v k="$1" '$1 == k { print $2 }' "$lock"; }
@@ -33,7 +32,7 @@ if [ -n "$fetched" ]; then
   tmp="$cache/zig-deps-extract.$$"; mkdir -p "$tmp"
   tar -xzf "$archive" -C "$tmp"
   while read -r pkg url; do
-    if [ "$form" = dir ]; then entry="$pkg"; else entry="$pkg.tar.gz"; fi
+    entry="$pkg.tar.gz"
     [ -e "$cache/p/$entry" ] || [ ! -e "$tmp/p/$entry" ] || mv "$tmp/p/$entry" "$cache/p/$entry" 2>/dev/null || true
   done < "$missing"
   echo "Restored Zig packages from $asset into $cache/p."

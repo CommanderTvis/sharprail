@@ -6,9 +6,9 @@
 # -Wl,-pie, which Zig refuses, is left to -pie.
 set -eu
 root="$(cd "$(dirname "$0")/.." && pwd -P)"
-# The Zig version is mise.toml's (GHOSTTY_VT_ZIG, the one the Linux natives build with); outside mise, rerun under it.
-[ -n "${GHOSTTY_VT_ZIG:-}" ] || exec sh "$root/scripts/mise" x -- sh "$0" "$@"
-zig="$("$root/scripts/tool" "zig-$GHOSTTY_VT_ZIG")/zig"
+# The Zig version is mise.toml's (GHOSTTY_ZIG, the one the Linux natives build with); outside mise, rerun under it.
+[ -n "${GHOSTTY_ZIG:-}" ] || exec sh "$root/scripts/mise" x -- sh "$0" "$@"
+zig="$("$root/scripts/tool" "zig-$GHOSTTY_ZIG")/zig"
 arch=""
 for arg; do
   case "$arg" in

@@ -1,6 +1,6 @@
 --- a/src/termio/backend.zig
 +++ b/src/termio/backend.zig
-@@ -19,28 +19,32 @@
+@@ -11,28 +11,32 @@
  const WRITE_REQ_PREALLOC = std.math.pow(usize, 2, 5);
  
  /// The kinds of backends.
@@ -34,7 +34,7 @@
          }
      }
  
-@@ -52,12 +56,16 @@
+@@ -44,12 +48,16 @@
      ) !void {
          switch (self.*) {
              .exec => |*exec| try exec.threadEnter(alloc, io, td),
@@ -51,7 +51,7 @@
          }
      }
  
-@@ -68,6 +76,7 @@
+@@ -60,6 +68,7 @@
      ) !void {
          switch (self.*) {
              .exec => |*exec| try exec.focusGained(td, focused),
@@ -59,7 +59,7 @@
          }
      }
  
-@@ -78,6 +87,7 @@
+@@ -70,6 +79,7 @@
      ) !void {
          switch (self.*) {
              .exec => |*exec| try exec.resize(grid_size, screen_size),
@@ -67,7 +67,7 @@
          }
      }
  
-@@ -90,6 +100,13 @@
+@@ -82,6 +92,13 @@
      ) !void {
          switch (self.*) {
              .exec => |*exec| try exec.queueWrite(alloc, td, data, linefeed),
@@ -81,15 +81,23 @@
          }
      }
  
-@@ -107,6 +124,7 @@
+@@ -99,6 +116,7 @@
                  exit_code,
                  runtime_ms,
              ),
 +            .external => {},
          }
      }
+ 
+@@ -108,6 +126,7 @@
+     pub fn getProcessInfo(self: *Backend, comptime info: ProcessInfo) ?ProcessInfo.Type(info) {
+         return switch (self.*) {
+             .exec => |*exec| exec.getProcessInfo(info),
++            .external => null,
+         };
+     }
  };
-@@ -114,10 +132,12 @@
+@@ -115,10 +134,12 @@
  /// Termio thread data. See termio.ThreadData for docs.
  pub const ThreadData = union(Kind) {
      exec: termio.Exec.ThreadData,
@@ -102,7 +110,7 @@
          }
      }
  
-@@ -126,3 +146,11 @@
+@@ -127,3 +148,11 @@
          _ = config;
      }
  };
@@ -116,7 +124,7 @@
 +};
 --- a/src/apprt/embedded.zig
 +++ b/src/apprt/embedded.zig
-@@ -403,6 +403,7 @@
+@@ -449,6 +449,7 @@
      platform: Platform,
      userdata: ?*anyopaque = null,
      core_surface: CoreSurface,
@@ -124,15 +132,15 @@
      content_scale: apprt.ContentScale,
      size: apprt.SurfaceSize,
      cursor_pos: apprt.CursorPos,
-@@ -450,6 +451,7 @@
+@@ -496,6 +497,7 @@
  
          /// Wait after the command exits
          wait_after_command: bool = false,
 +        external_io: ?*const @import("../termio/backend.zig").External = null,
-     };
  
-     pub fn init(self: *Surface, app: *App, opts: Options) !void {
-@@ -458,6 +460,7 @@
+         /// Context for the new surface
+         context: apprt.surface.NewSurfaceContext = .window,
+@@ -507,6 +509,7 @@
              .platform = try .init(opts.platform_tag, opts.platform),
              .userdata = opts.userdata,
              .core_surface = undefined,
@@ -140,7 +148,7 @@
              .content_scale = .{
                  .x = @floatCast(opts.scale_factor),
                  .y = @floatCast(opts.scale_factor),
-@@ -2159,3 +2162,9 @@
+@@ -2578,3 +2581,9 @@
          }
      };
  };
@@ -152,101 +160,111 @@
 +}
 --- a/src/Surface.zig
 +++ b/src/Surface.zig
-@@ -552,37 +552,46 @@
+@@ -662,43 +662,51 @@
      // This separate block ({}) is important because our errdefers must
      // be scoped here to be valid.
      {
--        var env = rt_surface.defaultTermioEnv() catch |err| env: {
--            // If an error occurs, we don't want to block surface startup.
--            log.warn("error getting env map for surface err={}", .{err});
--            break :env internal_os.getEnvMap(alloc) catch
--                std.process.EnvMap.init(alloc);
--        };
--        errdefer env.deinit();
--
-         // Initialize our IO backend
--        var io_exec = try termio.Exec.init(alloc, .{
--            .command = command,
--            .env = env,
--            .env_override = config.env,
--            .shell_integration = config.@"shell-integration",
--            .shell_integration_features = config.@"shell-integration-features",
--            .working_directory = config.@"working-directory",
--            .resources_dir = global_state.resources_dir.host(),
--            .term = config.term,
+-        // Exec.init takes ownership of the env even if it fails, so the
+-        // errdefer for it must not reach past the call.
+-        const env = termio_env: {
+-            var env = rt_surface.defaultTermioEnv() catch |err| env: {
+-                // If an error occurs, we don't want to block surface startup.
+-                log.warn("error getting env map for surface err={}", .{err});
+-                break :env global.environMap() catch std.process.Environ.Map.init(alloc);
+-            };
+-            errdefer env.deinit();
++        // Initialize our IO backend
 +        var io_backend: termio.Backend = backend: {
 +            if (comptime @hasField(apprt.runtime.Surface, "external_io")) {
 +                if (rt_surface.external_io) |external| {
 +                    break :backend .{ .external = external };
 +                }
 +            }
-+            var env = rt_surface.defaultTermioEnv() catch |err| env: {
-+                // If an error occurs, we don't want to block surface startup.
-+                log.warn("error getting env map for surface err={}", .{err});
-+                break :env internal_os.getEnvMap(alloc) catch
-+                    std.process.EnvMap.init(alloc);
-+            };
-+            errdefer env.deinit();
  
--            // Get the cgroup if we're on linux and have the decl. I'd love
--            // to change this from a decl to a surface options struct because
--            // then we can do memory management better (don't need to retain
--            // the string around).
--            .linux_cgroup = if (comptime builtin.os.tag == .linux and
--                @hasDecl(apprt.runtime.Surface, "cgroup"))
--                rt_surface.cgroup()
--            else
--                Command.linux_cgroup_default,
+-            // don't leak GHOSTTY_LOG to any subprocesses
+-            _ = env.orderedRemove("GHOSTTY_LOG");
++            // Exec.init takes ownership of the env even if it fails, so the
++            // errdefer for it must not reach past the call.
++            const env = termio_env: {
++                var env = rt_surface.defaultTermioEnv() catch |err| env: {
++                    // If an error occurs, we don't want to block surface startup.
++                    log.warn("error getting env map for surface err={}", .{err});
++                    break :env global.environMap() catch std.process.Environ.Map.init(alloc);
++                };
++                errdefer env.deinit();
+ 
+-            var buf: [18]u8 = undefined;
+-            try env.put(
+-                "GHOSTTY_SURFACE_ID",
+-                std.mem.print(&buf, "0x{x:0>16}", .{self.id}) catch unreachable,
+-            );
++                // don't leak GHOSTTY_LOG to any subprocesses
++                _ = env.orderedRemove("GHOSTTY_LOG");
+ 
+-            break :termio_env env;
+-        };
++                var buf: [18]u8 = undefined;
++                try env.put(
++                    "GHOSTTY_SURFACE_ID",
++                    std.mem.print(&buf, "0x{x:0>16}", .{self.id}) catch unreachable,
++                );
+ 
+-        // Initialize our IO backend
+-        var io_exec = try termio.Exec.init(alloc, .{
+-            .command = command,
+-            .env = env,
+-            .env_override = config.env,
+-            .shell_integration = config.@"shell-integration",
+-            .shell_integration_features = config.@"shell-integration-features",
+-            .cursor_blink = config.@"cursor-style-blink",
+-            .working_directory = if (config.@"working-directory") |wd| wd.value() else null,
+-            .resources_dir = global.resourcesDir().host(),
+-            .term = config.term,
+-            .rt_pre_exec_info = .init(config),
+-            .rt_post_fork_info = .init(config),
 -        });
 -        errdefer io_exec.deinit();
-+            break :backend .{
-+                .exec = try termio.Exec.init(alloc, .{
-+                    .command = command,
-+                    .env = env,
-+                    .env_override = config.env,
-+                    .shell_integration = .none,
-+                    .shell_integration_features = config.@"shell-integration-features",
-+                    .working_directory = config.@"working-directory",
-+                    .resources_dir = global_state.resources_dir.host(),
-+                    .term = config.term,
- 
-+                    // Get the cgroup if we're on linux and have the decl. I'd love
-+                    // to change this from a decl to a surface options struct because
-+                    // then we can do memory management better (don't need to retain
-+                    // the string around).
-+                    .linux_cgroup = if (comptime builtin.os.tag == .linux and
-+                        @hasDecl(apprt.runtime.Surface, "cgroup"))
-+                        rt_surface.cgroup()
-+                    else
-+                        Command.linux_cgroup_default,
-+                }),
++                break :termio_env env;
 +            };
++
++            break :backend .{ .exec = try termio.Exec.init(alloc, .{
++                .command = command,
++                .env = env,
++                .env_override = config.env,
++                .shell_integration = .none,
++                .shell_integration_features = config.@"shell-integration-features",
++                .cursor_blink = config.@"cursor-style-blink",
++                .working_directory = if (config.@"working-directory") |wd| wd.value() else null,
++                .resources_dir = global.resourcesDir().host(),
++                .term = config.term,
++                .rt_pre_exec_info = .init(config),
++                .rt_post_fork_info = .init(config),
++            }) };
 +        };
 +        errdefer io_backend.deinit();
-+
+ 
          // Initialize our IO mailbox
          var io_mailbox = try termio.Mailbox.initSPSC(alloc);
-         errdefer io_mailbox.deinit(alloc);
-@@ -591,7 +600,7 @@
+@@ -712,7 +720,7 @@
              .size = size,
              .full_config = config,
-             .config = try termio.Termio.DerivedConfig.init(alloc, config),
+             .config = io_config,
 -            .backend = .{ .exec = io_exec },
 +            .backend = io_backend,
              .mailbox = io_mailbox,
              .renderer_state = &self.renderer_state,
              .renderer_wakeup = render_thread.wakeup,
-@@ -1126,6 +1135,7 @@
+@@ -1386,6 +1394,7 @@
      // Build up our command for the error message
      const command = try std.mem.join(alloc, " ", switch (self.io.backend) {
          .exec => |*exec| exec.subprocess.args,
 +        .external => &.{},
      });
-     const runtime_str = try std.fmt.allocPrint(alloc, "{d} ms", .{info.runtime_ms});
+     const runtime_str = try alloc.print("{d} ms", .{info.runtime_ms});
  
 --- a/include/ghostty.h
 +++ b/include/ghostty.h
-@@ -408,6 +408,13 @@
+@@ -514,6 +514,13 @@
    ghostty_platform_macos_s macos;
    ghostty_platform_ios_s ios;
  } ghostty_platform_u;
@@ -256,15 +274,15 @@
 +  void (*write)(void*, const uint8_t*, size_t);
 +  void (*resize)(void*, uint16_t, uint16_t);
 +} ghostty_external_io_s;
-+void ghostty_surface_external_output(ghostty_surface_t, const uint8_t*, size_t);
++GHOSTTY_API void ghostty_surface_external_output(ghostty_surface_t, const uint8_t*, size_t);
  
- typedef struct {
-   ghostty_platform_e platform_tag;
-@@ -421,6 +428,7 @@
+ typedef enum {
+   GHOSTTY_SURFACE_CONTEXT_WINDOW = 0,
+@@ -533,6 +540,7 @@
    size_t env_var_count;
-   const char* initial_input;
+   const char* GHOSTTY_NULLABLE initial_input;
    bool wait_after_command;
 +  const ghostty_external_io_s* external_io;
+   ghostty_surface_context_e context;
  } ghostty_surface_config_s;
  
- typedef struct {

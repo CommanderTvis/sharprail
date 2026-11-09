@@ -1,15 +1,26 @@
 --- a/src/config/url.zig
 +++ b/src/config/url.zig
-@@ -26,10 +26,10 @@
-     "(?:" ++ url_schemes ++
-     \\)(?:
-     ++ ipv6_url_pattern ++
--    \\|[\w\-.~:/?#@!$&*+,;=%]+(?:[\(\[]\w*[\)\]])?)+(?<![,.])|(?:\.\.\/|\.\/|\/)[\w\-.~:\/?#@!$&*+,;=%]+(?:\/[\w\-.~:\/?#@!$&*+,;=%]*)*
-+    \\|[\w\-.~:/?#@!$&*+,;=%]+(?:[\(\[]\w*[\)\]])?)+(?<![,.])
-     ;
+@@ -25,7 +25,7 @@
+ /// There are many complicated cases where these heuristics break down, but
+ /// handling them well requires a non-regex approach.
  const url_schemes =
 -    \\https?://|mailto:|ftp://|file:|ssh:|git://|ssh://|tel:|magnet:|ipfs://|ipns://|gemini://|gopher://|news:
 +    \\https?://|mailto:|ftp://|ssh:|git://|ssh://|tel:|magnet:|ipfs://|ipns://|gemini://|gopher://|news:
  ;
  
  const ipv6_url_pattern =
+@@ -106,12 +106,8 @@
+     path_chars ++ "+" ++
+     no_trailing_colon;
+ 
+-pub const regex =
+-    scheme_url_branch ++
+-    "|" ++
+-    rooted_or_relative_path_branch ++
+-    "|" ++
+-    bare_relative_path_branch;
++// SharpRail: file paths are resolved by the host (file-links.zig), so only scheme URLs are matched here.
++pub const regex = scheme_url_branch;
+ 
+ test "url regex" {
+     const testing = std.testing;

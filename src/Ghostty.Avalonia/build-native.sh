@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 # Builds this project's native libraries into an output directory (MSBuild's GhosttyNativeCache, under the checkout's obj):
-#   libGhosttyAvaloniaView.dylib  embedded libghostty 1.2.3: AppKit view with Ghostty's Metal renderer
+#   libGhosttyAvaloniaView.dylib  embedded libghostty (1.4 line): AppKit view with Ghostty's Metal renderer
 #   libGhosttyAvaloniaVt.dylib    libghostty-vt terminal state behind the Skia renderer's C ABI
 #   resources/                    Ghostty's terminfo, used by the embedded view (its GPL-3.0 shell integration is not shipped;
 #                                 SharpRail injects its own)
@@ -16,12 +16,11 @@ project="$PWD"
 cache="${2:-$project/obj/native}"
 mkdir -p "$cache"
 cache="$(cd "$cache" && pwd -P)"
-# The pins live in mise.toml's [env]; run this through `scripts/mise x --` (the MSBuild targets do). libghostty-vt's C API
-# for terminal and render state is unreleased, so its commit is a main commit rather than a release.
+# The pins live in mise.toml's [env]; run this through `scripts/mise x --` (the MSBuild targets do). Both libraries build
+# with the one Zig of mise.toml.
 view_commit="${GHOSTTY_VIEW_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
-view_zig="$GHOSTTY_VIEW_ZIG"
 vt_commit="$GHOSTTY_VT_COMMIT"
-vt_zig="$GHOSTTY_VT_ZIG"
+zig="$GHOSTTY_ZIG"
 arch="$(uname -m)"
 case "$arch" in arm64) rid_arch=arm64 ;; x86_64) rid_arch=x64 ;; *) exit 1 ;; esac
 case "${1:-}" in
@@ -50,8 +49,8 @@ checkout() {
 }
 fresh() { [ -f "$cache/$1.fingerprint" ] && [ -f "$cache/$2" ] && [ "$(cat "$cache/$1.fingerprint")" = "$3" ]; }
 
-view_fingerprint="$arch $view_commit $view_zig $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/LinkUnderlines.patch Native/ConfigFile.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/context-link.zig Native/prompt-surface.zig Native/prompts.zig Native/reclaim.zig Native/reclaim-surface.zig Native/Reclaim.patch Native/FileLinks.patch Native/CommandEnd.patch build-native.sh | shasum -a 256)"
-vt_fingerprint="$arch $vt_commit $vt_zig $(cat Native/GhosttyVt.c Native/GhosttyClipboard.m build-native.sh | shasum -a 256)"
+view_fingerprint="$arch $view_commit $zig $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/LinkUnderlines.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/context-link.zig Native/prompt-surface.zig Native/prompts.zig Native/reclaim.zig Native/reclaim-surface.zig Native/Reclaim.patch Native/FileLinks.patch Native/CommandEnd.patch build-native.sh | shasum -a 256)"
+vt_fingerprint="$arch $vt_commit $zig $(cat Native/GhosttyVt.c Native/GhosttyClipboard.m build-native.sh | shasum -a 256)"
 if fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint" && fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
   touch "$cache/libGhosttyAvaloniaView.dylib" "$cache/libGhosttyAvaloniaVt.dylib"
   exit 0
@@ -64,83 +63,31 @@ if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint" && [ ! -f "$vie
   rm -rf "$view_result.partial"
   mkdir -p "$view_result.partial"
   checkout view-source "$view_commit"
-  git -C "$work/view-source" show "$view_commit:src/config/CApi.zig" > "$work/view-source/src/config/CApi.zig"
-  git -C "$work/view-source" show "$view_commit:include/ghostty.h" > "$work/view-source/include/ghostty.h"
-  patch -s -d "$work/view-source" -p1 < Native/ConfigFile.patch
-  git -C "$work/view-source" show "$view_commit:src/renderer/Metal.zig" > "$work/view-source/src/renderer/Metal.zig"
-  git -C "$work/view-source" show "$view_commit:src/renderer/metal/Frame.zig" > "$work/view-source/src/renderer/metal/Frame.zig"
-  git -C "$work/view-source" show "$view_commit:src/renderer/metal/Target.zig" > "$work/view-source/src/renderer/metal/Target.zig"
-  patch -s -d "$work/view-source" -p1 < Native/MetalTexture.patch
-  git -C "$work/view-source" show "$view_commit:src/terminal/PageList.zig" > "$work/view-source/src/terminal/PageList.zig"
-  patch -s -d "$work/view-source" -p1 < Native/ScrollbackMemory.patch
-  git -C "$work/view-source" show "$view_commit:src/renderer/generic.zig" > "$work/view-source/src/renderer/generic.zig"
-  patch -s -d "$work/view-source" -p1 < Native/ReverseColors.patch
-  patch -s -d "$work/view-source" -p1 < Native/LinkUnderlines.patch
-  for source in src/renderer/message.zig src/renderer/Thread.zig; do
-    git -C "$work/view-source" show "$view_commit:$source" > "$work/view-source/$source"
-  done
+  restore() { for source in "$@"; do git -C "$work/view-source" show "$view_commit:$source" > "$work/view-source/$source"; done; }
+  restore src/renderer/message.zig src/renderer/Thread.zig src/renderer/generic.zig
   patch -s -d "$work/view-source" -p1 < Native/Reclaim.patch
-  for source in src/Surface.zig src/apprt/embedded.zig src/termio/backend.zig; do
-    git -C "$work/view-source" show "$view_commit:$source" > "$work/view-source/$source"
-  done
+  patch -s -d "$work/view-source" -p1 < Native/LinkUnderlines.patch
+  restore src/renderer/Metal.zig src/renderer/metal/Frame.zig src/renderer/metal/Target.zig
+  patch -s -d "$work/view-source" -p1 < Native/MetalTexture.patch
+  restore src/Surface.zig src/apprt/embedded.zig src/termio/backend.zig include/ghostty.h
   patch -s -d "$work/view-source" -p1 < Native/ExternalIo.patch
-  git -C "$work/view-source" show "$view_commit:src/config/url.zig" > "$work/view-source/src/config/url.zig"
-  for source in src/terminal/page.zig src/termio/stream_handler.zig; do
-    git -C "$work/view-source" show "$view_commit:$source" > "$work/view-source/$source"
-  done
+  restore src/terminal/page.zig src/termio/stream_handler.zig
   patch -s -d "$work/view-source" -p1 < Native/CommandEnd.patch
+  restore src/config/url.zig
   patch -s -d "$work/view-source" -p1 < Native/FileLinks.patch
   cat Native/context-link.zig Native/prompt-surface.zig Native/reclaim-surface.zig >> "$work/view-source/src/Surface.zig"
   cat Native/keyboard-mode.zig Native/file-links.zig Native/prompts.zig Native/reclaim.zig >> "$work/view-source/src/apprt/embedded.zig"
-  view_zig_path="$(zig_path "$view_zig")"
+  view_zig_path="$(zig_path "$zig")"
   (
-    # Zig 0.14 cannot resolve the arm64e-only stubs in newer Apple SDKs.
-    # Adjust a disposable SDK copy, leaving the installed SDK untouched.
-    # Newer Xcode reports a versioned symlink as the SDK path; copy its target.
-    sdk="$(cd "$(xcrun --sdk macosx --show-sdk-path)" && pwd -P)"
-    mkdir -p "$work/bin"
-    if [ "$arch" = arm64 ] && grep -q 'arm64e-macos' "$sdk/usr/lib/libSystem.tbd"; then
-      if [ "$(cat "$work/sdk.source" 2>/dev/null)" != "$sdk" ] || [ ! -f "$work/sdk/usr/lib/libSystem.tbd" ]; then
-        rm -rf "$work/sdk" "$work/sdk.partial" "$work/sdk.source"
-        cp -cR "$sdk/" "$work/sdk.partial"
-        find "$work/sdk.partial" -name '*.tbd' -type f -exec sed -i '' 's/arm64e/arm64/g' {} +
-        mv "$work/sdk.partial" "$work/sdk"
-        printf '%s\n' "$sdk" > "$work/sdk.source"
-      fi
-      cat > "$work/bin/xcrun" <<'WRAPPER'
-#!/bin/sh
-case "$*" in
-  '--sdk macosx --show-sdk-path') printf '%s\n' "$GHOSTTY_AVALONIA_SDK" ;;
-  *) exec /usr/bin/xcrun "$@" ;;
-esac
-WRAPPER
-      chmod +x "$work/bin/xcrun"
-      export GHOSTTY_AVALONIA_SDK="$work/sdk"
-    fi
-    # Recent Apple libtool drops Zig objects whose sizes are not aligned to 8 bytes.
-    # LLVM's Darwin archive writer preserves them and writes a usable symbol index.
-    cat > "$work/bin/libtool" <<'ARCHIVER'
-#!/bin/sh
-set -eu
-[ "$1" = -static ] && [ "$2" = -o ]
-output="$3"
-shift 3
-scratch="$(mktemp -d "$output.XXXXXX")"
-trap 'rmdir "$scratch"' EXIT
-/opt/homebrew/opt/llvm/bin/llvm-ar --format=darwin qcLs "$scratch/library.a" "$@"
-mv "$scratch/library.a" "$output"
-ARCHIVER
-    chmod +x "$work/bin/libtool"
-    export PATH="$work/bin:$PATH"
     cd "$work/view-source"
-    sh "$project/../../scripts/zig-deps.sh" dir
+    sh "$project/../../scripts/zig-deps.sh"
     "$view_zig_path" build --cache-dir "$work/view-cache" \
       -Doptimize=ReleaseFast -Drenderer=metal -Dapp-runtime=none \
       -Demit-macos-app=false -Demit-docs=false -Demit-themes=false -Di18n=false -Dxcframework-target=native
   )
   clang -dynamiclib -fobjc-arc -mmacosx-version-min=13.0 -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
     -I "$work/view-source/include" Native/GhosttyView.m Native/GhosttyTexture.m \
-    "$work/view-source/macos/GhosttyKit.xcframework/macos-$arch/libghostty-fat.a" \
+    "$work/view-source/macos/GhosttyKit.xcframework/macos-$arch/libghostty-internal.a" \
     -framework AppKit -framework Metal -framework QuartzCore -framework IOSurface \
     -framework CoreText -framework CoreGraphics -framework Carbon -framework Foundation -framework CoreVideo \
     -lc++ -install_name @rpath/libGhosttyAvaloniaView.dylib -o "$view_result.partial/libGhosttyAvaloniaView.dylib"
@@ -158,8 +105,8 @@ if ! fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint" && [ ! -f "$vt_result
   rm -rf "$vt_result.partial"
   mkdir -p "$vt_result.partial"
   checkout vt-source "$vt_commit"
-  vt_zig_path="$(zig_path "$vt_zig")"
-  sh "$project/../../scripts/zig-deps.sh" tgz
+  vt_zig_path="$(zig_path "$zig")"
+  sh "$project/../../scripts/zig-deps.sh"
   (cd "$work/vt-source" && "$vt_zig_path" build --cache-dir "$work/vt-cache" --prefix "$work/vt-out" -Demit-lib-vt -Doptimize=ReleaseFast)
   clang -dynamiclib -fobjc-arc -mmacosx-version-min=13.0 -O2 -Wall -Wextra -Werror -DGHOSTTY_STATIC \
     -I "$work/vt-out/include" Native/GhosttyVt.c Native/GhosttyClipboard.m "$work/vt-out/lib/libghostty-vt.a" -framework AppKit \

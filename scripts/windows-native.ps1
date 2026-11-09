@@ -97,7 +97,7 @@ function Restore-ZigDeps {
     $cache = if ($env:ZIG_GLOBAL_CACHE_DIR) { $env:ZIG_GLOBAL_CACHE_DIR } else { Join-Path $env:LOCALAPPDATA 'zig' }
     $p = Join-Path $cache 'p'
     New-Item -ItemType Directory $p -Force | Out-Null
-    $missing = @($lock.pkg | Where-Object { $_[2].Contains('tgz') -and !(Test-Path (Join-Path $p "$($_[1]).tar.gz")) })
+    $missing = @($lock.pkg | Where-Object { !(Test-Path (Join-Path $p "$($_[1]).tar.gz")) })
     if (!$missing) { return }
     $archive = Join-Path $cache $lock.asset
     $ok = (Test-Path $archive) -and (Get-FileHash $archive -Algorithm SHA256).Hash -eq $lock.sha256
@@ -125,7 +125,7 @@ function Restore-ZigDeps {
     Write-Host "::warning title=Zig dependency mirror unavailable::$($lock.asset) (release $($lock.tag) of $($lock.repo)) could not be downloaded or failed its SHA-256 check; Zig will fetch the packages from their upstream URLs."
     $failed = $false
     foreach ($m in $missing) {
-        $url = $m[3]
+        $url = $m[2]
         $probe = if ($url.StartsWith('git+')) { ($url.Substring(4) -split '#')[0] + '/info/refs?service=git-upload-pack' } else { $url }
         try { Invoke-WebRequest $probe -Headers @{ Range = 'bytes=0-0' } -UseBasicParsing -TimeoutSec 30 | Out-Null }
         catch { Write-Host "::error title=Zig dependency unreachable::Package $($m[1]) is not mirrored and its upstream $url is unreachable. Publish the mirror (scripts/mise run zig-deps:mirror) or retry when the host is back."; $failed = $true }

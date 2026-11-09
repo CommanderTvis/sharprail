@@ -11,10 +11,10 @@
 +
      /// Reset the cursor blink by immediately showing the cursor then
      /// restarting the timer.
-     reset_cursor_blink: void,
+     reset_cursor_blink,
 --- a/src/renderer/Thread.zig
 +++ b/src/renderer/Thread.zig
-@@ -365,6 +365,11 @@
+@@ -331,6 +331,11 @@
                  // check the visible state themselves to control their behavior.
              },
  
@@ -28,10 +28,11 @@
                  if (self.flags.focused == v) break :focus;
 --- a/src/renderer/generic.zig
 +++ b/src/renderer/generic.zig
-@@ -1035,7 +1035,32 @@
-                 }
-             }
-         }
+@@ -1212,6 +1212,32 @@
+         /// Returns how well frames can be presented.
+         pub fn presentationHealth(self: *Self) Health {
+             return self.presentation_health.load(.seq_cst);
++        }
 +
 +        /// Replaces the targets of every frame but the most recently drawn one
 +        /// (the frame the apprt may still present) with 1x1 ones, freeing their
@@ -41,23 +42,22 @@
 +        ///
 +        /// Must be called on the render thread.
 +        pub fn gavReclaimTargets(self: *Self) void {
-+            self.draw_mutex.lock();
-+            defer self.draw_mutex.unlock();
-+            if (self.swap_chain.defunct) return;
- 
-+            // No frame may be in flight on the GPU.
-+            for (0..SwapChain.buf_count) |_| self.swap_chain.frame_sema.wait();
-+            defer for (0..SwapChain.buf_count) |_| self.swap_chain.frame_sema.post();
++            self.draw_mutex.lockUncancelable(global.io());
++            defer self.draw_mutex.unlock(global.io());
++            // A released swap chain holds no targets.
++            const sc = &(self.swap_chain orelse return);
 +
-+            for (&self.swap_chain.frames, 0..) |*frame, index| {
-+                if (index == self.swap_chain.frame_index) continue;
++            // No frame may be in flight on the GPU.
++            for (0..SwapChain.buf_count) |_| sc.frame_sema.waitUncancelable(global.io());
++            defer for (0..SwapChain.buf_count) |_| sc.frame_sema.post(global.io());
++
++            for (&sc.frames, 0..) |*frame, index| {
++                if (index == sc.frame_index) continue;
 +                if (frame.target.width == 1 and frame.target.height == 1) continue;
 +                const target = self.api.initTarget(1, 1) catch continue;
 +                frame.target.deinit();
 +                frame.target = target;
 +            }
-+        }
-+
+         }
+ 
          /// Callback when the window is visible or occluded.
-         ///
-         /// Must be called on the render thread.

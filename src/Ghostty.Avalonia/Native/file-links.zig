@@ -2,10 +2,10 @@
 export fn gav_ghostty_link_line(surface: *Surface, x: f64, y: f64, text: [*]u32, cells: [*]u32, capacity: usize, info: [*]f64) usize {
     const core = &surface.core_surface;
     const pixels = surface.cursorPosToPixels(.{ .x = @floatCast(x), .y = @floatCast(y) }) catch return 0;
-    core.renderer_state.mutex.lock();
-    defer core.renderer_state.mutex.unlock();
+    core.renderer_state.mutex.lockUncancelable(global.io());
+    defer core.renderer_state.mutex.unlock(global.io());
     const term = &core.io.terminal;
-    const pages = &term.screen.pages;
+    const pages = &term.screens.active.pages;
     const grid = core.size.grid();
     if (pixels.x < @as(f64, @floatFromInt(core.size.padding.left)) or pixels.y < @as(f64, @floatFromInt(core.size.padding.top))) return 0;
     const point = core.posToViewport(pixels.x, pixels.y);
@@ -37,7 +37,7 @@ export fn gav_ghostty_link_line(surface: *Surface, x: f64, y: f64, text: [*]u32,
             cells[count] = index;
             count += 1;
             if (cell.cell.hasGrapheme()) {
-                for (cell.node.data.lookupGrapheme(cell.cell).?) |cp| {
+                for (cell.node.page().lookupGrapheme(cell.cell).?) |cp| {
                     if (count >= capacity) return 0;
                     text[count] = cp;
                     cells[count] = index;
@@ -70,9 +70,9 @@ export fn gav_ghostty_set_line_links(surface: *Surface, cells: [*]const u32, cod
     const core = &surface.core_surface;
     const view = &core.renderer;
     {
-        core.renderer_state.mutex.lock();
-        defer core.renderer_state.mutex.unlock();
-        const pages = &core.io.terminal.screen.pages;
+        core.renderer_state.mutex.lockUncancelable(global.io());
+        defer core.renderer_state.mutex.unlock(global.io());
+        const pages = &core.io.terminal.screens.active.pages;
         if (mode == 2) view.gavClearLineLinks();
         var wanted: std.AutoHashMapUnmanaged(u32, u32) = .empty;
         defer wanted.deinit(view.alloc);
@@ -102,10 +102,10 @@ export fn gav_ghostty_set_line_links(surface: *Surface, cells: [*]const u32, cod
 export fn gav_ghostty_set_link_underlines(surface: *Surface, cells: [*]const u32, codepoints: [*]const u32, count: usize) bool {
     const core = &surface.core_surface;
     {
-        core.renderer_state.mutex.lock();
-        defer core.renderer_state.mutex.unlock();
+        core.renderer_state.mutex.lockUncancelable(global.io());
+        defer core.renderer_state.mutex.unlock(global.io());
         const term = &core.io.terminal;
-        const pages = &term.screen.pages;
+        const pages = &term.screens.active.pages;
         const links = &core.renderer.gav_links;
         links.clearRetainingCapacity();
         const top_pin = pages.pin(.{ .viewport = .{} }) orelse return false;
@@ -117,7 +117,7 @@ export fn gav_ghostty_set_link_underlines(surface: *Surface, cells: [*]const u32
             const cell = pages.getCell(.{ .viewport = .{ .x = @intCast(x), .y = @intCast(y) } }) orelse continue;
             const codepoint: u21 = if (cell.cell.codepoint() == 0) ' ' else cell.cell.codepoint();
             if (codepoint != codepoints[i]) continue;
-            links.append(core.renderer.alloc, .{ .screen = term.active_screen, .x = @intCast(x), .y = top + y, .codepoint = codepoint }) catch return false;
+            links.append(core.renderer.alloc, .{ .screen = term.screens.active_key, .x = @intCast(x), .y = top + y, .codepoint = codepoint }) catch return false;
         }
     }
     core.renderer_thread.wakeup.notify() catch {};

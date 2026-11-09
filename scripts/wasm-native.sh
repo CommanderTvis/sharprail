@@ -35,10 +35,10 @@ emcc() { "$python" "$sdk/emscripten/emcc.py" "$@"; }
 emar() { "$python" "$sdk/emscripten/emar.py" "$@"; }
 
 vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
-zig="$("$root/scripts/tool" "zig-$GHOSTTY_VT_ZIG")"
-[ -x "$zig/zig" ] || { echo "No Zig $GHOSTTY_VT_ZIG in $zig." >&2; exit 1; }
+zig="$("$root/scripts/tool" "zig-$GHOSTTY_ZIG")"
+[ -x "$zig/zig" ] || { echo "No Zig $GHOSTTY_ZIG in $zig." >&2; exit 1; }
 patch_hash="$(shasum -a 256 src/Ghostty.Avalonia/Native/Wasm.patch | cut -c1-16)"
-fingerprint="$vt_commit $patch_hash $GHOSTTY_VT_ZIG $sdk $(cat src/Ghostty.Avalonia/Native/GhosttyVt.c scripts/wasm-native.sh | shasum -a 256)"
+fingerprint="$vt_commit $patch_hash $GHOSTTY_ZIG $sdk $(cat src/Ghostty.Avalonia/Native/GhosttyVt.c scripts/wasm-native.sh | shasum -a 256)"
 acquire_lock "$cache/build.lock"
 result="$cache/results/$(cache_key "$fingerprint")"
 if [ ! -f "$result/GhosttyAvaloniaVt.a" ]; then
@@ -52,7 +52,7 @@ if [ ! -f "$result/GhosttyAvaloniaVt.a" ]; then
     [ "$(git -C "$source" rev-parse HEAD)" = "$vt_commit" ] || { echo 'Unexpected Ghostty source revision.' >&2; exit 1; }
     rm -rf "$result.partial"
     mkdir -p "$result.partial"
-    sh scripts/zig-deps.sh tgz
+    sh scripts/zig-deps.sh
     (cd "$source" && "$zig/zig" build --cache-dir "$cache/zig-cache" --prefix "$cache/ghostty" -Demit-lib-vt -Dtarget=wasm32-freestanding -Dcpu=mvp+simd128+mutable_globals+sign_ext+nontrapping_fptoint+atomics+bulk_memory -Doptimize=ReleaseFast -Dstrip=true)
     emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/Native/GhosttyVt.c -o "$result.partial/GhosttyVt.o"
     cp "$cache/ghostty/lib/libghostty-vt.a" "$result.partial/GhosttyAvaloniaVt.a"

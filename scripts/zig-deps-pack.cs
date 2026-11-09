@@ -1,8 +1,8 @@
 // Builds the Zig dependency mirror archive and scripts/zig-deps.lock from measured Zig global caches.
 //
-// Usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <view-cache> <vt-cache> <zon-root>...
-// <view-cache> is the global cache of the Zig 0.14 view build (package directories under p/), <vt-cache> that of the Zig 0.16
-// build (p/<hash>.tar.gz files), <zon-root> a directory searched for build.zig.zon files to learn each package's URL.
+// Usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>...
+// <cache> is the global cache of the native builds (Zig keeps each package as p/<hash>.tar.gz), <zon-root> a directory
+// searched for build.zig.zon files to learn each package's URL.
 // Every package hosted outside github.com and deps.files.ghostty.org (the hosts that are fetched upstream by design) goes into the archive. Run by scripts/mise run zig-deps:mirror.
 using System.Formats.Tar;
 using System.IO.Compression;
@@ -10,10 +10,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-if (args.Length < 3) { Console.Error.WriteLine("usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <view-cache> <vt-cache> <zon-root>..."); return 2; }
-var (outDirectory, view, vt) = (args[0], args[1], args[2]);
+if (args.Length < 2) { Console.Error.WriteLine("usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>..."); return 2; }
+var (outDirectory, cache) = (args[0], args[1]);
 var urls = new Dictionary<string, string>();
-foreach (var root in args.Skip(3)) Walk(root);
+foreach (var root in args.Skip(2)) Walk(root);
 
 void Walk(string directory)
 {
@@ -29,26 +29,21 @@ void Walk(string directory)
 
 string? Host(string url) => Uri.TryCreate(url.StartsWith("git+", StringComparison.Ordinal) ? url[4..] : url, UriKind.Absolute, out var uri) ? uri.Host : null;
 
-var forms = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
-foreach (var entry in Directory.GetFileSystemEntries(Path.Combine(view, "p")).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal))
-    if (Directory.Exists(Path.Combine(view, "p", entry!))) Form(entry!).Add("dir");
-foreach (var entry in Directory.GetFileSystemEntries(Path.Combine(vt, "p")).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal))
-    if (entry!.EndsWith(".tar.gz", StringComparison.Ordinal)) Form(entry[..^7]).Add("tgz");
-SortedSet<string> Form(string package) => forms.TryGetValue(package, out var set) ? set : forms[package] = new(StringComparer.Ordinal);
+var packages = Directory.GetFileSystemEntries(Path.Combine(cache, "p")).Select(Path.GetFileName).Where(name => name!.EndsWith(".tar.gz", StringComparison.Ordinal))
+    .Select(name => name![..^7]).OrderBy(name => name, StringComparer.Ordinal).ToList();
 
-var picked = new SortedDictionary<string, (string Form, string Url)>(StringComparer.Ordinal);
-foreach (var (package, f) in forms)
+var picked = new SortedDictionary<string, string>(StringComparer.Ordinal);
+foreach (var package in packages)
 {
     if (!urls.TryGetValue(package, out var url))
     {
-        if (f.Contains("tgz") && f.Count == 1 && package.StartsWith("aro-", StringComparison.Ordinal)) url = "https://github.com/vancluever/arocc"; // named by translate_c
+        if (package.StartsWith("aro-", StringComparison.Ordinal)) url = "https://github.com/vancluever/arocc"; // named by translate_c
         else { Console.Error.WriteLine($"No URL known for package {package}; pass the source roots that declare it."); return 1; }
     }
-    if (Host(url) is not ("github.com" or "deps.files.ghostty.org")) picked[package] = (string.Join('+', f), url);
+    if (Host(url) is not ("github.com" or "deps.files.ghostty.org")) picked[package] = url;
 }
 
-var lines = picked.Select(p => $"{p.Key} {p.Value.Form}");
-var ident = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))))[..12];
+var ident = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', picked.Keys))))[..12];
 var name = $"zig-deps-{ident}.tar.gz";
 Directory.CreateDirectory(outDirectory);
 
@@ -56,11 +51,7 @@ Directory.CreateDirectory(outDirectory);
 var raw = new MemoryStream();
 using (var tar = new TarWriter(raw, TarEntryFormat.Pax, leaveOpen: true))
 {
-    foreach (var (package, (form, _)) in picked)
-    {
-        if (form.Contains("dir")) Add(tar, Path.Combine(view, "p", package), "p/" + package);
-        if (form.Contains("tgz")) Add(tar, Path.Combine(vt, "p", package + ".tar.gz"), $"p/{package}.tar.gz");
-    }
+    foreach (var package in picked.Keys) Add(tar, Path.Combine(cache, "p", package + ".tar.gz"), $"p/{package}.tar.gz");
 }
 var path = Path.Combine(outDirectory, name);
 using (var file = File.Create(path))
@@ -77,12 +68,12 @@ var lockLines = new List<string>
 {
     "# Mirror of the Zig packages the native builds fetch from hosts other than github.com and deps.files.ghostty.org (see scripts/zig-deps.sh).",
     "# Packages on GitHub and on Ghostty's own CDN (deps.files.ghostty.org) are fetched upstream by design and not listed here.",
-    "# Generated by scripts/mise run zig-deps:mirror; do not edit. pkg <package-hash> <dir|tgz|dir+tgz> <upstream-url>:",
-    "# dir = extracted directory in the global cache p/ (Zig 0.14), tgz = p/<hash>.tar.gz (Zig 0.16).",
+    "# Generated by scripts/mise run zig-deps:mirror; do not edit. pkg <package-hash> <upstream-url>:",
+    "# Each package is restored as p/<hash>.tar.gz in the global cache.",
     "repo CommanderTvis/sharprail", $"tag zig-deps-{ident}", $"asset {name}", $"sha256 {digest}",
     $"pin GHOSTTY_VIEW_COMMIT {Pin("GHOSTTY_VIEW_COMMIT")}", $"pin GHOSTTY_VT_COMMIT {Pin("GHOSTTY_VT_COMMIT")}",
 };
-lockLines.AddRange(picked.Select(p => $"pkg {p.Key} {p.Value.Form} {p.Value.Url}"));
+lockLines.AddRange(picked.Select(p => $"pkg {p.Key} {p.Value}"));
 File.WriteAllText(Path.Combine(outDirectory, "zig-deps.lock"), string.Join('\n', lockLines) + "\n", new UTF8Encoding(false));
 Console.WriteLine($"{path} {digest} {picked.Count} packages");
 return 0;

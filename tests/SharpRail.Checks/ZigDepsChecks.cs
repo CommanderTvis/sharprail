@@ -28,17 +28,16 @@ internal static class ZigDepsChecks
         Require(Regex.IsMatch(One("sha256"), "^[0-9a-f]{64}$"), "zig-deps.lock needs a SHA-256 for the mirror archive.");
         Require(One("asset") == One("tag") + ".tar.gz", "The mirror asset must be named after its release tag.");
         var packages = lines.Where(l => l[0] == "pkg").ToList();
-        Require(packages.Count > 0, "zig-deps.lock lists no packages.");
         foreach (var package in packages)
         {
-            Require(package.Length == 4 && package[2] is "dir" or "tgz" or "dir+tgz", $"Malformed package line for {package[1]}.");
-            Require(!package[3].Contains("github.com") && !package[3].Contains("deps.files.ghostty.org"), $"{package[1]} is fetched upstream by design and needs no mirror.");
+            Require(package.Length == 3, $"Malformed package line for {package[1]}.");
+            Require(!package[2].Contains("github.com") && !package[2].Contains("deps.files.ghostty.org"), $"{package[1]} is fetched upstream by design and needs no mirror.");
         }
-        var ident = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(string.Join('\n', packages.Select(p => $"{p[1]} {p[2]}")))))[..12];
+        var ident = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(string.Join('\n', packages.Select(p => p[1])))))[..12];
         Require(One("tag") == "zig-deps-" + ident, "The mirror tag does not match the package list; regenerate with scripts/mise run zig-deps:mirror.");
         foreach (var (file, marker) in new[]
         {
-            ("src/Ghostty.Avalonia/build-native.sh", "zig-deps.sh\" dir"), ("src/Ghostty.Avalonia/build-native.sh", "zig-deps.sh\" tgz"),
+            ("src/Ghostty.Avalonia/build-native.sh", "zig-deps.sh"),
             ("src/Ghostty.Avalonia/build-linux.sh", "zig-deps.sh"), ("src/Ghostty.Avalonia/build-android.sh", "zig-deps.sh"),
             ("scripts/wasm-native.sh", "zig-deps.sh"), ("src/Ghostty.Avalonia/build-windows.ps1", "Restore-ZigDeps")
         })

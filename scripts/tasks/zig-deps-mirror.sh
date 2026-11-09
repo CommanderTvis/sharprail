@@ -9,10 +9,10 @@ root="$PWD"
 [ "$(uname -s)" = Darwin ] || { echo 'Run on macOS: only it builds both Ghostty libraries.' >&2; exit 1; }
 work="$root/.bench/zig-deps"
 rm -rf "$work"; mkdir -p "$work/gc" "$work/out"
-# build-native.sh builds the view (Zig 0.14, package directories) and libghostty-vt (Zig 0.16, p/<hash>.tar.gz) into one
-# fresh cache; every other target (Linux, Windows, WASM) fetches a subset of the VT packages.
-ZIG_GLOBAL_CACHE_DIR="$work/gc" ZIG_DEPS_NO_RESTORE=1 sh "$root/src/Ghostty.Avalonia/build-native.sh" "osx-$(uname -m | sed 's/x86_64/x64/')" "$work/native"
-dotnet run scripts/zig-deps-pack.cs -- "$work/out" "$work/gc" "$work/gc" "$work/native/view-source" "$work/native/vt-source" "$work/gc/p"
+# build-native.sh builds the view and libghostty-vt into one fresh cache; every other target (Linux, Windows, WASM)
+# fetches a subset of the VT packages.
+SHARPRAIL_CACHE_DIR="$work/cache" ZIG_GLOBAL_CACHE_DIR="$work/gc" ZIG_DEPS_NO_RESTORE=1 sh "$root/src/Ghostty.Avalonia/build-native.sh" "osx-$(uname -m | sed 's/x86_64/x64/')" "$work/native"
+dotnet run scripts/zig-deps-pack.cs -- "$work/out" "$work/gc" "$work/cache/ghostty-avalonia/view-source" "$work/cache/ghostty-avalonia/vt-source"
 cp "$work/out/zig-deps.lock" scripts/zig-deps.lock
 tag="$(awk '$1 == "tag" { print $2 }' scripts/zig-deps.lock)"
 asset="$(awk '$1 == "asset" { print $2 }' scripts/zig-deps.lock)"
