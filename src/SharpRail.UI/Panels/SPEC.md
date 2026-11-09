@@ -313,6 +313,11 @@ timeout, memory budget (automatic or fixed, with the automatic derivation and me
 explanation of when servers stop, and the C#, JVM and other count caps, saved as the `language-limits` host
 setting and re-shown from its broadcast. Settings shows no live server state. `--lsp-limits` checks it headless.
 
+Settings › Terminal ends its host settings with a Memory guard section: a switch, the per-terminal and the total limit
+(automatic or a fixed size) and a comma-separated list of protected programs, saved as one `terminal-memory` host setting and
+re-shown from its broadcast. The section explains the escalation and says that the guard samples. The behaviour is in the
+Terminals spec ("Memory guard").
+
 Server rows are a grid at every width (static, in `LanguagePanel.axaml`): one header line holds the
 status mark, the language icon, the name, settings and Start/Retry, with the status, icon and action
 columns fixed-width (20, 28, 28 and 56 px) so they line up across rows; shared-size scopes are not used, because Avalonia's scope retains the column definitions, and through their bindings every row ever shown. Rows are dense: 4 px vertical padding, 2 px between detail lines, a 1 px hairline between rows. Every detail line (needs, install text, links, suggested-by, provenance, version) starts at the name's left edge: link buttons in rows use `0,2` padding so their text aligns, and Hide/Unhide share the suggested-by line, right-aligned. A plain suggested row stays within 56 px (`--lsp-narrow`). The pane has no Refresh button: it re-reads the inventory when mounted, on host broadcasts about tool paths, hidden servers and configuration, and every 3 s while visible, with one request in flight at a time (`Idle`) and stale replies for another workspace rejected. The workspace line is the Kit `PathLine` (folder icon, code font, middle-trimmed, full path as tooltip), the same control the Claude Code pane's scope uses. `RefreshRows` reconciles the list by server id, replacing only rows whose state changed, and `--lsp-narrow` asserts that 50 refreshes of 20 servers release replaced rows. The name fills the remaining width on one

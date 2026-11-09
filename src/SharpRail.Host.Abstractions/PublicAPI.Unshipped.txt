@@ -1849,6 +1849,8 @@ static readonly SharpRail.Host.Abstractions.TerminalSignal.ProgressTimeout -> Sy
 static SharpRail.Host.Abstractions.HostSettings.NormalizeBellFeatures(string! value) -> string?
 static SharpRail.Host.Abstractions.TerminalSignal.operator !=(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
 static SharpRail.Host.Abstractions.TerminalSignal.operator ==(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
+SharpRail.Host.Abstractions.HostSettings.TerminalMemory.get -> string!
+SharpRail.Host.Abstractions.HostSettings.TerminalMemory.set -> void
 SharpRail.Host.Abstractions.HostSettings.LanguageLimits.get -> string!
 SharpRail.Host.Abstractions.HostSettings.LanguageLimits.set -> void
 SharpRail.Host.Abstractions.LanguageServerState.Workspace.get -> string!

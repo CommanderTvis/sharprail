@@ -374,6 +374,26 @@
         <Border Classes="settings-row">
           <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
         </Border>
+        <TextBlock Text="Memory guard" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="SharpRail's own out-of-memory killer for programs started in terminals. It samples every terminal's processes every few seconds and warns at 80% of a limit. Above it, SharpRail asks the largest process to stop, kills it after the grace period and, if the terminal is still over, everything below the shell. The shell and the terminal stay, with a notice. It also steps in when the system is short of memory. It samples, so a program that allocates faster than that can overshoot. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Stop programs that use too much memory" Classes="settings-label" />
+            <rendering:Switch x:Name="TerminalMemoryEnabled" Grid.Column="1" Label="Stop programs that use too much memory" />
+          </Grid>
+        </Border>
+        <TextBlock Text="Limit per terminal" Classes="settings-label" Margin="0,8,0,0" />
+        <Border Classes="settings-row">
+          <ComboBox x:Name="TerminalMemoryPerTerminal" HorizontalAlignment="Stretch" />
+        </Border>
+        <TextBlock Text="Limit for all terminals together" Classes="settings-label" Margin="0,8,0,0" />
+        <Border Classes="settings-row">
+          <ComboBox x:Name="TerminalMemoryTotal" HorizontalAlignment="Stretch" />
+        </Border>
+        <TextBlock Text="Programs never stopped (names separated by commas; they are only warned about)" Classes="settings-label" Margin="0,8,0,0" TextWrapping="Wrap" />
+        <Border Classes="settings-row">
+          <TextBox x:Name="TerminalMemoryProtect" Watermark="for example postgres, my-database" />
+        </Border>
         <TextBlock Text="Shell integration" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="Load SharpRail's shell integration into zsh and bash (fish 4 marks its own prompts). It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
         <Border Classes="settings-row">

@@ -250,7 +250,7 @@ public sealed partial class App : Application
         var localTerminals = remoteTerminals is null ? new PtyTerminalService(recordingsDirectory: Path.Combine(profile.DirectoryPath, "terminals"),
             replayBytes: () => local.Current.Settings.TerminalReplayKb * 1024, keepAfterExit: () => local.Current.Settings.TerminalKeepAfterExit,
             undoCloseSeconds: () => local.Current.Settings.TerminalUndoCloseSeconds,
-            shellIntegration: () => local.Current.Settings.ShellIntegrationEnabled) : null;
+            shellIntegration: () => local.Current.Settings.ShellIntegrationEnabled, terminalMemory: () => local.Current.Settings.TerminalMemory) : null;
         // A removed workspace takes its shells with it, whichever window removed it.
         if (localTerminals is not null) local.WorkspaceRemoved += path => _ = Task.Run(async () => await localTerminals.CloseWorkspaceAsync(path));
         local.Terminals = localTerminals;

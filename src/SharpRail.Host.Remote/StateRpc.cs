@@ -94,6 +94,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             LanguageServers = state.Settings.LanguageServers,
             LanguageTools = state.Settings.LanguageTools,
             LanguageLimits = state.Settings.LanguageLimits,
+            TerminalMemory = state.Settings.TerminalMemory,
             JavaKotlinProvider = state.Settings.JavaKotlinProvider,
             LspEnabled = state.Settings.LspEnabled
         },

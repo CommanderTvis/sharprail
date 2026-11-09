@@ -121,6 +121,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             LanguageServers = reply.Settings.LanguageServers,
             LanguageTools = reply.Settings.LanguageTools,
             LanguageLimits = reply.Settings.LanguageLimits,
+            TerminalMemory = reply.Settings.TerminalMemory,
             JavaKotlinProvider = reply.Settings.JavaKotlinProvider,
             LspEnabled = reply.Settings.LspEnabled
         },

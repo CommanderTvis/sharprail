@@ -65,6 +65,8 @@ public sealed class SettingsMessage
     [ProtoMember(32)] public bool EditorLineNumbersHidden { get; set; }
     /// <summary>Empty, from a host that predates the setting, is the theme's own accent.</summary>
     [ProtoMember(33)] public string Accent { get; set; } = "";
+    /// <summary>Empty, from a host that predates the guard, is the defaults.</summary>
+    [ProtoMember(34)] public string TerminalMemory { get; set; } = "";
 }
 
 [ProtoContract]

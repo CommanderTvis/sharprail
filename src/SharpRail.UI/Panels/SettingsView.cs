@@ -1040,6 +1040,7 @@ public sealed partial class SettingsView : UserControl
                 if (state.Current.Settings.TerminalUndoCloseSeconds != seconds)
                     Share(HostStateChange.Setting("terminal-undo-close", seconds.ToString(CultureInfo.InvariantCulture)));
             }));
+        TerminalMemorySettings(panel);
         var integration = PageControl<Switch>(panel, "ShellIntegrationEnabled");
         integration.IsChecked = state.Current.Settings.ShellIntegrationEnabled;
         integration.IsEnabled = state.Supports(HostProtocol.ShellIntegration);
@@ -1057,6 +1058,71 @@ public sealed partial class SettingsView : UserControl
             foreach (var open in window.Workbench.Windows) open.UpdateSecureInput();
         };
         return panel;
+    }
+
+    // Host state: the controls follow the host's broadcast, never the click. The setting is one JSON object; a change edits one member of it.
+    private void TerminalMemorySettings(Control panel)
+    {
+        System.Text.Json.Nodes.JsonObject Current()
+        {
+            try { return System.Text.Json.Nodes.JsonNode.Parse(state.Current.Settings.TerminalMemory) as System.Text.Json.Nodes.JsonObject ?? []; }
+            catch (System.Text.Json.JsonException) { return []; }
+        }
+        void Change(string member, System.Text.Json.Nodes.JsonNode? value)
+        {
+            var next = Current();
+            next[member] = value;
+            Share(HostStateChange.Setting("terminal-memory", next.ToJsonString()));
+        }
+        bool Enabled() => Current()["enabled"]?.GetValue<bool>() ?? true;
+        var enabled = PageControl<Switch>(panel, "TerminalMemoryEnabled");
+        enabled.IsChecked = Enabled();
+        enabled.CheckedChange += on => { if (on != Enabled()) Change("enabled", on); };
+        refreshers.Add(() => enabled.IsChecked = Enabled());
+        void Limit(string name, string member, string automatic, int[] gigabytes)
+        {
+            var box = PageControl<ComboBox>(panel, name);
+            var sizes = new[] { 0 }.Concat(gigabytes.Select(gb => gb * 1024)).ToArray();
+            box.ItemsSource = new[] { automatic }.Concat(gigabytes.Select(gb => gb + " GB")).ToArray();
+            AutomationProperties.SetName(box, name);
+            var syncing = false;
+            void Show()
+            {
+                syncing = true;
+                try
+                {
+                    var megabytes = Current()[member]?.GetValue<int>() ?? 0;
+                    box.SelectedIndex = Math.Max(0, Array.IndexOf(sizes, megabytes));
+                }
+                finally { syncing = false; }
+            }
+            Show();
+            box.SelectionChanged += (_, _) =>
+            {
+                if (syncing || box.SelectedIndex < 0) return;
+                if ((Current()[member]?.GetValue<int>() ?? 0) != sizes[box.SelectedIndex]) Change(member, sizes[box.SelectedIndex]);
+                Show();
+            };
+            refreshers.Add(Show);
+        }
+        Limit("TerminalMemoryPerTerminal", "perTerminalMb", "Automatic: a quarter of physical memory, 2 to 32 GB", [2, 4, 8, 16, 32, 64]);
+        Limit("TerminalMemoryTotal", "totalMb", "Automatic: 60% of physical memory", [8, 16, 32, 64, 128]);
+        var protect = PageControl<TextBox>(panel, "TerminalMemoryProtect");
+        string Names() => string.Join(", ", (Current()["protect"] as System.Text.Json.Nodes.JsonArray ?? []).Select(name => name?.GetValue<string>()));
+        void Commit()
+        {
+            var names = (protect.Text ?? "").Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (string.Join(", ", names) == Names()) return;
+            Change("protect", new System.Text.Json.Nodes.JsonArray(names.Select(name => (System.Text.Json.Nodes.JsonNode?)name).ToArray()));
+        }
+        protect.Text = Names();
+        protect.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape) { protect.Text = Names(); e.Handled = true; }
+            else if (e.Key == Key.Enter) { Commit(); e.Handled = true; }
+        };
+        protect.LostFocus += (_, _) => Commit();
+        refreshers.Add(() => { if (!protect.IsFocused) protect.Text = Names(); });
     }
 
     private Control WorkspaceSettings()

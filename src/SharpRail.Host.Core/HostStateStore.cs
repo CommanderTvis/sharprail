@@ -776,6 +776,7 @@ public sealed partial class HostStateStore : IHostStateService
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     _ when key.StartsWith("language-tool:", StringComparison.Ordinal) => settings with { LanguageTools = SetLanguageTool(settings.LanguageTools, key[14..], value) },
                     "language-limits" => settings with { LanguageLimits = value.Length == 0 ? "" : Language.LanguageServerLimits.Parse(value).Serialize() },
+                    "terminal-memory" => settings with { TerminalMemory = value.Length == 0 ? "" : TerminalMemoryLimits.Parse(value).Serialize() },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
                     "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },

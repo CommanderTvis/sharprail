@@ -49,6 +49,8 @@ public sealed record HostSettings
     public string LanguageTools { get; set; } = "";
     /// <summary>Limits on running language servers (idle timeout, memory budget, per-server caps) as JSON; empty uses the defaults.</summary>
     public string LanguageLimits { get; set; } = "";
+    /// <summary>The terminals' memory guard (enabled, per-terminal and total limits, grace, protected programs) as JSON; empty uses the defaults.</summary>
+    public string TerminalMemory { get; set; } = "";
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
     public string CustomHighlighting { get; set; } = "";
     /// <summary>Whether centre tabs use a vertical strip; null keeps an older client's preference.</summary>
