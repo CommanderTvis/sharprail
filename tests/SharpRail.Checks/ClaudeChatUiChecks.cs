@@ -780,6 +780,42 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
+    // The input history state machine alone (no window): gating, the one-press guard, the stash and its restore.
+    internal static void InputHistoryMachine()
+    {
+        string[] entries = ["first", "second"];
+        var nav = new InputHistory();
+        const string draft = "my draft";
+        Require(nav.Down(draft, 8, true, entries).Step == InputHistoryStep.None, "Down outside history does nothing.");
+        Require(nav.Up(draft, 8, 8, 8, false, entries).Step == InputHistoryStep.None && nav.State == InputHistoryState.Idle, "Up off the first line is caret movement.");
+        Require(nav.Up(draft, 8, 8, 8, true, entries).Step == InputHistoryStep.CaretToStart && nav.State == InputHistoryState.Idle, "The first Up on a draft only moves to the start.");
+        var move = nav.Up(draft, 0, 0, 0, true, entries);
+        Require(move is { Step: InputHistoryStep.Show, Text: "second" } && nav.State == InputHistoryState.Browsing && nav.Stash == draft, "The second Up recalls the newest entry and stashes the draft.");
+        move = nav.Up("second", 6, 6, 6, true, entries);
+        Require(move.Text == "first", "Up on an unmodified recalled entry recalls the next older one directly.");
+        Require(nav.Down("first", 5, false, entries).Step == InputHistoryStep.None, "Down off the last line is caret movement.");
+        Require(nav.Down("first", 5, true, entries).Text == "second", "Down recalls the newer entry.");
+        move = nav.Down("second", 6, true, entries);
+        Require(move is { Step: InputHistoryStep.Show, Text: draft, SelectionStart: 8, SelectionEnd: 8 } && nav.State == InputHistoryState.Idle && nav.Stash is null, "Down past the newest entry restores the draft exactly.");
+        nav.Up(draft, 3, 8, 8, true, entries); nav.Up(draft, 3, 8, 0, true, entries);
+        move = nav.Escape();
+        Require(move is { Text: draft, SelectionStart: 3, SelectionEnd: 8 } && nav.State == InputHistoryState.Idle, "Esc restores the draft with its selection.");
+        Require(nav.Escape().Step == InputHistoryStep.None, "Esc outside history is not ours.");
+        nav.Up("", 0, 0, 0, true, entries);
+        Require(nav.State == InputHistoryState.Browsing && nav.Stash == "", "Up on an empty box recalls at once.");
+        nav.TextChanged("second");
+        Require(nav.State == InputHistoryState.Browsing, "The shown entry arriving as a change is not an edit.");
+        nav.TextChanged("second!");
+        Require(nav.State == InputHistoryState.BrowsingEdited && nav.Stash == "", "Editing a recalled entry keeps the stash.");
+        Require(nav.Up("second!", 7, 7, 7, true, entries).Step == InputHistoryStep.CaretToStart, "Up on an edited entry first moves to the start.");
+        Require(nav.Down("second!", 0, true, entries).Step == InputHistoryStep.CaretToEnd, "Down on an edited entry first moves to the end.");
+        nav.TextChanged("second!!");
+        Require(nav.Down("second!!", 8, true, entries) is { Step: InputHistoryStep.Show, Text: "" } && nav.State == InputHistoryState.Idle, "Down past the newest from an edited entry restores the stashed draft, not the edit.");
+        nav.Up("", 0, 0, 0, true, entries);
+        nav.Reset();
+        Require(nav.State == InputHistoryState.Idle && nav.Stash is null, "Sending clears the stash.");
+    }
+
     // Elapsed seconds read "45s", "10m 27s", "1h 02m 05s" everywhere in the chat.
     private static void DurationFormat()
     {
@@ -805,17 +841,21 @@ internal static class ClaudeChatUiChecks
             Press(Key.Down);
             Require(view.Input.Text == "my draft", $"Down outside history keeps the draft (got '{view.Input.Text}').");
             Press(Key.Up);
-            Require(view.Input.Text == "second", "Up recalls the newest prompt.");
+            Require(view.Input.Text == "my draft" && view.Input.CaretIndex == 0, "One Up on a draft only moves the caret to the start.");
+            Press(Key.Up);
+            Require(view.Input.Text == "second", "A second Up at the start recalls the newest prompt.");
             Press(Key.Down);
             Require(view.Input.Text == "my draft", $"Down past the newest entry restores the draft (got '{view.Input.Text}').");
-            Press(Key.Up); Press(Key.Up);
-            Require(view.Input.Text == "first", "Up twice reaches the older prompt.");
+            Press(Key.Up);
+            Require(view.Input.Text == "first", "Up again reaches the older prompt.");
             Press(Key.Down); Press(Key.Down);
             Require(view.Input.Text == "my draft", $"Up Up Down Down returns to the draft (got '{view.Input.Text}').");
-            Press(Key.Up);
+            Press(Key.Up); Press(Key.Up);
             view.Input.Text = "edited recall"; Frame(window);
             Press(Key.Down);
-            Require(view.Input.Text == "edited recall", $"Editing a recalled entry leaves history; Down keeps the text (got '{view.Input.Text}').");
+            Require(view.Input.Text == "edited recall" && view.Input.CaretIndex == 13, $"Editing a recalled entry keeps it; Down only moves the caret to the end (got '{view.Input.Text}').");
+            Press(Key.Escape);
+            Require(view.Input.Text == "my draft", $"Esc while browsing restores the stashed draft, not the edit (got '{view.Input.Text}').");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
@@ -878,8 +918,8 @@ internal static class ClaudeChatUiChecks
             Press(Key.Up);
             Require(view.Input.Text == "previous prompt", "Up on the first visual line recalls the previous prompt.");
             view.Input.Text = "short"; view.Input.CaretIndex = 5; Frame(window);
-            Press(Key.Up);
-            Require(view.Input.Text == "previous prompt", "A single-line draft still recalls history.");
+            Press(Key.Up); Press(Key.Up);
+            Require(view.Input.Text == "previous prompt", "A single-line draft recalls history on the second Up.");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }

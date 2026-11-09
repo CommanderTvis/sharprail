@@ -1525,6 +1525,7 @@ internal static class Program
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
         Gate.Case("workspace-emigrate", () => { if (!OperatingSystem.IsWindows()) ClaudeCodeChecks.Emigrate(root); });
+        Gate.Case("chat-input-history", ClaudeChatUiChecks.InputHistoryMachine);
         Gate.Case("claude-chat-ui", () => { ClaudeChatUiChecks.Run(); ClaudeChatUiChecks.Launcher(root); });
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));

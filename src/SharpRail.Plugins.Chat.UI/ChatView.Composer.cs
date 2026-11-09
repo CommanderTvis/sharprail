@@ -32,9 +32,11 @@ internal sealed partial class ChatView
     private WrapPanel attachmentRow = null!;
     private readonly List<ChatAttachment> attachments = [];
     private CancellationTokenSource? mentionSearch;
-    private int historyAt = -1;
-    // The draft typed before the first Up, put back when Down leaves history; recalling is set while history writes the box.
-    private string? draftStash;
+    // Input history per chat, kept across views so a draft stashed by Up survives a tab switch; recalling is set while history writes the box.
+    private static readonly Dictionary<(string, string), InputHistory> Navigators = [];
+    private static readonly Dictionary<(string, string), InputHistory> ShellNavigators = [];
+    private InputHistory Navigator => (bashMode ? ShellNavigators : Navigators) is var all && all.TryGetValue((workspaceId, chatId), out var found) ? found : all[(workspaceId, chatId)] = new();
+    internal InputHistory InputHistory => Navigator;
     private bool recalling;
     private ChatStatus status = ChatStatus.Starting;
     // Bash mode: a leading "!" typed into an empty box. The box then holds the command alone; the mode shows as the mark before it.
@@ -47,7 +49,7 @@ internal sealed partial class ChatView
     internal TextBlock ShellMark => shellMark;
 
     /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
-    internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); }
+    internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); Navigators.Clear(); ShellNavigators.Clear(); }
     internal string? DraftNote => pasteNote.IsVisible ? pasteNote.Text : null;
     internal TextBox Input => input;
     internal ListBox Menu => menuList;
@@ -251,7 +253,7 @@ internal sealed partial class ChatView
                 return;
             }
             shellPrevious = input.Text;
-            if (!recalling) { historyAt = -1; draftStash = null; }
+            Navigator.TextChanged(input.Text ?? "");
             // The box raises its change after the setter returns, so a change that left the text a remote draft put there is told by its text.
             if (!applyingRemote && input.Text != appliedText) { appliedText = null; pasteNote.IsVisible = false; lastTyped = Environment.TickCount64; ScheduleDraft(); }
             Drafts[(workspaceId, chatId)] = (bashMode ? "!" : "") + (input.Text ?? "");
@@ -307,6 +309,7 @@ internal sealed partial class ChatView
     {
         if (!bashMode) return;
         bashMode = false;
+        ShellNavigators.Remove((workspaceId, chatId));
         ShowShellMode();
         menu.IsOpen = false;
         Drafts[(workspaceId, chatId)] = input.Text ?? "";
@@ -934,8 +937,7 @@ internal sealed partial class ChatView
         {
             var history = Histories.TryGetValue((workspaceId, chatId), out var existing) ? existing : Histories[(workspaceId, chatId)] = [];
             if (text.Length > 0) { history.Add(text); RememberPrompt(text); }
-            historyAt = -1;
-            draftStash = null;
+            Navigators.Remove((workspaceId, chatId));
             input.Text = "";
             baseText = "";
             RememberSync();
@@ -957,8 +959,7 @@ internal sealed partial class ChatView
         }
         var history = ShellHistories.TryGetValue((workspaceId, chatId), out var existing) ? existing : ShellHistories[(workspaceId, chatId)] = [];
         history.Add(command);
-        historyAt = -1;
-        draftStash = null;
+        ShellNavigators.Remove((workspaceId, chatId));
         bashMode = false;
         shellPrevious = "";
         recalling = true;
@@ -1012,6 +1013,7 @@ internal sealed partial class ChatView
                 case Key.Escape: menu.IsOpen = false; e.Handled = true; return;
             }
         }
+        if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Navigator.Escape() is { Step: not InputHistoryStep.None } restored) { ApplyHistoryMove(restored, e); return; }
         if (bashMode && e.Key == Key.Escape) { LeaveShellMode(); e.Handled = true; return; }
         if (bashMode && e.Key == Key.Back && string.IsNullOrEmpty(input.Text) && e.KeyModifiers == KeyModifiers.None) { LeaveShellMode(); e.Handled = true; return; }
         // Paste is ours, before the box sees it: a clipboard may hold an image or files and no text at all, which the box would silently ignore.
@@ -1029,21 +1031,35 @@ internal sealed partial class ChatView
             e.Handled = true;
             return;
         }
-        if (e.Key is Key.Up or Key.Down && (e.Key == Key.Up || historyAt >= 0) && (bashMode ? ShellHistories.GetValueOrDefault((workspaceId, chatId)) : RecentPrompts()) is { Count: > 0 } history && OnEdgeLine(e.Key == Key.Up))
+        if (e.Key is Key.Up or Key.Down && e.KeyModifiers == KeyModifiers.None) { ApplyHistory(e); return; }
+    }
+
+    private void ApplyHistory(KeyEventArgs e)
+    {
+        var history = (bashMode ? ShellHistories.GetValueOrDefault((workspaceId, chatId)) : RecentPrompts()) ?? [];
+        var text = input.Text ?? "";
+        var move = e.Key == Key.Up
+            ? Navigator.Up(text, input.SelectionStart, input.SelectionEnd, input.CaretIndex, OnEdgeLine(true), history)
+            : Navigator.Down(text, input.CaretIndex, OnEdgeLine(false), history);
+        ApplyHistoryMove(move, e);
+    }
+
+    private void ApplyHistoryMove(InputHistoryMove move, KeyEventArgs e)
+    {
+        if (move.Step == InputHistoryStep.None) return;
+        e.Handled = true;
+        switch (move.Step)
         {
-            if (e.Key == Key.Up)
-            {
-                if (historyAt < 0) draftStash = input.Text ?? "";
-                historyAt = historyAt < 0 ? history.Count - 1 : Math.Max(0, historyAt - 1);
-            }
-            else if (++historyAt >= history.Count) historyAt = -1;
-            var shown = historyAt < 0 ? draftStash ?? "" : history[historyAt];
-            if (historyAt < 0) draftStash = null;
-            recalling = true;
-            try { input.Text = shown; }
-            finally { recalling = false; }
-            input.CaretIndex = shown.Length;
-            e.Handled = true;
+            case InputHistoryStep.CaretToStart: input.SelectionStart = input.SelectionEnd = input.CaretIndex = 0; break;
+            case InputHistoryStep.CaretToEnd: input.SelectionStart = input.SelectionEnd = input.CaretIndex = (input.Text ?? "").Length; break;
+            default:
+                recalling = true;
+                try { input.Text = move.Text; }
+                finally { recalling = false; }
+                input.SelectionStart = move.SelectionStart;
+                input.SelectionEnd = move.SelectionEnd;
+                input.CaretIndex = move.SelectionEnd;
+                break;
         }
     }
 

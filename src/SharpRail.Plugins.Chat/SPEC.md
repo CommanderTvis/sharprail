@@ -82,7 +82,11 @@ record's `Attachments` stays null (reserved for path-only attachments later).
   sent or applied and nothing is in flight; the caret keeps its logical place (at the end stays at the end). Unsent or in-flight local text
   wins for that moment and is sent again as the next revision. While the input has focus and the user typed within the last 400 ms the
   replacement waits (the text box exposes no composition state cheaply), then applies only if the input is still clean. History recall
-  (Up/Down) and its stash make the input differ from the last sent text, so a remote draft never replaces a recalled prompt. The view
+  (Up/Down) and its stash make the input differ from the last sent text, so a remote draft never replaces a recalled prompt.
+  Input history is one state machine (`InputHistory`, per chat, kept across tab switches): Up recalls only from the first line and Down only
+  from the last; on a draft or an edited recalled entry the first Up only moves the caret to the start, a second recalls; the draft (text and
+  selection) is stashed and comes back on Down past the newest entry or on Esc; editing a recalled entry never touches the stash; sending clears it.
+  The view
   shows a quiet note under the input when a send is refused as already sent.
 
 ## Serving another agent protocol (ACP)
