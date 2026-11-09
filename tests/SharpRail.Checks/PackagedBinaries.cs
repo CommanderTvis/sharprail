@@ -26,6 +26,7 @@ internal static class PackagedBinaries
 {
     internal const string HostVariable = "SHARPRAIL_PACKAGED_HOST";
     internal const string ClientVariable = "SHARPRAIL_PACKAGED_CLIENT";
+    internal const string HeadlessVariable = "SHARPRAIL_PACKAGED_HEADLESS";
     internal const string ChecksVariable = "SHARPRAIL_PACKAGED_CHECKS";
 
     private static void Require(bool value, string message)
@@ -35,6 +36,12 @@ internal static class PackagedBinaries
     {
         var client = Environment.GetEnvironmentVariable(ClientVariable) is { Length: > 0 } shippedClient ? shippedClient : null;
         var host = Environment.GetEnvironmentVariable(HostVariable) is { Length: > 0 } shippedHost ? shippedHost : null;
+        if (Environment.GetEnvironmentVariable(HeadlessVariable) is { Length: > 0 } headless)
+        {
+            // The headless image has no .NET runtime, and external plugins are not supported for it: its publish must be one NativeAOT binary.
+            PackagedApp.RequireNativeAot(headless, "sharprail-headless", PackagedApp.Identity);
+            Console.WriteLine("PASS packaged sharprail-headless: a NativeAOT binary, no managed assemblies");
+        }
         var checks = Environment.GetEnvironmentVariable(ChecksVariable) is { Length: > 0 } published ? published : null;
         foreach (var (directory, executable) in new[] { (client, "SharpRail.UI"), (host, "SharpRail.Host.Remote") })
         {

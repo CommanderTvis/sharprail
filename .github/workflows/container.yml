@@ -69,6 +69,8 @@ jobs:
             echo "local=sharprail-headless:${{ matrix.arch }}"
           } >> "$GITHUB_OUTPUT"
       - run: sh scripts/ci-run.sh "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
+      # The image has no .NET runtime and no external plugins: fail unless the publish is one NativeAOT binary.
+      - run: sh scripts/ci-run.sh "Require NativeAOT headless ${{ matrix.rid }}" env SHARPRAIL_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/SharpRail.Checks -c Release -- --case packaged-binaries
       - run: >
           sh scripts/ci-run.sh "Build image ${{ matrix.arch }}" docker build
           -f docker/headless/Dockerfile
