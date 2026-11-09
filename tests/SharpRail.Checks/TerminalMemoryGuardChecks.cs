@@ -252,12 +252,10 @@ internal static class TerminalMemoryGuardChecks
         Require(state.Current.Settings.TerminalMemory == """{"enabled":true,"perTerminalMb":4096,"totalMb":0,"graceSeconds":10,"protect":["postgres"]}""", "Stored normalized: " + state.Current.Settings.TerminalMemory);
         try { await state.ChangeAsync([HostStateChange.Setting("terminal-memory", """{"perTerminalMb":3}""")]); Require(false, "A tiny limit was accepted."); }
         catch (ArgumentException) { }
-        await state.DisposeAsync();
         var reopened = new HostStateStore(directory);
         Require(reopened.Current.Settings.TerminalMemory.Contains("\"perTerminalMb\":4096", StringComparison.Ordinal), "The setting did not survive a restart.");
         await reopened.ChangeAsync([HostStateChange.Setting("terminal-memory", "")]);
         Require(reopened.Current.Settings.TerminalMemory == "", "An empty value resets to the defaults.");
-        await reopened.DisposeAsync();
     }
 
     private static string? Perl() => OperatingSystem.IsWindows() ? null : new[] { "/usr/bin/perl", "/usr/local/bin/perl", "/bin/perl" }.FirstOrDefault(File.Exists);
