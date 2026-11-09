@@ -4,6 +4,9 @@ using System.Text.Json;
 using System.Threading.Channels;
 
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -32,7 +35,9 @@ namespace SharpRail.Checks;
 /// in a popup reaches the plugin, a press elsewhere and Escape close them, scale 2 renders twice the pixels, and the
 /// side tool hidden past 2 seconds and shown again opens a new surface. A plugin's process that breaks the popup rules
 /// is held to them by the app on its own. The plugin's cursor shows over its link, the app's input method composes into
-/// its text field, and its dialog shows framed in the app, modal to the plugin only, closing with and without a result.
+/// its text field, and its dialog shows framed in the app, modal to the plugin only, closing with and without a result. The
+/// plugin's accessibility tree reaches the app's own, and the actions a client asks of its nodes (invoke, focus, set a
+/// value, toggle, expand, collapse) act in the plugin's process.
 /// </summary>
 internal static class PluginSurfaceChecks
 {
@@ -53,6 +58,8 @@ internal static class PluginSurfaceChecks
         Console.WriteLine("PASS plugin surface relay: the host refuses a frame with a tile or move outside its surface, too many tiles, an unknown codec, a tile longer than its pixels need, bytes that do not match, an oversized surface, frames out of order, one sent before the client took the last, or null where a list or its item belongs, and names the surface of a frame it cannot read; after a keyframe request it drops older frames and takes the keyframe");
         PopupStates();
         Console.WriteLine($"PASS plugin surface popup caps: the host refuses a popup numbered below 1 or again after it closed, placed or sized out of range, closed when not open, more than {SurfaceLimits.MostPopups} open, and a frame for a popup that is not open; each popup keeps its own frames, and one opened while a keyframe is awaited awaits one too; a title on a popup, a dialog title too long or with control characters, a dialog turned popup, a cursor shape out of range and a caret out of range or on a popup not open are refused");
+        AutomationStates();
+        Console.WriteLine($"PASS plugin surface accessibility caps: the host takes a tree of at most {SurfaceLimits.MostNodes} nodes reached once from its root, as a reset or as a change, and refuses a node out of range, with an unknown role or state, with text too long or with control characters, a tree too deep, shared, cyclic, without its root or with nodes outside it, a node removed that was never described, a tree on a popup not open, and drops a popup's tree when it closes; an accessibility action reaches the plugin only for a node the plugin described that offers it, with a plain value within the cap");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -215,6 +222,62 @@ internal static class PluginSurfaceChecks
             "A caret out of range, or on a popup that is not open, is refused.");
     }
 
+    private static SurfaceNode Node(int id, string name = "", int role = 1, SurfaceNodeStates states = SurfaceNodeStates.Enabled, params int[] children) =>
+        new(id, role, name, "", "", states, 1, 2, 30, 40, [.. children]);
+
+    private static SurfaceAutomation Tree(int popup, int root, bool reset, params SurfaceNode[] nodes) => new(1, popup, root, reset, [.. nodes], []);
+
+    private static void AutomationStates()
+    {
+        var state = new SurfaceState();
+        Require(state.Automation(Tree(0, 1, true, Node(1, children: [2, 3]), Node(2), Node(3, children: [4]), Node(4))) is null, "A tree reached once from its root passes.");
+        Require(state.Automation(new(1, 0, 1, false, [Node(4, "renamed")], [])) is null && state.Automation(new(1, 0, 1, false, [], [4])) is not null,
+            "A change replaces a node whole, and removing a node its parent still lists leaves a tree that is not a tree.");
+        Require(state.Automation(new(1, 0, 1, false, [Node(3)], [4])) is null, "A change that removes a node and its parent's mention passes.");
+        Require(state.Automation(new(1, 0, 1, false, [], [9])) is not null, "A node removed that was never described is refused.");
+        Require(state.Automation(Tree(0, 1, true, Node(1, children: [2]), Node(2))) is null && state.Automation(Tree(0, 0, true)) is null,
+            "A reset replaces the tree, and an empty one clears it.");
+        Require(state.Automation(Tree(0, 2, true, Node(1))) is not null && state.Automation(Tree(0, 1, true, Node(1), Node(2))) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1, children: [2, 2]), Node(2))) is not null && state.Automation(Tree(0, 1, true, Node(1, children: [2]), Node(2, children: [1]))) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1, children: [7]))) is not null,
+            "A tree without its root, with a node outside it, a node listed twice, a cycle or a child never described is refused.");
+        var deep = Enumerable.Range(1, SurfaceLimits.MostNodeDepth + 2).Select(id => Node(id, children: id <= SurfaceLimits.MostNodeDepth + 1 ? [id + 1] : [])).ToArray();
+        Require(state.Automation(Tree(0, 1, true, deep[..(SurfaceLimits.MostNodeDepth + 1)].Select((node, index) => index == SurfaceLimits.MostNodeDepth ? node with { Children = [] } : node).ToArray())) is null &&
+            state.Automation(Tree(0, 1, true, deep)) is not null, $"A tree nests to {SurfaceLimits.MostNodeDepth} levels and no deeper.");
+        var wide = Enumerable.Range(2, SurfaceLimits.MostNodes).Select(id => Node(id)).Prepend(Node(1, children: [.. Enumerable.Range(2, SurfaceLimits.MostNodes)])).ToArray();
+        Require(state.Automation(Tree(0, 1, true, wide[..SurfaceLimits.MostNodes].Select((node, index) => index == 0 ? node with { Children = [.. Enumerable.Range(2, SurfaceLimits.MostNodes - 1)] } : node).ToArray())) is null &&
+            state.Automation(Tree(0, 1, true, wide)) is not null, $"A tree holds {SurfaceLimits.MostNodes} nodes and no more.");
+        Require(state.Automation(Tree(0, 1, true, Node(1, role: -1))) is not null && state.Automation(Tree(0, 1, true, Node(1, role: SurfaceLimits.MostRole + 1))) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1, states: (SurfaceNodeStates)(1 << 25)))) is not null && state.Automation(Tree(0, 1, true, Node(0))) is not null,
+            "A role or a state a client does not know and a node numbered below 1 are refused.");
+        Require(state.Automation(Tree(0, 1, true, Node(1, new string('n', SurfaceLimits.MostNodeText)))) is null &&
+            state.Automation(Tree(0, 1, true, Node(1, new string('n', SurfaceLimits.MostNodeText + 1)))) is not null && state.Automation(Tree(0, 1, true, Node(1, "a\nb"))) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1) with { Value = "a\u0007" })) is not null && state.Automation(Tree(0, 1, true, Node(1) with { AutomationId = new string('i', SurfaceLimits.MostAutomationId + 1) })) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1) with { Name = null! })) is not null, "Names, values and ids pass within their caps as plain text and nothing else.");
+        Require(state.Automation(Tree(0, 1, true, Node(1) with { X = double.NaN })) is not null && state.Automation(Tree(0, 1, true, Node(1) with { Width = -1 })) is not null &&
+            state.Automation(Tree(0, 1, true, Node(1) with { Height = SurfaceLimits.MostSide + 1 })) is not null && state.Automation(Tree(0, 1, true, Node(1) with { Children = null! })) is not null &&
+            state.Automation(new(1, 0, 1, true, null!, [])) is not null, "Bounds out of range and null where a list belongs are refused.");
+        Require(state.Automation(Tree(1, 1, true, Node(1))) is not null, "A tree on a popup that is not open is refused.");
+        Require(state.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true)) is null && state.Automation(Tree(1, 1, true, Node(1))) is null, "A tree on an open popup passes.");
+
+        var actions = new SurfaceState();
+        Require(actions.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true)) is null, "A popup opens.");
+        const SurfaceNodeStates all = SurfaceNodeStates.Enabled | SurfaceNodeStates.Focusable | SurfaceNodeStates.Invoke | SurfaceNodeStates.Value | SurfaceNodeStates.Toggle | SurfaceNodeStates.ExpandCollapse;
+        Require(actions.Automation(Tree(0, 1, true, Node(1, children: [2, 3]), Node(2, states: all), Node(3, states: SurfaceNodeStates.Enabled))) is null &&
+            actions.Automation(Tree(1, 5, true, Node(5, children: [6]), Node(6, states: SurfaceNodeStates.Invoke))) is null, "Trees on the surface and a popup are held apart.");
+        static SurfaceInput Act(SurfaceInputKind kind, int node, int popup = 0, string text = "") => new(1, kind, Node: node, Popup: popup, Text: text);
+        Require(new[] { SurfaceInputKind.Invoke, SurfaceInputKind.SetFocus, SurfaceInputKind.SetValue, SurfaceInputKind.Expand, SurfaceInputKind.Collapse, SurfaceInputKind.Toggle }
+            .All(kind => actions.Admits(Act(kind, 2))), "Every action a node offers reaches the plugin.");
+        Require(!actions.Admits(Act(SurfaceInputKind.Invoke, 3)) && !actions.Admits(Act(SurfaceInputKind.Toggle, 3)) && !actions.Admits(Act(SurfaceInputKind.SetFocus, 3)),
+            "An action a node does not offer is dropped.");
+        Require(!actions.Admits(Act(SurfaceInputKind.Invoke, 99)) && !actions.Admits(Act(SurfaceInputKind.Invoke, 6)) && actions.Admits(Act(SurfaceInputKind.Invoke, 6, popup: 1)) &&
+            !actions.Admits(Act(SurfaceInputKind.Invoke, 2, popup: 1)) && !actions.Admits(Act(SurfaceInputKind.Invoke, 6, popup: 2)), "A node the plugin never described, or one of another top-level, is stale and dropped.");
+        Require(actions.Admits(Act(SurfaceInputKind.SetValue, 2, text: new string('v', SurfaceLimits.MostNodeText))) && !actions.Admits(Act(SurfaceInputKind.SetValue, 2, text: new string('v', SurfaceLimits.MostNodeText + 1))) &&
+            !actions.Admits(Act(SurfaceInputKind.SetValue, 2, text: "a\nb")), "A value is plain text within the cap.");
+        Require(actions.Admits(new SurfaceInput(1, SurfaceInputKind.PointerMove)) && actions.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, false)) is null && !actions.Admits(Act(SurfaceInputKind.Invoke, 6, popup: 1)),
+            "Other input is not judged, and a popup that closed takes its tree with it.");
+    }
+
     private static void App(string root, PluginChannelChecks.RunnerLaunch runner)
     {
         var workspace = Path.Combine(root, "workspace");
@@ -289,6 +352,7 @@ internal static class PluginSurfaceChecks
 
             shown = Popups(app, window, board, Settle(board, "the side tool before its popups"), null, "plugin surface");
             shown = Extras(app, window, board, shown, null, "plugin surface");
+            shown = Accessible(app, window, board, shown, null, "plugin surface");
             Covered(window, board, shown);
             Console.WriteLine("PASS plugin surface popups under dialogs: the popup layer covers only the workbench's row, below the title bar; with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
             Hostile();
@@ -463,6 +527,111 @@ internal static class PluginSurfaceChecks
         E2eWorkspace.Until(() => !board.Popups.Any(popup => popup.Dialog) && Clicks(app) == clicks + 1);
         Console.WriteLine($"PASS {what} dialog: the plugin's dialog opens framed with the plugin's name and its title, its pixels drawn in the app, the plugin's view waits while it is open, the frame's close button and Escape close it with no result, and its own button closes it with the result the plugin counts");
         return Settle(board, "the side tool after its dialog", relay: relay);
+    }
+
+    private static AutomationPeer? Peer(AutomationPeer from, Func<AutomationPeer, bool> match)
+    {
+        foreach (var child in from.GetChildren())
+        {
+            if (match(child)) return child;
+            if (Peer(child, match) is { } deeper) return deeper;
+        }
+        return null;
+    }
+
+    // The peer of the plugin's node with this automation id under the control that shows it, once the tree has it.
+    private static AutomationPeer NodePeer(Control host, string id)
+    {
+        AutomationPeer? found = null;
+        E2eWorkspace.Until(() => (found = Peer(ControlAutomationPeer.CreatePeerForElement(host)!, peer => peer.GetAutomationId() == id)) is not null);
+        return found!;
+    }
+
+    /// <summary>
+    /// The plugin's accessibility tree through the app's own: the nodes of the board, with the right role, name, id and
+    /// bounds, in the plugin's process and in the app, and the actions a client asks of them (invoke opens the dialog, set
+    /// value fills the text field, toggle checks the box, expand and collapse move the fold, focus moves focus) done by the
+    /// plugin; a dialog's nodes show on the dialog's own; an action on a node that is not there is dropped.
+    /// </summary>
+    internal static Shown Accessible(E2eWorkspace app, TopLevel window, RemoteSurface board, Shown shown, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay, string what)
+    {
+        UiSessionRelay.RelaySurface Held() => (relay?.Invoke(board) ?? board.Surface as UiSessionRelay.RelaySurface)!;
+        SurfaceCapture Capture(int popup = 0)
+        {
+            var capture = Held().CaptureAsync(Names, popup);
+            E2eWorkspace.Until(() => capture.IsCompleted);
+            return capture.GetAwaiter().GetResult();
+        }
+        // The plugin's own reading of its tree: tab-separated id, role, name, value, automation id, states, bounds, children.
+        string[][] Lines(int popup = 0) => [.. (Capture(popup).Automation ?? throw new InvalidOperationException("The plugin read no accessibility tree.")).Select(line => line.Split('\t'))];
+        string[] Line(string[][] lines, string id) => lines.Single(line => line[4] == id);
+
+        var lines = Lines();
+        var ask = Line(lines, "OutsiderAsk");
+        Require(ask[1] == ((int)AutomationControlType.Button).ToString() && ask[2] == "Ask" && ((SurfaceNodeStates)int.Parse(ask[5])).HasFlag(SurfaceNodeStates.Invoke | SurfaceNodeStates.Enabled),
+            $"The plugin reads its Ask button as an enabled button named Ask that can be invoked: {string.Join(" | ", ask)}.");
+        var box = shown.Bounds["OutsiderAsk"];
+        var read = ask[6].Split(',').Select(double.Parse).ToArray();
+        Require(Math.Abs(read[0] - box[0]) <= 1 && Math.Abs(read[1] - box[1]) <= 1 && Math.Abs(read[2] - box[2]) <= 1 && Math.Abs(read[3] - box[3]) <= 1,
+            $"The plugin reads the button's bounds as the control's: {ask[6]} for {string.Join(",", box)}.");
+        Require(lines.Length > 8 && lines.All(line => line.Length == 8), "The plugin reads the whole tree of the board.");
+        Require(Line(lines, "OutsiderIme")[2] == "Compose here" && Line(lines, "OutsiderCheck")[2] == "Remind me" && Line(lines, "OutsiderFold")[2] == "Fold" &&
+            ((SurfaceNodeStates)int.Parse(Line(lines, "OutsiderFold")[5])).HasFlag(SurfaceNodeStates.ExpandCollapse | SurfaceNodeStates.Collapsed),
+            "The plugin reads its text field, check box and fold by the names it gave them, the fold collapsed through its own peer.");
+
+        // The app holds the same tree under the surface's peer, in the window's coordinates.
+        var shownAsk = NodePeer(board, "OutsiderAsk");
+        var rect = shownAsk.GetBoundingRectangle();
+        var expected = Point(window, board, box);
+        Require(shownAsk.GetAutomationControlType() == AutomationControlType.Button && shownAsk.GetName() == "Ask" && shownAsk.IsEnabled() && shownAsk is IInvokeProvider &&
+            Math.Abs(rect.Center.X - expected.X) <= 1.5 && Math.Abs(rect.Center.Y - expected.Y) <= 1.5 && Math.Abs(rect.Width - box[2]) <= 1,
+            $"The app's peer for the plugin's button names it, can invoke it and sits where its pixels are: {rect} for the center {expected}.");
+        Require(ControlAutomationPeer.CreatePeerForElement(board)!.GetAutomationControlType() == AutomationControlType.Pane && board.Tree.Nodes.Count == lines.Length,
+            "The surface's peer is a pane that holds the plugin's nodes, as many as the plugin read.");
+
+        // A value set through the app's peer fills the plugin's text field.
+        ((IValueProvider)NodePeer(board, "OutsiderIme")).SetValue("spoken");
+        Captured(board, relay, texts => texts["OutsiderIme"] == "spoken", "the value set through accessibility");
+        E2eWorkspace.Until(() => ((IValueProvider)NodePeer(board, "OutsiderIme")).Value == "spoken");
+
+        // A toggle checks the box in the plugin, and its state comes back.
+        Require(((IToggleProvider)NodePeer(board, "OutsiderCheck")).ToggleState == ToggleState.Off, "The check box starts unchecked.");
+        ((IToggleProvider)NodePeer(board, "OutsiderCheck")).Toggle();
+        E2eWorkspace.Until(() => ((IToggleProvider)NodePeer(board, "OutsiderCheck")).ToggleState == ToggleState.On && ((SurfaceNodeStates)int.Parse(Line(Lines(), "OutsiderCheck")[5])).HasFlag(SurfaceNodeStates.Checked));
+
+        // The plugin's own peer expands and collapses on request.
+        ((IExpandCollapseProvider)NodePeer(board, "OutsiderFold")).Expand();
+        E2eWorkspace.Until(() => ((IExpandCollapseProvider)NodePeer(board, "OutsiderFold")).ExpandCollapseState == ExpandCollapseState.Expanded);
+        ((IExpandCollapseProvider)NodePeer(board, "OutsiderFold")).Collapse();
+        E2eWorkspace.Until(() => ((IExpandCollapseProvider)NodePeer(board, "OutsiderFold")).ExpandCollapseState == ExpandCollapseState.Collapsed);
+
+        // Focus moves to the node in the plugin.
+        NodePeer(board, "OutsiderCheck").SetFocus();
+        E2eWorkspace.Until(() => NodePeer(board, "OutsiderCheck").HasKeyboardFocus() && !NodePeer(board, "OutsiderIme").HasKeyboardFocus());
+
+        // An action on a node that does not exist, or that does not offer it, is dropped and the surface works on.
+        var clicks = Clicks(app);
+        board.Surface.Input(new SurfaceInput(0, SurfaceInputKind.Invoke, Node: 987654));
+        board.Surface.Input(new SurfaceInput(0, SurfaceInputKind.Invoke, Node: int.Parse(Line(Lines(), "OutsiderIme")[0])));
+        Settle(board, "the side tool after stale accessibility actions", relay: relay);
+        Require(Clicks(app) == clicks && board.Tree.Nodes.Count > 0, "Actions on nodes that are not there or do not offer them change nothing.");
+
+        // Invoke opens the dialog, whose nodes show on the dialog's own peer.
+        ((IInvokeProvider)NodePeer(board, "OutsiderAsk")).Invoke();
+        RemoteSurface.RemotePopup? dialog = null;
+        E2eWorkspace.Until(() => (dialog = board.Popups.FirstOrDefault(popup => popup.Dialog)) is { IsFocused: true });
+        var yes = NodePeer(dialog!, "OutsiderDialogYes");
+        Require(yes.GetName() == "Count it" && yes is IInvokeProvider && ControlAutomationPeer.CreatePeerForElement(dialog!)!.GetName() == dialog!.Title,
+            $"The dialog's peer is named as its frame and holds the plugin's button: {yes.GetName()}.");
+        var dialogLines = Lines(dialog!.Number);
+        Require(Line(dialogLines, "OutsiderDialogYes")[2] == "Count it", "The plugin reads the dialog's own tree apart from the surface's.");
+        yes.SetFocus();
+        E2eWorkspace.Until(() => NodePeer(dialog, "OutsiderDialogYes").HasKeyboardFocus());
+        Press(window, Key.Escape, PhysicalKey.Escape);
+        E2eWorkspace.Until(() => !board.Popups.Any(popup => popup.Dialog));
+        Require(Clicks(app) == clicks, "The dialog opened through accessibility closes without a result on Escape.");
+        Console.WriteLine($"PASS {what} accessibility: the plugin's tree reaches the app's own with the plugin's roles, names, ids and bounds; invoke opens the plugin's dialog, whose nodes show on its own peer, set value fills the text field, toggle checks the box, expand and collapse move the fold through the plugin's own peer, focus moves focus in the plugin, and an action on a node that is not there or that does not offer it is dropped");
+        return Settle(board, "the side tool after accessibility", relay: relay);
     }
 
     // The input method client the app's input method would compose into on the surface, if any.

@@ -157,6 +157,7 @@ internal static class PluginSurfaceRemoteChecks
             shownA = PluginSurfaceChecks.Popups(a, a.Window, boardA, shownA, Held, "plugin surface remote");
             // The extras' dialog counts one click.
             shownA = PluginSurfaceChecks.Extras(a, a.Window, boardA, shownA, Held, "plugin surface remote");
+            shownA = PluginSurfaceChecks.Accessible(a, a.Window, boardA, shownA, Held, "plugin surface remote");
             shownA = PluginSurfaceChecks.Scaled(a.Window, boardA, shownA, Held, "plugin surface remote", () =>
             {
                 Require(boardB.FrameScale == 1, "Client B renders at its own scale while client A's is 2.");

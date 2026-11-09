@@ -1,6 +1,10 @@
 using System.Text;
 using System.Text.Json.Serialization;
 
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
@@ -25,7 +29,8 @@ public sealed record OutsiderSettings
 /// view shows the count as the settings change, so a click in one client shows in another. The board adds a list to
 /// scroll, a note to type in, a button that floods its client with one-way calls, three popups (a context menu and
 /// a flyout that each count a click, and a tooltip), and a row with a link that shows the hand cursor, a text field to
-/// compose into with an input method, and a button that asks in a dialog whether to count a click.
+/// compose into with an input method, a button that asks in a dialog whether to count a click, a check box, and a fold whose
+/// own automation peer expands and collapses, for accessibility.
 /// </summary>
 public sealed class OutsiderUI : PluginUIModule
 {
@@ -114,10 +119,37 @@ public sealed class OutsiderUI : PluginUIModule
             Background = Avalonia.Media.Brushes.Transparent,
         };
         var compose = new TextBox { Name = "OutsiderIme", Width = 120, IsTabStop = false };
+        AutomationProperties.SetName(compose, "Compose here");
         var ask = Ui.Button("Ask", () => { });
         (ask.Name, ask.IsTabStop) = ("OutsiderAsk", false);
         ask.Click += (_, _) => _ = Ask(context, ask);
-        return new StackPanel { Name = "OutsiderExtras", Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Children = { link, compose, ask } };
+        var row = new StackPanel { Name = "OutsiderExtrasRow", Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Children = { link, compose, ask } };
+        var remind = new CheckBox { Name = "OutsiderCheck", Content = "Remind me", IsTabStop = false };
+        return new StackPanel { Name = "OutsiderExtras", Spacing = 4, Children = { row, remind, new Fold { Name = "OutsiderFold" } } };
+    }
+
+    /// <summary>A control with a peer of its own that expands and collapses, as a plugin's own automation peer may.</summary>
+    private sealed class Fold : Control
+    {
+        public bool Open { get; set; }
+
+        protected override Size MeasureOverride(Size availableSize) => new(40, 16);
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new FoldPeer(this);
+    }
+
+    private sealed class FoldPeer(Fold fold) : ControlAutomationPeer(fold), IExpandCollapseProvider
+    {
+        public ExpandCollapseState ExpandCollapseState => fold.Open ? ExpandCollapseState.Expanded : ExpandCollapseState.Collapsed;
+        public bool ShowsMenu => false;
+
+        public void Expand() => fold.Open = true;
+
+        public void Collapse() => fold.Open = false;
+
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Group;
+
+        protected override string? GetNameCore() => "Fold";
     }
 
     private static async Task Ask(IPluginUIContext context, Control from)

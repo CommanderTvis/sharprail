@@ -450,8 +450,18 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   focus and its own keys and composition, a press elsewhere does not close it, and it is modal to the plugin only:
   while it is open the runner gives the same client's other surfaces, popups and dialogs of that plugin no input,
   and the rest of the app stays usable. Modality is the plugin's own business, so its process enforces it.
+- Accessibility crosses too (`--plugin-surface`, `--plugin-surface-remote`). The runner reads the automation peers of
+  each top-level of a surface (the surface, a popup, a dialog) and sends the tree as nodes (role, name, value,
+  automation id, states, the actions the node offers, bounds from the top-level's corner and child order), whole at
+  first and as changes after; the relay holds it to caps (at most 512 nodes, 64 levels, 200 characters of name and
+  value and 64 of id, plain text, a known role and state, every node reached once from the root, a tree only for an
+  open top-level). The client shows the nodes as peers under the control that shows the top-level, so the app's own
+  accessibility, and Avalonia's bridge to each platform's, reaches a plugin's controls as it reaches the app's, and the
+  actions a client asks of a node (invoke, focus, set a value, expand, collapse, toggle) go back to the plugin's
+  process, which acts only on a node it described, and are dropped by the relay for a node it did not or one that
+  does not offer the action.
 - Pending: the backend keeps a popup inside a 1,920×1,280-pixel screen of its own, as Avalonia's headless platform did, so near the bottom of a
-  tall surface at scale 2 a menu may open flipped or slid; accessibility is not carried; a popup opened from inside a
+  tall surface at scale 2 a menu may open flipped or slid; a popup opened from inside a
   dialog (a combo box's list) does not show, and a dialog cannot be moved or resized; the plugin's process has no
   clipboard, so copy and paste inside a plugin's view do nothing until the broker carries them; the terminal delay behind surface traffic is bounded by construction and not measured; one process
   holds one kit theme, the last a client pushed, because the kit's brushes are process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
@@ -459,6 +469,9 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; per-process memory
   limits are later. The browser and Android clients compile `RemoteSurface` and the remote session, but no browser
   check runs the fixture yet: that needs a checks-only host with the seam and a browser build with the app's seam set.
+  Accessibility is proven through the app's own automation peers; that a screen reader on each platform reads them
+  through Avalonia's bridge is not checked (it needs a real window and the platform's reader), and a node with several
+  actions offers the platform the closest single kind of peer.
 
 ## Calls across the boundary
 
