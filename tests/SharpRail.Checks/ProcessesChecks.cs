@@ -261,7 +261,10 @@ internal static class ProcessesChecks
             Require(panel.Requests == 0, "A hidden pane must not ask the host for a snapshot.");
             shown = true;
             panel.Poll();
-            Require(panel.Requests == 1 && panel.RowCount == 3 + 2 + 30, $"The first visible poll asks once and shows the whole tree, got {panel.Requests} requests and {panel.RowCount} rows.");
+            // The 150 px window cannot hold the groups' children, so under the default rule every group starts collapsed; the user opens them here.
+            Require(panel.Requests == 1 && panel.RowCount == 3, $"The first visible poll asks once and collapses the groups that do not fit, got {panel.Requests} requests and {panel.RowCount} rows.");
+            panel.Choose(ProcessModel.LanguageGroup, true); panel.Choose(ProcessModel.SpawnedGroup, true);
+            Require(panel.RowCount == 3 + 2 + 30, $"Opening the groups shows the whole tree, got {panel.RowCount} rows.");
             Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
             var ids = Enumerable.Range(0, 30).Select(index => $"spawn:{index}").Concat([ProcessModel.LanguageGroup, ProcessModel.SpawnedGroup, "lang:a"]).ToArray();
             var first = ids.ToDictionary(id => id, id => panel.RowOf(id) ?? throw new InvalidOperationException("No row " + id));
