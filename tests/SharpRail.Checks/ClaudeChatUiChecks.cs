@@ -2875,6 +2875,27 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => transcript.Item("ask2") is ChatQuestionItem { Decision: ChatPermissionDecision.Denied });
             Require(chat.QuestionAnswers.Last().Cancelled == true, "Cancel answers the question as cancelled.");
 
+            // Own text typed into the real field counts as the answer on any tab, replaces a picked option, and enables Submit once every question has an answer.
+            ChatQuestion[] three = [new("Caption?", [new("A"), new("B")]) { Header = "Caption" }, new("Model?", [new("M1"), new("M2")]) { Header = "Model" }, new("Display?", [new("D1")]) { Header = "Display" }];
+            chat.Push(Item(new ChatQuestionItem("ask3", 52, "req-ask3", three)));
+            Frame(window);
+            var ask3 = (ChatQuestionItem)transcript.Item("ask3")!;
+            Button Named(string name) => view.RequestPanel.GetVisualDescendants().OfType<Button>().First(button => button.Name == name);
+            void Type(string text) { view.RequestPanel.GetVisualDescendants().OfType<TextBox>().First(box => box.Name == "ChatQuestionOther").Text = text; Frame(window); }
+            void Tab(int at) { Named("ChatQuestionTab_" + at).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Frame(window); }
+            Tab(1);
+            view.QuestionPick(ask3, 1, "M1");
+            Type("what fits on laptop");
+            Require(transcript.DraftOf(ask3) is { Complete: false } typed && typed.Chosen[1].Count == 0 && typed.Other[1] == "what fits on laptop", "Typing own text replaces the picked option.");
+            Tab(0); Type("my caption");
+            Tab(2); Type("my display");
+            Require(Named("ChatQuestionSubmit").IsEnabled, "Own text on every question enables Submit.");
+            Tab(1);
+            Require(view.RequestPanel.GetVisualDescendants().OfType<TextBox>().First(box => box.Name == "ChatQuestionOther").Text == "what fits on laptop", "The typed text is shown again when its tab is reopened.");
+            view.SubmitQuestion(ask3);
+            E2eWorkspace.Until(() => transcript.Item("ask3") is ChatQuestionItem { Decision: ChatPermissionDecision.Allowed });
+            Require(chat.QuestionAnswers.Last().Answers is { } typedAnswers && typedAnswers["Model?"] == "what fits on laptop" && typedAnswers["Caption?"] == "my caption" && typedAnswers["Display?"] == "my display", "The answers carry the typed text per question.");
+
             // Notices by category: a failure with Retry sends the last prompt again; compaction and restart are quiet lines; a review verdict is a card.
             chat.Push(Item(new ChatNoticeItem("fail", 60, ChatNoticeLevel.Error, "The turn failed: overloaded") { Category = ChatNoticeKinds.Failure, Subtype = "error_during_execution", Retryable = true }));
             chat.Push(Item(new ChatNoticeItem("compact", 61, ChatNoticeLevel.Info, "auto, 120k tokens") { Category = ChatNoticeKinds.Compaction }));
