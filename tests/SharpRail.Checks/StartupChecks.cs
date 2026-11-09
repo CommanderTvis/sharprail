@@ -89,7 +89,8 @@ internal static class StartupChecks
         Require(Branch(window) == "new-branch", "A superseded Git result overwrote the current workspace.");
 
         Await(window.OpenProjectAsync(root));
-        Pump(() => host.Requests.Count == 4);
+        // The checks root is shared with the cases before this one: their file changes may add Git refreshes, and the newest one is the one that must fail.
+        Pump(() => host.Requests.Count >= 4);
         host.Requests.Last().Result.SetException(new IOException("Git unavailable"));
         window.RevealToolFor(window.WorkspaceRoot, "changes");
         Pump(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Git could not be loaded: Git unavailable"));
