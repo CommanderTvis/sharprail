@@ -662,6 +662,14 @@ internal static class Program
             Console.WriteLine("PASS connection error details and retry");
             return;
         }
+        if (args.SequenceEqual(["--unified-chrome"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            UnifiedChromeChecks.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS unified chrome checks");
+            return;
+        }
         if (args.SequenceEqual(["--shell"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

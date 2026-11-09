@@ -48,6 +48,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// <summary>Whether this window has no top bar (see <see cref="SharpRail.UI.UnifiedChrome"/>); a phone-sized workbench keeps its own pages.</summary>
     internal bool HasUnifiedChrome => unified;
     private ContextMenu viewMenu = new();
+    /// <summary>The View menu as the overflow button (or, without chrome, the header) opens it.</summary>
+    internal ContextMenu ViewMenu => viewMenu;
     internal void RequestClose() => surface.RequestClose();
     private readonly Grid root;
     private long projectRequest;
@@ -261,16 +263,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
         // The View menu belongs to the header's own space: a right-click on a button inside it (pickers, plugin items, Settings)
         // opens nothing, unless that control carries a menu of its own. Registered before the menu so it runs first.
-        header.ContextRequested += (_, e) =>
-        {
-            for (var node = e.Source as Visual; node is not null && node != header; node = node.GetVisualParent())
-                if (node is Button) { e.Handled = true; return; }
-        };
-        var view = new ContextMenu();
-        // Filled as it opens, so it names the tools plugins have contributed since.
-        view.Opening += (_, _) => FillViewMenu(view);
-        header.ContextMenu = view;
-        viewMenu = view;
+        SuppressButtonMenus(header);
+        header.ContextMenu = NewViewMenu();
+        if (!unified) viewMenu = header.ContextMenu;
         WireLocationBar();
         var connection = this.FindControl<Button>("ConnectionButton")!;
         connection.Click += (_, _) =>
@@ -375,6 +370,24 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         host.Children.Add(Caption("", "Minimize", () => WindowState = WindowState.Minimized));
         host.Children.Add(maximize);
         host.Children.Add(Caption("", "Close", Close, close: true));
+    }
+
+    /// <summary>A right-click on a button inside <paramref name="header"/> opens nothing, unless that control carries a menu of its own.</summary>
+    private static void SuppressButtonMenus(Control header) => header.ContextRequested += (_, e) =>
+    {
+        for (var node = e.Source as Visual; node is not null && node != header; node = node.GetVisualParent())
+            if (node is Button) { e.Handled = true; return; }
+    };
+
+    /// <summary>
+    /// A View menu, filled as it opens so it names the tools plugins have contributed since. A context menu shows only on the control it is
+    /// attached to, so every control that opens the View menu carries its own.
+    /// </summary>
+    private ContextMenu NewViewMenu()
+    {
+        var view = new ContextMenu();
+        view.Opening += (_, _) => FillViewMenu(view);
+        return view;
     }
 
     private void FillViewMenu(ContextMenu menu)

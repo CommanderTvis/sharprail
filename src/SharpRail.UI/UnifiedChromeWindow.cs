@@ -40,7 +40,10 @@ public sealed partial class WorkbenchWindow
         ((Border)more.Content!).Bind(Border.BackgroundProperty, more.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
         ToolTip.SetTip(more, "More"); AutomationProperties.SetName(more, "More");
         // The View menu belongs to this button; a right-click on the header's empty space opens it as well.
-        more.Click += (_, _) => viewMenu.Open(more);
+        // A context menu opens only on the control it is attached to: the button and the rail header each carry their own.
+        viewMenu = more.ContextMenu = NewViewMenu();
+        // Opening fires for a right-click only, so the button fills the menu itself.
+        more.Click += (_, _) => { FillViewMenu(viewMenu); viewMenu.Open(more); };
 
         var header = new StackPanel { Name = "RailHeader", Spacing = 4, Margin = new Thickness(0, 0, 0, 8) };
         if (OperatingSystem.IsMacOS())
@@ -109,6 +112,8 @@ public sealed partial class WorkbenchWindow
         ((Border)about.Content!).Bind(Border.BackgroundProperty, about.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
         ToolTip.SetTip(about, "About"); AutomationProperties.SetName(about, "About");
         about.Click += (_, _) => Dialogs.About(this);
+        SuppressButtonMenus(header);
+        header.ContextMenu = NewViewMenu();
         surface.LeftHeader = header;
         surface.RightRailFooter = new StackPanel { Name = "RailFooter", Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4), Children = { about, settings } };
         ApplyChromeZoom();

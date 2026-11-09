@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 
 using SharpRail.Checks.E2E;
@@ -17,6 +18,60 @@ internal static class UnifiedChromeChecks
     {
         Migration();
         Window(Path.Combine(root, "unified-chrome"));
+        Classic(Path.Combine(root, "classic-chrome"));
+    }
+
+    private static IEnumerable<MenuItem> Entries(IEnumerable<object?> items) => items.OfType<MenuItem>().SelectMany(item => new[] { item }.Concat(Entries(item.Items)));
+
+    /// <summary>The View menu opens from its button (or the header) twice in a row, fills its entries and survives each of them being shown.</summary>
+    private static void ViewMenu(E2eWorkspace app, bool unified)
+    {
+        var menu = app.Window.ViewMenu;
+        for (var round = 0; round < 2; round++)
+        {
+            if (unified) app.Click(app.Find<Button>("AppMenuButton"), freshGesture: false);
+            else app.Find<Grid>("MainHeader").RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent });
+            Until(() => menu.IsOpen);
+            var entries = Entries(menu.Items).ToArray();
+            Require(entries.Any(item => item.Name == "NewWindow") && entries.Any(item => Equals(item.Header, "Reset frame")) && entries.Any(item => Equals(item.Header, "Toggle right")),
+                $"The View menu lists its entries on round {round}: " + string.Join("|", entries.Select(item => item.Name + "/" + item.Header)));
+            foreach (var entry in entries.Where(item => item.Items.Count > 0)) { entry.Open(); entry.Close(); }
+            menu.Close();
+            Until(() => !menu.IsOpen);
+        }
+    }
+
+    /// <summary>The rail header's other popups open without an exception: the project switcher, the branch card and the right bar's Settings.</summary>
+    private static void HeaderPopups(E2eWorkspace app)
+    {
+        var projects = app.Find<Button>("ScopeProject").ContextMenu!;
+        for (var round = 0; round < 2; round++)
+        {
+            app.Click(app.Find<Button>("ScopeProject"), freshGesture: false);
+            Until(() => projects.IsOpen);
+            Require(Entries(projects.Items).Any(item => item.Name == "ScopeProjectAdd"), "The project switcher lists its entries.");
+            projects.Close();
+            Until(() => !projects.IsOpen);
+        }
+        var branch = app.Find<Button>("ScopeBranch");
+        for (var round = 0; round < 2; round++)
+        {
+            app.Click(branch, freshGesture: false);
+            Until(() => branch.Flyout!.IsOpen);
+            branch.Flyout!.Hide();
+            Until(() => !branch.Flyout.IsOpen);
+        }
+        app.Click(app.Find<Button>("SettingsButton"));
+        Until(() => app.Window.OpenSettingsViews.Any());
+        app.Window.OpenSettingsViews.Single().Close();
+    }
+
+    private static void Classic(string directory)
+    {
+        UnifiedChrome.Override = false;
+        using var app = OpenFixtureProject(directory);
+        ViewMenu(app, unified: false);
+        Console.WriteLine("PASS classic chrome: the View menu opens twice from the top bar");
     }
 
     private static void Migration()
@@ -66,10 +121,9 @@ internal static class UnifiedChromeChecks
             var footer = app.Find<StackPanel>("RailFooter");
             Require(footer.IsLogicalAncestorOf(app.Find<Button>("SettingsButton")) && footer.IsLogicalAncestorOf(app.Find<Button>("AboutButton")),
                 "Settings and About close the right tool bar.");
-            app.Click(app.Find<Button>("SettingsButton"));
-            Until(() => app.Window.OpenSettingsViews.Any());
-            app.Window.OpenSettingsViews.Single().Close();
-            Console.WriteLine("PASS unified chrome: no top bar, the rail header, the right bar's Settings and About");
+            ViewMenu(app, unified: true);
+            HeaderPopups(app);
+            Console.WriteLine("PASS unified chrome: no top bar, the rail header, its menus and popups open, the right bar's Settings");
         }
         finally { UnifiedChrome.Override = false; }
     }
