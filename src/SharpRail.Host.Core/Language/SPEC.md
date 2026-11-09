@@ -98,11 +98,11 @@ Partial downloads are removed and successful installs have a completion marker.
 
 | Languages | Default server | Provisioning prerequisite |
 | --- | --- | --- |
-| JavaScript, TypeScript | typescript-language-server plus TypeScript | Node/npm |
-| Python | Pyright | Node/npm; project Python environment for imports |
-| PHP | Intelephense | Node/npm; features depend on its license |
-| CSS | VS Code CSS language server | Node/npm |
-| Shell | bash-language-server | Node/npm |
+| JavaScript, TypeScript | typescript-language-server plus TypeScript | Bun (pinned, downloaded on first use) |
+| Python | Pyright | Bun (pinned, downloaded on first use); project Python environment for imports |
+| PHP | Intelephense | Bun (pinned, downloaded on first use); features depend on its license |
+| CSS | VS Code CSS language server | Bun (pinned, downloaded on first use) |
+| Shell | bash-language-server | Bun (pinned, downloaded on first use) |
 | C# | Roslyn language server | .NET SDK |
 | C, C++, Objective-C | clangd | Release archive; project compile commands improve analysis |
 | Java | Eclipse JDT LS | JDK 21+ through JAVA_HOME |
@@ -178,7 +178,7 @@ each with a name, a one-line install hint, whether only the installation needs i
 
 | Server | Tools |
 | --- | --- |
-| typescript, css, python, php, shell | `node` (launch), `npm` (install only) |
+| typescript, css, python, php, shell | `bun` (install and launch; a server whose `Runtime` is `node` declares `node` and `npm` instead) |
 | go | `go` (install only) |
 | powershell | `pwsh` |
 | r | `Rscript` |
@@ -194,8 +194,7 @@ and node lookups all use it, so a path is honoured by the probe and the launch a
 every declared tool on the host (answers reused for 30 s; a fresh probe runs before every start; the workspace file census behind "Suggested by file" is also reused for 30 s and forgotten on retry, restart, stop and configure, so the pane's poll does no tree walk or tool search in steady state) and returns them on each row, as does `catalog` for
 an existing absolute workspace (for Settings): a tool is required
 only for the managed launch, and an install-only tool only until the managed installation exists. A start refuses
-before installing while a required tool is missing, with `Needs <tool> (<name>). <hint> Or choose an existing <tool>
-with Use path…`. By default SharpRail never downloads these tools or runs a package manager for them (see Managed runtimes). `--lsp-dependencies`
+before installing while a required tool is missing, with `Needs <name>.` (the tool's install hint and Use path… sit under it, not repeated in it; a tool the launch does not need is not listed). Bun is the one tool SharpRail fetches itself: when it is not on PATH the row says it is downloaded on first use and no error shows; other tools are never downloaded by default (see Managed runtimes). `--lsp-dependencies`
 covers the probe with a fake PATH, the refusal, a tool appearing on PATH, and setting, persisting, launching with
 and clearing a path.
 
@@ -206,7 +205,7 @@ and `ManagedArtifacts.Describe` say exactly which:
 
 | Providers | Acquisition | Pinning |
 | --- | --- | --- |
-| TypeScript, Python, PHP, CSS, Shell | `npm ci --ignore-scripts` from the plugin's embedded `package-lock.json` (`Locks/`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
+| TypeScript, Python, PHP, CSS, Shell | `bun install --frozen-lockfile --ignore-scripts` (or `npm ci --ignore-scripts` for a `node` server) from the plugin's embedded `package-lock.json` (`Locks/`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
 | clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the plugin's `Artifacts` (JDT from `jdtls/milestones/<version>`, not the rolling snapshots) | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
 | IntelliJ | The IntelliJ plugin's own distribution code (`TermsAsync` and `LaunchAsync`) | Version and SHA-256 per platform, plus acceptance of its terms recorded by the host |
 | C# | The pointer package and the platform's runtime pack of `roslyn-language-server`, fetched by SharpRail from `api.nuget.org` and installed by `dotnet tool install --source <local feed>` with a private package cache | Version and SHA-512 (NuGet catalog `packageHash`) of every package, verified before dotnet reads it; no Linux musl pack is pinned |
@@ -228,7 +227,7 @@ download.
 ### Managed runtimes
 
 The tools servers need can also come from pinned runtimes in the cache, so a slim headless image carries none of them.
-`ManagedRuntimes` holds one entry per runtime kind (the .NET SDK now; Node, a JDK and Python are table entries to
+`ManagedRuntimes` holds one entry per runtime kind (the .NET SDK and Bun now; a JDK and Python are table entries to
 add) and one pin per version and platform: exact version, URL on an allow-listed host, the SHA-256 the host verifies
 before extraction, and the publisher's SHA-512 recorded beside it. Installation reuses `ArtifactInstaller`: hash
 first, bounded extraction, an atomic move into `runtimes/<id>/<version>-<hash prefix>`, nothing left behind on a
@@ -250,6 +249,14 @@ a tool that has a pinned runtime, so the host's PATH is never consulted for it; 
 `path` order. A start installs a missing pinned runtime first (`SHARPRAIL_OFFLINE=1` makes that fail at once, naming
 the missing artifact), and `ManagedRuntimes.WarmAsync` installs every pin of a platform ahead of time for the container
 build and the headless `warm` command, reporting progress through a callback.
+
+Bun is the JavaScript runtime of the Node-based servers (each plugin's `Runtime`, `bun` or `node`): pinned like the SDK, one
+GitHub release archive per platform (macOS and Linux arm64 and x64, glibc builds; Windows arm64 and x64) with its SHA-256,
+downloaded on first use, also under the default `path` source when no Bun is on PATH. It also installs the servers' lockfiles, which
+Bun checks against the same integrity hashes, and runs the ACP plugin's npx agents. Bun reads `bunfig.toml` and `.env` from
+the working directory, so every Bun run gets `BUN_OPTIONS` pointing at an empty config with `.env` off, and its home in the cache.
+A musl Linux has no pinned Bun: use a Bun of your own (Use path…) or set a server's runtime to `node`. All five servers
+passed `initialize`, a symbol request and a hover under Bun like under Node.
 
 Under a managed toolchain every server run gets one environment (`ILanguageServerInstallation.ManagedEnvironment`):
 `PATH` of the managed bin directories plus `/usr/bin:/bin` (not the host PATH, except in `managed-then-path`),

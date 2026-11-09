@@ -23,7 +23,6 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
 
     private readonly ConcurrentDictionary<(string, string), AcpChatSession> sessions = new();
     private readonly Lock recordsGate = new();
-    private readonly Func<AcpAgentEntry, string, Task<IAcpTransport>> connect = connect ?? ((entry, cwd) => Launch(entry, cwd));
 
     /// <summary>Where the registry copy and installed binaries live; ~/.sharprail/acp unless a check says otherwise.</summary>
     public string DataDirectory { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "acp");
@@ -60,8 +59,20 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         return AddAgent(entry);
     }
 
-    private static async Task<IAcpTransport> Launch(AcpAgentEntry entry, string cwd) =>
-        await ProcessAcpTransport.StartAsync(new AcpLaunch(entry.LaunchCommand(), entry.LaunchArgs(), entry.Env, entry.Cwd.Length > 0 ? entry.Cwd : cwd));
+    private async Task<IAcpTransport> LaunchAsync(AcpAgentEntry entry, string cwd)
+    {
+        var directory = entry.Cwd.Length > 0 ? entry.Cwd : cwd;
+        var command = entry.LaunchCommand();
+        IReadOnlyList<string> args = entry.LaunchArgs();
+        var env = entry.Env;
+        // A registry npx agent runs with the host's pinned Bun, so no Node or npx is needed; npx stays when Bun cannot be provided, and for a command the user chose.
+        if (entry.CommandOverride.Length == 0 && entry.Origin == "registry" && command == "npx" && await context.BunPathAsync(directory) is { Length: > 0 } bun)
+        {
+            (command, args) = AcpRunner.Bun(bun, args);
+            env = AcpRunner.GuardedEnvironment(Path.Combine(DataDirectory, "bun"), env);
+        }
+        return await ProcessAcpTransport.StartAsync(new AcpLaunch(command, args, env, directory));
+    }
 
     private static string RecordKey(string workspaceId, string chatId) => workspaceId + "\0" + chatId;
 
@@ -214,7 +225,7 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         var cwd = (await context.WorkspaceAsync(p.WorkspaceId, CancellationToken.None))?.Path ?? p.WorkspaceId;
         var record = await Task.Run(() => LoadRecord(p.WorkspaceId, p.ChatId));
         var entry = ListAgents().Agents.FirstOrDefault(agent => agent.Id == record?.AgentId) ?? throw new InvalidOperationException("Choose an ACP agent for this chat first.");
-        var session = new AcpChatSession(p.WorkspaceId, p.ChatId, cwd, () => connect(entry, cwd), Publish, message => context.Log.Warn(message), new AcpClientMethods(cwd));
+        var session = new AcpChatSession(p.WorkspaceId, p.ChatId, cwd, () => connect is null ? LaunchAsync(entry, cwd) : connect(entry, cwd), Publish, message => context.Log.Warn(message), new AcpClientMethods(cwd));
         sessions[(p.WorkspaceId, p.ChatId)] = session;
         if (existing is not null) await existing.DisposeAsync();
         var header = session.Begin();

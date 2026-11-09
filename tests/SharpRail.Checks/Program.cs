@@ -1431,6 +1431,7 @@ internal static class Program
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
         Gate.Case("managed-language-servers", () => ManagedLanguageChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("managed-runtimes", () => ManagedRuntimeChecks.Run(root));
         Gate.Case("project-toml", ProjectTomlChecks.Run);
         Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());

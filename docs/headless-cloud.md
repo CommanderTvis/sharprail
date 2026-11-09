@@ -99,6 +99,7 @@ Verified (arm64 Linux, Apple `container`, `ubuntu:24.04`, on 2026-11-07):
 - The image itself: `--help` and `mcp` (initialize, initialized, tools/list: 2 replies, 11 tools) pass on arm64 natively and on amd64 under Rosetta.
 - `claude mcp add --scope user --env K=V --transport stdio sharprail -- <command> mcp` is accepted by the local CLI and writes the server into `~/.claude.json`.
 - From the docs: Ubuntu 24.04 x86_64 VM, Docker present, setup script runs as root before Claude starts, 64 KB limit, five-minute cache rule, `ghcr.io`, `api.nuget.org` and `raw.githubusercontent.com` in the default list, the repo's `.mcp.json` is loaded.
+- Not verified here: the JavaScript language servers download Bun from `github.com` (release assets) and their packages from `registry.npmjs.org`, neither in that default list, so an environment that limits hosts must allow both; no Node is needed.
 
 Verified on a real cloud VM (claude.ai/code, first run, 2026-11-07, environment without a repository, working directory `/home/user`):
 - The setup script ran as root and finished with exit 0. It chose `linux/amd64`, verified the app layer (`sha256:325ee39c...`), installed `/root/.local/bin/sharprail-headless`, found the `claude` CLI and ran `claude mcp add`, which reported "Added stdio MCP server sharprail" and "File modified: /root/.claude.json". So the VM is x86_64, `ghcr.io` and its blob host are reachable with the allowlist from step 2, and `claude` exists at setup time.

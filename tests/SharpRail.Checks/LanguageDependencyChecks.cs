@@ -50,12 +50,12 @@ internal static class LanguageDependencyChecks
         var go = Row(state, workspace, "go").Dependencies!.Single();
         Require(go is { Executable: "go", State: "missing", Required: true, Override: false }, $"go was not reported missing and required: {go}.");
         var typescript = Row(state, workspace, "typescript").Dependencies!;
-        Require(typescript.Select(item => item.Executable).SequenceEqual(["node", "npm"]) && typescript.All(item => item.State == "missing"), "TypeScript did not declare node and npm as missing.");
+        Require(typescript.Select(item => item.Executable).SequenceEqual(["bun"]) && typescript.All(item => item.State == "download" && item.Problem.Contains("downloaded on first use", StringComparison.Ordinal)), "TypeScript did not declare bun as downloaded on first use.");
         state.Languages.ExecuteAsync(new(workspace, Operation: "retry", Server: "go")).AsTask().GetAwaiter().GetResult();
         var deadline = DateTime.UtcNow.AddSeconds(30);
         var detail = "";
-        while (DateTime.UtcNow < deadline && !(detail = Row(state, workspace, "go").Detail).Contains("Needs go", StringComparison.Ordinal)) Thread.Sleep(100);
-        Require(detail.Contains("Needs go", StringComparison.Ordinal), "A start without go did not name the missing dependency: " + detail);
+        while (DateTime.UtcNow < deadline && !(detail = Row(state, workspace, "go").Detail).Contains("Needs Go", StringComparison.Ordinal)) Thread.Sleep(100);
+        Require(detail.Contains("Needs Go", StringComparison.Ordinal), "A start without go did not name the missing dependency: " + detail);
         Console.WriteLine("PASS dependency probe reports each declared tool missing on an empty PATH and a start names it");
 
         // The pane polls "servers" every few seconds: in steady state the poll walks no tree and searches no PATH, and an explicit action starts afresh.
@@ -69,10 +69,10 @@ internal static class LanguageDependencyChecks
         Require(service.CensusWalks > walks && service.ServerProbeRuns > runs, "A stop did not make the next listing walk and probe again.");
         Console.WriteLine("PASS steady-state polls walk no tree and probe no tool; an explicit action refreshes both");
 
-        var onPath = Tool(bin, "node");
+        var onPath = Tool(bin, "bun");
         state.Languages.ExecuteAsync(new(workspace, Operation: "stop", Server: "go")).AsTask().GetAwaiter().GetResult();
-        var node = Row(state, workspace, "typescript").Dependencies!.Single(item => item.Executable == "node");
-        Require(node is { State: "found", Source: "path" } && node.Path == onPath, $"node on PATH was not found: {node}.");
+        var node = Row(state, workspace, "typescript").Dependencies!.Single(item => item.Executable == "bun");
+        Require(node is { State: "found", Source: "path" } && node.Path == onPath, $"bun on PATH was not found: {node}.");
         Console.WriteLine("PASS a tool that appears on PATH is found without a restart");
 
         var mine = Tool(Path.Combine(root, "mine"), "go");
@@ -117,20 +117,20 @@ internal static class LanguageDependencyChecks
             }
             TextBlock Needs() => GoRow().GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ServerNeeds");
             bool Shows(string name, string text) => GoRow() is { } row && row.GetLogicalDescendants().OfType<TextBlock>().Any(block => block.Name == name && block.IsEffectivelyVisible && (block.Text ?? "").Contains(text, StringComparison.Ordinal));
-            E2E.E2eWorkspace.Until(() => GoRow() is not null && Shows("ServerNeeds", "Needs go"), "The Go row did not show Needs go before any start.");
+            E2E.E2eWorkspace.Until(() => GoRow() is not null && Shows("ServerNeeds", "Needs Go"), "The Go row did not show Needs Go before any start.");
             Require(GoRow().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyUsePath" && button.IsEffectivelyVisible), "The Go row offered no Use path….");
             Require(GoRow().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyCopyHint" && button.IsEffectivelyVisible), "The Go row offered no install hint.");
-            Require(Needs().Text == "Needs go (Go)" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
-                "The Go row did not show Needs go (Go) exactly once.");
-            Console.WriteLine("PASS the Go row shows Needs go (Go) once, with Use path… and the install hint before any start");
-            Require(SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs go (Go). Install Go from https://go.dev/dl/ or your package manager.", "Needs go (Go)")
-                && !SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs go (Go)"), "A failed start's detail repeating Needs go (Go) was not recognised, so the row would show it twice.");
-            Console.WriteLine("PASS a failed row whose detail opens with Needs go (Go) drops the short line");
+            Require(Needs().Text == "Needs Go" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
+                "The Go row did not show Needs Go exactly once.");
+            Console.WriteLine("PASS the Go row shows Needs Go once, with Use path… and the install hint before any start");
+            Require(SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs Go. Install Go from https://go.dev/dl/ or your package manager.", "Needs Go")
+                && !SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs Go"), "A failed start's detail repeating Needs Go was not recognised, so the row would show it twice.");
+            Console.WriteLine("PASS a failed row whose detail opens with Needs Go drops the short line");
             var mine = Tool(Path.Combine(root, "ui-mine"), "go");
             shared.ChangeAsync(HostStateChange.Setting("language-tool:go", mine)).GetAwaiter().GetResult();
-            E2E.E2eWorkspace.Until(() => GoRow() is not null && !Needs().IsEffectivelyVisible, "The Go row kept Needs go after its path was set.");
+            E2E.E2eWorkspace.Until(() => GoRow() is not null && !Needs().IsEffectivelyVisible, "The Go row kept Needs Go after its path was set.");
             shared.ChangeAsync(HostStateChange.Setting("language-tool:go", "")).GetAwaiter().GetResult();
-            E2E.E2eWorkspace.Until(() => Shows("ServerNeeds", "Needs go"), "The Go row did not show Needs go again after the path was cleared.");
+            E2E.E2eWorkspace.Until(() => Shows("ServerNeeds", "Needs Go"), "The Go row did not show Needs Go again after the path was cleared.");
             Console.WriteLine("PASS the row follows the host-wide go path on broadcast, set and cleared");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); }
@@ -161,26 +161,26 @@ internal static class LanguageDependencyChecks
             bool Shows(string text) => Find<StackPanel>("LspDependencySection").IsVisible
                 && settings.GetLogicalDescendants().OfType<TextBlock>().Any(block => block.Name == "DependencyState" && block.IsEffectivelyVisible && (block.Text ?? "").Contains(text, StringComparison.Ordinal));
             Select("go");
-            E2E.E2eWorkspace.Until(() => Shows("Needs go (Go)") && Marked("go"), "Settings did not show Needs go and its rail marker before any start.");
+            E2E.E2eWorkspace.Until(() => Shows("Needs Go") && Marked("go"), "Settings did not show Needs Go and its rail marker before any start.");
             Require(settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyUsePath" && button.IsEffectivelyVisible), "Settings offered no Use path… for go.");
             Require(settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyCopyHint" && button.IsEffectivelyVisible), "Settings offered no install hint for go.");
             Require(!Marked("clangd"), "A server with no system dependencies carries the missing marker.");
             Select("clangd");
             E2E.E2eWorkspace.Until(() => Find<TextBlock>("LspServerHeading").Text == "clangd" && !Find<StackPanel>("LspDependencySection").IsVisible, "A server with no system dependencies showed the section.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Content?.ToString() == "Allow this server to start"), "The per-server allow checkbox came back.");
-            Console.WriteLine("PASS Settings shows Needs go with the rail marker before any start, and nothing for a server without dependencies");
+            Console.WriteLine("PASS Settings shows Needs Go with the rail marker before any start, and nothing for a server without dependencies");
             Select("go");
             var servers = pane.FindControl<ListBox>("Servers")!;
             bool PaneNeeds() => Enumerable.Range(0, servers.ItemCount).Any(index => servers.Items[index]?.ToString() == "Go (gopls)" && servers.ContainerFromIndex(index) is ListBoxItem row
                 && row.GetLogicalDescendants().OfType<TextBlock>().Any(block => block.Name == "ServerNeeds" && block.IsEffectivelyVisible));
-            E2E.E2eWorkspace.Until(PaneNeeds, "The pane did not show Needs go next to Settings.");
+            E2E.E2eWorkspace.Until(PaneNeeds, "The pane did not show Needs Go next to Settings.");
             var mine = Tool(Path.Combine(root, "settings-mine"), "go");
             var update = Task.Run(async () => await shared.ChangeAsync(HostStateChange.Setting("language-tool:go", mine)));
             E2E.E2eWorkspace.Until(() => update.IsCompleted && Shows(mine + " (your path)") && !Marked("go") && !PaneNeeds(), "Setting the go path through the host did not update both Settings and the pane.");
             update.GetAwaiter().GetResult();
             var clear = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "DependencyClearPath" && button.IsEffectivelyVisible);
             clear.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.LanguageTools.Length == 0 && Shows("Needs go (Go)") && Marked("go") && PaneNeeds(), "Clear path in Settings did not revert both surfaces to Needs go.");
+            E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.LanguageTools.Length == 0 && Shows("Needs Go") && Marked("go") && PaneNeeds(), "Clear path in Settings did not revert both surfaces to Needs Go.");
             Console.WriteLine("PASS a go path set through the host and cleared from Settings updates Settings, its rail marker and the pane");
         }
         finally { settings.Close(); paneWindow.Close(); }

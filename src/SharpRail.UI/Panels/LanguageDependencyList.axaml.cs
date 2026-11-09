@@ -18,13 +18,14 @@ internal sealed partial class LanguageDependencyList : UserControl
     /// <summary>One host tool a server needs, as a row.</summary>
     internal sealed record DependencyRow(LanguageDependencyState Dependency, bool CanChangePaths)
     {
-        public bool Missing => Dependency.State != "found";
+        public bool Missing => Dependency.State is "missing" or "rejected";
         public string Text => Dependency.State switch
         {
             "found" => $"{Dependency.Executable}: {Dependency.Path} ({Dependency.Source switch { "override" => "your path", "home" => "from its home variable", _ => "PATH" }})"
-                + (Dependency.Required ? "" : " · not needed for the current launch"),
+            ,
+            "download" => Dependency.Problem,
             "rejected" => $"{Dependency.Executable}: your path cannot run. {Dependency.Problem}",
-            _ => NeedsText(Dependency) + (Dependency.Required ? "" : " · not needed for the current launch") + (Dependency.Problem.Length > 0 ? " " + Dependency.Problem : "")
+            _ => NeedsText(Dependency) + (Dependency.Problem.Length > 0 ? " " + Dependency.Problem : "")
         };
         /// <summary>Whether the state line shows; a missing required tool's line is left to the hosting row's own status when it shows one.</summary>
         public bool ShowText => !(OmitMissing && Missing && Dependency.Required);
@@ -38,11 +39,11 @@ internal sealed partial class LanguageDependencyList : UserControl
     /// <summary>Whether a server's detail already opens with the short Needs line, so the row shows the message once.</summary>
     internal static bool RepeatsNeeds(string? detail, string needs) => needs.Length > 0 && (detail ?? "").StartsWith(needs, StringComparison.Ordinal);
 
-    /// <summary>The one wording of a missing tool: <c>Needs pwsh (PowerShell 7)</c>.</summary>
-    internal static string NeedsText(LanguageDependencyState dependency) => $"Needs {dependency.Executable} ({dependency.Name})";
+    /// <summary>The one wording of a missing tool, by its name: <c>Needs PowerShell 7</c>.</summary>
+    internal static string NeedsText(LanguageDependencyState dependency) => $"Needs {dependency.Name}";
 
     /// <summary>Whether any tool the next managed start needs cannot be found.</summary>
-    internal static bool HasMissing(IReadOnlyList<LanguageDependencyState>? dependencies) => (dependencies ?? []).Any(item => item.Required && item.State != "found");
+    internal static bool HasMissing(IReadOnlyList<LanguageDependencyState>? dependencies) => (dependencies ?? []).Any(item => item.Required && item.State is not ("found" or "download"));
 
     public static readonly StyledProperty<IReadOnlyList<LanguageDependencyState>?> DependenciesProperty =
         AvaloniaProperty.Register<LanguageDependencyList, IReadOnlyList<LanguageDependencyState>?>(nameof(Dependencies));
@@ -78,7 +79,7 @@ internal sealed partial class LanguageDependencyList : UserControl
         base.OnPropertyChanged(change);
         if (change.Property != DependenciesProperty && change.Property != HostStateProperty && change.Property != OmitMissingTextProperty) return;
         var rows = this.FindControl<ItemsControl>("DependencyRows")!;
-        var next = (Dependencies ?? []).Select(item => new DependencyRow(item, HostState is not null) { OmitMissing = OmitMissingText }).ToArray();
+        var next = (Dependencies ?? []).Where(item => item.Required).Select(item => new DependencyRow(item, HostState is not null) { OmitMissing = OmitMissingText }).ToArray();
         if (!(rows.ItemsSource?.Cast<DependencyRow>() ?? []).SequenceEqual(next)) rows.ItemsSource = next;
     }
 

@@ -18,7 +18,7 @@ internal sealed partial class LanguagePanel : UserControl
 {
     internal sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false, bool Hidden = false)
     {
-        private IEnumerable<LanguageDependencyState> MissingDependencies => (Server.Dependencies ?? []).Where(item => item.Required && item.State != "found");
+        private IEnumerable<LanguageDependencyState> MissingDependencies => (Server.Dependencies ?? []).Where(item => item.Required && item.State is not ("found" or "download"));
         public bool HasMissing => LanguageDependencyList.HasMissing(Server.Dependencies);
         /// <summary>The tools the next start needs and cannot find, shown before any start fails.</summary>
         public string Needs => string.Join(", ", MissingDependencies.Select(LanguageDependencyList.NeedsText));
@@ -29,7 +29,7 @@ internal sealed partial class LanguagePanel : UserControl
         public bool ShowHide => !Hidden && !IsRunning;
         public bool ShowHideActions => ShowHide || Hidden;
         public bool ShowSourceLine => HasSource || ShowHideActions;
-        public bool ShowDependencies => Server.Dependencies is { Count: > 0 } && (Expanded || HasMissing);
+        public bool ShowDependencies => Server.Dependencies is { Count: > 0 } && Server.Dependencies.Any(item => item.Required) && (Expanded || HasMissing);
         public bool HasExit => Server.Exit is not null && Server.State is not ("ready" or "initializing" or "installing");
         public bool ShowExit => HasExit && Server.Exit!.Unexpected;
         public string ExitToggle => ExitOpen ? "Hide details" : "Details";

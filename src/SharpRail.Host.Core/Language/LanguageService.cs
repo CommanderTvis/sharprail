@@ -83,6 +83,9 @@ public sealed partial class LanguageService : IAsyncDisposable
         return true;
     }
 
+    /// <summary>A host tool by the toolchain rules, downloading a pinned runtime when that is the answer; null when unavailable.</summary>
+    internal Task<string?> ProvideToolAsync(string executable, string workspace, CancellationToken token) => servers.ProvideToolAsync(executable, workspace, token);
+
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 

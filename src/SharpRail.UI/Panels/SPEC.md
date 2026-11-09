@@ -321,8 +321,8 @@ action columns align across rows, the name stays on one line, detail text is no 
 longest word, row actions stay visible inside the row, and pane titles end before their buttons.
 
 A row whose server declares host tools lists them when expanded, and always while a required one is missing: the row
-then reads `Needs <tool> (<name>)` once, in red, before any start: the tool list leaves out that line in the pane
-(Settings, which has no row status, keeps it), and both build it with one helper. Each tool shows where it was found, or its install hint (selectable, with
+then reads `Needs <name>` once, in red, before any start: the tool list leaves out that line in the pane
+(Settings, which has no row status, keeps it), and both build it with one helper. Each tool the next launch needs shows where it was found, that it is downloaded on first use (Bun, no error), or its install hint (selectable, with
 Copy install hint), and offers Use path… (a file picker; the chosen path becomes the host-wide `language-tool:` setting,
 changed off the UI thread) and Clear path when a path is set. Rows re-read the servers when the setting's broadcast
 arrives, so Retry works without a restart. The rows are one shared control (`LanguageDependencyList`), which inherits

@@ -240,6 +240,9 @@ public sealed class LanguageServerSpec
     /// <summary>Whether the process is a general runtime whose first arguments choose the program, so configured arguments never replace them.</summary>
     public bool HostsRuntime { get; init; }
 
+    /// <summary>The JavaScript runtime a <see cref="LanguageServerPinning.Lockfile"/> server installs and runs with: <c>bun</c> (the host's pinned Bun) or <c>node</c> (Node.js and npm from the host).</summary>
+    public string Runtime { get; init; } = "node";
+
     /// <summary>The npm packages with exact versions, space separated, for <see cref="LanguageServerPinning.Lockfile"/>; the first names the server.</summary>
     public string NpmPackages { get; init; } = "";
 

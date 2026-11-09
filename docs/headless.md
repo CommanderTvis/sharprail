@@ -90,7 +90,7 @@ The server reads one JSON-RPC message per line and writes one per line. Logs go 
 
 Tools: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, `lsp_code_actions`, `lsp_rename`, `lsp_format`, the `spec_*` tools and `blueprint_check`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
 
-Language servers are downloaded on first use into the state directory. Outside the image, runtimes they need (.NET, Node, a JDK) must already be on the PATH, unless `SHARPRAIL_TOOLCHAINS=managed` is set. The image sets it.
+Language servers are downloaded on first use into the state directory. Outside the image, runtimes they need (.NET, a JDK) must already be on the PATH, unless `SHARPRAIL_TOOLCHAINS=managed` is set. The image sets it. The JavaScript-based servers need no Node or npm: they use a pinned Bun, downloaded from GitHub releases on first use into the cache and checked against its SHA-256 (not baked into the image, which keeps it small), and install their packages from registry.npmjs.org.
 
 ## Tool switches and the call log
 

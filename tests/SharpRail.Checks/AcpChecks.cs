@@ -268,7 +268,7 @@ internal static class AcpChecks
         var custom = AcpRegistry.View(new JsonObject { ["agents"] = new JsonArray(new JsonObject { ["id"] = "my-claude", ["name"] = "Claude", ["version"] = "1", ["description"] = "mine", ["distribution"] = new JsonObject { ["npx"] = new JsonObject { ["package"] = "x" } } }) }, "x", null, null, mac);
         Require(custom.Agents.Single().NotRecommended is null, "Matching is by exact id, so another agent named Claude is not flagged.");
         var npx = AcpRegistry.Plan(fixture, "pi-acp", null, mac)!;
-        Require(npx is { Kind: "npx", CommandLine: "npx -y pi-acp@0.0.34", Version: "0.0.34" }, "An npx plan shows the exact command that will run.");
+        Require(npx is { Kind: "npx", CommandLine: "bun x pi-acp@0.0.34", Version: "0.0.34" }, "An npx plan shows the exact command that will run.");
         var uvx = AcpRegistry.Plan(fixture, "fast-agent", null, mac)!;
         Require(uvx.CommandLine == "uvx fast-agent-acp==0.10.1 -x", "A uvx plan shows its package pin and arguments.");
         var binary = AcpRegistry.Plan(fixture, "goose", null, mac)!;
@@ -391,7 +391,7 @@ internal static class AcpChecks
         var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[1], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[1], view), problems["goose"]);
         Require(detail is { IsRegistry: true, License: "Apache-2.0", Website: "https://goose.example/", CanReinstall: true, CanUpdate: false, UpdateTo: null } && detail.Version == "Version 1.57.0" && detail.SourceLine.Contains("example.invalid", StringComparison.Ordinal) && detail.InstallStatus.Contains("missing", StringComparison.Ordinal) && detail.Location == "/x/goose", "The detail of a registry agent shows its version, source, links, license, status and where the program is.");
         var pi = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[0], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[0], view), null);
-        Require(pi is { CanUpdate: true, CanReinstall: false, UpdateTo: "0.0.34" } && pi.InstallStatus.Contains("0.0.34", StringComparison.Ordinal) && pi.Location.StartsWith("npx ", StringComparison.Ordinal), "An older install offers an update, and an npx agent says what runs it.");
+        Require(pi is { CanUpdate: true, CanReinstall: false, UpdateTo: "0.0.34" } && pi.InstallStatus.Contains("0.0.34", StringComparison.Ordinal) && pi.Location.StartsWith("bun x ", StringComparison.Ordinal), "An older install offers an update, and an npx agent says what runs it.");
         var custom = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[2], null, null);
         Require(custom is { IsRegistry: false, CanUpdate: false, CanReinstall: false, InstallStatus: "Custom" } && custom.SourceLine == "Added by you" && custom.CommandLine == "/bin/zed", "A custom agent has no update or reinstall.");
 
@@ -427,6 +427,13 @@ internal static class AcpChecks
 
         var fixture = AcpRegistry.Parse(FixtureText())!;
         Require(AcpRegistry.Plan(fixture, "goose", null, mac)!.Verification == AcpRegistry.Sha256Verified && AcpRegistry.Plan(fixture, "pi-acp", null, mac)!.Verification == AcpRegistry.Pinned && AcpRegistry.Plan(fixture, "fast-agent", null, mac)!.Verification == AcpRegistry.Pinned, "The plan says what will be verified: SHA-256, or a pinned version.");
+        var runPlan = AcpRegistry.Plan(fixture, "pi-acp", null, mac)!;
+        Require(runPlan.CommandLine.StartsWith("bun x pi-acp@0.0.34", StringComparison.Ordinal) && runPlan.Verification == AcpRegistry.Pinned && !runPlan.CommandLine.Contains("npx", StringComparison.Ordinal), "An npx agent's plan runs with Bun and keeps its pin verification.");
+        var (runner, runnerArgs) = SharpRail.Plugins.Acp.Host.AcpRunner.Bun("/opt/bun", ["-y", "@scope/pi-acp@0.0.34", "--acp"]);
+        Require(runner == "/opt/bun" && runnerArgs.SequenceEqual(["x", "@scope/pi-acp@0.0.34", "--acp"]) && SharpRail.Plugins.Acp.Host.AcpRunner.Bun("b", ["pi@1", "-y"]).Args.SequenceEqual(["x", "pi@1", "-y"]), "The npx arguments did not become the same package run by bun x.");
+        var guardHome = Path.Combine(root, "bun-guard");
+        var guarded = SharpRail.Plugins.Acp.Host.AcpRunner.GuardedEnvironment(guardHome, new Dictionary<string, string> { ["TOKEN"] = "t", ["DO_NOT_TRACK"] = "0" });
+        Require(guarded["BUN_OPTIONS"].Contains("--no-env-file", StringComparison.Ordinal) && guarded["BUN_OPTIONS"].Contains(Path.Combine(guardHome, "empty-bunfig.toml"), StringComparison.Ordinal) && new FileInfo(Path.Combine(guardHome, "empty-bunfig.toml")).Length == 0 && guarded["BUN_INSTALL"] == guardHome && guarded["TOKEN"] == "t" && guarded["DO_NOT_TRACK"] == "0", "Bun was not kept from the workspace's bunfig and .env, or the agent's own environment was lost.");
         var loose = (JsonObject)fixture.DeepClone();
         loose["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "pi-acp")["distribution"]!["npx"]!["package"] = "pi-acp";
         var goose = (JsonObject)loose["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "goose")["distribution"]!["binary"]![mac]!;

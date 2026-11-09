@@ -8,6 +8,7 @@ M:SharpRail.Plugins.Api.Host.IPluginHostContext.AgentLaunch(System.Func{System.S
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.AgentLaunchContributions(System.String)
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.AgentRecord(SharpRail.Plugins.Api.TerminalRef)
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.AgentSessions(System.Func{System.Collections.Generic.IReadOnlyList{SharpRail.Plugins.Api.Host.AgentSession}})
+M:SharpRail.Plugins.Api.Host.IPluginHostContext.BunPathAsync(System.String,System.Threading.CancellationToken)
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.Dependency(SharpRail.Plugins.Api.PluginContract)
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.ExternalFiles(System.Func{System.String,System.Collections.Generic.IReadOnlyList{System.String}})
 M:SharpRail.Plugins.Api.Host.IPluginHostContext.GitAsync(System.String,System.Collections.Generic.IReadOnlyList{System.String},SharpRail.Plugins.Api.Host.GitRunOptions,System.Threading.CancellationToken)

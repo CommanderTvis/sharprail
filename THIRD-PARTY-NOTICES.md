@@ -260,3 +260,8 @@ from the tools' documentation.
 
 The ACP plugin's `assets/acp.svg` is the Agent Client Protocol logomark from its official brand assets
 (https://agentclientprotocol.com/brand), recoloured to currentColor on a square canvas; see NOTICE.
+
+Bun 1.4.4 (https://github.com/oven-sh/bun, MIT License; its release also carries the notices of the libraries linked into it,
+among them JavaScriptCore under the LGPL-2.1) is not bundled. SharpRail downloads the official release archive for the platform
+on first use into its managed cache, after checking its pinned SHA-256, and starts it as a separate program to run the JavaScript
+language servers and the ACP plugin's npx agents.

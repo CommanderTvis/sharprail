@@ -77,7 +77,9 @@ internal sealed partial class LanguageServers
             var platform = ManagedArtifacts.Platform();
             if (ManagedRuntimes.FindInstalled(directory, executable, platform, workspace) is { } managed) return new("found", managed, "managed", "");
             if (source == ToolchainSource.Managed)
-                return new("missing", "", "managed", ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin
+                return kind.Provisioned && !Toolchains.Offline && ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } due
+                    ? new("download", "", "managed", $"{kind.Name} {due.Version} is downloaded on first use.")
+                    : new("missing", "", "managed", ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin
                     ? $"The pinned {kind.Name} {pin.Version} is not installed yet. It is downloaded on first start, or run warm."
                     : ManagedRuntimes.NotPinned(kind, platform, workspace));
         }
@@ -86,7 +88,13 @@ internal sealed partial class LanguageServers
             foreach (var candidate in new[] { Path.Combine(home, "bin", file), Path.Combine(home, file) })
                 if (File.Exists(candidate) && LanguageExecutables.Reject(candidate, workspace) is null) return new("found", candidate, "home", "");
         var rejected = new List<string>();
-        return LanguageExecutables.FindOnPath(executable, workspace, rejected) is { } found ? new("found", found, "path", "") : new("missing", "", "", rejected.FirstOrDefault() ?? "");
+        if (LanguageExecutables.FindOnPath(executable, workspace, rejected) is { } found) return new("found", found, "path", "");
+        // Under the host's PATH a provisioned runtime (Bun) that is not on it is the pinned one in the cache, once downloaded.
+        if (source == ToolchainSource.Path && ManagedRuntimes.KindOf(executable) is { Provisioned: true } && ManagedRuntimes.FindInstalled(directory, executable, ManagedArtifacts.Platform(), workspace) is { } cached)
+            return new("found", cached, "managed", "");
+        if (source == ToolchainSource.Path && ManagedRuntimes.KindOf(executable) is { Provisioned: true } fetch && !Toolchains.Offline && ManagedRuntimes.Choose(fetch.Id, ManagedArtifacts.Platform(), workspace) is { } wanted)
+            return new("download", "", "managed", $"{fetch.Name} {wanted.Version} is downloaded on first use.");
+        return new("missing", "", "", rejected.FirstOrDefault() ?? "");
     }
 
     /// <summary>The dependency a server declares for a tool, or a generic one for a tool it does not declare.</summary>
@@ -105,9 +113,8 @@ internal sealed partial class LanguageServers
         ProbeTool(executable, workspace, Dependency(server, executable).HomeVariable, fresh: true) is { State: "found" } probe ? probe.Path : null;
 
     private static string Needs(LanguageServerDependency dependency, ToolProbe probe) => probe.State == "rejected"
-        ? $"Needs {dependency.Executable}: your path for it cannot run. {probe.Problem} Choose another with Use path… in the language server's row, or clear it, then Retry."
-        : $"Needs {dependency.Executable} ({dependency.Name}). " + (probe.Source == "managed" ? probe.Problem + " " : "") +
-            $"{dependency.InstallHint} Or choose an existing {dependency.Executable} with Use path… in the language server's row, then Retry.";
+        ? $"Needs {dependency.Name}: your path for it cannot run. {probe.Problem}"
+        : $"Needs {dependency.Name}." + (probe.Source == "managed" ? " " + probe.Problem : "");
 
     /// <summary>
     /// Probes every tool the server declares, without starting or installing anything. A tool is required only for the managed launch:
@@ -130,24 +137,35 @@ internal sealed partial class LanguageServers
         })];
     }
 
-    /// <summary>Under a managed toolchain, installs the pinned runtimes the server's dependencies need (offline: fails at once when the cache lacks one). A runtime nothing pins is left to <see cref="RequireDependencies"/>.</summary>
+    /// <summary>Under a managed toolchain (and, for Bun, also under the host's PATH when it is not there), installs the pinned runtimes the server's dependencies need (offline: fails at once when the cache lacks one). A runtime nothing pins is left to <see cref="RequireDependencies"/>.</summary>
     private async Task EnsureRuntimesAsync(LanguageServer server, string workspace, CancellationToken token)
     {
-        if (Toolchain == ToolchainSource.Path) return;
+        foreach (var dependency in server.Spec.Dependencies) await EnsureRuntimeAsync(server.Id, dependency.Executable, dependency.HomeVariable, workspace, token);
+    }
+
+    private async Task EnsureRuntimeAsync(string owner, string executable, string homeVariable, string workspace, CancellationToken token)
+    {
         var platform = ManagedArtifacts.Platform();
-        foreach (var dependency in server.Spec.Dependencies)
-            if (ManagedRuntimes.KindOf(dependency.Executable) is { } kind && ToolOverride(dependency.Executable).Length == 0 && ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin)
-            {
-                if (Toolchain == ToolchainSource.ManagedThenPath && ProbeTool(dependency.Executable, workspace, dependency.HomeVariable, fresh: true) is { State: "found" }) continue;
-                await ManagedRuntimes.EnsureAsync(directory, pin, managedHttp, message => CodeIntelligenceLog.Info("host.install-progress", ("server", server.Id), ("message", message)), Toolchains.Offline, token);
-                ForgetProbes();
-            }
+        if (ManagedRuntimes.KindOf(executable) is { } kind && (Toolchain != ToolchainSource.Path || kind.Provisioned) && ToolOverride(executable).Length == 0 && ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin)
+        {
+            if (Toolchain != ToolchainSource.Managed && ProbeTool(executable, workspace, homeVariable, fresh: true) is { State: "found" }) return;
+            await ManagedRuntimes.EnsureAsync(directory, pin, managedHttp, message => CodeIntelligenceLog.Info("host.install-progress", ("server", owner), ("message", message)), Toolchains.Offline, token);
+            ForgetProbes();
+        }
+    }
+
+    /// <summary>The path of a host tool (Bun for the ACP plugin's npx agents) by the same rules as a server's dependency: the user's path, then the managed pin or PATH per the toolchain, downloading the pin when it is the answer. Null when none is available.</summary>
+    internal async Task<string?> ProvideToolAsync(string executable, string workspace, CancellationToken token)
+    {
+        try { await EnsureRuntimeAsync("host", executable, "", workspace, token); }
+        catch (IOException error) { CodeIntelligenceLog.Info("host.tool-unavailable", ("tool", executable), ("message", error.Message)); return null; }
+        return ProbeTool(executable, workspace, "", fresh: true) is { State: "found" } probe ? probe.Path : null;
     }
 
     /// <summary>Refuses a managed start while a tool it needs is missing, naming the tool instead of failing inside the launch.</summary>
     private void RequireDependencies(LanguageServer server, string workspace)
     {
-        if (ProbeDependencies(server, workspace, fresh: true).FirstOrDefault(item => item.Required && item.State != "found") is { } missing)
+        if (ProbeDependencies(server, workspace, fresh: true).FirstOrDefault(item => item.Required && item.State is not ("found" or "download")) is { } missing)
             throw new IOException(Needs(Dependency(server, missing.Executable), new(missing.State, missing.Path, missing.Source, missing.Problem)));
     }
 }

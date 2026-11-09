@@ -214,7 +214,10 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                         var lockfile = ManagedArtifacts.Lock(server) ?? throw new IOException($"{server.Id} has no embedded package-lock.json; it will not be installed.");
                         await File.WriteAllTextAsync(Path.Combine(root, "package.json"), ManagedArtifacts.Lock(server, "package.json") ?? throw new IOException($"{server.Id} has no embedded package.json; it will not be installed."), token);
                         await File.WriteAllTextAsync(Path.Combine(root, "package-lock.json"), lockfile, token);
-                        await RunAsync(Start(RequireTool(server, "npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
+                        // Bun checks every tarball against the integrity hash of the same lockfile and refuses a mismatch.
+                        await RunAsync(spec.Runtime == "bun"
+                            ? BunStart(server, workspace, ["install", "--frozen-lockfile", "--ignore-scripts", "--no-progress", "--registry", "https://registry.npmjs.org/"])
+                            : Start(RequireTool(server, "npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
                     }
                     else if (spec.InstallAsync is { } install)
                     {
@@ -236,9 +239,28 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(packageRoot, package, "package.json"), token));
             var bin = manifest.RootElement.GetProperty("bin");
             var file = bin.ValueKind == JsonValueKind.String ? bin.GetString()! : bin.GetProperty(server.Executable).GetString()!;
-            return Start(RequireTool(server, "node", workspace), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
+            var entry = Path.Combine(packageRoot, package, file);
+            return spec.Runtime == "bun" ? BunStart(server, workspace, ["--no-install", entry, .. server.Arguments]) : Start(RequireTool(server, "node", workspace), [entry, .. server.Arguments]);
         }
         return Start(installation.FindInstalled(InstalledName(server)), server.Arguments);
+    }
+
+    /// <summary>
+    /// Bun with the server's arguments. Bun reads <c>bunfig.toml</c> (it can preload scripts) and <c>.env</c> from the working directory, and so does every Bun it
+    /// starts: <c>BUN_OPTIONS</c> points all of them at an empty config and turns off .env, so a workspace cannot run code through them.
+    /// Its home and package cache stay in the managed cache.
+    /// </summary>
+    private ProcessStartInfo BunStart(LanguageServer server, string workspace, string[] arguments)
+    {
+        var start = Start(RequireTool(server, "bun", workspace), arguments);
+        var cache = ManagedRuntimes.CacheRoot(directory);
+        var config = Path.Combine(cache, "bun-home", "empty-bunfig.toml");
+        Directory.CreateDirectory(Path.GetDirectoryName(config)!);
+        if (!File.Exists(config)) File.WriteAllText(config, "");
+        start.Environment["BUN_INSTALL"] = Path.Combine(cache, "bun-home");
+        start.Environment["BUN_OPTIONS"] = $"\"--config={config}\" --no-env-file";
+        start.Environment["DO_NOT_TRACK"] = "1";
+        return start;
     }
 
     /// <summary>A fresh per-launch directory inside the server's workspace state.</summary>

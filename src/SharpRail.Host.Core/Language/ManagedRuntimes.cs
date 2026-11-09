@@ -60,18 +60,30 @@ internal static class Toolchains
 /// <summary>One pinned runtime archive. <see cref="Sha256"/> is what the host verifies; <see cref="Sha512"/> is the publisher's value, checked once when the pin was made (scripts/pin-dotnet-sdk.cs).</summary>
 internal sealed record ManagedRuntimePin(string Id, string Version, string Platform, string Url, string Sha256, string Sha512, string Format, string Source, string[]? Hosts = null);
 
-/// <summary>A runtime kind: what it is called, which tools it provides and where they live inside the extracted archive.</summary>
-internal sealed record ManagedRuntimeKind(string Id, string Name, string[] Tools, string BinDirectory, string RootVariable);
+/// <summary>
+/// A runtime kind: what it is called, which tools it provides and where they live inside the extracted archive (<c>*</c>: in the archive's one top-level folder).
+/// <see cref="Provisioned"/> kinds are also downloaded on first use when the toolchain is the host's PATH and the tool is not on it.
+/// </summary>
+internal sealed record ManagedRuntimeKind(string Id, string Name, string[] Tools, string BinDirectory, string RootVariable, bool Provisioned = false);
 
 /// <summary>The runtimes language servers need, pinned by exact version and SHA-256 per platform and installed on demand into the cache, as <see cref="ManagedArtifacts"/> does for servers.</summary>
 internal static class ManagedRuntimes
 {
     internal static readonly string[] OfficialHosts = ["builds.dotnet.microsoft.com"];
 
+    /// <summary>Bun's releases are GitHub release assets: the tag URL redirects to this host.</summary>
+    internal static readonly string[] BunHosts = ["github.com", "release-assets.githubusercontent.com"];
+
+    /// <summary>The folder inside an installed runtime that holds its tools.</summary>
+    internal static string BinDirectoryOf(string root, ManagedRuntimeKind kind) =>
+        kind.BinDirectory != "*" ? Path.GetFullPath(Path.Combine(root, kind.BinDirectory))
+            : Directory.Exists(root) ? Directory.EnumerateDirectories(root).OrderBy(path => path, StringComparer.Ordinal).FirstOrDefault() ?? root : root;
+
     /// <summary>Adding Node, a JDK or Python is one entry here and its pins below.</summary>
     internal static readonly ManagedRuntimeKind[] Kinds =
     [
-        new("dotnet-sdk", ".NET SDK", ["dotnet"], "", "DOTNET_ROOT")
+        new("dotnet-sdk", ".NET SDK", ["dotnet"], "", "DOTNET_ROOT"),
+        new("bun", "Bun", ["bun"], "*", "BUN_ROOT", Provisioned: true)
     ];
 
     /// <summary>The pins in force; checks replace them with a fake archive.</summary>
@@ -143,7 +155,7 @@ internal static class ManagedRuntimes
     {
         var pinned = For(kind.Id, platform);
         var list = pinned.Count == 0 ? $"no {kind.Name} is pinned for {platform}" : "pinned: " + string.Join(", ", pinned.Select(pin => pin.Version));
-        return Requested(workspace) is { } request
+        return kind.Id == "dotnet-sdk" && Requested(workspace) is { } request
             ? $"The project asks for {kind.Name} {request.Version} (rollForward {request.RollForward}), which is not pinned ({list}). Change global.json, or use toolchains.source = managed-then-path or path."
             : $"No {kind.Name} is pinned for {platform} ({list}).";
     }
@@ -152,7 +164,7 @@ internal static class ManagedRuntimes
     internal static string? FindInstalled(string directory, string tool, string platform, string workspace)
     {
         if (KindOf(tool) is not { } kind || Choose(kind.Id, platform, workspace) is not { } pin || !IsInstalled(directory, pin)) return null;
-        var file = Path.Combine(InstallDirectory(directory, pin), kind.BinDirectory, tool + (OperatingSystem.IsWindows() ? ".exe" : ""));
+        var file = Path.Combine(BinDirectoryOf(InstallDirectory(directory, pin), kind), tool + (OperatingSystem.IsWindows() ? ".exe" : ""));
         return File.Exists(file) ? file : null;
     }
 
@@ -169,7 +181,7 @@ internal static class ManagedRuntimes
             if (Choose(kind.Id, platform, workspace) is { } pin && IsInstalled(directory, pin))
             {
                 var root = InstallDirectory(directory, pin);
-                bins.Add(Path.GetFullPath(Path.Combine(root, kind.BinDirectory)));
+                bins.Add(BinDirectoryOf(root, kind));
                 variables[kind.RootVariable] = root;
             }
         if (bins.Count == 0) return null;
@@ -178,6 +190,7 @@ internal static class ManagedRuntimes
         variables["PATH"] = string.Join(Path.PathSeparator, bins) + Path.PathSeparator + (inheritPath ? Environment.GetEnvironmentVariable("PATH") ?? system : system);
         variables["DOTNET_CLI_HOME"] = Path.Combine(cache, "dotnet-home");
         variables["NUGET_PACKAGES"] = Path.Combine(cache, "nuget");
+        variables["BUN_INSTALL"] = Path.Combine(cache, "bun-home");
         variables["DOTNET_NOLOGO"] = "1";
         variables["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
         return variables;
@@ -218,6 +231,8 @@ internal static class ManagedRuntimes
         foreach (var pin in pins) await EnsureAsync(directory, pin, http, progress, offline, token);
     }
 
+    private const string BunSource = "SHA-256 from SHASUMS256.txt of the bun-v1.4.4 GitHub release (oven-sh/bun, glibc builds on Linux), verified against the download";
+
     private static readonly ManagedRuntimePin[] Builtin =
     [
     new("dotnet-sdk", "10.0.401", "linux-x86_64", "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-x64.tar.gz",
@@ -250,5 +265,17 @@ internal static class ManagedRuntimes
     new("dotnet-sdk", "10.0.403", "windows-x86_64", "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip",
         "f398979a9cac2dba760771c4e01f16e431dcd6bcfb2213e3e8f5b3d354095cc0", "7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48", "zip",
         "SHA-512 from https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json (release 2026-10-25), verified against the download; SHA-256 computed from that download"),
+    new("bun", "1.4.4", "macos-aarch64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip",
+        "c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc510", "", "zip", BunSource, BunHosts),
+    new("bun", "1.4.4", "macos-x86_64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-x64.zip",
+        "50a3491f73abc2fe81673171a85762d3bc2cc1680ccecadd983de99adf77977e", "", "zip", BunSource, BunHosts),
+    new("bun", "1.4.4", "linux-aarch64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-aarch64.zip",
+        "baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e", "", "zip", BunSource, BunHosts),
+    new("bun", "1.4.4", "linux-x86_64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64.zip",
+        "bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c", "", "zip", BunSource, BunHosts),
+    new("bun", "1.4.4", "windows-aarch64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-windows-aarch64.zip",
+        "2d57a0eec0cb44d95c918c3f9734f60455a1306ae5085d76fc68f44e3ee30d09", "", "zip", BunSource, BunHosts),
+    new("bun", "1.4.4", "windows-x86_64", "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-windows-x64.zip",
+        "cd2c0fccc78f3ede1f50ca827a15f063eda13d4d150a3d0674f4f6e323d864a5", "", "zip", BunSource, BunHosts),
     ];
 }

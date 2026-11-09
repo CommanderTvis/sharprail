@@ -442,6 +442,16 @@ public interface IPluginHostContext
     ValueTask<RepoHostToolResult> RunToolAsync(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
         IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Finds Bun by the host's toolchain rules (the user's own path, the pinned Bun in the host's cache, or PATH) and, when the pinned one is the
+    /// answer, downloads it first, checked against its SHA-256. It never returns a program inside the workspace.
+    /// </summary>
+    /// <param name="workspace">The directory the program would run in; a Bun inside it is refused.</param>
+    /// <param name="cancellationToken">Cancels the download.</param>
+    /// <returns>The path of Bun, or <see langword="null"/> when none is available (the caller falls back to its own runner).</returns>
+    [PluginPermission("process")]
+    ValueTask<string?> BunPathAsync(string workspace, CancellationToken cancellationToken = default) => ValueTask.FromResult<string?>(null);
+
     /// <summary>Resolves a handle on a dependency declared in this plugin's manifest.</summary>
     /// <param name="contract">The dependency's contract.</param>
     /// <returns>The handle, dispatching in process.</returns>

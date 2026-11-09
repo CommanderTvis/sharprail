@@ -447,6 +447,8 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.LockFiles.get -> System.Collection
 SharpRail.Plugins.Api.Host.LanguageServerSpec.LockFiles.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.NpmPackages.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.NpmPackages.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Runtime.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Runtime.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.NuGetPackages.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.LanguageServerNuGetPackage!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.NuGetPackages.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.PathCapable.get -> bool
@@ -964,3 +966,4 @@ static SharpRail.Plugins.Api.Host.AgentSession.operator !=(SharpRail.Plugins.Api
 static SharpRail.Plugins.Api.Host.AgentSession.operator ==(SharpRail.Plugins.Api.Host.AgentSession? left, SharpRail.Plugins.Api.Host.AgentSession? right) -> bool
 SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.get -> System.Func<string!, string?>?
 SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.init -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.BunPathAsync(string! workspace, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>

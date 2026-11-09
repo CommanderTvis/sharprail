@@ -263,6 +263,9 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
         return new(result.ExitCode, result.Output, result.Error);
     }
 
+    public async ValueTask<string?> BunPathAsync(string workspace, CancellationToken cancellationToken = default) =>
+        await runtime.Seams.State.Languages.ProvideToolAsync("bun", workspace, cancellationToken);
+
     public async ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
         await runtime.Seams.Git(cwd, args, options, cancellationToken);
 

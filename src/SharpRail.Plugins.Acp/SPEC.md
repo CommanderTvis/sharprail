@@ -59,7 +59,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   is shown with a note; only with no copy at all a built-in two-agent seed stands in, and says so. Files are written beside and moved into place.
 - Install (`AcpInstaller`): the settings page asks for a plan first (source, exact command line, SHA-256, license, repository) and shows it;
   `Install` needs `Confirmed` and the agent, distribution kind and version of that plan, or it refuses (the registry may have moved on), so every
-  agent and every version needs its own confirmation. npx entries run `npx -y <package>`, uvx entries `uvx <package>`, both pinned by the
+  agent and every version needs its own confirmation. npx entries run with the host's pinned Bun (`bun x <package>`, downloaded and checked on first use, so no Node or npx is needed; `npx` only when Bun cannot be provided), uvx entries `uvx <package>`, both pinned by the
   registry. A binary is downloaded over https only, checked against the registry's SHA-256 (a mismatch discards it; a missing checksum is
   said so in the plan), unpacked with the platform's `tar` into `~/.sharprail/acp/agents/<id>/<version>/` and its command must stay inside
   that directory. The registry's `preview` channel is ignored.
@@ -87,7 +87,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   its command and arguments (a custom agent), environment, working directory, the command line that will run, Update to or Reinstall, and
   Remove. Fields save when they lose focus. Update and Reinstall keep the user's overrides, working directory and environment. Remove asks in
   the overlay and deletes a registry install's files under `~/.sharprail/acp/agents/<id>` (nothing outside it). There is no "use the program on
-  PATH" choice: a registry binary has no name to look up, and npx and uvx agents already run through the PATH.
+  PATH" choice: a registry binary has no name to look up, and uvx agents already run through the PATH.
 - Add custom agent: a popup in the overlay with name, command, arguments, environment and working directory. It refuses an empty name or command,
   a name already in the list, an environment line that is not NAME=value, and a relative working directory; Add selects the new agent.
 - Checks on a download: the registry's schema has an optional `sha256` per binary target and nothing else to verify (no signature, minisign,

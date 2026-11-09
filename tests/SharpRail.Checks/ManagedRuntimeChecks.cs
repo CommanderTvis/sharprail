@@ -4,6 +4,7 @@ using System.Net;
 using System.Security.Cryptography;
 
 using SharpRail.Host.Core.Language;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Checks;
 
@@ -51,7 +52,7 @@ internal static class ManagedRuntimeChecks
         Directory.CreateDirectory(root);
         var saved = new[] { Toolchains.SourceVariable, Toolchains.CacheVariable, Toolchains.OfflineVariable, "DOTNET_ROOT", "PATH" }.ToDictionary(name => name, Environment.GetEnvironmentVariable);
         Env(Toolchains.SourceVariable, null); Env(Toolchains.CacheVariable, null); Env(Toolchains.OfflineVariable, null);
-        try { Install(root); Resolution(root); Settings(root); }
+        try { Install(root); Resolution(root); Settings(root); Bun(root); }
         finally { foreach (var (name, value) in saved) Env(name, value); ManagedRuntimes.UsePins(null); }
     }
 
@@ -186,9 +187,122 @@ internal static class ManagedRuntimeChecks
 
         // The shipped pins: every platform entry is complete and shaped like the others.
         ManagedRuntimes.UsePins(null);
-        foreach (var pin in ManagedRuntimes.Pins)
+        foreach (var pin in ManagedRuntimes.Pins.Where(pin => pin.Id == "dotnet-sdk"))
             Require(pin.Sha256.Length == 64 && pin.Sha512.Length == 128 && pin.Url.StartsWith("https://builds.dotnet.microsoft.com/dotnet/Sdk/" + pin.Version + "/", StringComparison.Ordinal) && pin.Source.Length > 0, $"Pin {pin.Version} {pin.Platform} is incomplete.");
-        Require(ManagedRuntimes.Pins.Select(pin => pin.Version).Distinct().Count() == 2, "Expected two pinned SDK versions.");
+        Require(ManagedRuntimes.Pins.Where(pin => pin.Id == "dotnet-sdk").Select(pin => pin.Version).Distinct().Count() == 2, "Expected two pinned SDK versions.");
         Console.WriteLine("PASS the shipped pins are complete");
+    }
+
+    /// <summary>A zip like Bun's release assets: one folder named for the platform holding an executable <c>bun</c>.</summary>
+    private static byte[] BunArchive()
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            var entry = zip.CreateEntry("bun-test/bun");
+            entry.ExternalAttributes = (0x8000 | 0x1ed) << 16;
+            using var writer = new StreamWriter(entry.Open());
+            writer.Write("#!/bin/sh\necho 1.4.4\n");
+        }
+        return output.ToArray();
+    }
+
+    private static ManagedRuntimePin BunPin(byte[] archive, string? sha256 = null) =>
+        new("bun", "1.4.4", ManagedArtifacts.Platform(), "https://fake.test/bun-test.zip", sha256 ?? Convert.ToHexStringLower(SHA256.HashData(archive)), "", "zip", "check fixture", ["fake.test"]);
+
+    private static string Fake(string directory, string name, string body)
+    {
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, name);
+        File.WriteAllText(path, "#!/bin/sh\n" + body + "\n");
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, (UnixFileMode)0x1ed);
+        return path;
+    }
+
+    /// <summary>Bun as a managed runtime: pinned per platform, fail-closed, found by the PATH opt-in rules, and the launcher of the Node-based servers and installs without Node or npm.</summary>
+    private static void Bun(string root)
+    {
+        // The shipped pins: one verified archive per platform SharpRail runs on, on GitHub's release host, all of one version.
+        ManagedRuntimes.UsePins(null);
+        var bun = ManagedRuntimes.Pins.Where(pin => pin.Id == "bun").ToArray();
+        Require(bun.Select(pin => pin.Platform).Order().SequenceEqual(["linux-aarch64", "linux-x86_64", "macos-aarch64", "macos-x86_64", "windows-aarch64", "windows-x86_64"]), "Bun is not pinned for exactly the six platforms.");
+        Require(bun.Select(pin => pin.Version).Distinct().Count() == 1, "Bun is pinned at more than one version.");
+        foreach (var pin in bun)
+            Require(pin.Sha256.Length == 64 && pin.Sha256.All(char.IsAsciiHexDigitLower) && pin.Format == "zip" && pin.Source.Length > 0 && pin.Hosts is { Length: > 0 } &&
+                pin.Url.StartsWith($"https://github.com/oven-sh/bun/releases/download/bun-v{pin.Version}/bun-", StringComparison.Ordinal) && pin.Hosts.Contains(new Uri(pin.Url).Host), $"The Bun pin for {pin.Platform} is incomplete: {pin.Url}");
+        Require(bun.Select(pin => pin.Sha256).Distinct().Count() == bun.Length, "Two Bun platforms share a checksum.");
+        Console.WriteLine("PASS Bun is pinned with a SHA-256 and a release URL for each of the six platforms");
+
+        // Every Node-based server of the catalog names its runtime and the matching dependencies.
+        foreach (var server in LanguageServers.Catalog.Where(server => server.Spec.Pinning == LanguageServerPinning.Lockfile))
+        {
+            var tools = server.Spec.Dependencies.Select(item => item.Executable).ToArray();
+            Require(server.Spec.Runtime is "bun" or "node" && (server.Spec.Runtime == "bun" ? tools.SequenceEqual(["bun"]) : tools.SequenceEqual(["node", "npm"])), $"{server.Id} declares runtime {server.Spec.Runtime} with dependencies {string.Join(",", tools)}.");
+        }
+        Require(new[] { "typescript", "python", "php", "css", "shell" }.All(id => LanguageServers.Catalog.Single(server => server.Id == id).Spec.Runtime == "bun"), "A Node-based server does not run on Bun.");
+        Console.WriteLine("PASS each Node-based server names its runtime, and the Bun ones need Bun only");
+
+        var archive = BunArchive();
+        var good = BunPin(archive);
+        var bad = BunPin(archive, new string('0', 64));
+        var directory = Path.Combine(root, "bun");
+        var workspace = Path.Combine(root, "bun-workspace");
+        Directory.CreateDirectory(workspace);
+        var source = new FakeSource(archive);
+        using var http = new HttpClient(source);
+        var servers = new LanguageServers(directory, null, http);
+        var empty = Path.Combine(root, "bun-empty-path");
+        Directory.CreateDirectory(empty);
+        Env("PATH", empty);
+
+        // A wrong checksum is refused: no tool, nothing installed, no partial directory.
+        ManagedRuntimes.UsePins([bad]);
+        Require(servers.ProvideToolAsync("bun", workspace, default).GetAwaiter().GetResult() is null && !ManagedRuntimes.IsInstalled(directory, bad) && source.Requests == 1, "A mismatching Bun checksum was accepted.");
+        var runtimes = Path.Combine(ManagedRuntimes.RuntimesRoot(directory), "bun");
+        Require(!Directory.Exists(runtimes) || Directory.EnumerateFileSystemEntries(runtimes, "*", SearchOption.AllDirectories).All(entry => entry.EndsWith(".lock", StringComparison.Ordinal)), "A mismatching Bun download left files behind.");
+        Console.WriteLine("PASS a Bun download that does not match its pinned SHA-256 is refused and leaves nothing");
+
+        // With no Bun on PATH the host's default toolchain downloads the pin once; offline it does not try.
+        ManagedRuntimes.UsePins([good]);
+        var before = source.Requests;
+        var downloaded = servers.ProvideToolAsync("bun", workspace, default).GetAwaiter().GetResult();
+        Require(downloaded is not null && downloaded.StartsWith(ManagedRuntimes.InstallDirectory(directory, good), StringComparison.Ordinal) && servers.ProbeTool("bun", workspace, fresh: true).Source == "managed" && source.Requests == before + 1, "Bun was not downloaded and found in the cache: " + downloaded);
+        servers.ProvideToolAsync("bun", workspace, default).GetAwaiter().GetResult();
+        Require(source.Requests == before + 1, "A cached Bun was downloaded again.");
+        Console.WriteLine("PASS Bun missing from PATH is downloaded once into the managed cache and found there");
+
+        // A Bun on PATH wins under the host's PATH, never one inside the workspace; the managed-only toolchain ignores PATH.
+        var onPath = Fake(Path.Combine(root, "bun-path"), "bun", "echo path");
+        Env("PATH", Path.GetDirectoryName(onPath)!);
+        Require(servers.ProbeTool("bun", workspace, fresh: true) is { State: "found", Source: "path" } probe && probe.Path == onPath, "The default toolchain did not prefer Bun on PATH.");
+        servers.ToolchainSetting = () => "managed";
+        Require(servers.ProbeTool("bun", workspace, fresh: true).Source == "managed", "The managed toolchain used Bun from PATH.");
+        servers.ToolchainSetting = () => "";
+        var planted = Fake(Path.Combine(workspace, "bin"), "bun", "echo planted");
+        Env("PATH", Path.GetDirectoryName(planted)!);
+        var other = new LanguageServers(Path.Combine(root, "bun-other"), null, http);
+        Require(other.ProbeTool("bun", workspace, fresh: true).State == "download", "A Bun inside the workspace was accepted from PATH, or the pinned one was not offered.");
+        Console.WriteLine("PASS Bun follows the PATH opt-in rules: PATH first by default, pinned only when managed, never from the workspace");
+
+        // Node-based servers install and launch with Bun alone: no node or npm is on PATH, the lockfile installs with --frozen-lockfile, scripts off.
+        var log = Path.Combine(root, "bun-calls.log");
+        var fake = Fake(Path.Combine(root, "bun-fake"), "bun", """
+            echo "$@" >> "LOG"
+            if [ "$1" = install ]; then
+              /bin/mkdir -p node_modules/typescript-language-server/lib node_modules/typescript
+              printf '{"bin":{"typescript-language-server":"lib/cli.mjs"}}' > node_modules/typescript-language-server/package.json
+              : > node_modules/typescript-language-server/lib/cli.mjs
+            fi
+            """.Replace("LOG", log));
+        Env("PATH", Path.GetDirectoryName(fake)!);
+        var launcher = new LanguageServers(Path.Combine(root, "bun-launch"), null, http);
+        var start = launcher.ProvisionAsync(LanguageServers.Catalog.Single(server => server.Id == "typescript"), workspace, default).GetAwaiter().GetResult();
+        var calls = File.ReadAllText(log);
+        Require(calls.Contains("install --frozen-lockfile --ignore-scripts", StringComparison.Ordinal) && !calls.Contains("npm ci", StringComparison.Ordinal), "The lockfile was not installed by Bun with scripts off: " + calls);
+        Require(start.FileName == fake && start.ArgumentList.Count == 3 && start.ArgumentList[0] == "--no-install" && start.ArgumentList[1].EndsWith(Path.Combine("lib", "cli.mjs"), StringComparison.Ordinal) && start.ArgumentList[2] == "--stdio", "The server did not launch through Bun: " + string.Join(' ', start.ArgumentList));
+        var options = start.Environment["BUN_OPTIONS"] ?? "";
+        Require(options.Contains("--no-env-file", StringComparison.Ordinal) && options.Contains("empty-bunfig.toml", StringComparison.Ordinal) && !options.Contains(workspace, StringComparison.Ordinal) && start.Environment["BUN_INSTALL"]!.StartsWith(Path.Combine(root, "bun-launch"), StringComparison.Ordinal), "Bun was not kept from the workspace's bunfig and .env: " + options);
+        Require(new FileInfo(options.Split('"')[1].Replace("--config=", "")).Length == 0, "The config Bun is pointed at is not empty.");
+        Console.WriteLine("PASS a Node-based server installs and launches with Bun alone, away from the workspace's bunfig and .env");
     }
 }
