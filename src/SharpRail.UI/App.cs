@@ -105,6 +105,7 @@ public sealed partial class App : Application
             }
             else StartDesktop(desktop, null);
             IdleMemoryTrim.Start();
+            ScrollTooltipGate.Start();
             UiLagWatchdog.Start();
         }
 #endif

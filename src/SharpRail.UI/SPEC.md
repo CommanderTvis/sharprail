@@ -29,6 +29,11 @@ shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal pr
 are cross-compiled with Zig by `build-linux.sh` beside Ghostty and Scintilla; Linux execution is covered by the `--linux` gate
 and is otherwise unverified (see STATUS.md V13).
 
+
+## Scrolling and tooltips
+
+While content scrolls under a still pointer (wheel, trackpad or scrollbar drag) in any scrollable area, no tooltip opens and an open one closes. After about 200 ms without scrolling, the tooltip of the element under the pointer opens after its normal show delay. Hover and keyboard-focus tooltips are otherwise unchanged.
+
 ## Responsibilities and boundaries
 
 With `SHARPRAIL_PERFORMANCE=1`, the first workspace open emits monotonic startup milestones

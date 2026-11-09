@@ -29,6 +29,7 @@ internal static class GcSettingsChecks
             if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, "SharpRail.Host.Remote"));
         }
         IdleTrim();
+        ScrollTooltips();
         Console.WriteLine("PASS gc settings");
     }
 
@@ -71,6 +72,20 @@ internal static class GcSettingsChecks
         // The compaction's own CPU does not count as activity.
         trim.Rebase(TimeSpan.FromSeconds(seconds + 41), cpu + TimeSpan.FromSeconds(1));
         Require(!Tick(seconds + 50, 0), "The trim fired again after its own compaction.");
+    }
+
+    private static void ScrollTooltips()
+    {
+        var gate = new ScrollTooltipGate();
+        static TimeSpan At(int ms) => TimeSpan.FromMilliseconds(ms);
+        Require(!gate.IsScrolling(At(0)), "Tooltips were suppressed before any scroll.");
+        for (var ms = 0; ms < 1000; ms += 50)
+        {
+            gate.Scrolled(At(ms));
+            Require(gate.IsScrolling(At(ms)), "Tooltips were not suppressed during a scroll burst.");
+        }
+        Require(gate.IsScrolling(At(950 + 100)), "Tooltips came back before the quiet period.");
+        Require(!gate.IsScrolling(At(950) + ScrollTooltipGate.Quiet), "Tooltips stayed suppressed after the quiet period.");
     }
 
     private static string? FindRepository()
