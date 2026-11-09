@@ -253,7 +253,7 @@ GAV_API void gav_vt_resize(gav_vt *vt, uint16_t columns, uint16_t rows, uint32_t
     size.screen_height = rows * vt->cell_height;
     size.cell_width = vt->cell_width;
     size.cell_height = vt->cell_height;
-    ghostty_mouse_encoder_setopt(vt->mouse, GHOSTTY_MOUSE_ENCODER_OPT_SIZE, &size);
+    ghostty_mouse_encoder_set(vt->mouse, GHOSTTY_MOUSE_ENCODER_OPT_SIZE, &size);
 }
 
 // colors: background, foreground, cursor (zero alpha: unset), then the 16 ANSI colors.
@@ -355,7 +355,7 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
                 cell->length = (uint16_t)length;
                 used += length;
             }
-            GhosttyStyle style = GHOSTTY_INIT_SIZED(GhosttyStyle);
+            GhosttyStyle style;
             ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, &style);
             cell->foreground = resolve(style.fg_color, &colors);
             cell->underline_color = resolve(style.underline_color, &colors);
@@ -363,37 +363,38 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
             GhosttyColorRgb background;
             cell->background = ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &background) == GHOSTTY_SUCCESS
                 ? argb(background) : 0;
-            cell->underline = (uint8_t)style.underline;
-            cell->flags = (style.bold ? GAV_CELL_BOLD : 0) | (style.italic ? GAV_CELL_ITALIC : 0) | (style.faint ? GAV_CELL_FAINT : 0) |
-                (style.blink ? GAV_CELL_BLINK : 0) | (style.inverse ? GAV_CELL_INVERSE : 0) | (style.invisible ? GAV_CELL_INVISIBLE : 0) |
-                (style.strikethrough ? GAV_CELL_STRIKETHROUGH : 0) | (style.overline ? GAV_CELL_OVERLINE : 0) |
+            cell->underline = (uint8_t)GHOSTTY_STYLE_UNDERLINE(style);
+            cell->flags = ((style.flags & GHOSTTY_STYLE_FLAG_BOLD) ? GAV_CELL_BOLD : 0) | ((style.flags & GHOSTTY_STYLE_FLAG_ITALIC) ? GAV_CELL_ITALIC : 0) |
+                ((style.flags & GHOSTTY_STYLE_FLAG_FAINT) ? GAV_CELL_FAINT : 0) | ((style.flags & GHOSTTY_STYLE_FLAG_BLINK) ? GAV_CELL_BLINK : 0) |
+                ((style.flags & GHOSTTY_STYLE_FLAG_INVERSE) ? GAV_CELL_INVERSE : 0) | ((style.flags & GHOSTTY_STYLE_FLAG_INVISIBLE) ? GAV_CELL_INVISIBLE : 0) |
+                ((style.flags & GHOSTTY_STYLE_FLAG_STRIKETHROUGH) ? GAV_CELL_STRIKETHROUGH : 0) | ((style.flags & GHOSTTY_STYLE_FLAG_OVERLINE) ? GAV_CELL_OVERLINE : 0) |
                 (selected && x >= selection.start_x && x <= selection.end_x ? GAV_CELL_SELECTED : 0) |
                 (hyperlink ? GAV_CELL_HYPERLINK : 0);
         }
         bool clean = false;
-        ghostty_render_state_row_set(vt->rows, GHOSTTY_RENDER_STATE_ROW_OPTION_DIRTY, &clean);
+        ghostty_render_state_row_set(vt->rows, GHOSTTY_RENDER_STATE_ROW_OPT_DIRTY, &clean);
     }
     frame->cells = vt->cells;
     frame->text = vt->text;
     GhosttyRenderStateDirty clean = GHOSTTY_RENDER_STATE_DIRTY_FALSE;
-    ghostty_render_state_set(vt->render, GHOSTTY_RENDER_STATE_OPTION_DIRTY, &clean);
+    ghostty_render_state_set(vt->render, GHOSTTY_RENDER_STATE_OPT_DIRTY, &clean);
     return true;
 }
 
 // Each encoder writes at most capacity bytes and returns the encoded length, 0 when nothing is sent.
 GAV_API size_t gav_vt_key(gav_vt *vt, int32_t action, int32_t key, uint16_t mods, uint16_t consumed_mods,
                           const char *text, uint32_t unshifted, char *out, size_t capacity) {
-    ghostty_key_encoder_setopt_from_terminal(vt->keys, vt->terminal);
+    ghostty_key_encoder_set_from_terminal(vt->keys, vt->terminal);
     GhosttyOptionAsAlt alt = vt->option_as_alt ? GHOSTTY_OPTION_AS_ALT_TRUE : GHOSTTY_OPTION_AS_ALT_FALSE;
-    ghostty_key_encoder_setopt(vt->keys, GHOSTTY_KEY_ENCODER_OPT_MACOS_OPTION_AS_ALT, &alt);
+    ghostty_key_encoder_set(vt->keys, GHOSTTY_KEY_ENCODER_OPT_MACOS_OPTION_AS_ALT, &alt);
     ghostty_key_event_set_action(vt->key, (GhosttyKeyAction)action);
     ghostty_key_event_set_key(vt->key, (GhosttyKey)key);
     ghostty_key_event_set_mods(vt->key, mods);
     ghostty_key_event_set_consumed_mods(vt->key, consumed_mods);
-    ghostty_key_event_set_utf8(vt->key, text, text ? strlen(text) : 0);
+    ghostty_key_event_set_utf8(vt->key, (GhosttyString){ .ptr = (const uint8_t *)text, .len = text ? strlen(text) : 0 });
     ghostty_key_event_set_unshifted_codepoint(vt->key, unshifted);
     size_t written = 0;
-    return ghostty_key_encoder_encode(vt->keys, vt->key, out, capacity, &written) == GHOSTTY_SUCCESS ? written : 0;
+    return ghostty_key_encoder_encode(vt->keys, vt->key, (uint8_t *)out, capacity, &written) == GHOSTTY_SUCCESS ? written : 0;
 }
 
 // Returns false when the terminal does not track the mouse, so the caller handles the gesture itself.
@@ -403,13 +404,13 @@ GAV_API bool gav_vt_mouse(gav_vt *vt, int32_t action, int32_t button, uint16_t m
     bool tracking = false;
     ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_MOUSE_TRACKING, &tracking);
     if (!tracking) return false;
-    ghostty_mouse_encoder_setopt_from_terminal(vt->mouse, vt->terminal);
+    ghostty_mouse_encoder_set_from_terminal(vt->mouse, vt->terminal);
     ghostty_mouse_event_set_action(vt->mouse_event, (GhosttyMouseAction)action);
     if (button) ghostty_mouse_event_set_button(vt->mouse_event, (GhosttyMouseButton)button);
     else ghostty_mouse_event_clear_button(vt->mouse_event);
     ghostty_mouse_event_set_mods(vt->mouse_event, mods);
     ghostty_mouse_event_set_position(vt->mouse_event, (GhosttyMousePosition){ .x = x, .y = y });
-    if (ghostty_mouse_encoder_encode(vt->mouse, vt->mouse_event, out, capacity, written) != GHOSTTY_SUCCESS) *written = 0;
+    if (ghostty_mouse_encoder_encode(vt->mouse, vt->mouse_event, (uint8_t *)out, capacity, written) != GHOSTTY_SUCCESS) *written = 0;
     return true;
 }
 
@@ -418,7 +419,7 @@ GAV_API size_t gav_vt_paste(gav_vt *vt, const char *text, size_t len, char *out,
     if (!copy) return 0;
     memcpy(copy, text, len);
     size_t written = 0;
-    GhosttyResult result = ghostty_paste_encode(copy, len, mode(vt, GHOSTTY_MODE_BRACKETED_PASTE), out, capacity, &written);
+    GhosttyResult result = ghostty_paste_encode(copy, len, mode(vt, GHOSTTY_MODE_BRACKETED_PASTE), (uint8_t *)out, capacity, &written);
     free(copy);
     return result == GHOSTTY_SUCCESS ? written : 0;
 }
@@ -426,12 +427,12 @@ GAV_API size_t gav_vt_paste(gav_vt *vt, const char *text, size_t len, char *out,
 GAV_API size_t gav_vt_focus(gav_vt *vt, bool gained, char *out, size_t capacity) {
     if (!mode(vt, GHOSTTY_MODE_FOCUS_EVENT)) return 0;
     size_t written = 0;
-    return ghostty_focus_encode(gained ? GHOSTTY_FOCUS_GAINED : GHOSTTY_FOCUS_LOST, out, capacity, &written) == GHOSTTY_SUCCESS ? written : 0;
+    return ghostty_focus_encode(gained ? GHOSTTY_FOCUS_GAINED : GHOSTTY_FOCUS_LOST, (uint8_t *)out, capacity, &written) == GHOSTTY_SUCCESS ? written : 0;
 }
 
 // delta rows: negative scrolls back into history; zero returns to the bottom.
 GAV_API void gav_vt_scroll(gav_vt *vt, int64_t delta) {
-    GhosttyTerminalScrollViewport scroll = { .tag = delta ? GHOSTTY_SCROLL_VIEWPORT_DELTA : GHOSTTY_SCROLL_VIEWPORT_BOTTOM };
+    GhosttyTerminalScrollViewport scroll = { .tag = delta ? GHOSTTY_TERMINAL_SCROLL_VIEWPORT_DELTA : GHOSTTY_TERMINAL_SCROLL_VIEWPORT_BOTTOM };
     scroll.value.delta = (intptr_t)delta;
     ghostty_terminal_scroll_viewport(vt->terminal, scroll);
 }
@@ -446,7 +447,7 @@ GAV_API void gav_vt_select(gav_vt *vt, int32_t kind, double x, double y, uint64_
     GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_VIEWPORT, .value = { .coordinate = {
         .x = (uint16_t)(column < 0 ? 0 : column >= columns ? columns - 1 : column),
         .y = (uint32_t)(row < 0 ? 0 : row >= rows ? rows - 1 : row) } } };
-    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttyGridRef ref = { 0 };
     if (ghostty_terminal_grid_ref(vt->terminal, point, &ref) != GHOSTTY_SUCCESS) return;
     GhosttySelectionGestureEvent event = vt->gesture_events[kind];
     GhosttySurfacePosition position = { .x = x, .y = y };
@@ -466,7 +467,7 @@ GAV_API void gav_vt_select(gav_vt *vt, int32_t kind, double x, double y, uint64_
         ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REPEAT_INTERVAL_NS, &interval);
         ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REPEAT_DISTANCE, &distance);
     }
-    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttySelection selection = { 0 };
     GhosttyResult result = ghostty_selection_gesture_event(vt->gesture, vt->terminal, event, &selection);
     if (result == GHOSTTY_SUCCESS) ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, &selection);
     else if (kind == 0) ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, NULL);
@@ -475,7 +476,7 @@ GAV_API void gav_vt_select(gav_vt *vt, int32_t kind, double x, double y, uint64_
 // Rows in screen coordinates: 0 is the oldest scrollback row; the scrollbar's offset is the viewport's top row.
 static bool screen_row(gav_vt *vt, uint64_t y, GhosttyRow *row) {
     GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_SCREEN, .value = { .coordinate = { .x = 0, .y = (uint32_t)y } } };
-    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttyGridRef ref = { 0 };
     return ghostty_terminal_grid_ref(vt->terminal, point, &ref) == GHOSTTY_SUCCESS && ghostty_grid_ref_row(&ref, row) == GHOSTTY_SUCCESS;
 }
 
@@ -503,8 +504,8 @@ GAV_API bool gav_vt_jump_to_prompt(gav_vt *vt, int32_t delta) {
         if (--remaining == 0) break;
     }
     if (found < 0) return false;
-    GhosttyTerminalScrollViewport scroll = { .tag = GHOSTTY_SCROLL_VIEWPORT_ROW };
-    if ((uint64_t)found + bar.len >= bar.total) scroll.tag = GHOSTTY_SCROLL_VIEWPORT_BOTTOM;
+    GhosttyTerminalScrollViewport scroll = { .tag = GHOSTTY_TERMINAL_SCROLL_VIEWPORT_ROW };
+    if ((uint64_t)found + bar.len >= bar.total) scroll.tag = GHOSTTY_TERMINAL_SCROLL_VIEWPORT_BOTTOM;
     else scroll.value.row = (size_t)found;
     ghostty_terminal_scroll_viewport(vt->terminal, scroll);
     return true;
@@ -513,7 +514,7 @@ GAV_API bool gav_vt_jump_to_prompt(gav_vt *vt, int32_t delta) {
 // The OSC 8 URI of a viewport cell; returns its length, which may exceed capacity, and 0 without one.
 GAV_API size_t gav_vt_hyperlink(gav_vt *vt, uint16_t x, uint16_t y, uint8_t *out, size_t capacity) {
     GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_VIEWPORT, .value = { .coordinate = { .x = x, .y = y } } };
-    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttyGridRef ref = { 0 };
     if (ghostty_terminal_grid_ref(vt->terminal, point, &ref) != GHOSTTY_SUCCESS) return 0;
     size_t length = 0;
     GhosttyResult result = ghostty_grid_ref_hyperlink_uri(&ref, out, capacity, &length);
@@ -528,7 +529,7 @@ GAV_API int32_t gav_vt_mouse_shape(gav_vt *vt) {
 }
 
 GAV_API void gav_vt_select_all(gav_vt *vt) {
-    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttySelection selection = { 0 };
     if (ghostty_terminal_select_all(vt->terminal, &selection) == GHOSTTY_SUCCESS)
         ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, &selection);
 }
@@ -536,13 +537,15 @@ GAV_API void gav_vt_select_all(gav_vt *vt) {
 GAV_API void gav_vt_clear_selection(gav_vt *vt) { ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, NULL); }
 
 static size_t format(gav_vt *vt, const GhosttySelection *selection, char *out, size_t capacity) {
-    GhosttyTerminalSelectionFormatOptions options = GHOSTTY_INIT_SIZED(GhosttyTerminalSelectionFormatOptions);
-    options.emit = GHOSTTY_FORMATTER_FORMAT_PLAIN;
-    options.unwrap = true;
-    options.trim = true;
-    options.selection = selection;
+    GhosttyFormatter formatter;
+    if (ghostty_formatter_terminal_new(NULL, &formatter, vt->terminal) != GHOSTTY_SUCCESS) return 0;
+    bool yes = true;
+    ghostty_formatter_set(formatter, GHOSTTY_FORMATTER_OPT_UNWRAP, &yes);
+    ghostty_formatter_set(formatter, GHOSTTY_FORMATTER_OPT_TRIM, &yes);
+    ghostty_formatter_set(formatter, GHOSTTY_FORMATTER_OPT_SELECTION, selection);
     size_t written = 0;
-    GhosttyResult result = ghostty_terminal_selection_format_buf(vt->terminal, options, (uint8_t *)out, capacity, &written);
+    GhosttyResult result = ghostty_formatter_format_buf(formatter, (uint8_t *)out, capacity, &written);
+    ghostty_formatter_free(formatter);
     return result == GHOSTTY_SUCCESS || result == GHOSTTY_OUT_OF_SPACE ? written : 0;
 }
 
@@ -561,9 +564,9 @@ static bool viewport_ref(gav_vt *vt, double x, double y, GhosttyGridRef *ref) {
 // The command output at a grid pixel, as Ghostty's Cmd/Ctrl+triple-click selects it. Returns the text's length, which
 // may exceed capacity, or -1 when the point is not in a command's output.
 GAV_API int64_t gav_vt_command_output(gav_vt *vt, double x, double y, char *out, size_t capacity) {
-    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
-    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
-    if (!viewport_ref(vt, x, y, &ref) || ghostty_terminal_select_output(vt->terminal, ref, &selection) != GHOSTTY_SUCCESS) return -1;
+    GhosttyGridRef ref = { 0 };
+    GhosttySelection selection = { 0 };
+    if (!viewport_ref(vt, x, y, &ref) || ghostty_terminal_select_output(vt->terminal, &ref, &selection) != GHOSTTY_SUCCESS) return -1;
     return (int64_t)format(vt, &selection, out, capacity);
 }
 
@@ -573,7 +576,7 @@ static bool screen_ref(gav_vt *vt, uint16_t x, uint64_t y, GhosttyGridRef *ref) 
 }
 
 static bool input_cell(gav_vt *vt, uint16_t x, uint64_t y) {
-    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttyGridRef ref = { 0 };
     GhosttyCell cell = 0;
     GhosttyCellSemanticContent content = GHOSTTY_CELL_SEMANTIC_OUTPUT;
     return screen_ref(vt, x, y, &ref) && ghostty_grid_ref_cell(&ref, &cell) == GHOSTTY_SUCCESS &&
@@ -593,7 +596,7 @@ static bool row_flag(gav_vt *vt, uint64_t y, GhosttyRowData data) {
 GAV_API size_t gav_vt_prompt_click(gav_vt *vt, double px, double py, char *out, size_t capacity) {
     GhosttyTerminalScreen screen = GHOSTTY_TERMINAL_SCREEN_PRIMARY;
     bool at_prompt = false;
-    GhosttySelection existing = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttySelection existing = { 0 };
     GhosttyTerminalScrollbar bar = { 0 };
     uint16_t columns = 0, rows = 0, cursor_x = 0, cursor_row = 0;
     ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, &screen);
@@ -646,7 +649,7 @@ GAV_API size_t gav_vt_prompt_click(gav_vt *vt, double px, double py, char *out, 
             if (!row_flag(vt, (uint64_t)y, GHOSTTY_ROW_DATA_WRAP_CONTINUATION)) break;
         }
     }
-    const char *arrow = mode(vt, GHOSTTY_MODE_DECCKM) ? (right ? "\x1bOC" : "\x1bOD") : (right ? "\x1b[C" : "\x1b[D");
+    const char *arrow = mode(vt, GHOSTTY_MODE_CURSOR_KEYS) ? (right ? "\x1bOC" : "\x1bOD") : (right ? "\x1b[C" : "\x1b[D");
     size_t written = 0;
     for (size_t i = 0; i < count && written + 3 <= capacity; i++, written += 3) memcpy(out + written, arrow, 3);
     return written;
@@ -654,14 +657,14 @@ GAV_API size_t gav_vt_prompt_click(gav_vt *vt, double px, double py, char *out, 
 
 // Returns the length of the selected text, which may exceed capacity; 0 without a selection.
 GAV_API size_t gav_vt_selection_text(gav_vt *vt, char *out, size_t capacity) {
-    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttySelection selection = { 0 };
     if (ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_SELECTION, &selection) != GHOSTTY_SUCCESS) return 0;
     return format(vt, &selection, out, capacity);
 }
 
 // The whole screen and scrollback as plain text, for accessibility and checks.
 GAV_API size_t gav_vt_screen_text(gav_vt *vt, char *out, size_t capacity) {
-    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttySelection selection = { 0 };
     if (ghostty_terminal_select_all(vt->terminal, &selection) != GHOSTTY_SUCCESS) return 0;
     return format(vt, &selection, out, capacity);
 }
