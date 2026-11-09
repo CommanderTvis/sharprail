@@ -1,7 +1,7 @@
 # Repository scripts
 
 Run the examples from the repository root. Everything is a mise task: `scripts/mise run <task>`
-(`scripts\mise.cmd` on Windows); the files in `scripts/tasks` are what the tasks run and are not entry
+(`scripts\mise.cmd` on Windows); the C# files in `scripts/tasks` are what the tasks run and are not entry
 points. Builds use the pinned .NET SDK, which mise puts on PATH. The first task installs the pinned toolchain
 (see Toolchain below).
 
@@ -94,7 +94,7 @@ safe. There is no bootstrap step and no link in the checkout: a task installs th
 directory (installing it first when missing): `dotnet`, `zig-0.17.1`, `merman`, `jdk`, `appimagetool`,
 `appimage-runtime`, and from the android and browser mise files `android-ndk`, `merman-android`, `node`,
 `binaryen`, `pdfium-wasm`. The SDK directory stays writable because `dotnet workload install` adds packs to it; those
-installs are serialised with a lock (`scripts/tasks/workload.sh`).
+installs are serialised with a lock (`scripts/tasks/workload.cs`).
 
 Caches written during builds live in one machine-wide directory every checkout and worktree shares, never in the
 checkout (there is no `.tools`): `SHARPRAIL_CACHE_DIR` from `mise.toml`, `${XDG_CACHE_HOME:-~/.cache}/sharprail`

@@ -166,7 +166,7 @@ run = "dotnet run --project tests/SharpRail.Checks -c Release --"
 
 [tasks.perf]
 description = "Run the profiling harness (mise run perf -- self-test)"
-run = "sh performance/run.sh"
+run = "dotnet run --project performance/SharpRail.Performance -c Release --"
 
 [tasks.rpc]
 description = "Regenerate the typed RPC clients, dispatch and payload codec from the host contracts"
@@ -174,21 +174,19 @@ run = "dotnet run scripts/generate-rpc.cs"
 
 [tasks.dev]
 description = "Build the desktop app from source and run it in Release (SHARPRAIL_CONFIGURATION=Debug to debug; SHARPRAIL_PROFILE, SHARPRAIL_ROOT)"
-run = "sh scripts/tasks/dev.sh"
-run_windows = "scripts\\tasks\\dev.bat"
+run = "dotnet run scripts/tasks/dev.cs --"
 
 [tasks.host]
 description = "Run only the remote host and print its connection QR code (SHARPRAIL_CONNECT_HOST)"
-run = "sh scripts/tasks/host.sh"
-run_windows = "scripts\\tasks\\host.bat"
+run = "dotnet run scripts/tasks/host.cs --"
 
 [tasks."package:macos"]
 description = "Publish the app, host and checks and build artifacts/SharpRail.app (osx-arm64 by default, or osx-x64)"
-run = "sh scripts/tasks/package-macos.sh"
+run = "dotnet run scripts/tasks/package-macos.cs --"
 
 [tasks."zig-deps:mirror"]
 description = "Rebuild scripts/zig-deps.lock and the Zig dependency mirror archive after a Ghostty pin change (uploads nothing)"
-run = "sh scripts/tasks/zig-deps-mirror.sh"
+run = "dotnet run scripts/tasks/zig-deps-mirror.cs --"
 
 [tasks."tailscale:wasm"]
 description = "Build the browser client's lazily downloaded Tailscale node (Go to WASM, cached in SHARPRAIL_CACHE_DIR); the browser build runs it when its inputs change"
@@ -197,43 +195,40 @@ run = "sh scripts/build-tailscale-wasm.sh"
 
 [tasks.dmg]
 description = "Pack artifacts/SharpRail.app into a disk image (path argument optional)"
-run = "sh scripts/tasks/dmg.sh"
+run = "dotnet run scripts/tasks/dmg.cs --"
 
 [tasks."package:windows"]
 description = "Publish the Windows client, host and checks and zip them (-RuntimeIdentifier win-x64 or win-arm64)"
-run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/package-windows.ps1"
-run = "echo 'Windows packages are built on Windows.' >&2; exit 1"
+run = "dotnet run scripts/tasks/package-windows.cs --"
 
 [tasks."package:linux"]
 description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-<x64|arm64>.AppImage (linux-x64 by default, or `linux-arm64`; builds on Linux)"
-run = "sh scripts/tasks/package-linux.sh"
+run = "dotnet run scripts/tasks/package-linux.cs --"
 
 [tasks."package:android"]
 description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
-run = "sh scripts/tasks/android.sh apk"
+run = "dotnet run scripts/tasks/android.cs -- apk"
 
 [tasks.android]
 description = "Build, install and start the Android client (build|run|apk)"
-run = "sh scripts/tasks/android.sh"
+run = "dotnet run scripts/tasks/android.cs --"
 
 [tasks."package:browser"]
 description = "Publish the browser client into artifacts/browser"
-run = "sh scripts/tasks/browser.sh publish"
+run = "dotnet run scripts/tasks/browser.cs -- publish"
 
 [tasks.browser]
 description = "Build, run, publish or check the browser client (build|run|publish|check)"
-run = "sh scripts/tasks/browser.sh"
-run_windows = "scripts\\tasks\\browser.bat"
+run = "dotnet run scripts/tasks/browser.cs --"
 
 [tasks."check:packaged"]
 description = "Run the check gate from the published package (macOS bundle, the Linux AppImage payload, or -RuntimeIdentifier on Windows)"
-run = "sh scripts/tasks/check-packaged.sh"
-run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/check-packaged.ps1"
+run = "dotnet run scripts/tasks/check-packaged.cs --"
 
 [tasks."check:terminal"]
 description = "Build the Ghostty libraries and run the native shell/Metal probe (macOS)"
-run = "sh scripts/tasks/check-terminal.sh"
+run = "dotnet run scripts/tasks/check-terminal.cs --"
 
 [tasks."check:fsevents"]
 description = "Run the FSEvents resource-lifetime check with the checks' interposer (macOS)"
-run = "sh scripts/tasks/check-fsevents.sh"
+run = "dotnet run scripts/tasks/check-fsevents.cs --"

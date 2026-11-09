@@ -7,9 +7,9 @@ HTML report. It does not replace `artifacts/SharpRail.app` or use your normal Sh
 Run from this checkout on macOS with the local .NET SDK, Xcode command-line tools, and AC power:
 
 ```sh
-performance/run.sh publish
-performance/run.sh measure
-performance/run.sh diagnose
+scripts/mise run perf -- publish
+scripts/mise run perf -- measure
+scripts/mise run perf -- diagnose
 ```
 
 `DOTNET=/absolute/path/to/dotnet` selects an existing SDK when a worktree has no local SDK.
@@ -25,9 +25,9 @@ implicitly. The tiny signed Git bundle in `fixture/` supplies the same two-file 
 commit, tree and file hashes are verified. No runtime commit or signing override is needed.
 
 ```sh
-performance/run.sh measure --warmups 1 --repetitions 10 --modes embedded,remote --memory-delay-ms 5000 --output artifacts/performance/current
-performance/run.sh report --input artifacts/performance/current/results.json --baseline artifacts/performance/baseline/results.json --output artifacts/performance/comparison
-performance/run.sh self-test
+scripts/mise run perf -- measure --warmups 1 --repetitions 10 --modes embedded,remote --memory-delay-ms 5000 --output artifacts/performance/current
+scripts/mise run perf -- report --input artifacts/performance/current/results.json --baseline artifacts/performance/baseline/results.json --output artifacts/performance/comparison
+scripts/mise run perf -- self-test
 ```
 
 Use a new output directory per run. Outputs default to `artifacts/performance/<command>-<time>/`.
