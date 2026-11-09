@@ -492,11 +492,14 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The server chosen to replace others in this workspace: the host-wide choice when there is one, else the workspace's (H21).</summary>
     private LanguageServer? Replacing(string workspace)
     {
-        var replacing = servers.Current.Replacing;
+        var current = servers.Current;
+        var replacing = current.Replacing;
         if (GlobalProvider?.Invoke() is { } global)
         {
+            // The saved choice applies only while the plugins it needs are enabled; otherwise the first available option does.
+            var effective = JavaKotlinProviderOptions.Effective(global, JavaKotlinProviderOptions.Available(current.Servers.Select(server => server.Id), replacing.Select(server => (server.Id, server.Spec.Replaces))));
             foreach (var server in replacing)
-                if (server.Id == global) return server;
+                if (server.Id == effective) return server;
             return null;
         }
         foreach (var server in replacing)

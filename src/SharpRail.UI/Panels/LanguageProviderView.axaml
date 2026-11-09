@@ -2,6 +2,7 @@
     <StackPanel x:Name="ProviderChoiceSection" Spacing="4" IsVisible="False">
       <TextBlock x:Name="ProviderChoiceHeading" Text="Language provider · all projects on this host" FontWeight="SemiBold" />
       <ComboBox x:Name="ProviderChoice" HorizontalAlignment="Stretch" SelectionChanged="ProviderChoiceChanged" />
+      <TextBlock x:Name="ProviderChoiceEffective" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <Button x:Name="ApplyProviderChoice" Content="Apply" HorizontalAlignment="Left" IsEnabled="False" Click="ApplyProviderChoiceClicked" />
       <TextBlock Text="Only the selected providers handle these languages. Existing settings are preserved." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock x:Name="ProviderChoiceMessage" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />

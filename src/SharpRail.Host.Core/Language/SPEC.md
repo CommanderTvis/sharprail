@@ -628,6 +628,7 @@ not start replacement servers. Explicit global selection overrides legacy worksp
 migration, unanimous explicit legacy choices are preserved; missing or conflicting choices select
 standard providers to avoid broadening an optional licensed provider's execution implicitly.
 Legacy `useForJavaAndKotlin` values remain readable but cannot override the host's choice.
+Choices are offered only while their plugins' servers are in the catalog (`standard` needs every replaced server). A saved choice that is not offered is not rewritten; the first offered one is in effect, for display and launching, until its plugins return.
 
 Optional absolute host `installationPath`, absolute `projectJdk` and `buildTool` remain workspace
 configuration, persisted through ordinary host metadata and Default inheritance. The project JDK

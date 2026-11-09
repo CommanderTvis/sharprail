@@ -2396,3 +2396,7 @@ SharpRail.Host.Abstractions.LanguageResult.Json.get -> string!
 SharpRail.Host.Abstractions.LanguageResult.Json.init -> void
 SharpRail.Host.Abstractions.LanguageResult.Method.get -> string!
 SharpRail.Host.Abstractions.LanguageResult.Method.init -> void
+const SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Standard = "standard" -> string!
+SharpRail.Host.Abstractions.JavaKotlinProviderOptions
+static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Available(System.Collections.Generic.IEnumerable<string!>! presentServers, System.Collections.Generic.IEnumerable<(string! Id, System.Collections.Generic.IReadOnlyList<string!>! Replaces)>! replacing) -> string![]!
+static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Effective(string! saved, string![]! options) -> string!

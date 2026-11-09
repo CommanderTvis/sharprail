@@ -31,17 +31,17 @@ internal sealed partial class LanguageProviderView : UserControl
                 if (lifetime != current) return;
                 LanguageServerNameConverter.Remember(catalog.Servers);
                 var replacing = catalog.Servers.Where(server => server.Presentation?.Replaces is { Count: > 0 }).ToArray();
-                choices = ["standard", .. replacing.Select(server => server.Id)];
+                choices = JavaKotlinProviderOptions.Available(catalog.Servers.Select(server => server.Id), replacing.Select(server => (server.Id, server.Presentation!.Replaces!)));
                 withTerms = replacing.Where(server => server.Presentation?.HasTerms == true).Select(server => server.Id).ToHashSet();
                 var replaced = replacing.SelectMany(server => server.Presentation!.Replaces!).Distinct().ToArray();
                 var label = replacing.Select(server => server.Presentation!.ReplacesLabel).FirstOrDefault(text => text.Length > 0) ?? string.Join(" / ", replaced.Select(LanguageServerNameConverter.Display));
                 this.FindControl<TextBlock>("ProviderChoiceHeading")!.Text = label + " provider · all projects on this host";
                 providerChoiceLoading = true;
-                this.FindControl<ComboBox>("ProviderChoice")!.ItemsSource = new[] { string.Join(" + ", replaced.Select(LanguageServerNameConverter.Display)) }
-                    .Concat(replacing.Select(server => LanguageServerNameConverter.Display(server.Id))).ToArray();
+                var standardLabel = string.Join(" + ", replaced.Select(LanguageServerNameConverter.Display));
+                this.FindControl<ComboBox>("ProviderChoice")!.ItemsSource = choices.Select(id => id == JavaKotlinProviderOptions.Standard ? standardLabel : LanguageServerNameConverter.Display(id)).ToArray();
                 providerChoiceLoading = false;
                 savedProvider = result.Configuration;
-                RefreshProviderChoice(replacing.Length > 0);
+                RefreshProviderChoice();
             }
             catch (OperationCanceledException) when (current.IsCancellationRequested) { }
             catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("ProviderChoiceMessage")!.Text = error.Message; }
@@ -52,7 +52,7 @@ internal sealed partial class LanguageProviderView : UserControl
     internal void UpdateProvider(string provider)
     {
         savedProvider = provider;
-        RefreshProviderChoice(choices.Length > 1);
+        RefreshProviderChoice();
     }
 
     private bool providerChoiceLoading;
@@ -60,10 +60,17 @@ internal sealed partial class LanguageProviderView : UserControl
     private bool providerChoiceSaving;
     private int savedProviderChoice;
 
-    private void RefreshProviderChoice(bool visible)
+    /// <summary>Offered only while its plugins are enabled: one option is a plain disabled choice, none hides the section, and a saved choice that is not offered shows the one in effect.</summary>
+    private void RefreshProviderChoice()
     {
-        this.FindControl<StackPanel>("ProviderChoiceSection")!.IsVisible = visible;
-        savedProviderChoice = Math.Max(0, Array.IndexOf(choices, savedProvider));
+        this.FindControl<StackPanel>("ProviderChoiceSection")!.IsVisible = choices.Length > 0;
+        var effective = JavaKotlinProviderOptions.Effective(savedProvider, choices);
+        savedProviderChoice = Math.Max(0, Array.IndexOf(choices, effective));
+        var single = choices.Length == 1;
+        this.FindControl<ComboBox>("ProviderChoice")!.IsEnabled = !single && !providerChoiceSaving;
+        this.FindControl<Button>("ApplyProviderChoice")!.IsVisible = !single;
+        this.FindControl<TextBlock>("ProviderChoiceEffective")!.Text = effective != savedProvider && choices.Length > 0
+            ? $"The saved choice's plugins are off, so {(effective == JavaKotlinProviderOptions.Standard ? "the standard providers are" : LanguageServerNameConverter.Display(effective) + " is")} in effect." : "";
         if (!providerChoiceDirty && !providerChoiceSaving)
         {
             providerChoiceLoading = true;
@@ -103,7 +110,7 @@ internal sealed partial class LanguageProviderView : UserControl
             if (lifetime != current) return;
             providerChoiceDirty = false;
             savedProvider = next.Configuration;
-            RefreshProviderChoice(choices.Length > 1);
+            RefreshProviderChoice();
             message.Text = withTerms.Contains(chosen)
                 ? $"Provider choice saved. {LanguageServerNameConverter.Display(chosen)} needs its license terms accepted before it can start: select it in the server list below and choose Review and accept terms."
                 : "Provider choice saved for every project on this host. Start a server when ready.";
@@ -116,7 +123,7 @@ internal sealed partial class LanguageProviderView : UserControl
             if (lifetime == current)
             {
                 this.FindControl<ComboBox>("ProviderChoice")!.IsEnabled = true;
-                RefreshProviderChoice(choices.Length > 1);
+                RefreshProviderChoice();
             }
         }
     }

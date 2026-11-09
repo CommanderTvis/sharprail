@@ -25,6 +25,19 @@ internal static class LanguageChecks
 {
     private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
 
+    /// <summary>Provider options exist only while their plugins' servers are present; a saved choice that is not offered falls back without being rewritten.</summary>
+    private static void ProviderOptionChecks()
+    {
+        var intellij = new[] { ("intellij", (IReadOnlyList<string>)["java", "kotlin"]) };
+        var all = JavaKotlinProviderOptions.Available(["java", "kotlin", "intellij"], intellij);
+        Require(all.SequenceEqual(["standard", "intellij"]), "Both providers must be offered while all plugins are on.");
+        Require(JavaKotlinProviderOptions.Available(["intellij"], intellij).SequenceEqual(["intellij"]), "Standard must vanish with the Java and Kotlin plugins off.");
+        Require(JavaKotlinProviderOptions.Available(["java", "kotlin"], intellij).Length == 0, "With IntelliJ off no choice remains.");
+        Require(JavaKotlinProviderOptions.Available(["java", "intellij"], intellij).SequenceEqual(["intellij"]), "Standard needs Java and Kotlin both.");
+        Require(JavaKotlinProviderOptions.Effective("standard", ["intellij"]) == "intellij" && JavaKotlinProviderOptions.Effective("intellij", all) == "intellij"
+            && JavaKotlinProviderOptions.Effective("standard", []) == "", "Effective provider must fall back to the first offered option.");
+    }
+
     internal static async Task Run(string fixture)
     {
         var root = Path.Combine(fixture, "language"); Directory.CreateDirectory(root);
@@ -34,6 +47,7 @@ internal static class LanguageChecks
         {
             await IntelliJChecks.Distribution(root);
             ProjectModelPolicies(root);
+            ProviderOptionChecks();
             LanguageOptionChecks.Run();
             await LanguageProjectChecks.Routing(root);
             await ProjectInitialization(root);
