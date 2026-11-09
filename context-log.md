@@ -10,7 +10,7 @@ The historical entries above retain their dated outcomes, failures and publicati
 to the former validation ledger now lead here because that separate file is retired; they do not
 assert that its old package, process, pending workspace or check result is current. Durable facts
 and measurements now live in the [browser](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence),
-[native terminal](src/SharpRail.UI/Terminal/SPEC.md#recorded-native-measurements-and-acceptance),
+[native terminal](src/SharpRail.UI/Terminal/SPEC.md#native-memory),
 [UI kit](src/SharpRail.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits),
 [Android](src/SharpRail.Android/SPEC.md#validation), [rendering](src/SharpRail.UI/Rendering/SPEC.md#native-visual-acceptance-limits)
 and [checks](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) specs. The [Codex recovery caveat](src/SharpRail.Plugins.Codex/SPEC.md)
