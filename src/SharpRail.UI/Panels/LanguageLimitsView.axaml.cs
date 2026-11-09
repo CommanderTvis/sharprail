@@ -12,8 +12,7 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.UI.Panels;
 
 /// <summary>
-/// Settings › Code Intelligence: every running language server on the host with its workspace and memory, the memory budget, and the
-/// limits (idle timeout, budget, count caps), saved as the host setting <c>language-limits</c> and refreshed from its broadcast.
+/// Settings › Code Intelligence: the limits (idle timeout, memory budget, count caps); what is running now is shown in the Code Intelligence tool window, saved as the host setting <c>language-limits</c> and refreshed from its broadcast.
 /// </summary>
 internal sealed partial class LanguageLimitsView : UserControl
 {
@@ -32,7 +31,7 @@ internal sealed partial class LanguageLimitsView : UserControl
         AttachedToVisualTree += (_, _) =>
         {
             lifetime = new();
-            _ = PollAsync(lifetime.Token);
+            _ = ReadAsync(lifetime.Token);
         };
         DetachedFromVisualTree += (_, _) => { lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
     }
@@ -40,26 +39,17 @@ internal sealed partial class LanguageLimitsView : UserControl
     /// <summary>Shows the saved limits again, after this or another client changed them.</summary>
     internal void Refresh() => ShowLimits();
 
-    private async Task PollAsync(CancellationToken token)
+    private async Task ReadAsync(CancellationToken token)
     {
-        var first = true;
-        while (!token.IsCancellationRequested)
+        try
         {
-            try
-            {
-                var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "running"), token), token);
-                if (token.IsCancellationRequested) return;
-                Show(result);
-                if (first) { first = false; ShowLimits(); }
-                await Task.Delay(TimeSpan.FromSeconds(5), token);
-            }
-            catch (OperationCanceledException) { return; }
-            catch (Exception error)
-            {
-                Control<TextBlock>("LimitsSummary").Text = "Running servers unavailable: " + error.Message;
-                return;
-            }
+            var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "running"), token), token);
+            if (token.IsCancellationRequested) return;
+            Show(result);
+            ShowLimits();
         }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Control<TextBlock>("LimitsSummary").Text = "Memory budget unavailable: " + error.Message; }
     }
 
     private T Control<T>(string name) where T : Control => this.FindControl<T>(name)!;
@@ -72,47 +62,11 @@ internal sealed partial class LanguageLimitsView : UserControl
         if (summary is null) { Control<TextBlock>("LimitsSummary").Text = result.Detail; return; }
         defaults = summary["defaultCaps"] as JsonObject ?? new();
         var budget = summary["budgetBytes"]?.GetValue<long>() ?? 0;
-        var total = summary["totalBytes"]?.GetValue<long>() ?? 0;
         var physical = summary["physicalBytes"]?.GetValue<long>() ?? 0;
         var automatic = summary["automaticBudget"]?.GetValue<bool>() == true;
-        Control<TextBlock>("LimitsSummary").Text = $"{result.Servers.Count} running · {Mib(total)} of the {Mib(budget)} budget" +
+        Control<TextBlock>("LimitsSummary").Text = $"Memory budget now: {Mib(budget)}" +
             (automatic ? $" (automatic: 30% of {Mib(physical)} physical memory, 3–24 GiB)" : "") +
             (summary["pressure"]?.GetValue<bool>() == true ? " · the system reports memory pressure" : "");
-        var rows = Control<StackPanel>("RunningServers");
-        rows.Children.Clear();
-        foreach (var server in result.Servers.OrderByDescending(server => server.MemoryBytes))
-        {
-            var row = new Grid { ColumnDefinitions = new("*,Auto,Auto"), ColumnSpacing = 8 };
-            var idle = server.IdleSeconds < 60 ? "used just now" : $"idle {server.IdleSeconds / 60} min";
-            var text = new TextBlock
-            {
-                Text = $"{LanguageServerNameConverter.Display(server.Id)} · {Path.GetFileName(server.Workspace)} · {server.Detail} · {idle}",
-                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            ToolTip.SetTip(text, server.Workspace);
-            Ui.Place(row, text, 0, 0);
-            Ui.Place(row, new TextBlock { Text = server.MemoryBytes > 0 ? Mib(server.MemoryBytes) : "—", VerticalAlignment = VerticalAlignment.Center, Foreground = Ui.Muted }, 0, 1);
-            var id = server.Id; var root = server.Workspace;
-            var stop = new Button { Content = "Stop" };
-            AutomationProperties.SetName(stop, $"Stop {id} in {root}");
-            stop.Click += (_, _) => _ = StopAsync(root, id);
-            Ui.Place(row, stop, 0, 2);
-            rows.Children.Add(row);
-        }
-    }
-
-    private async Task StopAsync(string root, string id)
-    {
-        var token = lifetime?.Token ?? CancellationToken.None;
-        try
-        {
-            var result = await Task.Run(async () => await host.LanguageAsync(new(root, Operation: "release", Server: id), token), token);
-            Control<TextBlock>("LimitsMessage").Text = result.Detail;
-            Show(await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "running"), token), token));
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception error) { Control<TextBlock>("LimitsMessage").Text = error.Message; }
     }
 
     private void ShowLimits()

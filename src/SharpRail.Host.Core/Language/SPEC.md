@@ -321,7 +321,7 @@ server again.
 The host-wide `running` operation lists every running server (workspace, state, busy/editor open/idle,
 idle seconds, memory, started by) with a summary (budget, whether automatic, total, physical memory,
 pressure, limits, default caps); `release` (workspace + server) stops one the same way, refusing a busy
-one. Settings › Code Intelligence shows both (UI SPEC).
+one. The Code Intelligence tool window's Running section shows the list; Settings › Code Intelligence reads the summary only for the budget and default caps (UI SPEC).
 
 Process hygiene: every launch carries `SHARPRAIL_LANGUAGE_REGISTRY`, and its pid, start time and process
 name are recorded in `language/processes/<host pid>-<host start ms>.pids` until it exits. On Unix the first

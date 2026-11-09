@@ -302,13 +302,16 @@ editor features, and that agents can start the servers they need and manage the 
 `--lsp-settings`) asserts the text in both places. Rows of running servers show who started them and the
 agent call count with the time of the latest call.
 
-Settings › Code Intelligence adds a separate section (`LanguageLimitsView`): every running server on the host
-with its server, workspace folder (full path in the tooltip), busy/editor open/idle state, idle time and
-memory, largest first, each with a Stop that releases it (it restarts on its next request); a summary of the
-total against the memory budget (noting the automatic derivation and system memory pressure); and the
-idle timeout, memory budget, C#, JVM and other count caps, saved as the `language-limits` host setting and
-re-shown from its broadcast. The list polls the host's `running` operation every 5 s off the UI thread while
-the page is shown. `--lsp-limits` checks it headless.
+The Code Intelligence tool window ends with a collapsible Running section (`LanguageRunningView`): every running
+server on the host, grouped by workspace folder (full path in the tooltip) with the current workspace first, each
+with its server, state, memory, idle time and a Stop that releases it (it restarts on its next request). The
+header is the one-line summary ("20 running · 28 MiB"); the section starts collapsed when more than five run.
+It polls the host's `running` operation every 5 s off the UI thread while shown.
+
+Settings › Code Intelligence holds only configuration in a Limits section (`LanguageLimitsView`): the idle
+timeout, memory budget (automatic or fixed, with the automatic derivation and memory pressure noted), the
+explanation of when servers stop, and the C#, JVM and other count caps, saved as the `language-limits` host
+setting and re-shown from its broadcast. Settings shows no live server state. `--lsp-limits` checks it headless.
 
 Server rows are a grid at every width (static, in `LanguagePanel.axaml`): one header line holds the
 status mark, the language icon, the name, settings and Start/Retry, with the status, icon and action

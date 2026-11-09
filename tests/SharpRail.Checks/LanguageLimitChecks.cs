@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -232,7 +233,7 @@ internal static class LanguageLimitChecks
         }
     }
 
-    /// <summary>Settings › Code Intelligence lists running servers with memory and saves the limits through host state.</summary>
+    /// <summary>The Code Intelligence tool window lists running servers with memory and Stop; Settings saves the limits through host state.</summary>
     internal static void Ui(string fixture)
     {
         var root = Path.Combine(fixture, "language-limits-ui");
@@ -250,14 +251,16 @@ internal static class LanguageLimitChecks
             IProjectServices host = new LocalProjectAdapter(new ProjectServices(workspace, state));
             var view = new LanguageLimitsView(host, workspace, () => state.Current.Settings.LanguageLimits,
                 json => state.ChangeAsync([HostStateChange.Setting("language-limits", json)]).AsTask());
-            var window = new Window { Width = 720, Height = 600, Content = new ScrollViewer { Content = view } };
+            var running = new LanguageRunningView(host, workspace);
+            var window = new Window { Width = 720, Height = 600, Content = new ScrollViewer { Content = new StackPanel { Children = { running, view } } } };
             window.Show();
             try
             {
-                var rows = view.FindControl<StackPanel>("RunningServers")!;
-                E2E.E2eWorkspace.Until(() => rows.Children.Count == 1);
-                var text = string.Join(" ", ((Grid)rows.Children[0]).Children.OfType<TextBlock>().Select(block => block.Text));
-                Require(text.Contains("ui", StringComparison.Ordinal) && text.Contains("300 MiB", StringComparison.Ordinal), "The running row lacks its workspace or memory: " + text);
+                var rows = running.GetVisualDescendants().OfType<StackPanel>().Single(panel => panel.Name == "RunningServers");
+                E2E.E2eWorkspace.Until(() => rows.Children.Count == 2);
+                var text = string.Join(" ", rows.Children.OfType<TextBlock>().Concat(rows.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<TextBlock>())).Select(block => block.Text));
+                Require(text.Contains("ui", StringComparison.Ordinal) && text.Contains("300 MiB", StringComparison.Ordinal), "The running rows lack their workspace or memory: " + text);
+                Require(running.GetVisualDescendants().OfType<Button>().Any(button => button.Content as string is { } label && label.Contains("1 running", StringComparison.Ordinal)), "The Running summary lacks the count.");
                 Require(view.FindControl<TextBlock>("LimitsSummary")!.Text!.Contains("budget", StringComparison.Ordinal), "The summary lacks the budget.");
                 Require(view.FindControl<TextBox>("LimitsCSharp")!.Text == "4" && view.FindControl<TextBox>("LimitsIdle")!.Text == "10", "The defaults are not shown.");
                 view.FindControl<TextBox>("LimitsIdle")!.Text = "25";
@@ -265,10 +268,10 @@ internal static class LanguageLimitChecks
                 view.FindControl<Button>("LimitsSave")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 E2E.E2eWorkspace.Until(() => state.Current.Settings.LanguageLimits.Contains("\"idleMinutes\":25", StringComparison.Ordinal));
                 Require(state.Current.Settings.LanguageLimits.Contains("\"csharp\":3", StringComparison.Ordinal), "The C# cap was not saved: " + state.Current.Settings.LanguageLimits);
-                var stop = ((Grid)rows.Children[0]).Children.OfType<Button>().Single();
+                var stop = rows.Children.OfType<Grid>().Single().Children.OfType<Button>().Single();
                 stop.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 E2E.E2eWorkspace.Until(() => rows.Children.Count == 0);
-                Console.WriteLine("PASS language limits UI: running servers with workspace and memory, limits saved through host state, Stop");
+                Console.WriteLine("PASS language limits UI: Running section with workspace and memory and Stop, limits saved through host state");
             }
             finally { window.Close(); }
         }

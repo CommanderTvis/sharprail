@@ -103,6 +103,7 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly IProjectServices host;
     private readonly SharpRail.UI.State.SharedState? state;
     private string workspace;
+    private readonly LanguageRunningView running;
     private readonly SharpRail.UI.Plugins.PluginSlot? slot;
     private readonly Func<LanguageItem, Task> navigate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
@@ -149,6 +150,7 @@ internal sealed partial class LanguagePanel : UserControl
         this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = workspace;
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
         if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(slot = new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
+        this.FindControl<StackPanel>("PaneBody")!.Children.Add(running = new LanguageRunningView(host, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
         servers.ItemsSource = items;
         servers.ContextRequested += ServerContextRequested;
@@ -278,7 +280,7 @@ internal sealed partial class LanguagePanel : UserControl
         Log.Info("pane.retarget", ("from", workspace), ("to", next), ("busy", busyOn is not null));
         ShowRetry(false);
         foreach (var view in configurations.Values) view.SettingsWindow?.Close();
-        workspace = next;
+        workspace = next; running.Workspace = next;
         if (state is not null)
             foreach (var gone in configurations.Keys.Where(key => key.Workspace != next && state.Current.Workspaces.All(item => item.Path != key.Workspace)).ToArray())
                 configurations.Remove(gone);
