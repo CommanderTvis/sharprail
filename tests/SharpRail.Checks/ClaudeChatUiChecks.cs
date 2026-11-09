@@ -846,10 +846,13 @@ internal static class ClaudeChatUiChecks
             Require(view.Input.Text == "second", "A second Up at the start recalls the newest prompt.");
             Press(Key.Down);
             Require(view.Input.Text == "my draft", $"Down past the newest entry restores the draft (got '{view.Input.Text}').");
+            // The restored draft is Idle again with the caret at its end: the next Up first moves to the start, the one after recalls the newest, then older ones.
             Press(Key.Up);
+            Require(view.Input.Text == "my draft" && view.Input.CaretIndex == 0, "Up on the restored draft only moves the caret to the start again.");
+            Press(Key.Up); Press(Key.Up);
             Require(view.Input.Text == "first", "Up again reaches the older prompt.");
             Press(Key.Down); Press(Key.Down);
-            Require(view.Input.Text == "my draft", $"Up Up Down Down returns to the draft (got '{view.Input.Text}').");
+            Require(view.Input.Text == "my draft", $"Up Up Up Down Down returns to the draft (got '{view.Input.Text}').");
             Press(Key.Up); Press(Key.Up);
             view.Input.Text = "edited recall"; Frame(window);
             Press(Key.Down);
@@ -2690,6 +2693,9 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => view.BashMode && view.Input.Text == "");
             view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Up });
             Require(view.BashMode && view.Input.Text == "echo hi", "Up in bash mode recalls the commands that were run.");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+            Require(view.BashMode && view.Input.Text == "", "Esc while browsing the commands restores the box first and stays in bash mode.");
+            view.Input.Text = "echo hi";
             view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
             Require(!view.BashMode && view.Input.Text == "echo hi" && view.Input.PlaceholderText == view.Placeholder(), "Esc leaves bash mode and keeps the text as a message.");
             view.Input.Text = "";
