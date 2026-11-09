@@ -4,6 +4,7 @@ lockfile = true
 
 [tools]
 node = "24.11.0"
+pnpm = "10.20.0"
 
 # Binaryen for the browser build's wasm-opt.
 [tools."http:binaryen"]

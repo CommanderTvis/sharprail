@@ -21,7 +21,7 @@ missing; tasks run under `scripts/mise` find `dotnet` and the others on PATH.
 | --- | --- | --- |
 | .NET SDK (`dotnet`), Zig 0.14.1 and 0.16.0 (`zig-0.14.1`, `zig-0.16.0`; Windows: `zig-windows`), Merman (`merman`, macOS), Temurin JDK 21 (`jdk`; not Windows, where `JAVA_HOME` names a JDK) | `mise.toml` | every build, check and package task |
 | Android NDK r27d (`android-ndk`), Merman's Android libraries (`merman-android`) | `mise.android.toml` | `android`, `package:android` |
-| Node, Binaryen, PDFium WASM (`node`, `binaryen`, `pdfium-wasm`) | `mise.browser.toml` | `browser`, `package:browser` |
+| Node, pnpm, Binaryen, PDFium WASM (`node`, `pnpm`, `binaryen`, `pdfium-wasm`) | `mise.browser.toml` | `browser`, `package:browser` |
 | appimagetool and the AppImage runtime (`appimagetool`, `appimage-runtime`) | `mise.toml` | `package:linux` |
 
 The build recipes also fetch, pinned by commit or checksum, the Ghostty sources and Zig dependency mirror

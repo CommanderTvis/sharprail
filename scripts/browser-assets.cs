@@ -1,6 +1,6 @@
 // Stages the browser client's vendored assets (renderer, fonts, licences, the tab's Pi agent and CSS language server) into
 // src/SharpRail.Browser/wwwroot/vendor. Run by the browser project's StageBrowserAssets target (under the browser mise
-// environment, so node, npm and the PDFium pin are on PATH); from anywhere inside the checkout:
+// environment, so node, pnpm and the PDFium pin are on PATH); from anywhere inside the checkout:
 //   MISE_ENV=browser scripts/mise x -- dotnet run scripts/browser-assets.cs
 using System.Diagnostics;
 using System.Text;
@@ -29,9 +29,8 @@ foreach (var directory in Directory.GetDirectories(Path.Combine(root, "src")))
     if (File.Exists(notice)) Copy(notice, Path.Combine(vendor, "licenses", $"{name}-NOTICE.md"));
 }
 string Modules(string path) => Path.Combine(project, "node_modules", path);
-// npm's flat layout puts text-shaper (a dependency of restty) beside it; an install from before the switch from pnpm lacks it.
-if (!File.Exists(Modules("@mermanjs/web/pkg/merman_wasm.js")) || !File.Exists(Modules("restty/dist/internal/runtime.js")) || !File.Exists(Modules("text-shaper/LICENSE")))
-    Run(project, null, OperatingSystem.IsWindows() ? "npm.cmd" : "npm", "ci", "--ignore-scripts");
+if (!File.Exists(Modules("@mermanjs/web/pkg/merman_wasm.js")) || !File.Exists(Modules("restty/dist/internal/runtime.js")))
+    Run(project, null, OperatingSystem.IsWindows() ? "pnpm.exe" : "pnpm", "install", "--frozen-lockfile", "--ignore-scripts", "--dir", project);
 foreach (var name in new[] { "merman_wasm.js", "merman_wasm_bg.wasm" })
     Copy(Modules("@mermanjs/web/pkg/" + name), Path.Combine(vendor, name));
 
@@ -69,7 +68,8 @@ var source = Encoding.UTF8.GetString(File.ReadAllBytes(chunk));
 if (source.Split(Shrink).Length != 3) throw new InvalidOperationException("Restty changed its glyph fit: update the patch in scripts/browser-assets.cs");
 File.WriteAllBytes(chunk, utf8.GetBytes(source.Replace(Shrink, "advancePx > maxWidth + 0.5 && advancePx > 0")));
 Copy(Modules("restty/LICENSE"), Path.Combine(vendor, "Restty-LICENSE"));
-Copy(Modules("text-shaper/LICENSE"), Path.Combine(vendor, "TextShaper-LICENSE"));
+// pnpm keeps restty's dependencies beside its real directory, not at the top of node_modules.
+Copy(Path.Combine(new DirectoryInfo(Modules("restty")).ResolveLinkTarget(true)?.FullName ?? Modules("restty"), "../text-shaper/LICENSE"), Path.Combine(vendor, "TextShaper-LICENSE"));
 Copy(Path.Combine(root, "src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"), Path.Combine(vendor, "JetBrainsMono-Regular.ttf"));
 // PDFium's WASM build is pinned and checksummed in mise.browser.toml; `scripts/tool pdfium-wasm` prints where mise keeps it.
 var cache = Run(root, null, "sh", Path.Combine(root, "scripts/tool"), "pdfium-wasm").Trim();
@@ -108,6 +108,6 @@ static string Run(string workingDirectory, string? input, string file, params st
     var output = process.StandardOutput.ReadToEnd();
     process.WaitForExit();
     if (process.ExitCode != 0) throw new InvalidOperationException($"{file} failed: {process.ExitCode}");
-    if (file.StartsWith("npm", StringComparison.Ordinal)) Console.Write(output);
+    if (file.StartsWith("pnpm", StringComparison.Ordinal)) Console.Write(output);
     return output;
 }

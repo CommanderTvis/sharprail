@@ -46,7 +46,7 @@ the standalone host negotiates sidecars without request-time compression. See th
 [browser README](../src/SharpRail.Browser/README.md) for measured sizes,
 the interpreted diagnostic override and the optional prose performance journey.
 It installs the `wasm-experimental` workload when the
-multithreaded browser runtime pack is missing. Browser builds install Node (with its npm) and
+multithreaded browser runtime pack is missing. Browser builds install Node, pnpm and
 Binaryen through mise (`scripts/tool`), and need Git and a macOS or Linux build host.
 
 | Command | Purpose and output |
@@ -159,7 +159,7 @@ on macOS (measures the packages from a real build into `.bench/zig-deps`), then 
 and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
-`browser-assets.cs` (the browser project's `StageBrowserAssets` target, rerun when `package-lock.json`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
+`browser-assets.cs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
 `src/SharpRail.Browser/wwwroot/vendor`.
 
 ## Android
