@@ -1,0 +1,329 @@
+using System.Diagnostics;
+using System.Text;
+
+using SharpRail.Host.Abstractions;
+using SharpRail.Host.Core;
+
+namespace SharpRail.Checks;
+
+/// <summary>
+/// The terminals' memory guard: limit calculation, the per-terminal state machine with a fake clock, sampler and killer (warning, stop,
+/// kill, tree kill, protect list, agents, total limit, pressure), the process-tree membership, the settings round trip, one real
+/// runaway child process under a small limit and the same in a real PTY terminal whose shell survives.
+/// </summary>
+internal static class TerminalMemoryGuardChecks
+{
+    private const long Gb = 1L << 30;
+
+    private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
+
+    private sealed class Fake : IGuardSampler, IGuardKiller
+    {
+        internal readonly Dictionary<int, List<GuardedProcess>> Trees = [];
+        internal readonly List<string> Signals = [];
+        internal bool ObeysTerminate, Pressure;
+        public long PhysicalBytes { get; set; } = 32 * Gb;
+        public bool UnderPressure() => Pressure;
+        public void Refresh() { }
+        public IReadOnlyList<GuardedProcess> Tree(int shellPid) => Trees.TryGetValue(shellPid, out var tree) ? [.. tree] : [];
+        public void Terminate(GuardedProcess process) { Signals.Add("TERM " + process.Pid); if (ObeysTerminate) Remove(process.Pid); }
+        public void Kill(GuardedProcess process) { Signals.Add("KILL " + process.Pid); Remove(process.Pid); }
+        private void Remove(int pid) { foreach (var tree in Trees.Values) tree.RemoveAll(process => process.Pid == pid); }
+        internal void Set(int shell, params GuardedProcess[] processes) => Trees[shell] = [.. processes];
+    }
+
+    private static GuardedProcess P(int pid, string name, double gigabytes) => new(pid, name, (long)(gigabytes * Gb), 1);
+
+    private static (TerminalMemoryGuard Guard, Fake Fake, List<GuardEvent> Events, Func<TimeSpan> Now, Action<TimeSpan> Advance) Make(TerminalMemoryLimits limits)
+    {
+        var fake = new Fake();
+        var events = new List<GuardEvent>();
+        var now = TimeSpan.Zero;
+        var guard = new TerminalMemoryGuard(fake, fake, () => limits, events.Add) { Clock = () => now, OwnPid = 1 };
+        return (guard, fake, events, () => now, by => now += by);
+    }
+
+    private static TerminalMemoryLimits Limits(int perTerminalMb = 8192, int totalMb = 0, IReadOnlyList<string>? protect = null) =>
+        new(true, perTerminalMb, totalMb == 0 ? 1_000_000 : totalMb, 10, protect ?? []);
+
+    internal static async Task Run(string root)
+    {
+        LimitCalculation();
+        Parsing();
+        Membership();
+        Transitions();
+        await Settings(Path.Combine(root, "terminal-memory"));
+        await RealProcess();
+        await RealTerminal();
+    }
+
+    private static void LimitCalculation()
+    {
+        Require(TerminalMemoryLimits.AutomaticPerTerminal(4 * Gb) == 2 * Gb, "A small machine is bounded to 2 GiB per terminal.");
+        Require(TerminalMemoryLimits.AutomaticPerTerminal(16 * Gb) == 4 * Gb, "A quarter of 16 GiB is 4 GiB.");
+        Require(TerminalMemoryLimits.AutomaticPerTerminal(64 * Gb) == 16 * Gb, "A quarter of 64 GiB is 16 GiB.");
+        Require(TerminalMemoryLimits.AutomaticPerTerminal(512 * Gb) == 32 * Gb, "A big machine is bounded to 32 GiB per terminal.");
+        Require(TerminalMemoryLimits.AutomaticTotal(10 * Gb) == 6 * Gb, "The total limit is 60% of physical memory.");
+        Require(TerminalMemoryLimits.Default.PerTerminalBytes(16 * Gb) == 4 * Gb && TerminalMemoryLimits.Default.TotalBytes(10 * Gb) == 6 * Gb, "Zero means automatic.");
+        var fixedLimits = TerminalMemoryLimits.Parse("""{"perTerminalMb":100,"totalMb":2048}""");
+        Require(fixedLimits.PerTerminalBytes(64 * Gb) == 100L << 20 && fixedLimits.TotalBytes(64 * Gb) == 2 * Gb, "A fixed value wins over the automatic one.");
+        Require(TerminalMemoryGuard.Size((long)(7.9 * Gb)) == "7.9 GB" && TerminalMemoryGuard.Size(8 * Gb) == "8 GB" && TerminalMemoryGuard.Size((long)(12.3 * Gb)) == "12 GB", "Sizes read like '7.9 GB', '8 GB'.");
+    }
+
+    private static void Parsing()
+    {
+        var parsed = TerminalMemoryLimits.Parse("""{"enabled":false,"perTerminalMb":4096,"graceSeconds":3,"protect":["Postgres"," mysqld ","postgres"]}""");
+        Require(!parsed.Enabled && parsed.PerTerminalMb == 4096 && parsed.GraceSeconds == 3 && parsed.Protect.SequenceEqual(["Postgres", "mysqld"]), "The limits were not parsed: " + parsed.Serialize());
+        Require(parsed.Protects("POSTGRES") && !parsed.Protects("node"), "The protect list compares names without case.");
+        Require(TerminalMemoryLimits.Parse(parsed.Serialize()) is { } again && again.Serialize() == parsed.Serialize(), "The limits do not round trip.");
+        Require(TerminalMemoryLimits.Parse("") == TerminalMemoryLimits.Default && TerminalMemoryLimits.Default.Enabled, "Empty means the defaults, on.");
+        foreach (var bad in new[] { "not json", "[]", """{"perTerminalMb":10}""", """{"totalMb":-5}""", """{"graceSeconds":0}""", """{"protect":["a/b"]}""", """{"protect":[""]}""" })
+            try { TerminalMemoryLimits.Parse(bad); Require(false, "Accepted " + bad); }
+            catch (ArgumentException) { }
+    }
+
+    private static void Membership()
+    {
+        ProcessEntry E(int pid, int ppid, long group, string name = "x") => new(pid, ppid, group, name, 1);
+        // macOS: terminal devices. A build server that was reparented to init keeps the terminal and is still the terminal's.
+        var table = new[] { E(1, 0, 0), E(10, 1, 55, "zsh"), E(11, 10, 55), E(12, 11, 55), E(99, 1, 55, "VBCSCompiler"), E(100, 1, 0), E(101, 100, 77) };
+        Require(ProcessEntries.Members(table, 10).Select(entry => entry.Pid).Order().SequenceEqual([11, 12, 99]), "A terminal's processes are its descendants and the processes on its terminal.");
+        // Linux: the group is a session id, claimed only by a shell that leads its own session.
+        var sessions = new[] { E(1, 0, 1), E(10, 1, 10), E(11, 10, 10), E(98, 1, 10), E(50, 1, 50), E(51, 50, 50), E(20, 1, 1) };
+        Require(ProcessEntries.Members(sessions, 10, sessionIds: true).Select(entry => entry.Pid).Order().SequenceEqual([11, 98]), "Linux claims the shell's own session.");
+        Require(ProcessEntries.Members(sessions, 20, sessionIds: true).Count == 0, "A shell that does not lead its session claims no session, or the host's own processes would join.");
+        var stat = ProcessEntries.ParseLinuxStat(42, "42 (tmux: server (x)) S 7 42 42 0 -1 4194560 100 0 0 0 1 2 0 0 20 0 1 0 987654 1000 100 18446744073709551615");
+        Require(stat is { Pid: 42, Ppid: 7, Group: 42, Name: "tmux: server (x)", Started: 987654 }, "Parsing /proc stat with parentheses in the name: " + stat);
+        if (OperatingSystem.IsWindows()) return;
+        var own = ProcessEntries.Read().FirstOrDefault(entry => entry.Pid == Environment.ProcessId);
+        Require(own.Pid == Environment.ProcessId, "The sampler does not see this process.");
+        var parent = RunText("ps", "-o", "ppid=", "-p", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Require(own.Ppid.ToString(System.Globalization.CultureInfo.InvariantCulture) == parent.Trim(), $"The parent pid {own.Ppid} read natively differs from ps's {parent.Trim()}.");
+        Require(own.Name.Length > 0 && own.Started > 0, "The sampler reads no name or start time.");
+        Require(ProcessEntries.Bytes(Environment.ProcessId) is > 10_000_000, "The sampler reads no memory for this process.");
+    }
+
+    private static string RunText(string program, params string[] arguments)
+    {
+        var start = new ProcessStartInfo(program) { RedirectStandardOutput = true, UseShellExecute = false };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start)!;
+        var text = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return text;
+    }
+
+    private static void Transitions()
+    {
+        // Warning: once per crossing of 80%, silent again below 70%, and again on the next crossing.
+        {
+            var (guard, fake, events, _, _) = Make(Limits());
+            GuardTarget[] targets = [new("s", "Terminal in app", 10)];
+            fake.Set(10, P(10, "zsh", 0.1), P(11, "node", 3));
+            guard.Tick(targets);
+            Require(events.Count == 0 && guard.UsageOf("s") is { State: GuardState.Ok }, "Under 80% nothing is said.");
+            fake.Set(10, P(11, "node", 7.9));
+            guard.Tick(targets); guard.Tick(targets);
+            Require(events is [{ Kind: GuardEventKind.Warned, Text: "Terminal in app uses 7.9 GB of 8 GB: node" }], "The warning is one line naming the terminal and the largest process: " + string.Join("|", events.Select(e => e.Text)));
+            Require(guard.UsageOf("s") is { State: GuardState.Warned, Bytes: > 0 } warned && warned.Limit == 8 * Gb, "The usage shows the warned state against the limit.");
+            fake.Set(10, P(11, "node", 6.0));
+            guard.Tick(targets);
+            Require(guard.UsageOf("s")!.Value.State == GuardState.Warned, "Between 70% and 80% the warning stays (hysteresis).");
+            fake.Set(10, P(11, "node", 2));
+            guard.Tick(targets);
+            Require(guard.UsageOf("s")!.Value.State == GuardState.Ok, "Under 70% the terminal is Ok again.");
+            fake.Set(10, P(11, "node", 7));
+            guard.Tick(targets);
+            Require(events.Count == 2, "A new crossing warns again.");
+            Require(fake.Signals.Count == 0, "A warning ends nothing.");
+        }
+        // Over the limit: the largest process is asked to stop, killed after the grace, the shell is never touched.
+        {
+            var (guard, fake, events, _, advance) = Make(Limits());
+            GuardTarget[] targets = [new("s", "Terminal in app", 10)];
+            fake.Set(10, P(10, "zsh", 9.5), P(11, "node", 9.2), P(12, "git", 0.5));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]), "The largest descendant, not the shell, is asked to stop: " + string.Join(",", fake.Signals));
+            Require(events[0].Text == "SharpRail stopped node (11) at 9.2 GB: terminal memory limit 8 GB", "The notice text: " + events[0].Text);
+            Require(guard.UsageOf("s")!.Value.State == GuardState.Terminating, "The terminal is Terminating.");
+            advance(TimeSpan.FromSeconds(9)); guard.Tick(targets);
+            Require(fake.Signals.Count == 1, "Nothing more happens within the grace period.");
+            advance(TimeSpan.FromSeconds(2)); guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11", "KILL 11"]) && events[1].Kind == GuardEventKind.Killed && guard.UsageOf("s")!.Value.State == GuardState.Killing, "After the grace the process is killed: " + string.Join(",", fake.Signals));
+            guard.Tick(targets);
+            Require(guard.UsageOf("s")!.Value.State == GuardState.Ok && fake.Signals.Count == 2, "Once under the limit the terminal is Ok and the rest is left alone.");
+        }
+        // A process that obeys the stop request is not killed.
+        {
+            var (guard, fake, _, _, advance) = Make(Limits());
+            fake.ObeysTerminate = true;
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "node", 9));
+            guard.Tick(targets); advance(TimeSpan.FromSeconds(30)); guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]) && guard.UsageOf("s")!.Value.State == GuardState.Ok, "A process that exits when asked is not killed.");
+        }
+        // Still over a cycle after the kill: everything below the shell goes, except protected programs.
+        {
+            var (guard, fake, events, _, advance) = Make(Limits(protect: ["postgres"]));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "node", 5), P(12, "rustc", 4.5), P(13, "cc", 4), P(14, "postgres", 1));
+            guard.Tick(targets);
+            advance(TimeSpan.FromSeconds(11)); guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11", "KILL 11"]), "First the largest: " + string.Join(",", fake.Signals));
+            guard.Tick(targets);
+            Require(events.Last().Kind == GuardEventKind.TreeKilled && fake.Signals.Contains("KILL 12") && fake.Signals.Contains("KILL 13") && !fake.Signals.Contains("KILL 14"), "The rest of the tree is killed, the protected program is not: " + string.Join(",", fake.Signals));
+        }
+        // Protect list: the biggest process is protected, so it is only warned about, once.
+        {
+            var (guard, fake, events, _, advance) = Make(Limits(protect: ["Postgres"]));
+            GuardTarget[] targets = [new("s", "Database", 10)];
+            fake.Set(10, P(11, "postgres", 9), P(12, "node", 1));
+            guard.Tick(targets); guard.Tick(targets); advance(TimeSpan.FromMinutes(5)); guard.Tick(targets);
+            Require(fake.Signals.Count == 0 && events is [{ Kind: GuardEventKind.Protected }], "A protected program is never ended and the warning is not repeated: " + string.Join(",", fake.Signals));
+        }
+        // Agents: passed over for the largest other process, ended only when alone or at least twice as large.
+        {
+            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "claude", 5), P(12, "node", 3));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 12"]), "The agent is passed over for the largest other process: " + string.Join(",", fake.Signals));
+        }
+        {
+            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "claude", 7), P(12, "node", 3));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]), "An agent far larger than anything else is ended: " + string.Join(",", fake.Signals));
+        }
+        // The host's own pid and a pid below another terminal are never victims of this terminal.
+        {
+            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            fake.Set(10, P(1, "sharprail", 20), P(11, "node", 5));
+            guard.Tick([new("s", "t", 10)]);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]), "The host process is never a victim: " + string.Join(",", fake.Signals));
+        }
+        // Total limit: the biggest terminal pays, not everyone.
+        {
+            var (guard, fake, events, _, _) = Make(Limits(totalMb: 8192));
+            GuardTarget[] targets = [new("a", "A", 10), new("b", "B", 20)];
+            fake.Set(10, P(11, "node", 4));
+            fake.Set(20, P(21, "java", 5));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 21"]) && events[0].Text.EndsWith("total terminal memory limit 8 GB", StringComparison.Ordinal), "The biggest terminal's biggest process is stopped: " + string.Join(",", fake.Signals));
+        }
+        // System memory pressure: only a terminal using at least half its limit is touched.
+        {
+            var (guard, fake, events, _, _) = Make(Limits());
+            fake.Pressure = true;
+            GuardTarget[] targets = [new("a", "A", 10)];
+            fake.Set(10, P(11, "vim", 0.6));
+            guard.Tick(targets);
+            Require(fake.Signals.Count == 0, "Pressure alone does not end a small program.");
+            fake.Set(10, P(11, "node", 5));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]) && events.Last().Text.EndsWith("system memory pressure", StringComparison.Ordinal), "Pressure ends the biggest offender: " + string.Join(",", events.Select(e => e.Text)));
+        }
+        // Off: nothing is sampled or ended.
+        {
+            var fake = new Fake();
+            var guard = new TerminalMemoryGuard(fake, fake, () => TerminalMemoryLimits.Default with { Enabled = false }, _ => { });
+            fake.Set(10, P(11, "node", 99));
+            guard.Tick([new("s", "t", 10)]);
+            Require(fake.Signals.Count == 0 && guard.UsageOf("s") is null, "A disabled guard does nothing.");
+        }
+        // A pid that was reused is not the sampled process.
+        {
+            var (guard, fake, _, _, advance) = Make(Limits());
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, new GuardedProcess(11, "node", 9 * Gb, 1));
+            guard.Tick(targets);
+            fake.Set(10, new GuardedProcess(11, "other", 9 * Gb, 2));
+            advance(TimeSpan.FromSeconds(11)); guard.Tick(targets);
+            Require(!fake.Signals.Take(1).Contains("KILL 11") && fake.Signals.Count(signal => signal.StartsWith("KILL", StringComparison.Ordinal)) == 0, "A reused pid is not killed as the victim: " + string.Join(",", fake.Signals));
+        }
+    }
+
+    private static async Task Settings(string directory)
+    {
+        var state = new HostStateStore(directory);
+        Require(state.Current.Settings.TerminalMemory == "", "The setting starts empty, the defaults.");
+        await state.ChangeAsync([HostStateChange.Setting("terminal-memory", """{"perTerminalMb":4096,"protect":["postgres"]}""")]);
+        Require(state.Current.Settings.TerminalMemory == """{"enabled":true,"perTerminalMb":4096,"totalMb":0,"graceSeconds":10,"protect":["postgres"]}""", "Stored normalized: " + state.Current.Settings.TerminalMemory);
+        try { await state.ChangeAsync([HostStateChange.Setting("terminal-memory", """{"perTerminalMb":3}""")]); Require(false, "A tiny limit was accepted."); }
+        catch (ArgumentException) { }
+        await state.DisposeAsync();
+        var reopened = new HostStateStore(directory);
+        Require(reopened.Current.Settings.TerminalMemory.Contains("\"perTerminalMb\":4096", StringComparison.Ordinal), "The setting did not survive a restart.");
+        await reopened.ChangeAsync([HostStateChange.Setting("terminal-memory", "")]);
+        Require(reopened.Current.Settings.TerminalMemory == "", "An empty value resets to the defaults.");
+        await reopened.DisposeAsync();
+    }
+
+    private static string? Perl() => OperatingSystem.IsWindows() ? null : new[] { "/usr/bin/perl", "/usr/local/bin/perl", "/bin/perl" }.FirstOrDefault(File.Exists);
+
+    // A real runaway: a child of a throwaway shell allocates 300 MB under a 100 MB limit and is ended; the shell lives on.
+    private static async Task RealProcess()
+    {
+        if (Perl() is not { } perl) { Console.WriteLine("SKIP terminal memory guard real process: no perl."); return; }
+        var start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
+        start.ArgumentList.Add("-c");
+        start.ArgumentList.Add($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' & wait");
+        using var shell = Process.Start(start)!;
+        try
+        {
+            var sampler = new NativeGuardSampler();
+            var events = new List<GuardEvent>();
+            var limits = new TerminalMemoryLimits(true, 100, 0, 1, []);
+            var guard = new TerminalMemoryGuard(sampler, sampler, () => limits, events.Add);
+            var deadline = DateTime.UtcNow.AddSeconds(60);
+            while (!events.Any(e => e.Kind is GuardEventKind.Stopped))
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("The guard did not stop the runaway child.");
+                guard.Tick([new("real", "Real", shell.Id)]);
+                await Task.Delay(100);
+            }
+            Require(events[0].Text.StartsWith("SharpRail stopped perl (", StringComparison.Ordinal) && events[0].Text.EndsWith("terminal memory limit 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
+            while (sampler.Tree(shell.Id) is { Count: > 0 } && DateTime.UtcNow < deadline) { guard.Tick([new("real", "Real", shell.Id)]); sampler.Refresh(); await Task.Delay(100); }
+            sampler.Refresh();
+            Require(sampler.Tree(shell.Id).All(process => process.Name != "perl"), "The runaway child is still running.");
+            Require(!shell.HasExited, "The shell was ended with its child.");
+        }
+        finally { if (!shell.HasExited) shell.Kill(true); }
+    }
+
+    // The same in a real PTY terminal: the notice appears in its output and the shell answers afterwards.
+    private static async Task RealTerminal()
+    {
+        if (Perl() is not { } perl) { Console.WriteLine("SKIP terminal memory guard PTY: no perl."); return; }
+        var directory = Directory.CreateTempSubdirectory("sharprail-guard").FullName;
+        try
+        {
+            await using var pty = new PtyTerminalService("/bin/sh", terminalMemory: () => """{"perTerminalMb":100,"graceSeconds":1}""") { GuardInterval = TimeSpan.FromMilliseconds(200) };
+            var tab = new SharpRail.Plugins.Api.TerminalRef(directory, "guard-tab");
+            var attached = await pty.AttachAsync(new(PtyTerminalService.SessionFor(tab), directory, "client", 100, 30) { TabKey = tab.TabKey });
+            var text = new StringBuilder(Encoding.UTF8.GetString(attached.Replay.Span));
+            _ = Task.Run(async () =>
+            {
+                try { await foreach (var chunk in attached.ReadAsync()) lock (text) text.Append(Encoding.UTF8.GetString(chunk.Span)); }
+                catch (Exception) { }
+            });
+            async Task Await(string expected, string what)
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(60);
+                while (true)
+                {
+                    lock (text) if (text.ToString().Contains(expected, StringComparison.Ordinal)) return;
+                    if (DateTime.UtcNow > deadline) { lock (text) throw new TimeoutException($"Timed out waiting for {what}: {text}"); }
+                    await Task.Delay(50);
+                }
+            }
+            await attached.WriteAsync(Encoding.UTF8.GetBytes($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' &\r"));
+            await Await("SharpRail stopped perl (", "the stop notice in the terminal");
+            await attached.WriteAsync(Encoding.UTF8.GetBytes("echo SHELL_ALIVE_$((6*7))\r"));
+            await Await("SHELL_ALIVE_42", "the shell to answer after the guard acted");
+            Require(pty.MemoryGuard!.Events().Any(e => e.Kind == GuardEventKind.Stopped), "The Processes pane has no event for the stop.");
+        }
+        finally { try { Directory.Delete(directory, true); } catch (IOException) { } }
+    }
+}

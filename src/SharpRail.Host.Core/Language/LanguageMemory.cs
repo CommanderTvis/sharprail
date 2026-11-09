@@ -91,6 +91,13 @@ internal static class LanguageMemory
         return process.WorkingSet64;
     }
 
+    /// <summary>A macOS process's physical footprint by pid, or null when it is gone.</summary>
+    internal static long? Footprint(int pid)
+    {
+        var buffer = new byte[96];
+        return proc_pid_rusage(pid, 0, buffer) == 0 ? BitConverter.ToInt64(buffer, 72) : null;
+    }
+
     /// <summary>
     /// Whether the system is short of memory: macOS reports a warning or critical pressure level, Linux has under 10% available, Windows
     /// is past the runtime's high memory load threshold.

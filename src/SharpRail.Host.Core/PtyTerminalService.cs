@@ -42,7 +42,17 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // Sessions whose tab the user closed, kept for undo until their expiry fires or the tab is reserved again.
     private readonly Dictionary<string, CancellationTokenSource> closing = [];
     private readonly Func<bool>? shellIntegration;
+    private readonly Func<string>? memorySetting;
+    private readonly Dictionary<string, string> titleOf = [];
+    private CancellationTokenSource? guardLoop;
+    private TerminalMemoryGuard? memoryGuard;
     private bool disposed;
+
+    /// <summary>The terminals' memory guard, null where the service was given no limits setting.</summary>
+    internal TerminalMemoryGuard? MemoryGuard => memoryGuard;
+
+    /// <summary>How often the memory guard samples the terminals' process trees.</summary>
+    internal TimeSpan GuardInterval { get; set; } = TimeSpan.FromSeconds(3);
 
     /// <summary>The directory holding the <c>shell-integration</c> scripts; by default the one shipped with the app.</summary>
     public string ShellIntegrationResources { get; set; } = ShellIntegration.DefaultResources;
@@ -80,8 +90,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly string clipboardDirectory;
 
     public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null, Func<int>? undoCloseSeconds = null,
-        Func<bool>? shellIntegration = null)
+        Func<bool>? shellIntegration = null, Func<string>? terminalMemory = null)
     {
+        memorySetting = terminalMemory;
         if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
         this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds; this.shellIntegration = shellIntegration;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
@@ -265,6 +276,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
                 }
             };
             sessions.Add(request.SessionId, hosted);
+            StartGuard();
             directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;
             attachment = hosted.Attach(request, created: true, prefill);
@@ -368,6 +380,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             pending.Remove(sessionId);
             if (closing.Remove(sessionId, out var expiry)) expiry.Cancel();
             terminals.Remove(sessionId, out closed);
+            titleOf.Remove(sessionId);
             directories.Remove(sessionId);
             if (tokens.Remove(sessionId, out var token)) owners.TryRemove(token, out _);
         }
@@ -407,8 +420,80 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // A title that arrives after its tab closed would outlive the tab's other state.
     private void Retitled(string sessionId, TerminalRef terminal, string? title)
     {
-        lock (gate) if (!sessions.ContainsKey(sessionId)) return;
+        lock (gate)
+        {
+            if (!sessions.ContainsKey(sessionId)) return;
+            if (string.IsNullOrWhiteSpace(title)) titleOf.Remove(sessionId); else titleOf[sessionId] = title;
+        }
         TitleChanged?.Invoke(terminal, title);
+    }
+
+    private TerminalMemoryLimits MemoryLimits()
+    {
+        try { return TerminalMemoryLimits.Parse(memorySetting?.Invoke() ?? ""); }
+        catch (ArgumentException) { return TerminalMemoryLimits.Default; }
+    }
+
+    // Starts the guard's loop with the first session. It runs while the service lives and does nothing when the setting is off.
+    private void StartGuard()
+    {
+        if (memorySetting is null || memoryGuard is not null) return;
+        var sampler = new NativeGuardSampler();
+        memoryGuard = new TerminalMemoryGuard(sampler, sampler, MemoryLimits, AnnounceGuardEvent);
+        guardLoop = new();
+        var token = guardLoop.Token;
+        _ = Task.Run(async () =>
+        {
+            using var timer = new PeriodicTimer(GuardInterval);
+            try
+            {
+                while (await timer.WaitForNextTickAsync(token))
+                    try { GuardTick(); }
+                    catch (Exception error) when (error is not OperationCanceledException) { Debug.WriteLine("Terminal memory guard: " + error.Message); }
+            }
+            catch (OperationCanceledException) { }
+        }, CancellationToken.None);
+    }
+
+    /// <summary>One sample of every live terminal, as the loop takes it; checks call it directly.</summary>
+    internal void GuardTick()
+    {
+        if (memoryGuard is null) return;
+        GuardTarget[] targets;
+        lock (gate)
+            targets = [.. sessions.Where(entry => !entry.Value.Process.Exit.IsCompleted)
+                .Select(entry => new GuardTarget(entry.Key, TerminalName(entry.Key), entry.Value.Process.Pid))];
+        memoryGuard.Tick(targets);
+    }
+
+    private string TerminalName(string sessionId)
+    {
+        if (titleOf.TryGetValue(sessionId, out var title)) return title;
+        var directory = directories.GetValueOrDefault(sessionId);
+        return directory is null ? "A terminal" : "Terminal in " + Path.GetFileName(directory.TrimEnd('/', '\\'));
+    }
+
+    // The notice goes to the terminal itself and, as a notification, to every client that watches the host's signals.
+    private void AnnounceGuardEvent(GuardEvent guard)
+    {
+        HostedTerminal? hosted;
+        lock (gate) sessions.TryGetValue(guard.Session, out hosted);
+        hosted?.Announce(guard.Text);
+        signals.Publish(new(guard.Session, TerminalSignalKind.Notification) { Title = "Terminal memory", Body = guard.Text });
+    }
+
+    /// <summary>The tab a session shows, or null when it is not attached to a tab.</summary>
+    internal TerminalRef? TerminalOf(string session)
+    {
+        lock (gate) return terminals.GetValueOrDefault(session);
+    }
+
+    /// <summary>The memory guard's reading of a tab's terminal and its recent events, for the Processes pane.</summary>
+    internal (GuardUsage? Usage, IReadOnlyList<GuardEvent> Events) GuardOf(TerminalRef terminal)
+    {
+        string? session;
+        lock (gate) session = terminals.Where(entry => entry.Value == terminal).Select(entry => entry.Key).FirstOrDefault();
+        return session is null || memoryGuard is null ? (null, []) : (memoryGuard.UsageOf(session), [.. memoryGuard.Events().Where(item => item.Session == session)]);
     }
 
     public string Token(TerminalRef terminal)
@@ -513,6 +598,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             }
             closing.Clear();
         }
+        guardLoop?.Cancel();
         await Owned.StopAllAsync();
         foreach (var (_, terminal) in all) await terminal.DisposeAsync();
         signals.Dispose();

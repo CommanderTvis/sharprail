@@ -114,6 +114,28 @@ internal sealed class HostedTerminal
         }
     }
 
+    /// <summary>
+    /// Shows a line of the host's own in the terminal, as if the program had printed it: recorded for replay and delivered to every
+    /// attachment. It is output only; nothing reaches the shell's input.
+    /// </summary>
+    internal void Announce(string text)
+    {
+        var chunk = TerminalChunk.Copy(System.Text.Encoding.UTF8.GetBytes("\r\n\x1b[33m" + text + "\x1b[0m\r\n"));
+        try
+        {
+            lock (gate)
+            {
+                if (exitCode is not null) return;
+                recorder.Push(chunk.Span);
+                shell.Push(chunk.Span);
+                // A holder that stopped reading is already at capacity: the notice stays in the recording but is not queued to it.
+                try { current?.Deliver(chunk, recorder.Position, grid); } catch (InvalidOperationException) { }
+                foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
+            }
+        }
+        finally { chunk.Release(); }
+    }
+
     private void QueueTitle(string? title)
     {
         pendingTitle = title;

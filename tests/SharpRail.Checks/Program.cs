@@ -1470,6 +1470,7 @@ internal static class Program
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pty-output-allocations", () => { if (!OperatingSystem.IsWindows()) PtyOutputAllocationChecks.Run(root, TimeSpan.FromSeconds(5), remote: false).GetAwaiter().GetResult(); });
         Gate.Case("loopback-terminals", () => LoopbackTerminalChecks.Run().GetAwaiter().GetResult());
+        Gate.Case("terminal-memory-guard", () => TerminalMemoryGuardChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("shell-integration", () => ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
