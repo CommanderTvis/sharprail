@@ -6,8 +6,9 @@ namespace SharpRail.Plugins.BranchGraph;
 
 /// <summary>One commit as the graph draws it: its parents are the edges, its refs the labels.</summary>
 /// <param name="Refs">Ref names pointing here, as <c>%D</c> reports them, already split.</param>
+/// <param name="Branches">The local branches among <paramref name="Refs"/>; remote-tracking branches and tags are not in it.</param>
 public sealed record GitGraphCommit(string Sha, string ShortSha, IReadOnlyList<string> Parents, IReadOnlyList<string> Refs,
-    string Subject, string Author, string CommittedAt);
+    string Subject, string Author, string CommittedAt, IReadOnlyList<string>? Branches = null);
 
 /// <summary>A worktree sitting on a commit; the workspace is absent for one SharpRail does not list.</summary>
 public sealed record GitGraphWorktree(string Sha, string Name, string? WorkspaceId = null);

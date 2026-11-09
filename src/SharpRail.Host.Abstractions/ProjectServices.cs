@@ -95,12 +95,18 @@ public record RemoteBranch(string Remote, string Name)
 {
     public string Ref => Remote + "/" + Name;
 }
+/// <summary>A local branch's tip and how many of its commits the default base does not contain (0 when merged).</summary>
+public record BranchTip(string Sha, int Unmerged);
 public record BranchCatalog(IReadOnlyList<string> Local, IReadOnlyList<RemoteBranch> Remote, string DefaultBase)
 {
     public string SuggestedPath { get; init; } = "";
     public string SuggestedBranch { get; init; } = "";
     /// <summary>The project checkout's branch, empty when HEAD is detached.</summary>
     public string Current { get; init; } = "";
+    /// <summary>Each local branch's tip and unmerged count against <see cref="DefaultBase"/>.</summary>
+    public IReadOnlyDictionary<string, BranchTip> Tips { get; init; } = new Dictionary<string, BranchTip>();
+    /// <summary>The local branch name of the default base, or null when the base is only a detached HEAD.</summary>
+    public string? DefaultBranch => Remote.FirstOrDefault(branch => branch.Ref == DefaultBase)?.Name ?? (Local.Contains(DefaultBase) ? DefaultBase : null);
 }
 public record EditorInfo(string Id, string Label);
 /// <summary>Line totals of a workspace's changes against its review target.</summary>

@@ -13,7 +13,7 @@ internal static class GraphBuild
 
     public static IReadOnlyList<string> LogArgs(int skip) =>
     [
-        "log", "--branches", "--date-order", $"--skip={Math.Max(0, skip)}",
+        "log", "--branches", "--decorate=full", "--date-order", $"--skip={Math.Max(0, skip)}",
         // One past the page, so whether there is more is answered by the same read.
         $"--max-count={Page + 1}",
         "--format=%H%x00%h%x00%P%x00%cI%x00%an%x00%D%x00%s",
@@ -34,12 +34,18 @@ internal static class GraphBuild
         return text.ToString();
     }
 
-    // %D's decoration list, minus the "HEAD -> " prefix git writes on the checked-out one.
-    private static string[] Refs(string decoration) =>
-    [
-        .. decoration.Split(',').Select(name => name.Trim()).Select(name => name.StartsWith("HEAD -> ", StringComparison.Ordinal) ? name["HEAD -> ".Length..] : name)
-            .Where(name => name.Length > 0 && name != "HEAD")
-    ];
+    // %D's full decoration list, minus the "HEAD -> " prefix git writes on the checked-out one: the labels shortened as git's short form
+    // writes them, and the local branches among them.
+    private static (string[] Refs, string[] Branches) Refs(string decoration)
+    {
+        var full = decoration.Split(',').Select(name => name.Trim()).Select(name => name.StartsWith("HEAD -> ", StringComparison.Ordinal) ? name["HEAD -> ".Length..] : name)
+            .Where(name => name.Length > 0 && name != "HEAD").ToArray();
+        static string Short(string name) =>
+            name.StartsWith("tag: refs/tags/", StringComparison.Ordinal) ? "tag: " + name["tag: refs/tags/".Length..]
+            : name.StartsWith("refs/heads/", StringComparison.Ordinal) ? name["refs/heads/".Length..]
+            : name.StartsWith("refs/remotes/", StringComparison.Ordinal) ? name["refs/remotes/".Length..] : name;
+        return ([.. full.Select(Short)], [.. full.Where(name => name.StartsWith("refs/heads/", StringComparison.Ordinal)).Select(Short)]);
+    }
 
     public static (IReadOnlyList<GitGraphCommit> Commits, bool HasMore) ParseLog(string output)
     {
@@ -49,8 +55,9 @@ internal static class GraphBuild
             var parts = line.Split(Separator);
             if (parts.Length < 2 || parts[0].Length == 0 || parts[1].Length == 0) continue;
             string Part(int index) => index < parts.Length ? parts[index] : "";
-            commits.Add(new(parts[0], parts[1], Part(2).Split(' ', StringSplitOptions.RemoveEmptyEntries), Refs(Part(5)),
-                PlainText(string.Join(Separator, parts.Skip(Fields))), PlainText(Part(4)), Part(3)));
+            var (refs, branches) = Refs(Part(5));
+            commits.Add(new(parts[0], parts[1], Part(2).Split(' ', StringSplitOptions.RemoveEmptyEntries), refs,
+                PlainText(string.Join(Separator, parts.Skip(Fields))), PlainText(Part(4)), Part(3), branches));
         }
         var hasMore = commits.Count > Page;
         return (hasMore ? commits[..Page] : commits, hasMore);

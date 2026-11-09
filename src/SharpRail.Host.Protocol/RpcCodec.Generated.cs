@@ -145,6 +145,8 @@ internal static class RpcCodec
         RpcMessage<RemoteBranchReply>.Read = static (ref ProtoReader reader) => ReadRemoteBranchReply(ref reader, null);
         RpcMessage<BranchesReply>.Write = WriteBranchesReply;
         RpcMessage<BranchesReply>.Read = static (ref ProtoReader reader) => ReadBranchesReply(ref reader, null);
+        RpcMessage<BranchTipReply>.Write = WriteBranchTipReply;
+        RpcMessage<BranchTipReply>.Read = static (ref ProtoReader reader) => ReadBranchTipReply(ref reader, null);
         RpcMessage<EditorReply>.Write = WriteEditorReply;
         RpcMessage<EditorReply>.Read = static (ref ProtoReader reader) => ReadEditorReply(ref reader, null);
         RpcMessage<EditorsReply>.Write = WriteEditorsReply;
@@ -2676,6 +2678,13 @@ internal static class RpcCodec
         if (value.SuggestedPath is { } field4) writer.String(4, field4);
         if (value.SuggestedBranch is { } field5) writer.String(5, field5);
         if (value.Current is { } field6) writer.String(6, field6);
+        if (value.Tips is { } field7)
+            foreach (var item in field7)
+            {
+                var start = writer.BeginMessage(7);
+                if (item is not null) WriteBranchTipReply(writer, item);
+                writer.EndMessage(start);
+            }
     }
 
     private static BranchesReply ReadBranchesReply(ref ProtoReader reader, BranchesReply? value)
@@ -2697,6 +2706,36 @@ internal static class RpcCodec
                 case 4: value.SuggestedPath = reader.String(); break;
                 case 5: value.SuggestedBranch = reader.String(); break;
                 case 6: value.Current = reader.String(); break;
+                case 7:
+                {
+                    var outer = reader.Enter();
+                    (value.Tips ??= new()).Add(ReadBranchTipReply(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WriteBranchTipReply(ProtoWriter writer, BranchTipReply value)
+    {
+        if (value.Name is { } field1) writer.String(1, field1);
+        if (value.Sha is { } field2) writer.String(2, field2);
+        if (value.Unmerged != 0) writer.Int32(3, value.Unmerged);
+    }
+
+    private static BranchTipReply ReadBranchTipReply(ref ProtoReader reader, BranchTipReply? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Name = reader.String(); break;
+                case 2: value.Sha = reader.String(); break;
+                case 3: value.Unmerged = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }

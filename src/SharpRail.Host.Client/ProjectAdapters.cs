@@ -216,7 +216,7 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         var reply = await service.ListBranchesAsync(new() { FetchDefault = fetchDefault }, Context(cancellationToken));
         return new(reply.Local, reply.Remote.Select(branch => new RemoteBranch(branch.Remote, branch.Name)).ToArray(), reply.DefaultBase)
-        { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch, Current = reply.Current };
+        { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch, Current = reply.Current, Tips = reply.Tips.ToDictionary(tip => tip.Name, tip => new BranchTip(tip.Sha, tip.Unmerged)) };
     }
 
     public async ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default)

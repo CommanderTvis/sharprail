@@ -66,7 +66,24 @@ public sealed partial class ProjectServices
         string current;
         try { current = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "--short", "HEAD")).Trim(); }
         catch (IOException) { current = ""; }
-        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested, Current = current };
+        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested, Current = current, Tips = await LocalTipsAsync(currentRoot, defaultBase, cancellationToken) };
+    }
+
+    private static async Task<IReadOnlyDictionary<string, BranchTip>> LocalTipsAsync(string currentRoot, string defaultBase, CancellationToken cancellationToken)
+    {
+        var tips = new Dictionary<string, BranchTip>();
+        try
+        {
+            var lines = await GitRepository.RunAsync(currentRoot, cancellationToken, "for-each-ref", $"--format=%(refname:short)%09%(objectname)%09%(ahead-behind:{defaultBase})", "refs/heads");
+            foreach (var line in lines.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split('\t');
+                if (parts.Length == 3 && int.TryParse(parts[2].Split(' ')[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ahead))
+                    tips[parts[0]] = new(parts[1], ahead);
+            }
+        }
+        catch (IOException) when (!cancellationToken.IsCancellationRequested) { }
+        return tips;
     }
 
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default)

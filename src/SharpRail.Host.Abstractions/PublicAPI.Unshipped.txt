@@ -2400,3 +2400,23 @@ const SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Standard = "standard
 SharpRail.Host.Abstractions.JavaKotlinProviderOptions
 static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Available(System.Collections.Generic.IEnumerable<string!>! presentServers, System.Collections.Generic.IEnumerable<(string! Id, System.Collections.Generic.IReadOnlyList<string!>! Replaces)>! replacing) -> string![]!
 static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Effective(string! saved, string![]! options) -> string!
+SharpRail.Host.Abstractions.BranchCatalog.DefaultBranch.get -> string?
+SharpRail.Host.Abstractions.BranchCatalog.Tips.get -> System.Collections.Generic.IReadOnlyDictionary<string!, SharpRail.Host.Abstractions.BranchTip!>!
+SharpRail.Host.Abstractions.BranchCatalog.Tips.init -> void
+SharpRail.Host.Abstractions.BranchTip
+SharpRail.Host.Abstractions.BranchTip.BranchTip(SharpRail.Host.Abstractions.BranchTip! original) -> void
+SharpRail.Host.Abstractions.BranchTip.BranchTip(string! Sha, int Unmerged) -> void
+SharpRail.Host.Abstractions.BranchTip.Deconstruct(out string! Sha, out int Unmerged) -> void
+SharpRail.Host.Abstractions.BranchTip.Sha.get -> string!
+SharpRail.Host.Abstractions.BranchTip.Sha.init -> void
+SharpRail.Host.Abstractions.BranchTip.Unmerged.get -> int
+SharpRail.Host.Abstractions.BranchTip.Unmerged.init -> void
+override SharpRail.Host.Abstractions.BranchTip.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.BranchTip.GetHashCode() -> int
+override SharpRail.Host.Abstractions.BranchTip.ToString() -> string!
+static SharpRail.Host.Abstractions.BranchTip.operator !=(SharpRail.Host.Abstractions.BranchTip? left, SharpRail.Host.Abstractions.BranchTip? right) -> bool
+static SharpRail.Host.Abstractions.BranchTip.operator ==(SharpRail.Host.Abstractions.BranchTip? left, SharpRail.Host.Abstractions.BranchTip? right) -> bool
+virtual SharpRail.Host.Abstractions.BranchTip.<Clone>$() -> SharpRail.Host.Abstractions.BranchTip!
+virtual SharpRail.Host.Abstractions.BranchTip.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.BranchTip.Equals(SharpRail.Host.Abstractions.BranchTip? other) -> bool
+virtual SharpRail.Host.Abstractions.BranchTip.PrintMembers(System.Text.StringBuilder! builder) -> bool

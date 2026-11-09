@@ -5,6 +5,9 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 
+using SharpRail.Host.Abstractions;
+using SharpRail.UI;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
 
@@ -104,6 +107,10 @@ internal static class BranchListE2E
         var workspace = CreateWorkspaceViaDialog(app);
         var branch = Path.GetFileName(workspace);
         Git(app.Root, "branch", "spare-branch");
+        // Two commits only this branch has, made without checking anything out.
+        var tree = Git(app.Root, "rev-parse", "HEAD^{tree}");
+        var first = Git(app.Root, "commit-tree", tree, "-p", "HEAD", "-m", "unmerged one");
+        Git(app.Root, "branch", "unmerged-branch", Git(app.Root, "commit-tree", tree, "-p", first, "-m", "unmerged two"));
 
         var list = Open(app);
         var mine = Row(list, branch)!;
@@ -133,6 +140,44 @@ internal static class BranchListE2E
         app.Window.RequestedThemeVariant = variant;
         Require(!spare.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "BranchWorktree"),
             "A branch nothing has checked out has no path.");
+        // The shared flow's refusals and wording, from the model alone: the checked-out branch, a branch a workspace holds, the default branch.
+        var catalog = Task.Run(async () => await app.Host.ListBranchesAsync(false)).GetAwaiter().GetResult();
+        var trees = app.Window.Worktrees;
+        var spareTip = Git(app.Root, "rev-parse", "spare-branch");
+        Require(WorkbenchWindow.PlanBranchDeletion("main", catalog, trees).Refusal is { } checkedOut && checkedOut.Contains("currently checked out", StringComparison.Ordinal) &&
+            WorkbenchWindow.PlanBranchDeletion(branch, catalog, trees).Refusal is { } held && held.Contains("workspace", StringComparison.Ordinal) &&
+            WorkbenchWindow.PlanBranchDeletion("gone", catalog, trees).Refusal is not null,
+            "The shared flow must refuse the checked-out branch, a workspace's branch and an unknown one, each with a message.");
+        var other = new BranchCatalog(["main", "dev"], [], "main");
+        Require(WorkbenchWindow.PlanBranchDeletion("main", other, [new("/p", "dev", true, false)]).Refusal?.Contains("default branch", StringComparison.Ordinal) == true,
+            "The shared flow must refuse the project's default branch.");
+        var merged = WorkbenchWindow.PlanBranchDeletion("spare-branch", catalog, trees);
+        var unmerged = WorkbenchWindow.PlanBranchDeletion("unmerged-branch", catalog, trees);
+        Require(merged.Refusal is null && merged.Sha == spareTip && merged.Text.Contains(spareTip[..7], StringComparison.Ordinal) && merged.Text.Contains("already contained", StringComparison.Ordinal) &&
+            merged.ConfirmLabel == "Delete branch", "A merged branch must get the plain confirmation naming its tip.");
+        Require(unmerged.Refusal is null && unmerged.Text.Contains("2 commits", StringComparison.Ordinal) && unmerged.Text.Contains(unmerged.Sha[..7], StringComparison.Ordinal) &&
+            unmerged.ConfirmLabel == "Delete unmerged branch", "An unmerged branch must count its commits and label the button differently.");
+
+        void DeleteThroughList(string name, string label)
+        {
+            app.Click(Named<Button>(Row(list, name)!, "BranchDelete"));
+            var dialog = Dialog(app);
+            Require(Named<Button>(dialog, "BranchDeleteConfirm").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == label), "The confirmation button must read " + label + ".");
+            // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.
+            Close(app);
+            app.Click(Named<Button>(dialog, "BranchDeleteConfirm"));
+            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
+            Until(() => Git(app.Root, "branch", "--list", name).Length == 0);
+        }
+        var oldTip = Git(app.Root, "rev-parse", "unmerged-branch");
+        DeleteThroughList("unmerged-branch", "Delete unmerged branch");
+        Until(() => app.Window.Toasts.Items.Any(toast => toast.Message.Contains(oldTip[..7], StringComparison.Ordinal) && toast.Action?.Label == "Undo"));
+        var undo = app.Window.Toasts.Items.Single(toast => toast.Action?.Label == "Undo").Action!;
+        Until(() => app.Find<Button>("ScopeBranch").Flyout is Flyout { IsOpen: true });
+        undo.Invoke();
+        Until(() => Git(app.Root, "branch", "--list", "unmerged-branch").Length > 0);
+        Require(Git(app.Root, "rev-parse", "unmerged-branch") == oldTip, "Undo must recreate the branch at its old tip.");
+
         app.Click(Named<Button>(spare, "BranchDelete"));
         var confirm = Dialog(app);
         // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.

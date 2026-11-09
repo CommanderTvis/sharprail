@@ -40,7 +40,10 @@ Text layouts are cached at the current width and released when the row leaves th
 tree; theme changes invalidate the cache. The existing viewport window and lane drawing
 remain in charge of paging and graph geometry. A commit stays a keyboard-focusable button
 with an accessible name and decoration help text. Its compiled context menu is instantiated
-only when requested, and keeps targeting the row's current commit after a refresh.
+only when requested, and keeps targeting the row's current commit after a refresh. Right-clicking a local branch
+label adds "Delete branch…" to that menu, handed to the app's shared delete flow (refusals, confirmation, undo
+toast); the item is absent over tags, remote-tracking labels and the rest of the row, and remote branches are never
+deleted from the graph.
 
 - `BranchGraphUI` registers `GraphPanel` under the manifest's tool. Its project is the one owning the panel's own workspace in the
   projection's `Workspaces`, not `ContextProjectId`: SharpRail's projection follows the active window, while

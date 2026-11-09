@@ -119,9 +119,7 @@ public sealed partial class WorkbenchWindow
         // branches can be deleted in a row.
         var offset = branchScroll.Offset;
         branchCard.Hide();
-        var confirmed = await Dialogs.Confirm(this, $"Delete branch {name}?",
-            "Commits that only this branch points at will no longer be reachable from any branch.", "Delete branch", "BranchDeleteConfirm");
-        if (confirmed) await GitActionAsync(new("delete-branch", "", name));
+        await DeleteBranchWithConfirmationAsync(name);
         if (!branchCard.IsOpen && WorkspaceMounted) branchCard.ShowAt(this.FindControl<Button>("ScopeBranch")!);
         await LoadBranchesAsync();
         Dispatcher.UIThread.Post(() => branchScroll.Offset = offset, DispatcherPriority.Loaded);

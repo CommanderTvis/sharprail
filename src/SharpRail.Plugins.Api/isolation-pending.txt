@@ -65,6 +65,7 @@ M:SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunch(System.Func{System.Strin
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunchContributions(System.String)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.Companion(SharpRail.Plugins.Api.UI.CompanionRegistration)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.CopyText(System.String,System.String)
+M:SharpRail.Plugins.Api.UI.IPluginUIContext.DeleteBranchAsync(System.String)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.Dependency(SharpRail.Plugins.Api.PluginContract)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.Document(SharpRail.Plugins.Api.UI.PluginDocumentRegistration)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.DocumentLinkSlot(System.Func{System.String,System.String,System.String})

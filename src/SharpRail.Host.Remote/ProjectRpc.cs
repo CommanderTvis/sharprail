@@ -139,7 +139,8 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
             DefaultBase = result.DefaultBase,
             SuggestedPath = result.SuggestedPath,
             SuggestedBranch = result.SuggestedBranch,
-            Current = result.Current
+            Current = result.Current,
+            Tips = result.Tips.Select(tip => new BranchTipReply { Name = tip.Key, Sha = tip.Value.Sha, Unmerged = tip.Value.Unmerged }).ToList()
         };
     });
 

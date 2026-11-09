@@ -447,14 +447,15 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private async Task GitActionAsync(GitAction action, string? failure = null)
+    /// <summary>Applies a Git action and refreshes the panels; false when it failed (already reported) or the project changed meanwhile.</summary>
+    private async Task<bool> GitActionAsync(GitAction action, string? failure = null)
     {
         gitRefresh?.Cancel();
         try
         {
             var request = projectRequest;
             var snapshot = await host.ApplyGitActionAsync(action, lifetime.Token);
-            if (request != projectRequest) return;
+            if (request != projectRequest) return false;
             gitRefresh?.Cancel();
             ClearError();
             if (changeScope == "Staged" || selectedCommit is not null || comparison.Length > 0) await RefreshGitAsync(request);
@@ -463,10 +464,12 @@ public sealed partial class WorkbenchWindow
                 git = snapshot; gitLoading = false; gitError = null;
                 RefreshGitPanels();
             }
+            return true;
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             if (failure is null) Report(error); else ReportDialogFailure(failure, error);
+            return false;
         }
     }
 

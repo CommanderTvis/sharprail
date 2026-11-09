@@ -333,6 +333,15 @@ public sealed class BranchesReply
     [ProtoMember(4)] public string SuggestedPath { get; set; } = "";
     [ProtoMember(5)] public string SuggestedBranch { get; set; } = "";
     [ProtoMember(6)] public string Current { get; set; } = "";
+    [ProtoMember(7)] public List<BranchTipReply> Tips { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class BranchTipReply
+{
+    [ProtoMember(1)] public string Name { get; set; } = "";
+    [ProtoMember(2)] public string Sha { get; set; } = "";
+    [ProtoMember(3)] public int Unmerged { get; set; }
 }
 
 [ProtoContract]

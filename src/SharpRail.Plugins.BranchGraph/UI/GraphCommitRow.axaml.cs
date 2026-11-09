@@ -11,8 +11,11 @@ namespace SharpRail.Plugins.BranchGraph.UI;
 internal sealed partial class GraphCommitRow : Button
 {
     private readonly GraphLabels labels = new();
+    private string? branchTarget;
     internal GraphRow Model { get; private set; }
     internal LaneArt Lanes { get; }
+    internal string? BranchTarget => branchTarget;
+    internal string? LocalBranchAt(Avalonia.Point point) => labels.LocalBranchAt(point);
 
     internal GraphCommitRow(IPluginUIContext context, Func<string> workspace, GraphRow model, int drawn, int shown,
         IReadOnlyList<string> marks, Action<string> copyHash, Action<string> copyPatch)
@@ -36,7 +39,15 @@ internal sealed partial class GraphCommitRow : Button
                 patch.Icon = Icon("file-code-line");
                 hash.Click += (_, _) => copyHash(Model.Commit.Sha);
                 patch.Click += (_, _) => copyPatch(Model.Commit.Sha);
+                ContextMenu.Items.OfType<MenuItem>().Single(item => item.Name == "GraphDeleteBranch").Click += (_, _) =>
+                {
+                    if (branchTarget is { } name) _ = context.DeleteBranchAsync(name).AsTask();
+                };
             }
+            // Only a local branch label offers deletion; the app's own flow confirms, refuses and offers the undo.
+            branchTarget = e.TryGetPosition(labels, out var point) ? labels.LocalBranchAt(point) : null;
+            ContextMenu.Items.OfType<MenuItem>().Single(item => item.Name == "GraphDeleteBranch").IsVisible = branchTarget is not null;
+            ContextMenu.Items.OfType<Separator>().Single(item => item.Name == "GraphBranchSeparator").IsVisible = branchTarget is not null;
             ContextMenu.Open(this);
             e.Handled = true;
         };

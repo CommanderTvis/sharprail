@@ -340,6 +340,9 @@ internal static class BranchGraphChecks
         Git(merges, "checkout", "-q", "--orphan", "docs-site");
         Git(merges, "commit", "--allow-empty", "-q", "-m", "orphan start");
         Git(merges, "checkout", "-q", "main");
+        // A tag and a remote-tracking ref beside the local branch: only the branch label offers deletion.
+        Git(merges, "tag", "tip-tag", "main");
+        Git(merges, "update-ref", "refs/remotes/origin/main", "main");
         var orphanSha = Git(merges, "rev-parse", "docs-site");
 
         var gutter = IsolatedGit.Repository(Path.Combine(directory, "gutter"));
@@ -374,6 +377,22 @@ internal static class BranchGraphChecks
         Require(Row(graph, "Merge feature-one").Lanes.BranchCount == 1 && Row(graph, "work on feature-one").Lanes.BranchCount == 0 &&
             orphan.Lanes.BranchCount == 0, "Only the merge row draws the lane it opens.");
         Console.WriteLine("PASS branch graph UI: a merge branches out visibly, and an orphan draws as its own history");
+
+        // Deleting a branch is offered on a local branch label only, never on a tag, a remote-tracking label or the rest of the row.
+        var featureRow = Row(graph, "Merge feature-one");
+        Require(featureRow.Model.Commit.Refs.Contains("origin/main") &&
+            featureRow.Model.Commit.Refs.Contains("tag: tip-tag") && featureRow.Model.Commit.Branches!.SequenceEqual(["main"]),
+            "The graph must tell the local branch from the tag and the remote-tracking ref at the same commit.");
+        using (var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize(Math.Max(1, (int)featureRow.Bounds.Width), Math.Max(1, (int)featureRow.Bounds.Height))))
+            bitmap.Render(featureRow);
+        var hits = new HashSet<string?>();
+        var labelsBounds = featureRow.GetLogicalDescendants().OfType<ContentControl>().Single(host => host.Name == "GraphLabelsHost").Content as Control;
+        for (var x = 0.0; x < labelsBounds!.Bounds.Width; x += 2)
+            for (var y = 0.0; y < labelsBounds.Bounds.Height; y += 2)
+                hits.Add(featureRow.LocalBranchAt(new Avalonia.Point(x, y)));
+        Require(hits.Contains("main") && hits.All(hit => hit is null or "main"),
+            $"Only the local branch label may offer deleting a branch, not the tag, the remote-tracking label or the rest of the row (hit {string.Join("|", hits)} in {labelsBounds.Bounds} of {featureRow.Bounds}).");
+        Console.WriteLine("PASS branch graph UI: the label context menu offers Delete branch only on local branch labels");
 
         // A second window on another project leaves the first window's graph on its own project.
         using var second = first.NewWindow();
@@ -430,10 +449,10 @@ internal static class BranchGraphChecks
     private static void Parsing()
     {
         static string Line(params string[] fields) => string.Join('\0', fields);
-        var (commits, hasMore) = GraphBuild.ParseLog(Line("abc123", "abc1234", "parent1 parent2", "2024-01-01T00:00:00Z", "Ada", "HEAD -> main, origin/main", "fix: ‮hidden‬ bug"));
+        var (commits, hasMore) = GraphBuild.ParseLog(Line("abc123", "abc1234", "parent1 parent2", "2024-01-01T00:00:00Z", "Ada", "HEAD -> refs/heads/main, refs/remotes/origin/main, tag: refs/tags/v1", "fix: ‮hidden‬ bug"));
         var commit = commits.Single();
         Require(commit is { Sha: "abc123", ShortSha: "abc1234", Subject: "fix: hidden bug", Author: "Ada", CommittedAt: "2024-01-01T00:00:00Z" } &&
-            commit.Parents.SequenceEqual(["parent1", "parent2"]) && commit.Refs.SequenceEqual(["main", "origin/main"]) && !hasMore,
+            commit.Parents.SequenceEqual(["parent1", "parent2"]) && commit.Refs.SequenceEqual(["main", "origin/main", "tag: v1"]) && commit.Branches!.SequenceEqual(["main"]) && !hasMore,
             "The log reads sha, parents, refs and subject, and strips deceptive control text.");
         var page = GraphBuild.ParseLog(string.Join('\n', Enumerable.Range(0, GraphBuild.Page + 1).Select(i => Line($"sha{i}", $"s{i}", "", "2024-01-01T00:00:00Z", "Ada", "", $"c{i}"))));
         Require(page.Commits.Count == GraphBuild.Page && page.HasMore, "A page one past its size reports more and is cropped.");

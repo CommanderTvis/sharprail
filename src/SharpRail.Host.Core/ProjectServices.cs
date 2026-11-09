@@ -363,7 +363,13 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                         throw new InvalidOperationException(holder.IsMain
                             ? $"{action.Branch} is the branch currently checked out."
                             : $"{action.Branch} is checked out by the workspace at {holder.Path}.");
+                    if ((await ListBranchesAsync(false, cancellationToken)).DefaultBranch == action.Branch)
+                        throw new InvalidOperationException($"{action.Branch} is the project's default branch.");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "branch", "-D", action.Branch);
+                    break;
+                case "create-branch":
+                    // Recreates a deleted branch at the commit it pointed at; an existing branch is never moved.
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, "branch", "--no-track", "--", action.Branch, action.BaseBranch);
                     break;
                 case "fetch":
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--all", "--quiet", "--no-prune");

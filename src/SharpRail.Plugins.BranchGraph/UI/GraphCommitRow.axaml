@@ -18,6 +18,8 @@
       <Separator />
       <MenuItem x:Name="GraphCopyHash" Header="Copy commit hash" />
       <MenuItem x:Name="GraphCopyPatch" Header="Copy patch to clipboard" />
+      <Separator x:Name="GraphBranchSeparator" IsVisible="False" />
+      <MenuItem x:Name="GraphDeleteBranch" Header="Delete branch…" IsVisible="False" />
     </ContextMenu>
     </DataTemplate>
   </Button.Resources>

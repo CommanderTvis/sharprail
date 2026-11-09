@@ -395,6 +395,16 @@ public interface IPluginUIContext
     [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner, IsolatedShape = "a placeholder control in the plugin's tree; the app composites the real section into its rectangle")]
     Avalonia.Controls.Control RepoHostReviewSection();
 
+    /// <summary>
+    /// Deletes a local branch of the active window's project through the app's own flow, the one the branch list uses: it refuses the checked-out
+    /// branch, a branch a workspace has checked out and the default branch, asks for confirmation (naming the tip, and the commits that stop being
+    /// reachable when the branch is unmerged), and offers an undo afterwards. Remote-tracking branches are not handled.
+    /// </summary>
+    /// <param name="branch">The local branch's name.</param>
+    /// <returns>How it ended.</returns>
+    [PluginAmbient]
+    ValueTask<PluginBranchDeleteOutcome> DeleteBranchAsync(string branch);
+
     /// <summary>Reads a file under the manifest's assets directory through the host (W19).</summary>
     /// <param name="path">The path relative to the assets directory.</param>
     /// <param name="cancellationToken">Cancels the read.</param>

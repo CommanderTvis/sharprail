@@ -112,6 +112,22 @@ public sealed record EditorSelection(int StartLine, int StartColumn, int EndLine
     public bool Mapped { get; init; } = true;
 }
 
+/// <summary>How asking the app to delete a local branch ended.</summary>
+public enum PluginBranchDeleteOutcome
+{
+    /// <summary>The branch was deleted; the app offers an undo.</summary>
+    Deleted,
+
+    /// <summary>The user declined the confirmation.</summary>
+    Cancelled,
+
+    /// <summary>The branch is checked out, belongs to a workspace, is the default branch or no longer exists; the app said why.</summary>
+    Refused,
+
+    /// <summary>Git failed; the app reported it.</summary>
+    Failed
+}
+
 /// <summary>What happened to an editor.</summary>
 public enum EditorLifecycle
 {

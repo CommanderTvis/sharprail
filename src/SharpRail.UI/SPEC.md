@@ -324,7 +324,10 @@ The branch is a control, not a caption: it carries the branch glyph and a chevro
 local branches (`BranchList.cs`), each with the worktree path occupying it, re-read on every open. A branch
 can be deleted from there after a confirmation, since a branch may be the only copy of what it points at,
 except the one currently checked out and a workspace's branch; both say why on the disabled control, and
-the host refuses them again. Disabled delete icons stay dimmed on transparent backgrounds, matching idle
+the host refuses them again, as it does the project's default branch. One shared flow serves this list and
+plugins (`DeleteBranchAsync`): it refuses with a short message, confirms with the tip's short hash, counts the
+commits that stop being reachable for an unmerged branch and labels that button "Delete unmerged branch", and after
+a delete shows a toast naming the old tip whose Undo recreates the branch there. Disabled delete icons stay dimmed on transparent backgrounds, matching idle
 enabled icons. The list's Fetch brings every remote up to date without moving a local branch.
 
 Workspace descriptions wrap to at most three lines, with an ellipsis for overflow.
