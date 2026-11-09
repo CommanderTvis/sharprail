@@ -214,6 +214,7 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 | `LanguageServers` (per-server launcher: `command`, `arguments`, `allowPath`), JSON string | `state.json` | host | `Language/SPEC.md`, `LanguageServerOptions` comment |
 | `LanguageTools` (go, node, java paths), JSON string | `state.json` | host | `Language/SPEC.md` |
 | `LanguageLimits` (`idleMinutes`, `memoryBudgetMb`, `caps`), JSON string | `state.json` | host | `Language/SPEC.md` "limits" |
+| `TerminalMemory` (`enabled`, `perTerminalMb`, `totalMb`, `graceSeconds`, `protect`), JSON string | `state.json` | host | `Terminals.SPEC.md` "Memory guard" |
 | Per-workspace server configuration (init options, settings, autostart) | `state.json` `WorkspaceLanguages`, `ProjectLanguageAutostart` | workspace / project | `Language/SPEC.md`, `Language/CONFIGURATION.md` |
 | Shared server options (`autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`, `initializationOptions`, `settings`) | `<project>/.sharprail/language.toml`, `version = 1`, `[servers.<id>]` | project | `Language/SPEC.md` "Project language file" |
 | Hidden servers per project | `state.json` `ProjectLanguageHidden` | user, per project | `HostState.cs` comment |

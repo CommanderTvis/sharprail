@@ -234,6 +234,63 @@ including draining output while closing the pseudoconsole.
   release; refusals (pid 1, a shell, the host, a dead pid); and a record whose start time differs surviving both the
   stop and the sweep.
 
+## Memory guard
+
+SharpRail's own out-of-memory killer for the programs started in its terminals. The operating system gave the user none (macOS
+has no OOM killer at all), and a runaway compiler or test run can take the machine down before anything reacts. The guard lives in
+the host, so a headless host and a remote host protect their terminals exactly as the desktop host does; clients only show the result.
+
+What it watches. Every few seconds (3 s) the host measures each live terminal's process tree: every process below the terminal's
+shell, plus every process that kept the shell's session or controlling terminal after its parent exited (a build server is reparented
+to init once the command that started it returns, and would otherwise escape). The shell itself and the host are never counted as
+offenders and never ended. Memory is the physical footprint on macOS (what Activity Monitor shows) and the resident set elsewhere.
+Sampling uses system calls and the process filesystem; no process is launched per sample. With no terminal, the guard does nothing.
+
+Limits, host settings in Settings › Terminal, on by default and shared by every client of the host:
+
+- A per-terminal limit for the whole tree: automatic is a quarter of physical memory, never under 2 GiB and never over 32 GiB, or a fixed size.
+- A total limit across all terminals of the host: automatic is 60% of physical memory, or a fixed size.
+- System memory pressure (the macOS pressure level, less than a tenth of memory available on Linux, the runtime's high-load threshold
+  elsewhere) makes the guard act on the single biggest terminal, but only when that terminal uses at least half its own limit, so an
+  unrelated memory hog does not cost the user a small editor session.
+- A grace period (10 s) between asking a process to stop and killing it, and a list of protected program names.
+
+Escalation, never silent. Each terminal is in one of four states.
+
+1. Ok. Below 80% of its limit nothing is said.
+2. Warned. From 80% of the limit the terminal gets a warning naming it and its largest process ("Terminal in app uses 7.9 GB of 8 GB:
+   node"), once per crossing: the warning clears only below 70%, so a program hovering near the line does not repeat itself.
+3. Terminating. Above the limit the guard sends a stop request (SIGTERM; on Windows a close request) to the single largest process
+   below the shell and shows "SharpRail stopped node (4242) at 9.2 GB: terminal memory limit 8 GB". The process has the grace period.
+   If it is gone and the terminal is under the limit, the terminal is Ok again.
+4. Killing. After the grace period a process still running is killed (SIGKILL, on Windows terminated). On the next sample, if the terminal
+   is still over its limit, everything below the shell except protected programs is killed, children first, and the terminal says so.
+
+The shell and its PTY always survive, so the user keeps the terminal and its scrollback. Every step is written into the terminal as a
+line of output (it never reaches the shell's input), is sent to the host's clients as a notification, and is kept in a short list of
+recent events that the Processes pane shows with each terminal's memory against its limit. Android and browser clients show the notice
+and the notification and do nothing else. Program notifications switched off in Settings silence the desktop notification but not the
+line in the terminal or the Processes pane.
+
+Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp) is passed over for the largest
+other process, because the agent is what the user is working with; it is chosen only when nothing else is left or when it alone is at
+least twice as large as everything else. A protected program is never ended: if it is the largest, the terminal is only warned, once.
+Before the kill the guard checks the process is still the one it sampled (same start and name), so a reused pid is never hit.
+
+What the guard cannot do, honestly.
+
+- It samples. A program that allocates gigabytes between two samples overshoots the limit by that much before the guard sees it, and
+  the stop request then takes the grace period. The limits stop runaway growth, not a single enormous allocation; a machine that
+  runs out of memory inside one interval is beyond it.
+- It sees processes through parent links, the shell's session and its controlling terminal. A process that detached from all three
+  (a daemon that started its own session) is not counted and cannot be ended by the guard.
+- A hard per-process or per-terminal limit needs operating-system support, which the guard does not use. Windows Job Objects can enforce
+  one (a job memory limit on the terminal's process tree), and Linux can with a cgroup v2 memory limit when the user's cgroup is
+  delegated; both would make the system itself deny the allocation instead of the guard reacting afterwards. Neither is wired in. macOS has no equivalent.
+- The Windows implementation (toolhelp snapshot, working set, a close request then termination) is not exercised by the local checks;
+  only CI covers it.
+- Memory counted is what the system charges the process, not what the program thinks it uses; shared memory is counted once per process that maps it on Linux.
+
 ## Exit
 
 - Ghostty's default (`wait-after-command = false`, Surface.zig `childExited`) closes a surface when its
