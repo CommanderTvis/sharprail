@@ -7,7 +7,7 @@ These standalone harnesses exclude the workbench and terminal relay.
 Build from the repository root on macOS with Xcode tools installed:
 
 ```sh
-sh benchmarks/ghostty/build.sh
+dotnet run benchmarks/ghostty/build.cs
 ```
 
 Run only when measurements are requested, with an unlocked desktop, AC power,
