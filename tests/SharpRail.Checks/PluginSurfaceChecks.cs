@@ -764,9 +764,11 @@ internal static class PluginSurfaceChecks
             hostile.Open(2);
             Sync();
             Require(surface.Popups.Count == 1, "A popup that opens just after input shows.");
-            var popup = surface.Popups.Single();
+            // The popup is placed once the app has laid it out with its pixels; a hit test before that finds the empty layer.
+            var popup = Popup(surface);
             var layer = (Canvas)popup.Parent!;
             Require(Grid.GetRow(layer) == 1 && Grid.GetRowSpan(layer) == 1 && layer.ClipToBounds, "The popup layer takes the cell of the surface's holder, clipped to it.");
+            window.UpdateLayout();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Require(window.InputHitTest(new Point(390, 390)) is Visual inside && (inside == popup || popup.IsVisualAncestorOf(inside)), "The popup covers the surface's row.");
             Require(window.InputHitTest(new Point(20, 20)) is not Visual over || over != popup && !popup.IsVisualAncestorOf(over), "The popup does not reach the title row.");
