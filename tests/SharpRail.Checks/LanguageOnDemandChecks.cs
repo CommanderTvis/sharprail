@@ -128,6 +128,50 @@ internal static class LanguageOnDemandChecks
         Console.WriteLine("PASS language on demand: tools start the owning servers, report stopped and disabled servers actionably and never hang");
     }
 
+    /// <summary>The detail naming the wait for a workspace's cloned build outputs never outlives the wait: not when the clone finishes, nor when the wait times out.</summary>
+    internal static async Task CloneWait(string fixture)
+    {
+        const string waiting = "Waiting for the workspace's cloned build outputs";
+        var previous = LanguageLimits.CloneWait;
+        foreach (var timesOut in new[] { false, true })
+        {
+            var root = Path.Combine(fixture, "language-clone-wait-" + (timesOut ? "timeout" : "finished"));
+            await using var rig = new Rig(root);
+            await rig.StartAsync();
+            var source = Path.Combine(root, "source");
+            Directory.CreateDirectory(source);
+            var release = new TaskCompletionSource();
+            var clone = WorkspaceClone.StartConfigured(source, rig.Workspace, primers: [(_, _, _) => release.Task]);
+            try
+            {
+                LanguageLimits.CloneWait = timesOut ? TimeSpan.FromMilliseconds(600) : TimeSpan.FromSeconds(30);
+                await rig.State.Languages.ExecuteAsync(new(rig.Workspace, Operation: "status", Server: "typescript"));
+                await Until(async () => (await rig.Row("typescript")).Detail.Contains(waiting, StringComparison.Ordinal), "the server to say it waits for the clone");
+                if (!timesOut) release.SetResult();
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                while (true)
+                {
+                    var row = await rig.Row("typescript");
+                    if (row.State == "ready") break;
+                    if (DateTime.UtcNow > deadline) throw new TimeoutException("The server never became ready after the clone wait ended: " + row.State + " " + row.Detail);
+                    if (!row.Detail.Contains(waiting, StringComparison.Ordinal)) break;
+                    await Task.Delay(30);
+                }
+                if (timesOut)
+                {
+                    // Past the timeout the server starts without the clone, which is still running.
+                    Require(!clone.IsCompleted, "The clone ended before the wait timed out.");
+                    release.SetResult();
+                }
+                await clone;
+                var after = await rig.Row("typescript");
+                Require(!after.Detail.Contains(waiting, StringComparison.Ordinal), "The wait's detail outlived the wait (" + (timesOut ? "timed out" : "finished") + "): " + after.Detail);
+            }
+            finally { LanguageLimits.CloneWait = previous; release.TrySetResult(); await clone; }
+        }
+        Console.WriteLine("PASS language clone wait: the waiting detail is gone once the wait finished or timed out");
+    }
+
     private static async Task Until(Func<Task<bool>> condition, string what)
     {
         var deadline = DateTime.UtcNow.AddSeconds(30);
