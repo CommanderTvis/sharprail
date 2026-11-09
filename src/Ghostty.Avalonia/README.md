@@ -19,13 +19,13 @@ content. Skia rendering uses Avalonia's chosen Skia backend.
 ## Build and reuse
 
 Windows invokes `build-windows.ps1` and produces `GhosttyAvaloniaVt.dll` from the
-same pinned VT source using Zig 0.16.0. Only `GhosttySkiaView` is supported there;
+same pinned VT source using Zig 0.17.1. Only `GhosttySkiaView` is supported there;
 clipboard writes use the Avalonia callback. The build needs Git, PowerShell and
 Windows' tar, and downloads its compiler and source into the machine-wide cache described below. When reusing the
 directory outside SharpRail on Windows, also copy `scripts/windows-native.ps1`
 to the matching relative location for its download and locking helpers.
 
-Linux invokes `build-linux.sh linux-x64` or `linux-arm64`, which builds the same pinned VT source with Zig 0.16.0 for `x86_64-linux-gnu.2.31` or `aarch64-linux-gnu.2.31` from
+Linux invokes `build-linux.sh linux-x64` or `linux-arm64`, which builds the same pinned VT source with Zig 0.17.1 for `x86_64-linux-gnu.2.31` or `aarch64-linux-gnu.2.31` from
 any macOS or Linux host and links `libGhosttyAvaloniaVt.so` (stripped, exporting only `gav_*`; it needs libc only). Only
 `GhosttySkiaView` is supported there, with the Avalonia clipboard callback as on Windows.
 
@@ -51,8 +51,8 @@ Every native build (macOS, Linux, Windows, Android, WASM) first restores the Zig
 github.com into Zig's global cache with `scripts/zig-deps.sh` (`Restore-ZigDeps` on Windows) from a mirror archive
 pinned by SHA-256 in `scripts/zig-deps.lock`, so CI does not depend on codeberg.org.
 It restores only absent packages and falls back to the upstream URLs; see `scripts/README.md`.
-The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commit
-`59c2dc032aba42aa5064bf206cc27286add3e9d8`. See `licenses/Ghostty-MIT.txt`.
+The native view and the VT library are built from the one Ghostty commit
+`0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec` (`vt-1.0.0`, the first libghostty-vt release) with the one Zig of `mise.toml`. See `licenses/Ghostty-MIT.txt`.
 
 `build-android.sh <arm64-v8a|x86_64> [output-directory]` cross-builds the same pinned
 VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
@@ -191,11 +191,6 @@ view and requests the reclaim after five seconds (`DefaultReclaimDelay`), cancel
 locked output parser through the C ABI. It creates no subprocess, socket or RPC
 transport. SharpRail's local Metal and Skia factories both attach directly to the
 app-owned host service; remote Metal retains its authenticated relay.
-
-`ScrollbackMemory.patch` fixes the pinned native Ghostty's recycling of enlarged
-scrollback pages. It preserves their allocation size and capacity so repeated
-ANSI/Unicode scrolling does not lose allocations. Both native Metal controls
-use this patch; it does not reduce the scrollback limit.
 
 ## Prompts
 

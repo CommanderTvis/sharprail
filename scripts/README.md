@@ -91,7 +91,7 @@ checkout and worktree of the user shares, so checkouts at the same pin share one
 checkouts valid. mise installs into a temporary directory and renames it, under its own lock, so concurrent installs are
 safe. There is no bootstrap step and no link in the checkout: a task installs the tools it needs on first use, tasks and
 `scripts/mise x -- <command>` get them on PATH, and `scripts/tool <name>` (`scripts\tool.cmd` on Windows) prints a tool's
-directory (installing it first when missing): `dotnet`, `zig-0.14.1`, `zig-0.16.0`, `merman`, `jdk`, `appimagetool`,
+directory (installing it first when missing): `dotnet`, `zig-0.17.1`, `merman`, `jdk`, `appimagetool`,
 `appimage-runtime`, and from the android and browser mise files `android-ndk`, `merman-android`, `node`,
 `binaryen`, `pdfium-wasm`. The SDK directory stays writable because `dotnet workload install` adds packs to it; those
 installs are serialised with a lock (`scripts/tasks/workload.sh`).

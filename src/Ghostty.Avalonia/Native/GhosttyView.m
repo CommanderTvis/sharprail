@@ -333,7 +333,7 @@ static void *create_view(const char *directory, const char *clipboard_directory,
     if (environment_name && environment_value) { config.env_vars = &variable; config.env_var_count = 1; }
     view.surface = ghostty_surface_new(app, &config);
     if (!view.surface) return NULL;
-    // Ghostty 1.2.3 presents Metal-rendered textures through its IOSurfaceLayer.
+    // Ghostty presents Metal-rendered textures through its IOSurfaceLayer.
     if (![NSStringFromClass(view.layer.class) isEqualToString:@"IOSurfaceLayer"]) {
         ghostty_surface_free(view.surface); return NULL;
     }

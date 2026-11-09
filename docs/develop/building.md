@@ -4,7 +4,7 @@ From a source checkout; [Machine setup](setup.md) lists what to install per plat
 repo provisions itself. macOS builds need the Xcode command-line tools, LLVM at
 `/opt/homebrew/opt/llvm`, and its Metal Toolchain
 (`xcodebuild -downloadComponent MetalToolchain`). The first build downloads pinned
-Ghostty 1.2.3, Zig 0.14.1 and Merman into machine-wide caches shared by every checkout. No installed
+Ghostty (libghostty-vt 1.0.0), Zig 0.17.1 and Merman into machine-wide caches shared by every checkout. No installed
 Ghostty application is required.
 
 ```sh

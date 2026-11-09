@@ -625,16 +625,16 @@ own terminal state keeps, so local and remote terminals behave alike.
 - Command output (Ghostty's `Screen.selectOutput`; gesture from Ghostty's `Surface.zig`): Command+triple-click on macOS
   (Ctrl+triple-click elsewhere) on a command's output selects exactly that output, from its first output row to the last
   non-blank row before the next prompt; prompt and input rows select nothing. Metal answers through
-  `gav_ghostty_command_output` (Native/prompt-surface.zig, prompts.zig; Ghostty 1.2.3 did not apply the gesture to events
+  `gav_ghostty_command_output` (Native/prompt-surface.zig, prompts.zig; the native Ghostty did not apply the gesture to events
   the view forwards, so the view selects on Avalonia's third click itself); Skia uses libghostty-vt's
   `ghostty_terminal_select_output` and the gesture's output behaviour. Skia's repeat clicks now carry Ghostty's 500 ms
   interval and one-cell distance; without them double and triple clicks never counted.
 - Click to move (Ghostty's `cursor-click-to-move`, default true; a plain click since Ghostty's current docs, Option+click in
-  1.2.3): a plain click without dragging or selecting, on the input line while the shell waits for input (OSC 133 B
+  older Ghostty): a plain click without dragging or selecting, on the input line while the shell waits for input (OSC 133 B
   written, C not yet), sends the left or right arrows (cursor-keys mode respected) that move the shell's cursor there; a
   click past the text stops one cell after it. Never on the alternate screen, while a program tracks the mouse, or while a
   command runs. Skia follows Ghostty's `Screen.promptClickLine` over libghostty-vt's input cells (`gav_vt_prompt_click`);
-  Metal's Ghostty 1.2.3 marks only rows, so `gav_ghostty_prompt_click` counts the cells of the cursor's soft-wrapped line
+  Metal's Ghostty marks rows, not input cells, so `gav_ghostty_prompt_click` counts the cells of the cursor's soft-wrapped line
   and cannot tell prompt text on that row from input (a click on the prompt moves to the input's start, where the shell
   stops). Both views expose `ClickToMoveCursor`. A Skia release now ends the selection gesture before releasing the
   pointer capture, which had reset it first.
@@ -642,7 +642,7 @@ own terminal state keeps, so local and remote terminals behave alike.
 - Failed commands: a command whose OSC 133 D carries a non-zero exit code gets a small badge (the theme's ANSI red,
   3 px) in the left gutter beside its command line, which follows it as it scrolls; successful and unreported exits get
   none. Skia tracks the command line with a libghostty-vt tracked grid reference from B through D
-  (`gav_vt_failed_rows`); Metal's Ghostty 1.2.3 ignored D, so `CommandEnd.patch` marks the row (`Row.command_failed`)
+  (`gav_vt_failed_rows`); Metal's Ghostty does not mark failed commands, so `CommandEnd.patch` marks the row (`Row.command_failed`)
   and `gav_ghostty_failed_rows` reports the visible ones on each frame notification, drawn as an overlay in the gutter
   (it can trail the text by a frame, never covering a glyph). There is no scrollbar mark yet. Both views expose
   `FailedCommandRows`; the checks cover both.
