@@ -228,13 +228,18 @@ internal static class LanguageChecks
             await GitRepository.RunAsync(root, default, "commit", "-m", "language fixture");
             var childRecord = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(root, "Inherited LSP")))!;
             var child = childRecord.Path;
+            // A created workspace starts no server by itself; its first request does.
+            await host.LanguageAsync(new(child, Operation: "status", Server: "typescript"));
             using (var startup = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 while ((await host.LanguageAsync(new(child, Operation: "servers"), startup.Token)).Servers.Single(item => item.Id == "typescript").State != "ready")
                     await Task.Delay(30, startup.Token);
             var childInit = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(child, ".tools", "initialize.json")))!;
             Require(childInit["initializationOptions"]!["fixture"]!.ToString() == child + "/lib", "Inherited startup did not rebase workspace-relative paths.");
             var inherited = await host.LanguageAsync(new(child, Operation: "configuration", Server: "typescript"));
-            Require(inherited.Configuration == savedConfig.Configuration, "New workspace did not inherit Default configuration.");
+            // A created workspace inherits the options but not autoStart, which belongs to the Default workspace.
+            var expectedInherited = JsonNode.Parse(savedConfig.Configuration)!.AsObject();
+            expectedInherited.Remove("autoStart");
+            Require(JsonNode.DeepEquals(JsonNode.Parse(inherited.Configuration), expectedInherited), "New workspace did not inherit Default configuration without autoStart: " + inherited.Configuration);
             await host.LanguageAsync(new(child, Operation: "configure", Server: "typescript", Configuration: "{}"));
             Require((await host.LanguageAsync(new(root, Operation: "configuration", Server: "typescript"))).Configuration == savedConfig.Configuration, "Editing the child changed Default configuration.");
             await host.LanguageAsync(new(child, Operation: "stop", Server: "typescript"));
