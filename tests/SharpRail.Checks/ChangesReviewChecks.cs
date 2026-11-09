@@ -228,7 +228,8 @@ internal static class ChangesReviewChecks
             Click("ReviewSplit"); Split(pane.DiffFor("code.cs")!);
             Require(ReferenceEquals(preview, pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single()),
                 "Source layout changes leave the rendered Markdown control and its state intact.");
-            window.Height = 180;
+            // Bodies stay mounted up to three viewports ahead, so the window must be short enough to put code.cs beyond that.
+            window.Height = 120;
             var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
             scroll.Offset = default;
             Until(() => pane.DiffFor("code.cs") is null);
