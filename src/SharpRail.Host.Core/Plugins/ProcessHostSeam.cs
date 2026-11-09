@@ -67,5 +67,11 @@ internal sealed class ProcessHostSeam(HostStateStore state) : IProcessHost
         else await ProcessTable.EndAsync(new Dictionary<int, string> { [pid] = command }, TimeSpan.FromSeconds(3), Posix.Sigterm);
     }
 
+    public (long Bytes, long Limit, string State, string Largest)? TerminalMemory(TerminalRef terminal) =>
+        state.Terminals?.GuardOf(terminal).Usage is { } usage ? (usage.Bytes, usage.Limit, usage.State.ToString(), usage.Largest) : null;
+
+    public IReadOnlyList<(DateTimeOffset At, TerminalRef? Terminal, string Text)> MemoryGuardEvents() =>
+        state.Terminals is { MemoryGuard: { } guard } terminals ? [.. guard.Events().Select(item => (item.At, terminals.TerminalOf(item.Session), item.Text))] : [];
+
     public void ManageOwned(bool enabled) => Owned?.SetEnabled(enabled);
 }

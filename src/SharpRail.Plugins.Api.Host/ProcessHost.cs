@@ -63,6 +63,15 @@ public interface IProcessHost
     /// <returns>A task that completes when the process is gone or the escalation ended.</returns>
     ValueTask StopProcessAsync(int pid, string command, CancellationToken cancellationToken);
 
+    /// <summary>A terminal's memory guard reading: the memory of its process tree, its limit, the guard state (Ok, Warned, Terminating or Killing) and the largest process; null where nothing guards it.</summary>
+    /// <param name="terminal">The terminal.</param>
+    /// <returns>The reading, or null.</returns>
+    (long Bytes, long Limit, string State, string Largest)? TerminalMemory(TerminalRef terminal) => null;
+
+    /// <summary>The memory guard's recent events, oldest first: when, the terminal's tab (null when it is gone) and the text the terminal showed.</summary>
+    /// <returns>The events.</returns>
+    IReadOnlyList<(DateTimeOffset At, TerminalRef? Terminal, string Text)> MemoryGuardEvents() => [];
+
     /// <summary>
     /// Switches agent-owned process management on: reported processes are stopped with their terminal and on quit, and records of dead
     /// hosts are swept now. While it is off nothing can be reported and nothing is stopped.

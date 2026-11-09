@@ -70,9 +70,21 @@ public sealed class ProcessesHost : PluginHostModule
             var terminals = shells.Select(shell =>
             {
                 var index = perWorkspace[shell.Terminal.WorkspaceId] = perWorkspace.GetValueOrDefault(shell.Terminal.WorkspaceId) + 1;
-                return new TerminalInfo(shell.Terminal, shell.Pid, context.AgentRecord(shell.Terminal)?.Kind, $"tab {index}", context.TerminalTitle(shell.Terminal));
+                return new TerminalInfo(shell.Terminal, shell.Pid, context.AgentRecord(shell.Terminal)?.Kind, $"tab {index}", context.TerminalTitle(shell.Terminal), MemoryText(shell.Terminal));
             }).Concat(context.ListAgentSessions().Select(session => new TerminalInfo(new(session.WorkspaceId, "chat:" + session.Id), session.Pid, session.Agent, "chat", session.Title))).ToArray();
-            return new(terminals, processes.Table(), processes.LanguageServers(), processes.OwnedProcesses(), processes.LanguageServerName) { Workers = OperatingSystem.IsBrowser() };
+            return new(terminals, processes.Table(), processes.LanguageServers(), processes.OwnedProcesses(), processes.LanguageServerName)
+            {
+                Workers = OperatingSystem.IsBrowser(),
+                GuardEvents = [.. processes.MemoryGuardEvents().Select(item => (item.At, item.Text))]
+            };
+        }
+
+        // "memory 2.1 of 8 GB", with the guard's state when it is not Ok: how the terminal's tree stands against its limit.
+        private string? MemoryText(TerminalRef terminal)
+        {
+            if (processes.TerminalMemory(terminal) is not { } memory) return null;
+            static string Gb(long bytes) => (bytes / (double)(1L << 30)).ToString(bytes >= 10L << 30 ? "0" : "0.#", System.Globalization.CultureInfo.InvariantCulture);
+            return $"memory {Gb(memory.Bytes)} of {Gb(memory.Limit)} GB" + (memory.State == "Ok" ? "" : " (" + memory.State.ToLowerInvariant() + ")");
         }
 
         public (TimeSpan Cpu, long MemoryBytes)? Usage(int pid) => processes.Usage(pid);

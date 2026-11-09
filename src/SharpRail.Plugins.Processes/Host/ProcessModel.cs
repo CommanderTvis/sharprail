@@ -5,7 +5,7 @@ using SharpRail.Plugins.Api;
 namespace SharpRail.Plugins.Processes.Host;
 
 /// <summary>A terminal as the model sees it: its shell, the agent the roster records for it (null for none) and its tab label and the title the tab shows (null for none).</summary>
-internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string? AgentKind, string Tab, string? Title = null);
+internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string? AgentKind, string Tab, string? Title = null, string? Memory = null);
 
 /// <summary>Everything one snapshot is built from; the host fills it from the real sources and checks from fakes.</summary>
 internal sealed record ProcessInputs(
@@ -17,6 +17,9 @@ internal sealed record ProcessInputs(
 {
     /// <summary>A browser tab: its language servers are Web Workers and there are no terminals' processes, so only that group is built.</summary>
     internal bool Workers { get; init; }
+
+    /// <summary>The memory guard's recent events, oldest first: when and what the terminal showed.</summary>
+    internal IReadOnlyList<(DateTimeOffset At, string Text)> GuardEvents { get; init; } = [];
 }
 
 /// <summary>What a stop on a row does: end a process, or stop a language server through the language service.</summary>
@@ -45,7 +48,7 @@ internal static class ProcessModel
     /// <summary>How long a process of a terminal without an agent must have been running to be listed; shorter ones are commands that come and go.</summary>
     internal static readonly TimeSpan LongRunning = TimeSpan.FromSeconds(10);
 
-    internal const string LanguageGroup = "group:language", AgentGroup = "group:agents", SpawnedGroup = "group:spawned";
+    internal const string LanguageGroup = "group:language", AgentGroup = "group:agents", SpawnedGroup = "group:spawned", GuardGroup = "group:guard";
     private static readonly string[] AgentExecutables = ["claude", "codex", "omp"];
 
     private sealed class Row(string id, string kind, string label, string detail, int? pid, StopTarget? stop, string? workspace)
@@ -91,14 +94,14 @@ internal static class ProcessModel
                 if (rootPid is { } pid && claimed.Add(pid))
                 {
                     var command = table.TryGetValue(pid, out var row) ? row.Command : "";
-                    root = new($"agent:{workspace}\0{terminal.Terminal.TabKey}", "agent", terminal.Title is { Length: > 0 } title ? title : name, Describe(pid, $"{terminal.Tab} · {workspaceLabel(workspace)}", command), pid, new(pid, command, null, null), workspace);
+                    root = new($"agent:{workspace}\0{terminal.Terminal.TabKey}", "agent", terminal.Title is { Length: > 0 } title ? title : name, Describe(pid, $"{terminal.Tab} · {workspaceLabel(workspace)}" + MemoryNote(terminal), command), pid, new(pid, command, null, null), workspace);
                     agents.Children.Add(root);
                     subtree = Descendants(children, pid);
                 }
             }
             // Spawned agents: agent processes below the terminal, nested under the nearest agent process above them; the owned
             // processes it reported hang from the process that reported them (the terminal's parent row).
-            var starter = new Row($"parent:{workspace}\0{terminal.Terminal.TabKey}", "parent", $"of {name} · {terminal.Tab}", workspaceLabel(workspace), null, null, workspace);
+            var starter = new Row($"parent:{workspace}\0{terminal.Terminal.TabKey}", "parent", $"of {name} · {terminal.Tab}", workspaceLabel(workspace) + MemoryNote(terminal), null, null, workspace);
             // Under a recognised agent every process forked from it hangs below its row; otherwise only agent-like processes are listed.
             var holder = root ?? starter;
             var nested = new Dictionary<int, Row>();
@@ -126,7 +129,12 @@ internal static class ProcessModel
             if (starter.Children.Count > 0) spawned.Children.Add(starter);
         }
 
-        Row[] shown = inputs.Workers ? [languages] : [languages, agents, spawned];
+        // The memory guard's events, newest first, under a group that exists only while there are some.
+        var guard = new Row(GuardGroup, "group", "Memory guard", "", null, null, null);
+        var number = 0;
+        foreach (var (at, text) in inputs.GuardEvents.Reverse())
+            guard.Children.Add(new($"guard:{number++}", "event", text, at.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture), null, null, null));
+        Row[] shown = inputs.Workers ? [languages] : inputs.GuardEvents.Count > 0 ? [languages, agents, spawned, guard] : [languages, agents, spawned];
         foreach (var group in shown) Nest(group);
         var stops = new Dictionary<string, StopTarget>(StringComparer.Ordinal);
         var live = new HashSet<string>(StringComparer.Ordinal);
@@ -182,6 +190,8 @@ internal static class ProcessModel
 
     private static string Describe(int pid, string where, string command, TimeSpan? elapsed = null, string noun = "pid") =>
         string.Join(" · ", new[] { noun + " " + pid.ToString(CultureInfo.InvariantCulture), where, elapsed is { } age ? "up " + Uptime(age) : "", Shorten(command) }.Where(part => part.Length > 0));
+
+    private static string MemoryNote(TerminalInfo terminal) => terminal.Memory is { Length: > 0 } memory ? " · " + memory : "";
 
     private static string Uptime(TimeSpan age) => age.TotalDays >= 1 ? $"{(int)age.TotalDays}d {age.Hours}h" : age.TotalHours >= 1 ? $"{(int)age.TotalHours}h {age.Minutes}m" : age.TotalMinutes >= 1 ? $"{(int)age.TotalMinutes}m" : $"{(int)age.TotalSeconds}s";
 
