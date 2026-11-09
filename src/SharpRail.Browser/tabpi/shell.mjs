@@ -1,5 +1,5 @@
 // The Playground's shell: just-bash, a simulated bash, over the tab's own file system and Git. One shell serves Pi's
-// `bash` tool; each terminal tab gets its own behind a small line editor. Bundled into vendor/tabpi.js by browser-assets.mjs.
+// `bash` tool; each terminal tab gets its own behind a small line editor. Bundled into vendor/tabpi.js by browser-assets.cs.
 import { Bash, defineCommand } from 'just-bash/browser';
 
 const encoder = new TextEncoder();

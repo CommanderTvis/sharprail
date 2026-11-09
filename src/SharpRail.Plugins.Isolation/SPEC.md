@@ -16,7 +16,7 @@ The trusted side's half of the isolated runtime that does not depend on what a p
 lent across it, and the process at its other end. [Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md) under
 "The channel and the runner process" states the protocol and the process rules; this project implements them.
 
-- `IsoFrame` and `IsoCodec.Generated.cs` (from `scripts/generate-rpc.py`), `IsoWire` (framing and limits).
+- `IsoFrame` and `IsoCodec.Generated.cs` (from `scripts/generate-rpc.cs`), `IsoWire` (framing and limits).
 - `FdTransport`: the framed stream and its descriptors, a Unix socket with SCM_RIGHTS or a Windows named pipe with
   handles duplicated into the runner. `FdTransport.Loopback` gives the checks a host end and a raw stream.
 - `IsolationPeer`: one end of the channel, the same code on both sides (`IsolationRole` decides id parity and

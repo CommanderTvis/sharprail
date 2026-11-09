@@ -28,7 +28,7 @@ Host.Protocol SPEC lists under Payload codec.
 
 ## Codecs
 
-`scripts/generate-rpc.py` emits one codec per root, from the `[ProtoContract]` classes in that project's directory:
+`scripts/generate-rpc.cs` emits one codec per root, from the `[ProtoContract]` classes in that project's directory:
 `src/SharpRail.Host.Protocol/RpcCodec.Generated.cs` and `src/SharpRail.Plugins.Isolation/IsoCodec.Generated.cs`.
 Repeated `long` fields (unpacked, one field per item) are a shape only the plugin channel uses. A `double` is
 fixed64 (a fixed32 `float` widens on read); the RPC's plugin surface messages use it. The move from

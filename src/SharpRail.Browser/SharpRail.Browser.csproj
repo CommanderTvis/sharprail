@@ -99,7 +99,7 @@
   </ItemGroup>
   <Import Project="BrowserAot.targets" />
   <Target Name="CompressBrowserBundle" AfterTargets="_WasmBuildAppCore" Condition="'$(Configuration)' == 'Release' and '$(WasmGenerateAppBundle)' == 'true'">
-    <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.mjs&quot; &quot;$(WasmAppDir)&quot;" />
+    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.cs&quot; -- &quot;$(WasmAppDir)&quot;" />
   </Target>
   <ItemGroup>
     <WasmNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/Native/Wasm.patch;../../scripts/wasm-native.sh;../../mise.lock;../../mise.browser.lock" />
@@ -122,13 +122,13 @@
       <WasmExtraFilesToDeploy Include="@(TailscaleWasmAsset)" TargetPath="tailscale/%(TailscaleWasmAsset.RecursiveDir)%(TailscaleWasmAsset.Filename)%(TailscaleWasmAsset.Extension)" />
     </ItemGroup>
   </Target>
-  <!-- The vendored assets come from the pnpm lockfile, the PDFium pin, the licence files and the tab's Pi agent sources. -->
+  <!-- The vendored assets come from the npm lockfile, the PDFium pin, the licence files and the tab's Pi agent sources. -->
   <ItemGroup>
-    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../LICENSE;../../NOTICE;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/licenses/**;../SharpRail.Scintilla/licenses/**;../*/NOTICE.md" />
+    <BrowserAssetSource Include="package-lock.json;package.json;tabpi/**;../../scripts/browser-assets.cs;../../mise.browser.lock;../../LICENSE;../../NOTICE;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/licenses/**;../SharpRail.Scintilla/licenses/**;../*/NOTICE.md" />
   </ItemGroup>
   <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
           Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">
-    <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
+    <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) &quot;$(DOTNET_HOST_PATH)&quot; run &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.cs&quot;" />
   </Target>
   <Target Name="IncludeBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="StageBrowserAssets">
     <ItemGroup>

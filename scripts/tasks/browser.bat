@@ -25,7 +25,7 @@ if /i "%ACTION%"=="check" (
   "%DOTNET%" build src\SharpRail.Host.Remote -c %CONFIG% -m:2 || exit /b 1
   "%DOTNET%" build src\SharpRail.Browser -c %CONFIG% -m:2 -p:BrowserChecks=true || exit /b 1
   pushd src\SharpRail.Browser
-  call pnpm exec playwright install chromium
+  call npx playwright install chromium
   set "INSTALLED=!errorlevel!"
   popd
   if not "!INSTALLED!"=="0" exit /b 1

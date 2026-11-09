@@ -112,7 +112,7 @@ project: local adapters call Core directly, with no serialization.
 
 - Code-first contracts rather than `.proto` files: C# interfaces and `[ProtoContract]` classes are the
   schema, shared by the server and the client proxies, so there is no `.proto` compilation;
-  `scripts/generate-rpc.py` derives the clients, the dispatch table and the payload codec from them.
+  `scripts/generate-rpc.cs` derives the clients, the dispatch table and the payload codec from them.
 - RPC adapters implement these interfaces directly, so missing or mistyped methods fail compilation;
   no separate string-keyed method registry needs synchronization with the wire contract.
 - Snapshots, not deltas. Every state reply and broadcast is the complete
@@ -210,7 +210,7 @@ carry the bytes and return the same host path, never a client-local file path.
 Every remote client uses `/rpc` with the required `sharprail.rpc.v1` WebSocket subprotocol.
 Binary protobuf envelopes carry call ids, method names, request metadata, remaining deadline budgets,
 payload chunks, half-close, final status/error metadata, cancellation, receive credits and heartbeats.
-`scripts/generate-rpc.py` generates typed clients and a closed host dispatch table from the interfaces;
+`scripts/generate-rpc.cs` generates typed clients and a closed host dispatch table from the interfaces;
 there is no runtime proxy generation and no gRPC dependency or loopback forwarding.
 
 Each connection allows at most 64 active calls and queues at most 64 outgoing frames. Payload chunks
@@ -230,7 +230,7 @@ protocol; the old HTTP/2 gRPC wire format is not accepted.
 ### Payload codec
 
 Messages are protobuf, encoded and decoded by `RpcCodec.Generated.cs`: one write and one read method per
-`[ProtoContract]` class, emitted by `scripts/generate-rpc.py` and registered once per message type, with
+`[ProtoContract]` class, emitted by `scripts/generate-rpc.cs` and registered once per message type, with
 the hand-written wire primitives in `src/SharpRail.Wire/ProtoWire.cs`. Those primitives moved there unchanged so the
 plugin channel (`SharpRail.Plugins.Isolation`) encodes its frames the same way; they stay internal, visible only to
 this project and the isolation project, and `--rpc-codec` passing against the golden records proves the move kept

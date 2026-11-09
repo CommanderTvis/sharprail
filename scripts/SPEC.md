@@ -29,7 +29,7 @@ trusted through `MISE_TRUSTED_CONFIG_PATHS`) and otherwise the checksum-pinned m
 `mise generate install-script`) into mise's data directory, which is what CI uses. The files in `scripts/tasks` are the tasks' implementations; `tool`/`tool.cmd` and
 `fetch-git.sh` are the only lookup/fetch code of our own, for what mise cannot express: printing where a pinned tool is installed (and installing it when missing), and sources pinned by Git commit. NuGet restores are locked (`packages.lock.json` per project,
 `nuget.org` only, `RestoreLockedMode` in `[env]`); only `restore:update` rewrites the locks, and the Android and
-Browser projects are excluded from locking (see `README.md`). `benchmark.mjs` with its `window-probe.m` helper (launch timing,
+Browser projects are excluded from locking (see `README.md`). `benchmark.cs` with its `window-probe.m` helper (launch timing,
 only when a benchmark is requested) stays outside the task set.
 
 The artifact matrix, the one statement of which native libraries, terminal renderer and publish task each

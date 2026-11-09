@@ -9,7 +9,7 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
 | `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
 | `src/SharpRail.Host.Core/Plugins` | Plugin runtime (`PluginRuntime` implements `IPluginService`): discovery of `<stateDir>/plugins` and `PluginPaths`, manifest intake, load contexts, registry, reconciler, dispatch, settings namespaces and MCP tools, composed from `PluginHostSeams`. |
-| `src/SharpRail.Host.Protocol` | Typed service contracts, protobuf wire DTOs and reconnectable WebSocket RPC peers; generated client services and the payload codec come from `scripts/generate-rpc.py`. |
+| `src/SharpRail.Host.Protocol` | Typed service contracts, protobuf wire DTOs and reconnectable WebSocket RPC peers; generated client services and the payload codec come from `scripts/generate-rpc.cs`. |
 | `src/SharpRail.Wire` | The internal protobuf writer, reader and message registry the generated codecs use, shared by Host.Protocol and the plugin channel through `InternalsVisibleTo`. |
 | `src/SharpRail.Plugins.Isolation` | The plugin channel: `IsoFrame` (generated codec), `IsolationPeer`, `HandleTable`, `FdTransport`, `ChildProcess` and `RunnerSession`, which start a plugin runner with only its channel and a captured log. No Avalonia. |
 | `src/SharpRail.Plugins.Runner` | The `SharpRail.PluginRunner` executable, the JIT process an external plugin will run in; today only `probe` modes. The one `src` project that is not NativeAOT-analyzed. |

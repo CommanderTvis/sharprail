@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const scratch = path.join(root, '.bench/wasm-compression');
 const bytes = Buffer.from('Browser assets λ\n'.repeat(4096));
 const cache = path.join(scratch, '.cache');
-const compress = () => execFileSync(process.execPath, [path.join(root, 'scripts/browser-compress.mjs'), scratch, cache], { stdio: 'inherit' });
+const compress = () => execFileSync('dotnet', ['run', path.join(root, 'scripts/browser-compress.cs'), '--', scratch, cache], { stdio: 'inherit' });
 try {
   await fs.mkdir(path.join(scratch, '_framework'), { recursive: true });
   const file = path.join(scratch, '_framework/runtime.wasm');

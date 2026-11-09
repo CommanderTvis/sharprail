@@ -46,7 +46,7 @@ the standalone host negotiates sidecars without request-time compression. See th
 [browser README](../src/SharpRail.Browser/README.md) for measured sizes,
 the interpreted diagnostic override and the optional prose performance journey.
 It installs the `wasm-experimental` workload when the
-multithreaded browser runtime pack is missing. Browser builds install Node, pnpm, uv and
+multithreaded browser runtime pack is missing. Browser builds install Node (with its npm) and
 Binaryen through mise (`scripts/tool`), and need Git and a macOS or Linux build host.
 
 | Command | Purpose and output |
@@ -78,7 +78,7 @@ native libraries, terminal renderer, publish task and package each target has).
 
 `mise.toml` is the manifest: the .NET SDK (`global.json` must name the same version), both Zig toolchains,
 Merman, the Temurin JDK 21 and the pinned Ghostty commits; `mise.android.toml` pins the
-NDK and Merman's Android archive, `mise.browser.toml` Node, pnpm, uv and Binaryen. `mise.lock`, `mise.android.lock` and
+NDK and Merman's Android archive, `mise.browser.toml` Node and Binaryen. `mise.lock`, `mise.android.lock` and
 `mise.browser.lock` record the resolved version and SHA-256 of every archive for every platform and are
 committed (`scripts/mise lock` refreshes them; CI sets `MISE_LOCKED=1`, which refuses anything not in them).
 The .NET SDK is an `http:dotnet` tool for the same reason: mise's core dotnet tool records no URL or checksum, so
@@ -92,7 +92,7 @@ checkouts valid. mise installs into a temporary directory and renames it, under 
 safe. There is no bootstrap step and no link in the checkout: a task installs the tools it needs on first use, tasks and
 `scripts/mise x -- <command>` get them on PATH, and `scripts/tool <name>` (`scripts\tool.cmd` on Windows) prints a tool's
 directory (installing it first when missing): `dotnet`, `zig-0.14.1`, `zig-0.16.0`, `merman`, `jdk`, `appimagetool`,
-`appimage-runtime`, and from the android and browser mise files `android-ndk`, `merman-android`, `node`, `pnpm`, `uv`,
+`appimage-runtime`, and from the android and browser mise files `android-ndk`, `merman-android`, `node`,
 `binaryen`, `pdfium-wasm`. The SDK directory stays writable because `dotnet workload install` adds packs to it; those
 installs are serialised with a lock (`scripts/tasks/workload.sh`).
 
@@ -159,7 +159,7 @@ on macOS (measures the packages from a real build into `.bench/zig-deps`), then 
 and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
-`browser-assets.mjs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
+`browser-assets.cs` (the browser project's `StageBrowserAssets` target, rerun when `package-lock.json`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
 `src/SharpRail.Browser/wwwroot/vendor`.
 
 ## Android
@@ -243,16 +243,16 @@ The available focused modes and verification rules are documented in
 
 | File | Invocation and purpose |
 | --- | --- |
-| `generate-rpc.py` | `scripts/mise run rpc` regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`, and a protobuf payload codec per codec root from every `[ProtoContract]` class in that project: `src/SharpRail.Host.Protocol/RpcCodec.Generated.cs` and the plugin channel's `src/SharpRail.Plugins.Isolation/IsoCodec.Generated.cs`. It stops with an error on a member declaration or type it cannot encode. It edits tracked source; review and format the generated diff, then run the `--rpc-codec` check. |
-| `pin-dotnet-sdk.py` | `uv run --no-project python scripts/pin-dotnet-sdk.py <sdk versions> [--rids ...]` downloads each .NET SDK archive named in the official release metadata, requires the publisher's SHA-512 to match, deletes the download and prints the `ManagedRuntimes` pin entries with our SHA-256. Paste the reviewed output into `ManagedRuntimes.cs`. |
+| `generate-rpc.cs` | `scripts/mise run rpc` (`dotnet run scripts/generate-rpc.cs`) regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`, and a protobuf payload codec per codec root from every `[ProtoContract]` class in that project: `src/SharpRail.Host.Protocol/RpcCodec.Generated.cs` and the plugin channel's `src/SharpRail.Plugins.Isolation/IsoCodec.Generated.cs`. It stops with an error on a member declaration or type it cannot encode. It edits tracked source; review and format the generated diff, then run the `--rpc-codec` check. |
+| `pin-dotnet-sdk.cs` | `dotnet run scripts/pin-dotnet-sdk.cs -- <sdk versions> [--rids ...]` downloads each .NET SDK archive named in the official release metadata, requires the publisher's SHA-512 to match, deletes the download and prints the `ManagedRuntimes` pin entries with our SHA-256. Paste the reviewed output into `ManagedRuntimes.cs`. |
 | `host-link.cs` | `dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
-| `benchmark.mjs` | `node scripts/benchmark.mjs [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, Node, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
+| `benchmark.cs` | `dotnet run scripts/benchmark.cs -- [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
 | `window-probe.m` | Native CoreGraphics helper compiled by the benchmark as `.bench/window-probe`; reports when CoreGraphics first lists a normal window at least 300 × 200 for a process ID. Not a standalone build/launch entry point. |
 
 Keep `.bench` scratch outputs disposable; record needed evidence in the status
 documents and remove scratch files when the task finishes.
 
-For repeatable macOS startup and physical-footprint measurements, use the [.NET performance toolkit](../performance/README.md). The older `benchmark.mjs` measures RSS with a different sampling anchor and should not be mixed into those reports.
+For repeatable macOS startup and physical-footprint measurements, use the [.NET performance toolkit](../performance/README.md). The older `benchmark.cs` measures RSS with a different sampling anchor and should not be mixed into those reports.
 
 ### Native FSEvents hygiene (macOS)
 

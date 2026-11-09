@@ -150,8 +150,8 @@ run = "dotnet restore SharpRail.slnx"
 [tasks."restore:update"]
 description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
 env = { RestoreLockedMode = "false" }
-run = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate"]
-run_windows = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate"]
+run = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate", "dotnet restore benchmarks/ghostty/run.cs --force-evaluate"]
+run_windows = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate", "dotnet restore benchmarks\\ghostty\\run.cs --force-evaluate"]
 
 [tasks.audit]
 description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
@@ -171,7 +171,7 @@ run = "sh performance/run.sh"
 
 [tasks.rpc]
 description = "Regenerate the typed RPC clients, dispatch and payload codec from the host contracts"
-run = "uv run --no-project python scripts/generate-rpc.py"
+run = "dotnet run scripts/generate-rpc.cs"
 
 [tasks.dev]
 description = "Build the desktop app from source and run it in Release (SHARPRAIL_CONFIGURATION=Debug to debug; SHARPRAIL_PROFILE, SHARPRAIL_ROOT)"

@@ -143,7 +143,7 @@ download. The standalone
 
 This project uses the plain WASM SDK rather than the Blazor static-web-assets pipeline.
 Release Build and Publish generate Brotli quality 11 and gzip level 9 sidecars for compressible
-runtime and vendor assets through `scripts/browser-compress.mjs`. Files below 1 KiB and
+runtime and vendor assets through `scripts/browser-compress.cs`. Files below 1 KiB and
 representations that would grow use identity. SHA-256 keyed compressed bytes under
 `$SHARPRAIL_CACHE_DIR/browser-compression` survive SDK bundle regeneration; complete sidecars and cache entries
 are published by atomic rename. The original

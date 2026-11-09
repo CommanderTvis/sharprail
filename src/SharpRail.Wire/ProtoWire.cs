@@ -3,7 +3,7 @@ using System.Text;
 
 namespace SharpRail.Wire;
 
-/// <summary>Marks a wire message; <c>scripts/generate-rpc.py</c> emits its codec into the owning project's <c>*Codec.Generated.cs</c>.</summary>
+/// <summary>Marks a wire message; <c>scripts/generate-rpc.cs</c> emits its codec into the owning project's <c>*Codec.Generated.cs</c>.</summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ProtoContractAttribute : Attribute;
 

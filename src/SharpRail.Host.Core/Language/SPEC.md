@@ -235,7 +235,7 @@ first, bounded extraction, an atomic move into `runtimes/<id>/<version>-<hash pr
 mismatch, and a repeated install is a no-op. The cache root is the host's language directory, or
 `SHARPRAIL_MANAGED_CACHE` when set to an absolute path (the container points it at `/cache`).
 
-Pins are made with `scripts/pin-dotnet-sdk.py <versions>`, which downloads each archive, requires the publisher's
+Pins are made with `scripts/pin-dotnet-sdk.cs <versions>`, which downloads each archive, requires the publisher's
 SHA-512 from the official release metadata to match, and prints the entries with our SHA-256, so a refresh is
 reviewable. Current .NET SDK pins (linux-x64, linux-arm64, osx-arm64, osx-x64, win-x64): 10.0.401 (this repository's
 `global.json`) and 10.0.403 (the latest 10.0 LTS SDK when pinned, 2026-10-25). A workspace's `global.json` picks the

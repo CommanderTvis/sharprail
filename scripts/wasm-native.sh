@@ -31,8 +31,8 @@ export DOTNET_EMSCRIPTEN_BINARYEN_ROOT="$sdk"
 export DOTNET_EMSCRIPTEN_NODE_JS="$node"
 export EM_CACHE="$emcache"
 export FROZEN_CACHE=False
-emcc() { uv run --no-project --python "$python" "$sdk/emscripten/emcc.py" "$@"; }
-emar() { uv run --no-project --python "$python" "$sdk/emscripten/emar.py" "$@"; }
+emcc() { "$python" "$sdk/emscripten/emcc.py" "$@"; }
+emar() { "$python" "$sdk/emscripten/emar.py" "$@"; }
 
 vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
 zig="$("$root/scripts/tool" "zig-$GHOSTTY_VT_ZIG")"

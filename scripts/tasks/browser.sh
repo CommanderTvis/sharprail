@@ -5,7 +5,7 @@ cd "$(dirname "$0")/../.."
 root="$PWD"
 dotnet=dotnet
 sh scripts/tasks/workload.sh wasm-experimental Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm --skip-manifest-update
-# The Playwright tools (node, pnpm) are the browser mise environment's pins, not on PATH on a plain runner.
+# The Playwright tools (node, npm) are the browser mise environment's pin, not on PATH on a plain runner.
 mise_browser() { MISE_ENV=browser sh "$root/scripts/mise" x -- "$@"; }
 configuration="${SHARPRAIL_CONFIGURATION:-Release}"
 case "${1:-build}" in
@@ -16,9 +16,9 @@ case "${1:-build}" in
         node tests/SharpRail.Browser.Checks/tailscale.mjs
         "$dotnet" build tests/SharpRail.Checks -c "$configuration" -m:2
         "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2 -p:BrowserChecks=true
-        # pnpm is the mise pin (not on PATH on a plain runner); Linux also needs Chromium's system libraries (apt, via sudo).
+        # npm comes with the mise node pin (not on PATH on a plain runner); Linux also needs Chromium's system libraries (apt, via sudo).
         deps=""; [ "$(uname -s)" != Linux ] || deps="--with-deps"
-        (cd src/SharpRail.Browser && mise_browser pnpm exec playwright install chromium $deps)
+        (cd src/SharpRail.Browser && mise_browser npx playwright install chromium $deps)
         mise_browser node tests/SharpRail.Browser.Checks/selection.mjs
         mise_browser node tests/SharpRail.Browser.Checks/check.mjs
         mise_browser node tests/SharpRail.Browser.Checks/local-approval.mjs

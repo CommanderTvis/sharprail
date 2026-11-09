@@ -57,7 +57,7 @@ internal static class Toolchains
     internal static bool Offline => Environment.GetEnvironmentVariable(OfflineVariable) is "1" or "true" or "TRUE" or "True";
 }
 
-/// <summary>One pinned runtime archive. <see cref="Sha256"/> is what the host verifies; <see cref="Sha512"/> is the publisher's value, checked once when the pin was made (scripts/pin-dotnet-sdk.py).</summary>
+/// <summary>One pinned runtime archive. <see cref="Sha256"/> is what the host verifies; <see cref="Sha512"/> is the publisher's value, checked once when the pin was made (scripts/pin-dotnet-sdk.cs).</summary>
 internal sealed record ManagedRuntimePin(string Id, string Version, string Platform, string Url, string Sha256, string Sha512, string Format, string Source, string[]? Hosts = null);
 
 /// <summary>A runtime kind: what it is called, which tools it provides and where they live inside the extracted archive.</summary>

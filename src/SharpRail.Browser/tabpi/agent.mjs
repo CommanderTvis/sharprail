@@ -1,5 +1,5 @@
 // Pi inside the tab: pi-agent-core's agent loop behind the same line-delimited JSON commands and events as
-// `pi --mode rpc`, working in the tab's own file system and Git. Bundled into vendor/tabpi.js by browser-assets.mjs.
+// `pi --mode rpc`, working in the tab's own file system and Git. Bundled into vendor/tabpi.js by browser-assets.cs.
 import { Agent } from '@mariozechner/pi-agent-core';
 import { bashTool } from './shell.mjs';
 import { JETBRAINS, grazieFetch, jetbrainsModels, jwtLive } from './jetbrains.mjs';

@@ -14,10 +14,10 @@ Run only when measurements are requested, with an unlocked desktop, AC power,
 and a 2× display. Each output directory must be new; its parent must exist.
 
 ```sh
-caffeinate -diu node benchmarks/ghostty/run.mjs memory texture .bench/texture-memory
-caffeinate -diu node benchmarks/ghostty/run.mjs presentation texture .bench/texture-presentation
-caffeinate -diu node benchmarks/ghostty/run.mjs attribution texture .bench/texture-inventory
-node benchmarks/ghostty/summarize.mjs .bench/texture-memory
+caffeinate -diu dotnet run benchmarks/ghostty/run.cs -- memory texture .bench/texture-memory
+caffeinate -diu dotnet run benchmarks/ghostty/run.cs -- presentation texture .bench/texture-presentation
+caffeinate -diu dotnet run benchmarks/ghostty/run.cs -- attribution texture .bench/texture-inventory
+dotnet run benchmarks/ghostty/summarize.cs -- .bench/texture-memory
 ```
 
 Replace `texture` with `native` to measure the library NSView control. Memory and
