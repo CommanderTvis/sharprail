@@ -17,7 +17,7 @@ internal static class ChatRowEstimates
         var columns = Math.Max(20, (width - 2 * ChatRowLayout.Pad - row.Depth * ChatRowLayout.Indent) / 7.5);
         double height = row.Item switch
         {
-            ChatUserItem user => ChatRowLayout.IsEmpty(user) ? 0 : 16 + Lines(user.Text, columns - 4, row.Expanded ? int.MaxValue : 3) * ProseLine + (user.Queued ? 16 : 0) + (user.Attachments is { Count: > 0 } ? 18 : 0),
+            ChatUserItem user => ChatRowLayout.IsEmpty(user) ? 0 : 2 * ChatRowLayout.BubblePad + Lines(user.Text, columns - 6, row.Expanded ? int.MaxValue : 3) * ProseLine + (user.Queued ? 16 : 0) + (user.Attachments is { Count: > 0 } ? 18 : 0),
             ChatAssistantItem assistant => Markdown(assistant.Text, columns),
             ChatThinkingItem thinking => row.Expanded ? 24 + Lines(thinking.Text, columns, int.MaxValue) * 17 : 26,
             ChatToolItem tool => 28 + (row.Expanded ? 8 + Lines(tool.Output ?? "", columns, 40) * CodeLine + (tool.WorkflowAgents is { } agents ? agents.Count * 17 + (tool.WorkflowPhases?.Count ?? 0) * 15 : 0) : 0),

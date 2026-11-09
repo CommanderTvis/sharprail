@@ -22,6 +22,10 @@ internal readonly record struct ChatHit(Rect Bounds, ChatHitKind Kind, string? A
 internal sealed class ChatRowLayout : IDisposable
 {
     internal const double Pad = 12, Indent = 18, Gap = 6;
+    /// <summary>Space above the first row and below the last, added to the rows' own 4 so the transcript's edges equal its side inset <see cref="Pad"/>.</summary>
+    internal const double EdgePad = Pad - 4;
+    /// <summary>A human prompt's bubble padding, the same on all four sides.</summary>
+    internal const double BubblePad = 12;
     private const int PreviewLines = 12;
 
     private readonly record struct Fill(Rect Bounds, IBrush Brush, double Radius, IPen? Pen);
@@ -421,38 +425,39 @@ internal sealed class ChatRowLayout : IDisposable
             Disclosure("Message from " + who, Preview(user.Text), expanded, () => Block(user.Text, Ui.TextBrush, 12, indent: 14));
             return;
         }
-        var whole = Make(user.Text.Length == 0 ? " " : user.Text, Ui.TextBrush, Ui.FontSize, inner - 20);
+        var textWidth = inner - 2 * BubblePad;
+        var whole = Make(user.Text.Length == 0 ? " " : user.Text, Ui.TextBrush, Ui.FontSize, textWidth);
         var large = whole.Height > 64;
-        var layout = large && !expanded ? Make(user.Text, Ui.TextBrush, Ui.FontSize, inner - 20, maxLines: UserClipLines) : whole;
+        var layout = large && !expanded ? Make(user.Text, Ui.TextBrush, Ui.FontSize, textWidth, maxLines: UserClipLines) : whole;
         var extra = (user.Attachments is { Count: > 0 } ? 18 : 0) + (user.Queued ? 16 : 0) + (large ? 20 : 0);
-        var box = new Rect(left, y, inner, layout.Height + 16 + extra);
+        var box = new Rect(left, y, inner, layout.Height + 2 * BubblePad + extra);
         fills.Add(new(box, Ui.Elevated, 8, new Pen(Ui.BorderBrush)));
-        Place(layout, left + 10, y + 8);
-        var cursor = y + 8 + layout.Height;
+        Place(layout, left + BubblePad, y + BubblePad);
+        var cursor = y + BubblePad + layout.Height;
         if (user.Attachments is { Count: > 0 } attachments)
         {
-            Place(Make(string.Join(", ", attachments.Select(item => item.Name)), Ui.Muted, 12, inner - 20, maxLines: 1), left + 10, cursor + 2);
+            Place(Make(string.Join(", ", attachments.Select(item => item.Name)), Ui.Muted, 12, textWidth, maxLines: 1), left + BubblePad, cursor + 2);
             cursor += 18;
         }
-        if (user.Queued) { Place(Make("queued", Ui.Warning, 11, inner - 20, maxLines: 1), left + 10, cursor + 2, selectable: false); cursor += 16; }
+        if (user.Queued) { Place(Make("queued", Ui.Warning, 11, textWidth, maxLines: 1), left + BubblePad, cursor + 2, selectable: false); cursor += 16; }
         if (large)
         {
             var more = Make(expanded ? "Show less" : "Show more", Ui.Accent, 11, 120, maxLines: 1);
-            var moreBox = Place(more, left + 10, cursor + 2, selectable: false);
+            var moreBox = Place(more, left + BubblePad, cursor + 2, selectable: false);
             hits.Add(new(moreBox.Inflate(4), ChatHitKind.Toggle));
         }
         y = box.Bottom;
         if (user.RanAhead) Block("Ran at once, while the assistant was working.", Ui.Muted, 11, italic: true);
-        // Fork and rewind sit in a strip below a human prompt that has been taken up, so they never cover its text.
+        // Fork and rewind sit in a strip below a human prompt that has been taken up, so they never cover its text; the strip is one label high.
         if (user.Uuid is not null && !user.Queued)
         {
             var fork = Make("Fork", Ui.Accent, 11, 80);
             var rewind = Make("Rewind", Ui.Accent, 11, 80);
-            var forkBox = Place(fork, box.Right - 10 - fork.Width, y + 5, hoverOnly: true);
-            var rewindBox = Place(rewind, forkBox.Left - 12 - rewind.Width, y + 5, hoverOnly: true);
+            var forkBox = Place(fork, box.Right - BubblePad - fork.Width, y + 2, hoverOnly: true);
+            var rewindBox = Place(rewind, forkBox.Left - 12 - rewind.Width, y + 2, hoverOnly: true);
             hits.Add(new(forkBox.Inflate(3), ChatHitKind.Fork));
             hits.Add(new(rewindBox.Inflate(3), ChatHitKind.Rewind));
-            y += 24;
+            y += fork.Height + 2;
         }
     }
 

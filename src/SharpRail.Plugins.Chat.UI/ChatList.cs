@@ -177,9 +177,10 @@ internal sealed class ChatList : ScrollViewer
     {
         if (!topsDirty && tops.Length == current.Count + 1) return;
         if (tops.Length != current.Count + 1) tops = new double[current.Count + 1];
-        var sum = 0.0;
+        // The first row starts EdgePad down and the extent ends EdgePad past the last, so the top and bottom insets equal the side inset.
+        var sum = current.Count == 0 ? 0.0 : ChatRowLayout.EdgePad;
         for (var i = 0; i < current.Count; i++) { tops[i] = sum; sum += current[i]; }
-        tops[^1] = sum;
+        tops[^1] = sum + (current.Count == 0 ? 0 : ChatRowLayout.EdgePad);
         topsDirty = false;
     }
 

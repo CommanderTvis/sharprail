@@ -2255,6 +2255,14 @@ internal static class ClaudeChatUiChecks
             var actions = prompt.OwnHits.Where(hit => hit.Kind is ChatHitKind.Fork or ChatHitKind.Rewind).Select(hit => hit.Bounds).ToList();
             Require(actions.Count == 2 && actions.All(action => !prompt.TextBounds().Any(bounds => bounds.Intersects(action))) && actions.All(action => action.Bottom <= prompt.Height), $"Fork and Rewind clear the prompt's text ({text.Length} chars).");
         }
+        // Insets: a bubble pads its text equally on all four sides, the rows' own 4 plus the edge pad equal the side inset, and the gap after a bubble with no actions is the rows' own 8.
+        using (var bubble = ChatRowLayout.Build(new ChatRow(new ChatUserItem("b", 9, "is it a multiplexer or an IDE?"), 0, 1, false, null), 500, true))
+        {
+            var textBox = bubble.TextBounds().Single();
+            Require(textBox.X == ChatRowLayout.Pad + ChatRowLayout.BubblePad && textBox.Y == 4 + ChatRowLayout.BubblePad, $"A bubble's text sits {ChatRowLayout.BubblePad} from its left and top edges (at {textBox.X - ChatRowLayout.Pad}, {textBox.Y - 4}).");
+            Require(bubble.Height == 4 + 2 * ChatRowLayout.BubblePad + textBox.Height + 4, $"A bubble with no actions is followed by the rows' own gap of 8 and padded {ChatRowLayout.BubblePad} below its text (height {bubble.Height}).");
+        }
+        Require(ChatRowLayout.EdgePad + 4 == ChatRowLayout.Pad, "The transcript's top and bottom inset equals its side inset.");
         var held = new ChatUserItem("held", 8, "later") { Queued = true, Uuid = "u2" };
         Height(held, false, out var heldHits);
         Require(!heldHits.Any(hit => hit.Kind is ChatHitKind.Fork or ChatHitKind.Rewind), "A held prompt has no actions.");
