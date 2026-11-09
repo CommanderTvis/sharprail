@@ -125,7 +125,9 @@ and roster registration still precede reconciliation, preserving dormant tools a
   names the plugin (the seam passes its label) and the dialog, never larger than the layer, with a close button that
   removes it at once and tells the plugin, after which that number never shows again;
   the dialog takes focus and its own keys, a press elsewhere does not close it, and the rest of the app stays usable,
-  since only the plugin's views wait for it. The cursor the plugin reports over its surface or a popup shows there.
+  since only the plugin's views wait for it. The accessibility tree the plugin reports for the surface, a popup or a
+  dialog shows as peers under the control that shows it (a pane whose children are the plugin's nodes, at the places
+  the plugin gave them), and the actions a client asks of them go to the plugin. The cursor the plugin reports over its surface or a popup shows there.
   While a text field of the plugin has focus (in the surface, a popup or a dialog) the surface or dialog offers the
   app's input method a `TextInputMethodClient` at the caret the plugin reported, asks the input method to look
   again whenever that changes, and sends the composition to the plugin; committed text arrives as text input. A surface the plugin

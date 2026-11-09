@@ -65,6 +65,7 @@ internal sealed class RemoteSurface : Decorator
         this.open = open;
         this.plugin = plugin;
         input = new RemoteInputClient(this, this, 0);
+        Tree = new RemoteTree(this, (kind, node, text) => Send(kind, text: text, node: node));
         // The app's input method composes for the plugin while one of its text fields has focus.
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => { if (Composing() is not null) e.Client = input; });
         Name = "PluginSurface";
@@ -95,6 +96,12 @@ internal sealed class RemoteSurface : Decorator
 
     /// <summary>The popups shown now, dialogs among them, for the checks.</summary>
     internal IReadOnlyCollection<RemotePopup> Popups => popups.Values;
+
+    /// <summary>The accessibility tree the plugin described for the surface, which this control's peer shows.</summary>
+    internal RemoteTree Tree { get; }
+
+    protected override Avalonia.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new RemoteTree.HostPeer(this, Tree, () => plugin.Length == 0 ? "Plugin view" : plugin);
 
     /// <summary>The input method client the app's input method composes into, for the checks.</summary>
     internal TextInputMethodClient InputClient => input;
@@ -146,6 +153,7 @@ internal sealed class RemoteSurface : Decorator
             seenPopup = 0;
         }
         ClearPopups();
+        Tree.Clear();
         carets.Clear();
         Cursor = null;
         _ = Task.Run(() => PumpAsync(opened));
@@ -174,6 +182,11 @@ internal sealed class RemoteSurface : Decorator
                 if (message is SurfaceImeChanged { Ime: var ime })
                 {
                     Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Caret(ime); });
+                    continue;
+                }
+                if (message is SurfaceAutomationChanged { Automation: var tree })
+                {
+                    Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Described(tree); });
                     continue;
                 }
                 if (message is SurfacePopupChanged { Placement: var placement })
@@ -271,6 +284,7 @@ internal sealed class RemoteSurface : Decorator
             images.Clear();
         }
         ClearPopups();
+        Tree.Clear();
         InvalidateVisual();
     }
 
@@ -509,15 +523,23 @@ internal sealed class RemoteSurface : Decorator
             images.Clear();
         }
         ClearPopups();
+        Tree.Clear();
     }
 
-    private void Send(SurfaceInputKind kind, Point at = default, int button = 0, int modifiers = 0, Vector delta = default, KeyEventArgs? key = null, string text = "", int popup = 0, int caret = 0)
+    private void Send(SurfaceInputKind kind, Point at = default, int button = 0, int modifiers = 0, Vector delta = default, KeyEventArgs? key = null, string text = "", int popup = 0, int caret = 0, int node = 0)
     {
         if (closed || Child is not null) return;
         // Escape answers a popup rather than asking for one.
         if (kind != SurfaceInputKind.PointerLeave && key?.Key != Key.Escape) Volatile.Write(ref popupsUntil, Environment.TickCount64 + InputWindowMs);
         surface.Input(new SurfaceInput(0, kind, at.X, at.Y, button, modifiers, delta.X, delta.Y, key is null ? 0 : (int)key.Key,
-            key is null ? 0 : (int)key.PhysicalKey, key?.KeySymbol ?? text, popup, caret));
+            key is null ? 0 : (int)key.PhysicalKey, key?.KeySymbol ?? text, popup, caret, node));
+    }
+
+    // The accessibility tree of the surface or one of its popups changed; one for a popup that is not shown is dropped.
+    private void Described(SurfaceAutomation tree)
+    {
+        if (tree.Popup == 0) Tree.Apply(tree);
+        else if (popups.TryGetValue(tree.Popup, out var popup)) popup.Tree.Apply(tree);
     }
 
     // The cursor the plugin shows over the surface or one of its popups.
@@ -802,9 +824,16 @@ internal sealed class RemoteSurface : Decorator
             ClipToBounds = true;
             Shown = this;
             Input = new RemoteInputClient(owner, this, number);
+            Tree = new RemoteTree(this, (kind, node, text) => owner.Send(kind, text: text, popup: number, node: node));
             RenderOptions.SetBitmapInterpolationMode(this, Avalonia.Media.Imaging.BitmapInterpolationMode.None);
             if (dialog) AddHandler(TextInputMethodClientRequestedEvent, (_, e) => { if (owner.carets.ContainsKey(Number)) e.Client = Input; });
         }
+
+        /// <summary>The accessibility tree the plugin described for this popup, which its peer shows.</summary>
+        internal RemoteTree Tree { get; }
+
+        protected override Avalonia.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+            new RemoteTree.HostPeer(this, Tree, () => Dialog ? Title : "Plugin popup");
 
         /// <summary>The number the plugin gave the popup within its surface.</summary>
         internal int Number { get; }
