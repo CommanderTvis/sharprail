@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Language;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Checks;
@@ -76,10 +77,15 @@ internal static partial class HeadlessChecks
         // clangd publishes no linux-arm64 build, so the arm64 image leaves it out instead of failing at the first call.
         Require(Served("linux-aarch64") == "csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
 
-        var left = HeadlessLanguages.Left(declared, "linux-x86_64").ToDictionary(item => item.Spec.Id, item => item.Reason);
-        Require(left.Keys.Order().SequenceEqual(["dart", "go", "java", "powershell", "r", "ruby", "rust", "scala", "swift"]), "The servers left out of headless changed: " + string.Join(", ", left.Keys));
-        Require(left.Values.All(reason => reason.Length > 10), "A server left out of headless gives no reason.");
-        Require(left["java"].Contains("JDK", StringComparison.Ordinal) && left["swift"].Contains("toolchain", StringComparison.Ordinal) && left["rust"].Contains("cargo", StringComparison.Ordinal), "A reason does not name the missing toolchain.");
+        // The manifests are the source of truth: the only server a platform drops from the declared set is clangd on linux-aarch64.
+        Require(HeadlessLanguages.Left(declared, "linux-x86_64").Count == 0 && HeadlessLanguages.Left(declared, "macos-aarch64").Count == 0, "A manifest declares a language Headless = Yes that the pins cannot provision.");
+        Require(HeadlessLanguages.Left(declared, "linux-aarch64").Select(item => item.Spec.Id).SequenceEqual(["clangd"]), "The platform exceptions to the declared headless languages changed.");
+        // Every language server that declares No still needs a toolchain without a pin, so flipping it requires the pin first.
+        var desktop = BuiltinPlugins.Create(null).Where(plugin => plugin.Manifest.Headless == HeadlessSupport.No).Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().Where(plugin => plugin.Spec.Id != "intellij").ToArray();
+        Require(desktop.Select(plugin => plugin.Spec.Id).Order().SequenceEqual(["dart", "go", "java", "powershell", "r", "ruby", "rust", "scala", "swift"]), "The language servers declared desktop-only changed: " + string.Join(", ", desktop.Select(plugin => plugin.Spec.Id)));
+        var reasons = desktop.ToDictionary(plugin => plugin.Spec.Id, plugin => HeadlessLanguages.Refusal(plugin.Spec, "linux-x86_64"));
+        Require(reasons.Values.All(reason => reason is { Length: > 10 }), "A server declared desktop-only could now be served headless; declare it Yes: " + string.Join(", ", reasons.Where(item => item.Value is null).Select(item => item.Key)));
+        Require(reasons["java"]!.Contains("JDK", StringComparison.Ordinal) && reasons["swift"]!.Contains("toolchain", StringComparison.Ordinal) && reasons["rust"]!.Contains("cargo", StringComparison.Ordinal), "A reason does not name the missing toolchain.");
 
         foreach (var platform in new[] { "linux-x86_64", "linux-aarch64", "macos-aarch64" })
             foreach (var spec in HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)))

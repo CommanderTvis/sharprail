@@ -176,7 +176,8 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 | --- | --- | --- |
 | `spec-dialect` | yes, on by default | The `spec_*` tools read and edit the spec graph on disk. |
 | `blueprint` | yes, on by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
-| `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-java`, `lsp-kotlin`, `lsp-ruby`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (17) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Managed ones install into the cache. Swift and Dart use the toolchain of the container and need it installed. |
+| `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-kotlin` (8) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Each installs into the cache from a pinned, checksummed download on a pinned runtime (.NET SDK, Bun) or as a self-contained archive. `lsp-clangd` is left out on linux/arm64, which has no pinned archive (the official one is the 1.8 GB LLVM toolchain, a `tar.xz`). |
+| `lsp-java`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-ruby`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (9) | no | Their servers need a toolchain with no pinned download (JDK, Go, Rust, Coursier, Ruby, R, PowerShell, Swift, Dart); each flips to yes when that runtime is pinned with a checksum. |
 | `lsp-intellij` | no | It needs a JetBrains license and an agreement accepted in the UI, and it replaces the Java and Kotlin servers. See the decisions. |
 | `claude-code`, `codex`, `omp`, `pi`, `acp` | no | They launch an agent in a terminal or chat pane. Headless is the tool server an agent calls. |
 | `air-gateway` | no | It starts Codex and Claude Code through Air Gateway per launch. |

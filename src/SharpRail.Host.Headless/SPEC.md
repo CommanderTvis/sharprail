@@ -31,13 +31,12 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - Commands: `sharprail-headless mcp|check-config [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
 - State (settings, language server installs and sessions) lives in `SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`. A store with no
   directory would turn language services off, so there is always one. Two processes on one directory are last-writer-wins.
-- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and 17 language servers, enabled by default
+- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and eight language servers, enabled by default
   (`HeadlessEnabledByDefault` turns the first two on). Every builtin states `Yes` or `No`, a check fails on `Undeclared`, and the host runs as
   `HostKind.Headless`, so a plugin without `Yes` is refused there and so is a dependent of a refused plugin. The decision per plugin is in
-  [headless-design.md](../../docs/develop/headless-design.md). Of the language servers, only those whose installation and launch need nothing preinstalled
-  are started: C#, TypeScript and JavaScript, Python, CSS, shell, PHP, C and C++ (not on linux/arm64, which has no clangd build) and Kotlin, each downloaded on first use
+  [headless-design.md](../../docs/develop/headless-design.md). The language servers that declare `Yes` are those whose installation and launch need nothing preinstalled: C#, TypeScript and JavaScript, Python, CSS, shell, PHP, C and C++ (not on linux/arm64, which has no clangd build) and Kotlin, each downloaded on first use
   from a pinned, checksummed source on the pinned .NET SDK or Bun. Java, Go, Rust, Scala, Ruby, R, PowerShell, Swift and Dart need a toolchain without a pinned
-  download and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*`, `spec_*` and
+  download, declare `No` and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*`, `spec_*` and
   `blueprint_check`, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.

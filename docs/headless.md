@@ -102,7 +102,7 @@ Headless serves the language servers whose runtime is a pinned, checksummed down
 | CSS, SCSS, Less | VS Code CSS server, on the pinned Bun | github.com (Bun), registry.npmjs.org |
 | Shell | bash-language-server, on the pinned Bun | github.com (Bun), registry.npmjs.org |
 | PHP | Intelephense, on the pinned Bun | github.com (Bun), registry.npmjs.org |
-| C, C++ | clangd, a self-contained archive (linux/amd64, macOS and Windows; no linux/arm64 build exists) | github.com |
+| C, C++ | clangd, a self-contained archive (linux/amd64, macOS and Windows; no linux/arm64 archive is pinned: the official one is the 1.8 GB LLVM toolchain in tar.xz) | github.com |
 | Kotlin | JetBrains Kotlin LS, a self-contained archive | download.jetbrains.com |
 
 The first call of a language answers `initializing` while it downloads: the network must reach the hosts above (github.com, release-assets.githubusercontent.com, registry.npmjs.org and the others in the row). Later runs on the same cache need no network. The image size is unchanged.

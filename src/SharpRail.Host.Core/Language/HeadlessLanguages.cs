@@ -4,9 +4,11 @@ using SharpRail.Plugins.Api.Host;
 namespace SharpRail.Host.Core.Language;
 
 /// <summary>
-/// Which language servers headless SharpRail serves: those whose installation and launch need nothing the machine must already have.
-/// Every runtime they need is a pinned managed download (.NET SDK, Bun) or the server is a self-contained archive. A server that needs
-/// a toolchain without a pinned download (a JDK, Go, Rust, Ruby, R, PowerShell, Swift, Dart, Coursier) stays desktop-only until that runtime is pinned.
+/// Which language servers headless SharpRail serves. The manifests decide: a server declares <c>Headless = Yes</c> only when its installation and launch
+/// need nothing the machine must already have (every runtime is a pinned managed download, or the server is a self-contained archive); one that needs
+/// a toolchain without a pinned download (a JDK, Go, Rust, Ruby, R, PowerShell, Swift, Dart, Coursier) declares <c>No</c> until that runtime is pinned.
+/// <see cref="Refusal"/> re-derives that from the pins, so a check can fail when a manifest and the pins disagree, and it is what leaves a declared server
+/// out on one platform (clangd has no linux/arm64 archive).
 /// </summary>
 internal static class HeadlessLanguages
 {
@@ -30,7 +32,7 @@ internal static class HeadlessLanguages
         return null;
     }
 
-    /// <summary>The headless roster without the language servers that need a preinstalled toolchain.</summary>
+    /// <summary>The declared headless roster without the servers that have no pinned download for this platform.</summary>
     internal static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Roster(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> declared, string platform) =>
         [.. declared.Where(plugin => plugin.Host is not LanguageServerPlugin language || Refusal(language.Spec, platform) is null)];
 
@@ -38,7 +40,7 @@ internal static class HeadlessLanguages
     internal static IReadOnlyList<LanguageServerSpec> Servers(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> roster) =>
         [.. roster.Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().Select(plugin => plugin.Spec)];
 
-    /// <summary>The servers declared headless that this platform leaves out, each with the reason.</summary>
+    /// <summary>The servers declared headless that this platform leaves out, each with the reason (also reports a manifest that claims more than the pins deliver).</summary>
     internal static IReadOnlyList<(LanguageServerSpec Spec, string Reason)> Left(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> declared, string platform) =>
         [.. declared.Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().Select(plugin => (plugin.Spec, Reason: Refusal(plugin.Spec, platform))).Where(item => item.Reason is not null).Select(item => (item.Spec, item.Reason!))];
 

@@ -19,7 +19,7 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Scala (Metals) language server to code intelligence.",
         EnabledByDefault = true,
-        Headless = HeadlessSupport.Yes,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Scala.dll"

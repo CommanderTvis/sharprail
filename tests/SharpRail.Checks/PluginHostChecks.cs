@@ -319,7 +319,7 @@ internal static partial class PluginHostChecks
         var declared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Yes).Select(plugin => plugin.Manifest.Id).Order().ToArray();
         var headless = BuiltinPlugins.Headless;
         Require(headless.Select(plugin => plugin.Manifest.Id).Order().SequenceEqual(declared), "The headless roster is not exactly the plugins that declare Headless = Yes.");
-        string[] expected = ["blueprint", "code-intelligence", "lsp-clangd", "lsp-csharp", "lsp-css", "lsp-dart", "lsp-go", "lsp-java", "lsp-kotlin", "lsp-php", "lsp-powershell", "lsp-python", "lsp-r", "lsp-ruby", "lsp-rust", "lsp-scala", "lsp-shell", "lsp-swift", "lsp-typescript", "spec-dialect"];
+        string[] expected = ["blueprint", "code-intelligence", "lsp-clangd", "lsp-csharp", "lsp-css", "lsp-kotlin", "lsp-php", "lsp-python", "lsp-shell", "lsp-typescript", "spec-dialect"];
         Require(declared.SequenceEqual(expected), "The headless set changed: " + string.Join(", ", declared));
         var byId = all.ToDictionary(plugin => plugin.Manifest.Id, plugin => plugin.Manifest);
         foreach (var manifest in headless.Select(plugin => plugin.Manifest))

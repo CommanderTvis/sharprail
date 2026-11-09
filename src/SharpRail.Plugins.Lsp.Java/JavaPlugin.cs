@@ -17,7 +17,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Java (Eclipse JDT) language server to code intelligence.",
         EnabledByDefault = true,
-        Headless = HeadlessSupport.Yes,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Java.dll"
