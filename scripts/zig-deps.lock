@@ -5,7 +5,7 @@
 repo CommanderTvis/sharprail
 tag zig-deps-aca88a21f650
 asset zig-deps-aca88a21f650.tar.gz
-sha256 96a2f13180dc7f6e90379cfbae7454a4fc4d182bf557124b30f1ae3527111932
+sha256 f5bf0518e8391ec2c5851ed2dea0a88510d9557a689c76262d0f7afcbd7f02f0
 pin GHOSTTY_VIEW_COMMIT 0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec
 pin GHOSTTY_VT_COMMIT 0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec
 pkg aro-0.0.0-JSD1QtuBNwCASyBtNF3pqTl_W3oAJQGEVyFAtrBSE_Pa git+https://codeberg.org/ziglang/arocc#d0c8c4d9c55daa7ef6e40cf0f630a5b5e900989b
