@@ -329,6 +329,8 @@ internal static class ProcessesChecks
         var view = new ProcessesView { Persist = saved.Add };
         var panel = new ProcessesPanel(() => Task.FromResult(Mixed()), id => { stopped.Add(id); return Task.CompletedTask; }, message => throw new InvalidOperationException(message), () => true,
             () => new HashSet<string> { "/p/a", "/p/a2" }, view);
+        // Tall enough for every row, so the fit rule leaves the Spawned group open when the layout decides expansion; the fit rule has its own checks.
+        window.Height = 600;
         window.Content = panel;
         panel.Apply(Mixed());
         Require(panel.RowCount == 2 + 2 && panel.RowOf("spawn:3") is null, "By default only the pane's own project is shown.");
