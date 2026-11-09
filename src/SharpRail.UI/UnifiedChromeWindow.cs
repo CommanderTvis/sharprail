@@ -29,8 +29,12 @@ public sealed partial class WorkbenchWindow
         {
             Name = "AppMenuButton",
             Content = Ui.Icon("moreHorizontal", null, 14),
-            Width = 32, Height = 32, Padding = new Thickness(0),
-            Background = Avalonia.Media.Brushes.Transparent, BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(0),
+            Width = 32,
+            Height = 32,
+            Padding = new Thickness(0),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(0),
             VerticalAlignment = VerticalAlignment.Center
         };
         ((Border)more.Content!).Bind(Border.BackgroundProperty, more.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
@@ -95,8 +99,12 @@ public sealed partial class WorkbenchWindow
         {
             Name = "AboutButton",
             Content = Ui.Icon("alertInfo"),
-            Width = 32, Height = 32, Padding = new Thickness(0),
-            Background = Avalonia.Media.Brushes.Transparent, BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(0)
+            Width = 32,
+            Height = 32,
+            Padding = new Thickness(0),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(0)
         };
         ((Border)about.Content!).Bind(Border.BackgroundProperty, about.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
         ToolTip.SetTip(about, "About"); AutomationProperties.SetName(about, "About");
