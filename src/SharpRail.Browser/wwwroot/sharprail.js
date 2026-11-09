@@ -86,6 +86,24 @@ export function openLink(url) {
   window.open(target.href, '_blank', 'noopener,noreferrer');
 }
 
+// The layout viewport (not the visual one): a pinch on a phone never changes it, a browser zoom on a desktop does.
+export function viewportWidth() { return document.documentElement.clientWidth; }
+export function isCoarse() { return matchMedia('(pointer: coarse)').matches; }
+// Like Android's smallest width, so a phone turned sideways stays a phone.
+export function smallestScreenSide() { return Math.min(screen.width, screen.height); }
+let viewportTimer;
+addEventListener('resize', () => { clearTimeout(viewportTimer); viewportTimer = setTimeout(() => events?.('viewport'), 150); });
+// The visible height: on a phone the soft keyboard and the address bar shrink it without resizing the layout viewport everywhere.
+function fitVisualViewport() {
+  const view = visualViewport;
+  if (!view) return;
+  const style = document.documentElement.style;
+  style.setProperty('--sharprail-vh', `${view.height}px`);
+  style.setProperty('--sharprail-vt', `${view.offsetTop}px`);
+}
+visualViewport?.addEventListener('resize', fitVisualViewport);
+visualViewport?.addEventListener('scroll', fitVisualViewport);
+fitVisualViewport();
 export function isVisible() { return !document.hidden; }
 
 export function enableWindow(id, enabled) { document.getElementById(id).inert = !enabled; }

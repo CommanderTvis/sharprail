@@ -10,6 +10,7 @@ internal static partial class BrowserInterop
         await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (message.StartsWith("restty:", StringComparison.Ordinal)) ResttyTerminal.Event(message[7..]);
+            else if (message == "viewport") BrowserSession.Current?.ViewportChanged();
             else BrowserWindows.Instance.HandleEvent(message);
         });
     }
@@ -54,6 +55,12 @@ internal static partial class BrowserInterop
     internal static partial bool IsVisible();
     [JSImport("origin", "sharprail")]
     internal static partial string Origin();
+    [JSImport("viewportWidth", "sharprail")]
+    internal static partial double ViewportWidth();
+    [JSImport("isCoarse", "sharprail")]
+    internal static partial bool IsCoarse();
+    [JSImport("smallestScreenSide", "sharprail")]
+    internal static partial double SmallestScreenSide();
     [JSImport("isMac", "sharprail")]
     internal static partial bool IsMac();
     [JSImport("openLink", "sharprail")]

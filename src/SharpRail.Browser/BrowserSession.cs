@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -17,6 +18,8 @@ public sealed class BrowserSession() : IDisposable
     internal Workbench? Workbench => workbench;
     private DispatcherTimer? watch;
     private int unreachable;
+    private bool phone;
+    private DispatcherTimer? deferred;
 
     private const int LostAfterSeconds = 45;
     private bool disposed;
@@ -31,6 +34,7 @@ public sealed class BrowserSession() : IDisposable
     {
         Current = this;
         var remembered = HostEndpoint.Load(directory) ?? new HostEndpoint(BrowserInterop.Origin(), "");
+        phone = PhoneLayout.Read(false);
         var connect = ShowConnect(remembered);
         if (remembered is { Tab: true }) connect.OpenTab();
         else if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow(remembered.Tailnet);
@@ -107,14 +111,15 @@ public sealed class BrowserSession() : IDisposable
 
     private void OpenTab(HostEndpoint endpoint)
     {
+        phone = PhoneLayout.Read(phone);
         var profile = new ProfileStore(directory, () => BrowserInterop.Load("profile"), json => BrowserInterop.Save("profile", json));
-        tab = new TabHost(profile);
+        tab ??= new TabHost(profile);
         var state = new SharedState(tab.States, profile.Data.Preferences, null, tab.Connection);
         var terminals = new TabTerminals();
         TerminalFactory factory = launch => new BrowserTerminal(launch, terminals);
         Endpoint = endpoint;
         // Its disk is not the browser's, so folders are typed as host paths, not picked with the operating system's chooser; its shell is a simulated bash.
-        workbench = new Workbench(profile, state, factory, remote: true, tab.Session, tab.Plugins, null) { Endpoint = "this tab", CloneFolder = "/workspace", PlaygroundGuide = true, HostLabel = "Playground", ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance };
+        workbench = new Workbench(profile, state, factory, remote: true, tab.Session, tab.Plugins, null) { Endpoint = "this tab", CloneFolder = "/workspace", PlaygroundGuide = true, HostLabel = "Playground", ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance, Compact = phone, Touch = phone || BrowserInterop.IsCoarse() };
         workbench.WindowOpened += window => window.OpenLink = BrowserInterop.OpenLink;
         foreach (var entry in profile.Data.Windows.Take(1)) workbench.Open(entry, TabHost.ProjectRoot).Show();
     }
@@ -122,6 +127,7 @@ public sealed class BrowserSession() : IDisposable
     private void Open(HostEndpoint endpoint)
     {
         if (disposed) return;
+        phone = PhoneLayout.Read(phone);
         var address = endpoint.Uri!;
         var token = endpoint.Token;
         // Registered before any adapter creates a channel and removed after they close.
@@ -149,7 +155,7 @@ public sealed class BrowserSession() : IDisposable
         Func<IProjectServices> sessions = () => new RemoteProjectAdapter(address, token, connection);
         TerminalFactory factory = launch => new BrowserTerminal(launch, terminals);
         Endpoint = endpoint;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), RedactError = message => string.IsNullOrEmpty(token) ? message : message.Replace(token, "[redacted]", StringComparison.Ordinal).Replace(Uri.EscapeDataString(token), "[redacted]", StringComparison.Ordinal), ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), RedactError = message => string.IsNullOrEmpty(token) ? message : message.Replace(token, "[redacted]", StringComparison.Ordinal).Replace(Uri.EscapeDataString(token), "[redacted]", StringComparison.Ordinal), ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance, Compact = phone, Touch = phone || BrowserInterop.IsCoarse() };
         workbench.WindowOpened += window => window.OpenLink = BrowserInterop.OpenLink;
         foreach (var entry in profile.Data.Windows.Take(1)) workbench.Open(entry, entry.LastProject).Show();
         // The workbench retries a dropped host by itself; one that stays away sends the user back to the
@@ -166,7 +172,39 @@ public sealed class BrowserSession() : IDisposable
         watch.Start();
     }
 
-    private void Close()
+    /// <summary>The page was resized or turned: crossing the phone breakpoint swaps the shell.</summary>
+    internal void ViewportChanged()
+    {
+        if (disposed || workbench is not { } open || Endpoint is not { } endpoint) return;
+        var next = PhoneLayout.Read(phone);
+        if (next == phone) return;
+        // Closing the windows asks about unsaved edits and running agents; a resize must not raise those questions, so try again later.
+        if (open.AgentInProgress || open.State.Current.OwnedProcesses.Count > 0 || open.Windows.Any(HasUnsavedEdits))
+        {
+            deferred ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            deferred.Tick -= RetryViewport;
+            deferred.Tick += RetryViewport;
+            deferred.Start();
+            return;
+        }
+        deferred?.Stop();
+        phone = next;
+        // The layout, tabs and open documents are the profile's and the host's, so the same windows come back in the other shell;
+        // a Playground tab's own host is kept, not restarted.
+        Close(keepTab: endpoint.Tab);
+        if (endpoint.Tab) OpenTab(endpoint); else Open(endpoint);
+    }
+
+    private void RetryViewport(object? sender, EventArgs e)
+    {
+        deferred?.Stop();
+        ViewportChanged();
+    }
+
+    private static bool HasUnsavedEdits(WorkbenchWindow window) =>
+        window.GetVisualDescendants().OfType<Editor.CodeDocumentView>().Any(view => view.HasPendingChanges);
+
+    private void Close(bool keepTab = false)
     {
         watch?.Stop();
         watch = null;
@@ -181,6 +219,8 @@ public sealed class BrowserSession() : IDisposable
         adapters.Clear();
         route?.Dispose();
         route = null;
+        if (keepTab) return;
+        deferred?.Stop();
         tab?.Dispose();
         tab = null;
     }

@@ -35,6 +35,7 @@ return Guard(() =>
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/selection.mjs");
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/check.mjs");
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/local-approval.mjs");
+            MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/phone.mjs");
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/restty.mjs", "--hover");
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/restty.mjs", "--stream");
             MiseBrowser(Root, "node", "tests/SharpRail.Browser.Checks/terminal-glyphs.mjs");

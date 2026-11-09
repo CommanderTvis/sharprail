@@ -1,7 +1,9 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SharpRail</title><link rel="icon" type="image/png" href="favicon.png">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><title>SharpRail</title><link rel="icon" type="image/png" href="favicon.png">
 <style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#16181d}.sharprail-window{position:fixed;inset:0;outline:none}.sharprail-dialog{inset:50% auto auto 50%;transform:translate(-50%,-50%);max-width:100vw;max-height:100dvh}.sharprail-restty{visibility:var(--sharprail-native-visibility,visible)}.sharprail-restty::after{content:'';position:absolute;inset:0;pointer-events:none;background:var(--sharprail-native-scrim,transparent)}
 #sharprail-loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9aa0ab;font:14px system-ui,sans-serif;background:#16181d}#sharprail-loading i{width:32px;height:32px;box-sizing:border-box;border:3px solid #2b2f38;border-top-color:#9aa0ab;border-radius:50%;animation:sharprail-spin .9s linear infinite}@keyframes sharprail-spin{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){#sharprail-loading i{animation-duration:3s}}
+.sharprail-workbench{box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+@media (pointer:coarse),(max-width:639px){html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%}.sharprail-workbench{top:var(--sharprail-vt,0)!important;height:var(--sharprail-vh,100dvh)!important}}
 </style>
 </head><body><div id="sharprail-loading" role="status" aria-live="polite"><i></i><span>Loading SharpRail…</span></div><script>
 // The app's first window replaces the loader; a failed start says so instead of spinning forever.

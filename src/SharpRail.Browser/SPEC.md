@@ -46,6 +46,28 @@ The standalone host serves a built bundle from `SHARPRAIL_BROWSER_ROOT` on `SHAR
 cross-origin isolation headers required by the threaded runtime. macOS browser platform detection accepts
 both `MacIntel` and `macOS`, so standard fields, editors and terminal shortcuts use Command consistently.
 
+## Phone layout
+
+A narrow touch viewport gets the Android client's phone shell: the workbench composed compact, one page at a time
+(Projects, the current terminal or editor, Tools, Settings) from a bottom bar, with touch affordances always shown.
+It is the same shared workbench code as Android; only the decision and the page's own viewport handling are the
+browser's. The page is a phone when its layout viewport is narrower than 600 CSS pixels, or when its primary pointer
+is coarse and the screen's smallest side is under 600 (so a phone turned sideways stays a phone and a tablet keeps
+the desktop frame). Once a phone, the page leaves the shell only past 640 pixels, so dragging a desktop window around
+the breakpoint does not rebuild it. Pinch zoom on a phone does not change the layout viewport; browser zoom on a
+desktop does.
+
+Crossing the rule on resize or rotation rebuilds the workbench in the other shell. The windows, workspace, tabs and
+open documents come back from the saved view state and the host, and a Playground tab's own host is kept. The
+switch waits while a document has unsaved edits, an agent is working or the workbench owns processes, so a resize
+never raises their close questions.
+
+The page fits the visible area: the soft keyboard and the address bar resize the layout (`interactive-widget`) and
+the visual viewport sets the window's height and top, notch and gesture-bar insets pad the workbench, and
+pull-to-refresh is off. The browser Back button does not yet step out of a page. What only a real phone can show:
+keyboard and address-bar behaviour on iOS and Android, safe-area insets, touch scrolling and long press in the
+canvas, pinch, and the on-screen keyboard over terminals.
+
 ## Tailscale
 
 The connect screen offers "Connect over Tailscale" beside the address form. The tab then joins the tailnet as

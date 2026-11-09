@@ -89,7 +89,8 @@ Contract:
 - On a screen narrower than 600 dp the session composes the workbench as compact (`Workbench.Compact`):
   the workbench is one page at a time from a bar at the bottom, and Settings is a list of sections that only choosing one leaves (a host broadcast or a theme change redraws
   the current page behind the list); see
-  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame.
+  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame. The browser client composes the same phone shell for narrow touch viewports
+  (see [Browser](../SharpRail.Browser/SPEC.md#phone-layout)); nothing in this client changes for it.
 - On every Android screen centre tabs live in Projects, under their workspace (as on every client):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
   for them. Split groups list their tabs there too.
