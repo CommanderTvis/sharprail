@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 
 using SharpRail.Host.Core;
+using SharpRail.Host.Core.Language;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Headless;
 using SharpRail.Plugins.Api;
@@ -11,6 +12,7 @@ Console.SetOut(Console.Error);
 
 const string Usage = "Usage: sharprail-headless mcp|check-config [--workspace <dir>] [--arm <name>] [--disable-tools <a,b>]\n" +
     "       sharprail-headless warm [server ...] [--workspace <dir>]   (installs the pinned runtimes and servers, default csharp; needs network)\n" +
+    "       sharprail-headless languages   (prints the language servers this build serves, one per line: id, name, extensions)\n" +
     "check-config prints the effective .sharprail/mcp.toml configuration as JSON and exits 0, or 2 when it is invalid.\n" +
     "Serves MCP over stdio for one workspace: --workspace, else SHARPRAIL_ROOT, else the current directory.\n" +
     "State (settings, language server installs and sessions) lives in SHARPRAIL_STATE_DIR, else ~/.sharprail/headless.";
@@ -30,7 +32,17 @@ for (var index = 0; index < args.Length; index++)
     else if (command == "warm" && !argument.StartsWith('-')) warmServers.Add(argument);
     else return Fail($"Unknown argument: {argument}");
 }
-if (command is not ("mcp" or "warm" or "check-config")) return Fail($"Unknown command: {command}");
+if (command is not ("mcp" or "warm" or "check-config" or "languages")) return Fail($"Unknown command: {command}");
+
+// Language servers whose runtimes are all pinned downloads; the others need a toolchain this host cannot fetch (HeadlessLanguages.cs).
+var roster = HeadlessLanguages.Roster(BuiltinPlugins.Headless, ManagedArtifacts.Platform());
+var servers = HeadlessLanguages.Servers(roster);
+if (command == "languages")
+{
+    using var output = new StreamWriter(frames) { AutoFlush = true };
+    foreach (var spec in servers) output.WriteLine($"{spec.Id}\t{spec.Name}\t{string.Join(' ', spec.Extensions)}");
+    return 0;
+}
 
 var fromEnvironment = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT");
 var workspace = Path.GetFullPath(workspaceArgument ?? (string.IsNullOrEmpty(fromEnvironment) ? Directory.GetCurrentDirectory() : fromEnvironment));
@@ -59,7 +71,7 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
     return Fail($"The state directory {stateDirectory} cannot be used: {error.Message}");
 }
 
-var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = BuiltinPlugins.Headless, Kind = HostKind.Headless });
+var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = roster, Kind = HostKind.Headless });
 await plugins.Start();
 if (command == "warm") return await WarmAsync();
 var language = LanguageMcpTools.Create(state, workspace);
@@ -90,7 +102,7 @@ using var stop = new CancellationTokenSource();
 using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, context => { context.Cancel = true; stop.Cancel(); });
 using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; stop.Cancel(); });
 Console.Error.WriteLine($"sharprail-headless: serving {workspace}, state in {stateDirectory}");
-var Instructions = ToolSwitches.Instructions(Tools());
+var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers));
 await new StdioMcp(Console.OpenStandardInput(), frames, Tools, Instructions, Console.Error).RunAsync(stop);
 Console.Error.WriteLine("sharprail-headless: stopping");
 if (callLog is not null) await callLog.DisposeAsync();

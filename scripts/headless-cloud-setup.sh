@@ -52,9 +52,12 @@ if ! ldconfig -p | grep -q libicuuc && command -v apt-get > /dev/null; then apt-
 export SHARPRAIL_TOOLCHAINS=managed
 if [ "${SHARPRAIL_WARM:-0}" = 1 ]; then "$bin/sharprail-headless" warm csharp || echo "headless-cloud-setup: warm failed, the first lsp call will install instead" >&2; fi
 
-# The launcher's code-intelligence guidance (CorePrompt.LanguageServices), adapted to the headless server: one workspace per process, C# only.
+# The launcher's code-intelligence guidance (CorePrompt.LanguageServices), adapted to the headless server: one workspace per process, and the languages the installed binary serves.
 # The block between the marker lines is replaced on every run. SHARPRAIL_CLAUDE_MD=0 leaves the file alone (for an arm without these tools).
 if [ "${SHARPRAIL_CLAUDE_MD:-1}" = 1 ]; then
+  # id, name and extensions of every language the binary serves, one per line; a binary without the command serves C# only.
+  languages=$("$bin/sharprail-headless" languages 2> /dev/null | awk -F'\t' '{ printf "- %s (%s): %s\n", $2, $1, $3 }') || languages=
+  [ -n "$languages" ] || languages='- C# (Roslyn) (csharp): .cs'
   notes=$HOME/.claude/CLAUDE.md
   begin='<!-- sharprail-headless:begin -->'
   end='<!-- sharprail-headless:end -->'
@@ -69,11 +72,13 @@ The MCP server \`sharprail\` gives you code intelligence. Its tools are named mc
 ## Code intelligence: use \`lsp_navigate\` and \`lsp_diagnostics\`, not grep
 
 grep answers code questions wrongly: it misses implementations, overloads, partial classes and generated code.
-- You MUST use \`lsp_navigate\` for every question about a C# symbol (definition, callers, implementations, shape) before you grep or Read whole files. Use grep ONLY for literals, comments, configuration, documentation and non-code files, or after \`lsp_navigate\` returned incomplete results; then say why in your report.
-- You MUST run \`lsp_diagnostics\` with \`paths\` listing every C# file you edited before you declare the work done. There may be no .NET SDK on this machine, so it is also how you find compile errors. Partial, pending or skipped coverage is not clean.
-- The server's workspace is the directory Claude Code started it in. Its \`workspace\` argument is ignored. Give \`paths\` relative to that directory, for example \`csdemo/Program.cs\` when you work in a subfolder. An absolute path outside it is refused.
-- The \`lsp_*\` tools start the language server a file needs, then may report \`initializing\`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. The first C# start downloads the .NET SDK and the server and can take a minute or more.
-- Only C# has a language server here. For other file types use grep and Read and say so in your report.
+- You MUST use \`lsp_navigate\` for every question about a symbol in a language listed below (definition, callers, implementations, shape) before you grep or Read whole files. Use grep ONLY for literals, comments, configuration, documentation and non-code files, or after \`lsp_navigate\` returned incomplete results; then say why in your report.
+- You MUST run \`lsp_diagnostics\` with \`paths\` listing every file you edited in a language listed below before you declare the work done. There may be no compiler or SDK on this machine, so it is also how you find errors. Partial, pending or skipped coverage is not clean.
+- The server's workspace is the directory Claude Code started it in. Its \`workspace\` argument is ignored. Give \`paths\` relative to that directory, for example \`demo/Program.cs\` when you work in a subfolder. An absolute path outside it is refused.
+- The \`lsp_*\` tools start the language server a file needs, then may report \`initializing\`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. The first start of a language downloads its runtime and server (the .NET SDK for C# is the largest) and can take a minute or more.
+- Only these languages have a language server here (name, server id, file extensions); each downloads on first use:
+$languages
+- For every other file type (Java, Go, Rust and others need a toolchain this host cannot download) use grep and Read and say so in your report.
 - Name the symbol, no position needed: \`{"operation": "references", "query": "TypeName"}\` (also \`definition\`, \`implementation\`, \`hover\`); \`Type/Member\` narrows a shared name. \`symbols\` with a \`path\` outlines a file, \`symbolBody\` with a \`path\` and \`query\` reads one member. Explicit \`line\` and \`column\` are zero-based. \`lsp_status\` shows the server state.
 - For semantic changes use \`lsp_code_actions\` (list, then preview or apply by id), \`lsp_rename\` (preview, then apply) and \`lsp_format\` instead of hand-editing; a missing capability is reported as unsupported. \`lsp_rename\` with \`path\` and \`newPath\` moves a file and updates its imports; \`lsp_navigate\` also has \`incomingCalls\` and \`outgoingCalls\`; \`lsp_diagnostics\` takes globs and \`minSeverity\`.
 - Subagents do NOT receive this text. When you brief one for code work, put these rules in the brief and say that its final report MUST state how many \`lsp_navigate\` and \`lsp_diagnostics\` calls it made.

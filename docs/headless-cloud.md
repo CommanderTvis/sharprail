@@ -13,9 +13,15 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    pkg-containers.githubusercontent.com
    builds.dotnet.microsoft.com
    globalcdn.nuget.org
+   github.com
+   release-assets.githubusercontent.com
+   objects.githubusercontent.com
+   registry.npmjs.org
+   download.jetbrains.com
+   download-cdn.jetbrains.com
    ```
 
-   `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The last two are for the pinned .NET SDK and the C# language server, which download on the first `lsp_*` call (or in `warm`). Without them the tools answer `initializing` and never become ready.
+   `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub, and the Kotlin server from JetBrains. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
 3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. The commit shown contains `scripts/headless-cloud-setup.sh`; use a newer one to get later fixes.
 
    ```bash
@@ -24,7 +30,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/101a12c2c7e1a1705aeef282658b4d4786b5ec17/scripts/headless-cloud-setup.sh | bash
    ```
 
-   Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is 59 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
+   Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is about 70 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
    - picks the image layer for the machine's architecture from the manifest on `ghcr.io`, with no Docker and no login,
    - checks the layer's sha256 against the digest in the manifest,
    - installs the app in `~/.local/share/sharprail-headless` and links `~/.local/bin/sharprail-headless`,
@@ -33,7 +39,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    - runs `claude mcp add --scope user sharprail ...` if the `claude` CLI is there, else prints the `.mcp.json` below.
 
    `SHARPRAIL_IMAGE_TAG` picks the image. It is a tag or a `sha256:` digest and defaults to `nightly`. `nightly` moves, so pin a `sha-<commit>` tag or a digest for an experiment.
-4. The script also writes the launcher's code-intelligence guidance, adapted to the headless server (use `lsp_navigate` before grep, run `lsp_diagnostics` on edited files, paths relative to the root, `initializing` means call again, C# only), between marker lines in `~/.claude/CLAUDE.md`. It replaces its own block on each run and keeps your text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it, for example for a run that must not be told to prefer the tools. In the first real run the agent's first diagnostics call used a path relative to the wrong root, which this text now explains.
+4. The script also writes the launcher's code-intelligence guidance, adapted to the headless server (use `lsp_navigate` before grep, run `lsp_diagnostics` on edited files, paths relative to the root, `initializing` means call again, and the list of languages with a server, taken from the installed binary), between marker lines in `~/.claude/CLAUDE.md`. It replaces its own block on each run and keeps your text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it, for example for a run that must not be told to prefer the tools. In the first real run the agent's first diagnostics call used a path relative to the wrong root, which this text now explains.
 5. Optional: commit a `.mcp.json` to the repo too. The docs promise that a repo's `.mcp.json` is loaded in a one-repository session. The server added by `claude mcp add` in the setup script reached the session in the first real run (see the end of this page), but the docs do not promise that, so the committed file is the documented path and a backup.
 
    ```json

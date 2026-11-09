@@ -5,6 +5,9 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 using SharpRail.Host.Core;
+using SharpRail.Host.Core.Language;
+using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Checks;
 
@@ -22,6 +25,7 @@ internal static partial class HeadlessChecks
     internal static async Task Run(string fixture)
     {
         Dependencies();
+        Languages();
         var root = Path.Combine(fixture, "headless");
         var workspace = Path.Combine(root, "workspace");
         var state = Path.Combine(root, "state");
@@ -38,6 +42,10 @@ internal static partial class HeadlessChecks
         await Conversation(workspace, state);
         await Terminate(workspace, state);
         await Configuration(root, workspace, state);
+        await using (var listing = Host.Start(["languages"], state))
+        {
+            Require(await listing.ExitAsync(TimeSpan.FromSeconds(30)) == 0 && listing.Lines.Any(line => line.StartsWith("typescript\tJavaScript / TypeScript", StringComparison.Ordinal)) && listing.Lines.All(line => line.Split('\t').Length == 3), "The languages command did not list the served servers: " + string.Join('|', listing.Lines));
+        }
         Require(!Directory.Exists(Path.Combine(workspace, ".sharprail")), "A default run must create nothing in .sharprail.");
         await Switches(root, state);
         Console.WriteLine("PASS headless host: JSON-RPC lines only on stdout, logs on stderr, EOF and SIGTERM exit 0, bad configuration exits 2, no UI reference");
@@ -53,6 +61,55 @@ internal static partial class HeadlessChecks
         Require(libraries.Any(name => name.StartsWith("SharpRail.Host.Core/", StringComparison.Ordinal)) && libraries.Length > 20, "The headless dependency graph is empty or lost the host core.");
         var offending = libraries.Where(name => Forbidden().IsMatch(name)).ToArray();
         Require(offending.Length == 0, "The headless host reaches UI or web server packages: " + string.Join(", ", offending));
+    }
+
+    /// <summary>
+    /// The served languages, offline: the roster follows what can be provisioned with no preinstalled toolchain, every served server pins its download
+    /// (checksum, exact version, a pinned runtime), and the ones left out say why. Runs against the shipped catalog and pins.
+    /// </summary>
+    private static void Languages()
+    {
+        var declared = BuiltinPlugins.Headless;
+        string Served(string platform) => string.Join(' ', HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)).Select(spec => spec.Id).Order());
+        Require(Served("linux-x86_64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
+        Require(Served("macos-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
+        // clangd publishes no linux-arm64 build, so the arm64 image leaves it out instead of failing at the first call.
+        Require(Served("linux-aarch64") == "csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
+
+        var left = HeadlessLanguages.Left(declared, "linux-x86_64").ToDictionary(item => item.Spec.Id, item => item.Reason);
+        Require(left.Keys.Order().SequenceEqual(["dart", "go", "java", "powershell", "r", "ruby", "rust", "scala", "swift"]), "The servers left out of headless changed: " + string.Join(", ", left.Keys));
+        Require(left.Values.All(reason => reason.Length > 10), "A server left out of headless gives no reason.");
+        Require(left["java"].Contains("JDK", StringComparison.Ordinal) && left["swift"].Contains("toolchain", StringComparison.Ordinal) && left["rust"].Contains("cargo", StringComparison.Ordinal), "A reason does not name the missing toolchain.");
+
+        foreach (var platform in new[] { "linux-x86_64", "linux-aarch64", "macos-aarch64" })
+            foreach (var spec in HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)))
+            {
+                var name = $"{spec.Id} on {platform}";
+                Require(System.Text.RegularExpressions.Regex.IsMatch(spec.Version, @"^\d+(\.\d+)+"), $"{name} has no exact version: {spec.Version}");
+                switch (spec.Pinning)
+                {
+                    case LanguageServerPinning.Archive:
+                        var artifact = spec.Artifacts.First(item => item.Platform == platform || item.Platform == "any");
+                        Require(artifact.Url.StartsWith("https://", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.IsMatch(artifact.Sha256, "^[0-9a-f]{64}$"), $"{name} has no https URL with a SHA-256.");
+                        break;
+                    case LanguageServerPinning.Lockfile:
+                        Require(spec.LockFiles.ContainsKey("package-lock.json") && spec.NpmPackages.Split(' ').All(package => System.Text.RegularExpressions.Regex.IsMatch(package, @"@\d+\.\d+\.\d+$")), $"{name} does not pin its npm graph: {spec.NpmPackages}");
+                        break;
+                    case LanguageServerPinning.NuGet:
+                        Require(spec.NuGetPackages.Where(item => item.Platform == platform || item.Platform == "any").All(item => item.Sha512.Length == 128), $"{name} has a NuGet package without SHA-512.");
+                        break;
+                    default:
+                        throw new InvalidOperationException($"{name} is served headless with pinning {spec.Pinning}, which is not a verified download.");
+                }
+                foreach (var dependency in spec.Dependencies)
+                {
+                    var pins = ManagedRuntimes.For(ManagedRuntimes.KindOf(dependency.Executable)!.Id, platform);
+                    Require(pins.Count > 0 && pins.All(pin => pin.Sha256.Length == 64 && pin.Url.StartsWith("https://", StringComparison.Ordinal)), $"{name} needs {dependency.Name}, which has no checksummed pin.");
+                }
+            }
+        // Bun runs the Node-based servers: a Bun pin per Linux architecture, from GitHub releases.
+        Require(new[] { "linux-x86_64", "linux-aarch64" }.All(platform => ManagedRuntimes.For("bun", platform).Count > 0), "Bun is not pinned for both Linux architectures.");
+        Console.WriteLine("PASS headless languages: the roster is the servers that provision without a preinstalled toolchain, each pinned with a checksum, the rest named with the reason");
     }
 
     private static async Task Conversation(string workspace, string state)
@@ -89,6 +146,8 @@ internal static partial class HeadlessChecks
         var instructions = initialize["instructions"]!.GetValue<string>();
         Require(initialize["protocolVersion"]!.GetValue<string>() == "2025-06-18" && !instructions.Contains("set_title", StringComparison.Ordinal) && !instructions.Contains("workspace_delete", StringComparison.Ordinal),
             "The headless initialize text mentions terminal-only tools.");
+        Require(instructions.Contains("Language servers here:", StringComparison.Ordinal) && instructions.Contains("TypeScript", StringComparison.Ordinal) && instructions.Contains("Python", StringComparison.Ordinal)
+            && instructions.Contains("downloads on first use", StringComparison.Ordinal) && !instructions.Contains("Java (", StringComparison.Ordinal), "The headless initialize text does not list the served languages: " + instructions);
         Require(replies[2]["result"] is JsonObject { Count: 0 }, "ping did not answer an empty result.");
         Require(replies[4]["error"]?["code"]?.GetValue<int>() == -32601, "An unknown method must answer -32601.");
         Require(replies[5]["result"] is JsonObject, "A 2 MB request line was not answered.");

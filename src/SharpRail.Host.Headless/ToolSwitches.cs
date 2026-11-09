@@ -75,7 +75,7 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
     private static string? Default(McpServer.McpTool tool) => tool.InputSchema["properties"]?["operation"]?["default"] is JsonValue value ? value.GetValue<string>() : null;
 
     /// <summary>The initialize text, generated from the tools that exist, so an arm never hears about a tool it does not have.</summary>
-    internal static string Instructions(IReadOnlyList<McpServer.McpTool> offered)
+    internal static string Instructions(IReadOnlyList<McpServer.McpTool> offered, string languages = "")
     {
         var names = offered.Select(tool => tool.Name).ToHashSet();
         if (names.Count == 0) return "SharpRail with every tool switched off for this run.";
@@ -90,6 +90,8 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
         else if (diagnostics) text += " Use lsp_diagnostics to check edited files.";
         var changing = new[] { "lsp_code_actions", "lsp_rename", "lsp_format" }.Where(names.Contains).ToArray();
         if (changing.Length > 0) text += $" For semantic changes (quick fixes, rename, format) use {string.Join(", ", changing)} instead of hand-editing; they preview before they write.";
+        if ((navigate || diagnostics) && languages.Length > 0)
+            text += $" Language servers here: {languages}. Each downloads on first use, so a call may answer initializing: wait and call again, never treat it as no results. Other file types have no server: use grep and Read.";
         return text;
     }
 }
