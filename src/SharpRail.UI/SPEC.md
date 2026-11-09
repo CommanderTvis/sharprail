@@ -216,6 +216,23 @@ window handles never reaches the menu, so each dispatches once. The menu's Quit 
 app through the lifetime's shutdown directly; only the keyboard chord, which the window sees first, runs the
 confirmation gesture. Other platforms have no menu bar and keep their chords.
 
+## Unified chrome
+
+On macOS and in the browser (`UnifiedChrome`; the other platforms keep the top bar and the dock's left column until they are moved over) the window has no top bar, so the
+main column starts at the top edge. A phone-sized workbench keeps its own pages and is never unified.
+
+- The left column is the fixed Projects rail alone: no title, icon, tool tabs, drag handle or drop target, not part of presets,
+  not hideable, and absent from the Layout page's offerings (its group limit reads "Right side groups"). A saved layout's other left
+  tools move to the right side when it loads (and after every preset), documents there go to the centre.
+- A header tops the rail. On macOS its first row is the title region the traffic lights sit over, at the native 40pt height, draggable
+  and double-click zoomed by the system, with the three-dots overflow button at its right; in the browser there is no such row and the button
+  shares the project's row. The overflow button opens the View menu, which a right-click on the header opens too. Below it come the
+  Project switcher, the Branch block (the branch card, and the sync state with its one action wrapped under the pill), the repo hosting
+  provider's Pull request item, and one wrapping row of status marks: Listening, the connection button and the plugins' header items.
+- The right tool bar ends with About and Settings, which keep their dialogs, the Settings chord and its tooltip and automation name.
+
+Everything else about those controls is as described in Location bar; the moved controls keep their names.
+
 ## Location bar
 
 `LocationBar.cs` renders the header's captioned segments — Project and Branch — each a 14px row

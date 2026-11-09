@@ -829,7 +829,7 @@ public sealed partial class SettingsView : UserControl
     private Control Limit(string region, int value, Action<int> change)
     {
         var panel = new StackPanel { Spacing = 4 };
-        panel.Children.Add(Ui.Text("Side groups", size: 12));
+        panel.Children.Add(Ui.Text(window.HasUnifiedChrome ? "Right side groups" : "Side groups", size: 12));
         var input = new NumericUpDown
         {
             Name = "GroupLimit_" + region,

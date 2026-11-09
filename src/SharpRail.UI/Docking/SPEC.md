@@ -91,6 +91,13 @@ registry is empty (not yet synced). A `WorkspaceView` holds only layout models (
 ids), no live controls, so a stale entry costs memory and profile size rather than UI trees. `ProjectPanes`
 (keyed by project, a few strings each) is not pruned. `--workspace-views` checks a create/remove loop.
 
+## Fixed left side
+
+With a unified-chrome window (`LayoutSession.FixedLeft`; see [UI](../SPEC.md#unified-chrome)) the left side is the Projects rail alone and
+every transition ends by pinning it: other tools in left groups move to the right side, documents to the centre, extra left
+groups go, the side is shown and unfolded. It draws no edge rail, no pane header and no drag or drop target, Project Home composes the same
+rail, and Mod+1 does nothing. Other windows keep the left side as a dock column.
+
 ## Layout grammar
 
 - Center: exactly one group. The main column has no custom splits (no split menu items, drop targets or

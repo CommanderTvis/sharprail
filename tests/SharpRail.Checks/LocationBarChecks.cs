@@ -96,7 +96,7 @@ internal static class LocationBarChecks
 
         var menu = OpenWorkspaceMenu(app, workspace);
         Require(MenuEntry(menu, "WorkspaceCopyLink") is { IsEnabled: true },
-            "The active workspace's menu offers Copy link, which moved there from the header.");
+            $"The active workspace's menu offers Copy link, which moved there from the header: {MenuEntry(menu, "WorkspaceCopyLink")?.IsEnabled} home={app.Window.AtProjectHome} active={app.Window.WorkspaceRoot} vs {workspace}.");
         CloseMenu(menu);
         menu = OpenWorkspaceMenu(app, app.Root);
         Require(MenuEntry(menu, "WorkspaceCopyLink") is { IsEnabled: false }, "Copy link applies to the active workspace only.");
@@ -179,8 +179,8 @@ internal static class LocationBarChecks
             app.Window.Width = width; Settle(60);
             widths.Add((Shown(app, "ProjectSegment"), Shown(app, "BranchSegment")));
         }
-        Require(widths[0] == (true, true) && widths.Any(state => state.Project && !state.Branch) && !widths.Any(state => state.Branch && !state.Project),
-            "As the window narrows the branch yields before the project: " + string.Join(" ", widths));
+        Require(widths[0] == (true, true) && widths.All(state => state.Project) && !widths.Any(state => state.Branch && !state.Project),
+            "As the window narrows the project stays and the branch never outlives it: " + string.Join(" ", widths));
         var bar = app.Find<Control>("LocationBar");
         var settings = app.Find<Button>("SettingsButton");
         Require(bar.TranslatePoint(new Point(bar.Bounds.Width, 0), app.Window)!.Value.X <= settings.TranslatePoint(default, app.Window)!.Value.X,
@@ -200,6 +200,6 @@ internal static class LocationBarChecks
             Require(Math.Abs(Left(caption) - Left(icon)) < 0.5 && Math.Abs(icon.Bounds.Width - LayoutRoles.LocationIconSlot) < 0.5,
                 $"{segmentName}'s caption and its value's icon slot share one left edge and one width.");
         }
-        Console.WriteLine("PASS location bar: pills opt out of window dragging and segments drop in order as the header narrows");
+        Console.WriteLine("PASS location bar: pills opt out of window dragging and the segments stay in order as the header narrows");
     }
 }

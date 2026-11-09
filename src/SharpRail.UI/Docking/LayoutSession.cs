@@ -14,11 +14,16 @@ public sealed partial class LayoutSession
     public event Action<string>? SelectionChanged;
     public event Action<string>? Navigating;
     public event Action? Focused;
-    public LayoutSession(DockState? state = null)
+    /// <summary>Whether the left side is the fixed Projects rail (see <see cref="UnifiedChrome"/>): no other tool lives there and it is always shown.</summary>
+    public bool FixedLeft { get; }
+
+    public LayoutSession(DockState? state = null, bool fixedLeft = false)
     {
+        FixedLeft = fixedLeft;
         state?.RemoveBottomZone();
         state?.MergeCenter();
         state?.MigrateLegacyTools();
+        if (fixedLeft) state?.PinLeft();
         State = state is not null && IsValid(state) ? state : DockState.Preset("balanced");
     }
 
@@ -112,6 +117,7 @@ public sealed partial class LayoutSession
         var candidate = State.Copy();
         try { mutation(candidate); }
         catch (InvalidOperationException) { return false; }
+        if (FixedLeft) candidate.PinLeft();
         candidate.SeparatePanes();
         NormalizePanes(candidate);
         RememberProjectPanes(candidate);
@@ -839,6 +845,7 @@ public sealed partial class LayoutSession
         }
         foreach (var tool in tools.Select(tool => tool.Id))
             if (!next.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool))) next.ToolRestore[tool] = "";
+        if (FixedLeft) next.PinLeft();
         next.SeparatePanes();
         RememberProjectPanes(next);
         if (!IsValid(next)) return;

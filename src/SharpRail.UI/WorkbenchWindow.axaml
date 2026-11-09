@@ -122,7 +122,7 @@
                 <TextBlock x:Name="ScopeBase" Classes="location-caption tr-text-metadata" Margin="0" />
               </StackPanel>
               <!-- The branch pill, then its sync state with the one action it offers. -->
-              <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto">
                 <Button x:Name="ScopeBranch" Classes="location-pill tr-title-section">
                   <Grid ColumnDefinitions="Auto,*,Auto">
                     <ContentControl x:Name="BranchIcon" Classes="location-icon" />

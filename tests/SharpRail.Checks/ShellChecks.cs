@@ -27,6 +27,7 @@ internal static class ShellChecks
     internal static void Run(string root)
     {
         LocationBarChecks.Run(root);
+        UnifiedChromeChecks.Run(root);
         Menu(Path.Combine(root, "shell-menu"));
         if (OperatingSystem.IsMacOS()) MenuBar(Path.Combine(root, "shell-menu-bar"));
         Chrome(Path.Combine(root, "shell-chrome"));

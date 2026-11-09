@@ -226,7 +226,7 @@ could not save this change: …” inline and re-renders from host state.
   reapplies the default preset. The app-local “Preview files before keeping them” switch, on by default,
   controls the preview slot: off, every file or spec open keeps its own tab and no open waits out the
   double-click window.
-- Layout offers no tab-mode or bottom-zone settings: tabs always live in Projects.
+- Layout offers no tab-mode or bottom-zone settings: tabs always live in Projects. In a window without a top bar the left side is not customizable, so the group limit reads "Right side groups".
 - Projects holds the shared project list with per-row removal.
 - Terminal chooses Metal texture (default) or Skia (fallback) as an app-local preference and reattaches
   attached terminal views in every window without ending their host shells. Below it, the host's replay

@@ -44,6 +44,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly TextBlock statusDot;
     private readonly TextBlock errorText;
     private readonly DockSurface surface;
+    private readonly bool unified;
+    /// <summary>Whether this window has no top bar (see <see cref="SharpRail.UI.UnifiedChrome"/>); a phone-sized workbench keeps its own pages.</summary>
+    internal bool HasUnifiedChrome => unified;
+    private ContextMenu viewMenu = new();
     internal void RequestClose() => surface.RequestClose();
     private readonly Grid root;
     private long projectRequest;
@@ -88,6 +92,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
     {
         StartupPhases.Mark("window-constructor-entered");
+        unified = UnifiedChrome.Enabled && !workbench.Compact;
         this.workbench = workbench; this.host = host; this.slot = slot; profile = workbench.Profile; state = workbench.State;
         initialRoot = rootPath; remote = workbench.Remote; terminals = workbench.Terminals;
         FontSize = Ui.FontSize;
@@ -103,7 +108,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
         WireBranchList();
         WireHeader();
-        Layout = new(slot.Layout);
+        Layout = new(slot.Layout, unified);
         Layout.SetGitAvailable(false);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
@@ -113,6 +118,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Focused += UpdateActiveChangeRows;
         surface = new DockSurface(Layout, RenderContent, build: false) { NewTerminals = workbench.HasTerminals, CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid(), NestedTrailingInset = RailDotInset };
         if (workbench.Compact) WireDrawers();
+        if (unified) WireUnifiedChrome();
         AttachButtons = OperatingSystem.IsAndroid() || workbench.Compact;
         WireSharedAttachments();
         WireCenterTabs();
@@ -264,6 +270,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         // Filled as it opens, so it names the tools plugins have contributed since.
         view.Opening += (_, _) => FillViewMenu(view);
         header.ContextMenu = view;
+        viewMenu = view;
         WireLocationBar();
         var connection = this.FindControl<Button>("ConnectionButton")!;
         connection.Click += (_, _) =>
@@ -307,10 +314,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         SyncSettingsTip();
         ActiveKeymap.Changed += SyncSettingsTip;
         Closed += (_, _) => ActiveKeymap.Changed -= SyncSettingsTip;
-        if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
+        if (!unified && OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the
         // desktop or the host setting asks for it; elsewhere the system title bar stays and the header sits below it.
-        if (LinuxWindowChrome.Available)
+        if (!unified && LinuxWindowChrome.Available)
         {
             ExtendClientAreaToDecorationsHint = false;
             if (settings.Parent is Panel linuxHost) WireLinuxChrome(linuxHost);
@@ -895,6 +902,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private void ApplyChromeZoom()
     {
         var zoom = InterfaceZoom.Current;
+        if (unified) { ApplyUnifiedChromeZoom(zoom); return; }
         var row = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0];
         row.Height = new GridLength(OperatingSystem.IsMacOS() ? Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom) : LayoutRoles.TopbarRow);
         ExtendClientAreaTitleBarHeightHint = row.Height.Value * zoom;
@@ -918,7 +926,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// </summary>
     private void ApplyHeaderScale()
     {
-        if (!OperatingSystem.IsMacOS()) return;
+        if (!OperatingSystem.IsMacOS() || unified) return;
         var zoom = InterfaceZoom.Current;
         var zoomRoot = this.FindControl<LayoutTransformControl>("HeaderZoom")!;
         var bar = this.FindControl<Border>("WindowTitleBar")!;

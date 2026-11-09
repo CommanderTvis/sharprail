@@ -27,8 +27,28 @@ public sealed partial class DockSurface
     // Per group, how its strip was drawn and the scroller holding its tabs, for drop geometry.
     private readonly Dictionary<string, (StripStyle Style, ScrollViewer Scroller)> stripLayouts = [];
 
+    // The fixed Projects rail: the left header over the tool's body, with no title, icon, tabs, drag handle or drop target.
+    private Control BuildFixedLeft(DockGroup group)
+    {
+        var panel = new Grid { Name = "DockGroup", RowDefinitions = new RowDefinitions("Auto,*") };
+        panel.AddHandler(PointerPressedEvent, (_, _) => Session.Focus(group.Id), RoutingStrategies.Bubble, handledEventsToo: true);
+        var header = new Border { Name = "FixedLeftHeader" };
+        if (LeftHeader is { } top) { Detach(top); header.Child = top; }
+        Ui.Place(panel, header);
+        groupHeaders[group.Id] = header;
+        tabSites[group.Id] = [];
+        selectionUpdates[group.Id] = () => { };
+        var selected = Session.Selected(group.Id) ?? Session.Tabs(group.Id).FirstOrDefault();
+        var body = new DockPanel { Name = "DockBody_" + group.Id, Background = Ui.Sidebar };
+        body.Mount(() => selected is null ? Empty(group) : Adopt(renderContent(selected)));
+        contentHosts.Add(body);
+        Ui.Place(panel, body, 1);
+        return panel;
+    }
+
     private Control BuildGroup(DockGroup group)
     {
+        if (Session.FixedLeft && group.Region == "left") return BuildFixedLeft(group);
         var panel = new Grid
         {
             Name = group.Region == "center" ? "CenterPanel" : "DockGroup",

@@ -555,7 +555,7 @@ public sealed partial class WorkbenchWindow
         var link = Ui.Menu("Copy link", () => _ = CopyTextAsync(Location.Serialize()));
         link.Name = "WorkspaceCopyLink";
         void ScopeLink() => link.IsEnabled = !atHome && worktree.Path == workspaceRoot;
-        ScopeLink(); menu.Opening += (_, _) => ScopeLink();
+        ScopeLink(); menu.Opening += (_, _) => ScopeLink(); menu.Opened += (_, _) => ScopeLink();
         menu.Items.Add(link);
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);

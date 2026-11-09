@@ -49,6 +49,8 @@ internal static class Program
         Environment.SetEnvironmentVariable(SharpRail.Host.Core.Plugins.AgentSessionOwnership.DirectoryVariable, Path.Combine(root, "agent-sessions"));
         // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
         Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
+        // The checks assume the top bar and the dock's left column; UnifiedChromeChecks turns the new layout on for its own windows.
+        SharpRail.UI.UnifiedChrome.Override = false;
         Directory.CreateDirectory(root);
         // The checks binary is the fake language server and lives in the repository, which executables are otherwise never taken from.
         SharpRail.Host.Core.Language.LanguageExecutables.CheckExemptions.Add(SharpRail.Host.Core.Language.LanguageExecutables.Real(Environment.ProcessPath!));

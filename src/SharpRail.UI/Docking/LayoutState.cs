@@ -347,6 +347,49 @@ public sealed class DockState
         }
     }
 
+    /// <summary>
+    /// Makes the left side the fixed Projects rail: every other tool moves to the right side (documents of a left group go to
+    /// the centre), extra left groups go, and the side is shown and unfolded. Returns whether anything changed.
+    /// </summary>
+    public bool PinLeft()
+    {
+        var lefts = Groups.Where(group => group.Region == "left").ToList();
+        var keep = lefts.FirstOrDefault(group => group.Tools.Any(tab => tab.Id == "projects"));
+        if (LeftVisible && lefts.Count == 1 && keep is { Folded: false } && keep.Tools.Count == 1) return false;
+        var moved = lefts.SelectMany(group => group.Tools).Where(tab => tab.Id != "projects").DistinctBy(tab => tab.Id).ToList();
+        var removed = lefts.Where(group => group != keep).Select(group => group.Id).ToHashSet();
+        if (keep is null) { keep = new DockGroup { Region = "left" }; Groups.Add(keep); }
+        keep.Tools = [Tool("projects")]; keep.Folded = false;
+        Groups.RemoveAll(group => group.Region == "left" && group != keep);
+        var target = Groups.FirstOrDefault(group => group.Region == "right");
+        if (moved.Count > 0)
+        {
+            if (target is null) { target = new DockGroup { Region = "right" }; Groups.Add(target); }
+            target.Tools.AddRange(moved.Where(tab => target.Tools.All(existing => existing.Id != tab.Id)));
+            RightVisible = true;
+        }
+        LeftVisible = true;
+        var center = Center.Leaves().FirstOrDefault();
+        foreach (var tool in ToolRestore.Where(entry => removed.Contains(entry.Value)).Select(entry => entry.Key).ToArray())
+            ToolRestore.Remove(tool);
+        foreach (var view in Workspaces.Values)
+        {
+            foreach (var id in removed)
+            {
+                if (view.Documents.Remove(id, out var documents) && center is not null)
+                {
+                    if (!view.Documents.TryGetValue(center, out var list)) view.Documents[center] = list = [];
+                    list.AddRange(documents.Select(tab => tab with { Preview = false }));
+                }
+                view.Selected.Remove(id);
+            }
+            if (view.FocusedAuxiliary.GetValueOrDefault("left") is { } focused && removed.Contains(focused)) view.FocusedAuxiliary.Remove("left");
+        }
+        try { SeparatePanes(); }
+        catch (Exception error) when (error is NullReferenceException or InvalidOperationException or ArgumentException) { }
+        return true;
+    }
+
     public static DockState Preset(string name)
     {
         var center = new DockGroup();

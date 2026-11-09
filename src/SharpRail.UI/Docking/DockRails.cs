@@ -30,9 +30,9 @@ public sealed partial class DockSurface
     private sealed record RailSite(Control Control, string Region, string Group = "", int Index = 0, int Boundary = -1, bool Half = false, bool After = false);
 
     /// <summary>Whether this window shows a project's home, which has its own Projects pane instead of the frame.</summary>
-    internal bool Home => !Drawers && Session.State.ActiveWorkspace.StartsWith("home:", StringComparison.Ordinal);
+    internal bool Home => !Drawers && !Session.FixedLeft && Session.State.ActiveWorkspace.StartsWith("home:", StringComparison.Ordinal);
 
-    private double ShellWidth => Math.Max(0, Bounds.Width - (Drawers ? 0 : 2 * RailWidth));
+    private double ShellWidth => Math.Max(0, Bounds.Width - (Drawers ? 0 : (Session.FixedLeft ? 1 : 2) * RailWidth));
 
     private string railSignature = "";
 
@@ -79,11 +79,12 @@ public sealed partial class DockSurface
         rails.Clear(); railEntries.Clear(); railSites.Clear();
         sites.RemoveAll(site => site.Group.StartsWith("restore:", StringComparison.Ordinal) && site.Control.Name?.EndsWith("Rail", StringComparison.Ordinal) == true);
         var home = Home;
-        ColumnDefinitions[0].Width = new GridLength(Drawers ? 0 : RailWidth);
+        ColumnDefinitions[0].Width = new GridLength(Drawers || Session.FixedLeft ? 0 : RailWidth);
         ColumnDefinitions[2].Width = new GridLength(Drawers ? 0 : RailWidth);
         if (Drawers) return;
         foreach (var region in new[] { "left", "right" })
         {
+            if (region == "left" && Session.FixedLeft) continue;
             var homeRail = home && region == "left";
             var rail = homeRail ? BuildHomeRail() : BuildRail(region);
             Grid.SetColumn(rail, region == "left" ? 0 : 2);
@@ -97,15 +98,36 @@ public sealed partial class DockSurface
                 DispatcherPriority.Loaded);
     }
 
-    private Border RailFrame(string region, StackPanel entries) => new()
+    private Border RailFrame(string region, StackPanel entries)
     {
-        Name = region + "Rail",
-        Width = RailWidth,
-        Background = Ui.Sidebar,
-        BorderBrush = Ui.BorderBrush,
-        BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
-        Child = entries
-    };
+        Control content = entries;
+        if (region == "right" && RightRailFooter is { } footer)
+        {
+            Detach(footer);
+            Avalonia.Controls.DockPanel.SetDock(footer, Avalonia.Controls.Dock.Bottom);
+            content = new Avalonia.Controls.DockPanel { LastChildFill = true, Children = { footer, entries } };
+        }
+        return new()
+        {
+            Name = region + "Rail",
+            Width = RailWidth,
+            Background = Ui.Sidebar,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
+            Child = content
+        };
+    }
+
+    /// <summary>Takes a control out of the parent it is still in, so a rebuilt tree can adopt it.</summary>
+    internal static void Detach(Control control)
+    {
+        switch (control.Parent)
+        {
+            case Panel panel: panel.Children.Remove(control); break;
+            case Decorator decorator: decorator.Child = null; break;
+            case ContentControl content: content.Content = null; break;
+        }
+    }
 
     private Border BuildRail(string region)
     {
@@ -294,6 +316,7 @@ public sealed partial class DockSurface
     /// <summary>Mod+1: shows or hides the left side, or Project Home's Projects pane, moving focus into what shows or onto its rail.</summary>
     public void ToggleLeft()
     {
+        if (Session.FixedLeft) return;
         if (Home)
         {
             Session.HomeProjects(!Session.State.HomeProjectsVisible);
