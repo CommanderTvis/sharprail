@@ -69,7 +69,7 @@ Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, pu
 - Exit codes are the ones above: 0 on end of input or SIGTERM, 2 on a configuration error.
 - Labels: OCI source, description, licenses (`PolyForm-Shield-1.0.0`), revision and created.
 - Tags: `nightly` (overwritten each run) and `sha-<short>`, as multi-arch lists over `-amd64` and `-arm64` tags. arm64 may be missing.
-- No image is pushed unless `scripts/container-smoke.sh` passes on it.
+- No image is pushed unless `scripts/container-smoke.cs` passes on it.
 
 ## Plugins and security
 

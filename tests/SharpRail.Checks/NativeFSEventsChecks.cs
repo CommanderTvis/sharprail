@@ -77,7 +77,7 @@ internal static class NativeFSEventsChecks
 
     internal static async Task Run(string root)
     {
-        Require(Probe is not null && OperatingSystem.IsMacOS(), "Run scripts/check-fsevents.sh on macOS to inject the test-only native probe.");
+        Require(Probe is not null && OperatingSystem.IsMacOS(), "Run `scripts/mise run check-fsevents` on macOS to inject the test-only native probe.");
         await WatcherHygieneChecks.Run(root);
         var baseline = Snapshot()!;
         using var git = new IsolatedGit(Path.Combine(root, "native-fsevents-git"));

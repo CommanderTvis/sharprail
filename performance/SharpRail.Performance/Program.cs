@@ -68,11 +68,11 @@ try
         default:
             Console.WriteLine("""
                 SharpRail macOS startup and initial RAM toolkit
-                  performance/run.sh publish
-                  performance/run.sh measure [--warmups 1] [--repetitions 10] [--modes embedded,remote] [--memory-delay-ms 5000] [--output PATH]
-                  performance/run.sh diagnose [--output PATH]
-                  performance/run.sh report --input results.json [--baseline baseline.json] [--output PATH]
-                  performance/run.sh self-test
+                  scripts/mise run perf -- publish
+                  scripts/mise run perf -- measure [--warmups 1] [--repetitions 10] [--modes embedded,remote] [--memory-delay-ms 5000] [--output PATH]
+                  scripts/mise run perf -- diagnose [--output PATH]
+                  scripts/mise run perf -- report --input results.json [--baseline baseline.json] [--output PATH]
+                  scripts/mise run perf -- self-test
                 Build/publish runs outside measurement. Reports default under artifacts/performance.
                 """);
             break;
