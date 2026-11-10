@@ -90,7 +90,7 @@ public sealed partial class WorkbenchWindow
                 if (!entry.Rows.TryGetValue(worktree.Path, out var pair))
                     pair = (null, WorkspaceTabsHost(worktree.Path));
                 if (showWorkspaces) pair.Row ??= WorkspaceItem(worktree);
-                else if (pair.Row is not null) { pair.Row = null; railSelection.Remove("workspace:" + worktree.Path); }
+                else if (pair.Row is not null) { pair.Row = null; railSelection.Remove("workspace:" + worktree.Path); railStats.Remove(worktree.Path); }
                 var indent = showWorkspaces ? 16 * (relative < 0 ? depth : relative) : 0;
                 var itemLeft = relative < 0 ? 24 : 8;
                 var tabsLeft = relative < 0 ? (showWorkspaces ? 40 : 20) : 24;
@@ -287,12 +287,14 @@ public sealed partial class WorkbenchWindow
         foreach (var entry in projectRailRows.Values)
             if (entry.Rows.TryGetValue(path, out var pair)) entry.Rows[path] = (null, pair.Tabs);
         railSelection.Remove("workspace:" + path);
+        railStats.Remove(path);
         UpdateRailSelection();
     }
 
     private void ForgetWorkspaceRow(string path)
     {
         railSelection.Remove("workspace:" + path);
+        railStats.Remove(path);
         workspaceTabHosts.Remove(path);
         workspaceTabBreaks.Remove(path);
         workspaceTabSegments.Remove(path);
@@ -469,7 +471,8 @@ public sealed partial class WorkbenchWindow
 
     // Change totals per workspace path, read after the rail is up and applied to the rows in place.
     private readonly Dictionary<string, DiffStats> workspaceStats = [];
-    private readonly List<Action> railStats = [];
+    private readonly Dictionary<string, Action> railStats = [];
+    internal int RailStatsCount => railStats.Count;
     private CancellationTokenSource? statsRefresh;
 
     private async Task RefreshWorkspaceStatsAsync(long request)
@@ -493,7 +496,7 @@ public sealed partial class WorkbenchWindow
         }
         workspaceStats.Clear();
         foreach (var (path, stats) in read) workspaceStats[path] = stats;
-        foreach (var update in railStats) update();
+        foreach (var update in railStats.Values.ToArray()) update();
     }
 
     /// <summary>
@@ -548,7 +551,7 @@ public sealed partial class WorkbenchWindow
             added.Text = "+" + (stats?.Added ?? 0); removed.Text = "−" + (stats?.Removed ?? 0);
         }
         ShowTotals();
-        railStats.Add(ShowTotals);
+        railStats[worktree.Path] = ShowTotals;
         var branch = Ui.Text("", Ui.Hint, RailTitleBudget.SecondFontSize); branch.LineHeight = RailTitleBudget.SecondLineHeight; branch.VerticalAlignment = VerticalAlignment.Center; branch.Name = "WorkspaceBranch";
         branch.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
         // The totals sit right of the branch, or alone under the name when the row has none.

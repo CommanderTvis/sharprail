@@ -181,6 +181,9 @@ internal static class RailRetentionChecks
         IsolatedGit.Run(other, "worktree", "remove", stale);
         Publish([other]);
         Until(() => !Controls(app).Any(control => control.Name == "WorkspaceItem" && Equals(control.Tag, stale)));
+        // Rows created and removed all along must not stay registered for change totals, or each one keeps its controls alive.
+        var live = Controls(app).Count(control => control.Name == "WorkspaceItem");
+        Require(app.Window.RailStatsCount == live, $"The rail keeps change totals for {app.Window.RailStatsCount} rows but shows {live}.");
         Console.WriteLine("PASS deleted workspaces leave an inactive project's rail after activation and host catalog broadcasts");
     }
 
