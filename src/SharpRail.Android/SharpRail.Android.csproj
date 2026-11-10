@@ -116,7 +116,7 @@
     <!-- Merman's .so (pinned in mise.android.lock) under the name MermaidRenderer's P/Invoke resolves; it has no SONAME. -->
     <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/native/android/%(Identity)/libSharpRailMermaid.so')" />
     <!-- The licenses and notices every distributed package carries (MIT, BSD and Apache require the notice to accompany copies). -->
-    <AndroidAsset Include="../../LICENSE;../../NOTICE;../../THIRD-PARTY-NOTICES.md" LogicalName="licenses/%(Filename)%(Extension)" />
+    <AndroidAsset Include="../../LICENSE.md;../../NOTICE;../../THIRD-PARTY-NOTICES.md" LogicalName="licenses/%(Filename)%(Extension)" />
     <AndroidAsset Include="../../licenses/**" LogicalName="licenses/%(RecursiveDir)%(Filename)%(Extension)" />
     <AndroidAsset Include="$(MSBuildProjectDirectory)/obj/tailscale/arm64-v8a/THIRD-PARTY-NOTICES.txt" LogicalName="licenses/tailscale/THIRD-PARTY-NOTICES.txt" />
     <AndroidAsset Include="$(MSBuildProjectDirectory)/obj/tailscale/arm64-v8a/TAILSCALE-LICENSE" LogicalName="licenses/tailscale/TAILSCALE-LICENSE" />
