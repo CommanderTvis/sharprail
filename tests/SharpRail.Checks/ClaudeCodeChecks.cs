@@ -881,7 +881,7 @@ internal static class ClaudeCodeChecks
         Directory.CreateDirectory(directory);
         var log = Path.Combine(directory, "launch.log");
         var fake = Path.Combine(directory, "fake-claude");
-        File.WriteAllText(fake, $"#!/bin/sh\nif [ \"$1\" = --help ]; then printf '%s\\n' '  --permission-mode <mode>   Permission mode to use (choices: \"acceptEdits\", \"manual\",' '      \"plan\", \"bypassPermissions\")'; exit 0; fi\nprintf '%s\\n' \"agent-view=$CLAUDE_CODE_DISABLE_AGENT_VIEW\" \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n");
+        File.WriteAllText(fake, $"#!/bin/sh\nif [ \"$1\" = --help ]; then printf '%s\\n' '  --permission-mode <mode>   Permission mode to use (choices: \"acceptEdits\", \"manual\",' '      \"plan\", \"bypassPermissions\")'; exit 0; fi\nif [ \"$1\" = auth ] || [ \"$1\" = -p ]; then exit 1; fi\nprintf '%s\\n' \"agent-view=$CLAUDE_CODE_DISABLE_AGENT_VIEW\" \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false);
         E2eWorkspace.Until(() => app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
@@ -1142,9 +1142,103 @@ internal static class ClaudeCodeChecks
         var failing = Fake("failing", noisy, 3);
         File.Copy(failing, good, true);
         File.SetUnixFileMode(good, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        Require((await ClaudeAccountReader.ReadAsync(good, true)) is { Usage.Count: 0, UsageFetchedAt: null } && (await ClaudeAccountReader.ReadAsync(good, false)).Usage.Count == 0,
-            "A failing /usage leaves usage unavailable, not the earlier numbers.");
-        Console.WriteLine("PASS Claude Code account: usage read from claude /usage stream-json, noise skipped, in-memory reuse and failure unavailable");
+        Require((await ClaudeAccountReader.ReadAsync(good, true)) is { Usage.Count: 3, UsageFetchedAt: not null, UsageError: not null } && (await ClaudeAccountReader.ReadAsync(good, false)).Usage.Count == 3,
+            "A failing /usage keeps the earlier numbers and says why it failed.");
+        await UsagePolling(fakes);
+        Console.WriteLine("PASS Claude Code account: usage read from claude /usage stream-json, noise skipped, in-memory reuse and failure keeps the last numbers");
+    }
+
+    // The host polls /usage by itself: at start, every 15 minutes, never twice at once, backing off on failure; a fake claude and a fake clock.
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static async Task UsagePolling(string fakes)
+    {
+        var bin = Path.Combine(fakes, "polled");
+        var report = Path.Combine(fakes, "polled.out");
+        File.WriteAllText(report, UsageLimits + "\n");
+        // auth status answers unless "signedout" exists; /usage answers unless "fail" exists; every call is logged.
+        File.WriteAllText(bin, $"#!/bin/sh\necho \"$*\" >> '{bin}.log'\ncase \"$*\" in\n*'auth status'*) if [ -e '{bin}.signedout' ]; then echo '{{\"loggedIn\":false}}'; else echo '{{\"loggedIn\":true}}'; fi ;;\n*'/usage'*) if [ -e '{bin}.fail' ]; then exit 3; fi; cat '{report}' ;;\n*) exit 1 ;;\nesac\n");
+        File.SetUnixFileMode(bin, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        int Runs(string path) => File.Exists(path + ".log") ? File.ReadAllLines(path + ".log").Count(line => line.Contains("/usage", StringComparison.Ordinal)) : 0;
+        var start = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+        var clock = start;
+        var events = new List<bool>();
+        using var poller = new ClaudeUsagePoller(() => clock, manual => ClaudeAccountReader.PollAsync(bin, manual), events.Add);
+        void Settle(int count)
+        {
+            for (var waited = 0; events.Count < count && waited < 200; waited++) Thread.Sleep(50);
+            Require(events.Count == count, $"The background read reported ({events.Count} of {count}).");
+        }
+
+        Require(poller.Tick() && !poller.Tick(), "The first tick reads at start and does not start a second read.");
+        Settle(1);
+        Require(Runs(bin) == 1 && events[0] == false && poller.Due == start + ClaudeUsagePoller.Interval, "The startup read ran /usage once and set the next one 15 minutes out.");
+        Require((await ClaudeAccountReader.ReadAsync(bin, false)) is { Usage.Count: 3, UsageError: null }, "The polled numbers are what the Account method returns.");
+        clock = start.AddMinutes(14);
+        Require(!poller.Tick() && Runs(bin) == 1, "No read before 15 minutes.");
+        clock = start.AddMinutes(15);
+        Require(poller.Tick(), "A read starts at 15 minutes.");
+        Settle(2);
+        Require(Runs(bin) == 2 && poller.Due == clock + ClaudeUsagePoller.Interval, "The 15-minute tick ran /usage and moved the next read.");
+
+        // A failure keeps the last numbers, shows the reason and doubles the wait up to an hour.
+        File.WriteAllText(bin + ".fail", "");
+        clock = start.AddMinutes(30);
+        Require(poller.Tick(), "A read starts at the next 15 minutes.");
+        Settle(3);
+        Require(events[2] && poller.Failures == 1 && poller.Due == clock.AddMinutes(30), "A failed read waits 30 minutes.");
+        Require((await ClaudeAccountReader.ReadAsync(bin, false)) is { Usage.Count: 3, UsageFetchedAt: not null, UsageError: not null }, "The failure keeps the last good numbers and carries the reason.");
+        clock = start.AddMinutes(59);
+        Require(!poller.Tick(), "No read while backing off.");
+        clock = start.AddMinutes(60);
+        Require(poller.Tick(), "A read starts when the backoff ends.");
+        Settle(4);
+        Require(poller.Failures == 2 && poller.Due == clock.AddMinutes(60), "A second failure waits an hour.");
+        clock = start.AddMinutes(120);
+        Require(poller.Tick(), "A read starts after an hour.");
+        Settle(5);
+        Require(poller.Failures == 3 && poller.Due == clock.AddMinutes(60), "The wait stops at an hour.");
+
+        // A manual refresh reads at once, resets the failures and restarts the 15 minutes.
+        File.Delete(bin + ".fail");
+        clock = start.AddMinutes(130);
+        Require(await poller.RefreshAsync() == UsagePoll.Ok, "A manual refresh reads even while backing off.");
+        Require(poller.Failures == 0 && poller.Due == clock + ClaudeUsagePoller.Interval && (await ClaudeAccountReader.ReadAsync(bin, false)).UsageError is null,
+            "A good read resets the backoff, restarts the timer and clears the reason.");
+        events.Clear();
+        clock = start.AddMinutes(130).AddSeconds(30);
+        Require(!poller.Opened(), "Opening the Account tab does not read numbers under a minute old.");
+        clock = start.AddMinutes(132);
+        Require(poller.Opened(), "Opening the Account tab reads numbers over a minute old.");
+        Settle(1);
+
+        // Signed out: skipped quietly, no /usage.
+        File.WriteAllText(bin + ".signedout", "");
+        var runs = Runs(bin);
+        events.Clear();
+        clock = start.AddMinutes(200);
+        Require(poller.Tick(), "A tick checks the sign-in.");
+        for (var waited = 0; poller.Due <= clock && waited < 200; waited++) Thread.Sleep(50);
+        Require(Runs(bin) == runs && events.Count == 0 && poller.Failures == 0, "Signed out: /usage is not run and nothing is reported.");
+
+        // No CLI: nothing runs, nothing is reported.
+        var missing = Path.Combine(fakes, "no-such-claude");
+        var told = 0;
+        using var absent = new ClaudeUsagePoller(() => clock, manual => ClaudeAccountReader.PollAsync(missing, manual), _ => told++);
+        Require(absent.Tick(), "A tick tries the missing CLI.");
+        for (var waited = 0; absent.Due <= clock && waited < 200; waited++) Thread.Sleep(50);
+        Require(told == 0 && absent.Failures == 0 && !File.Exists(missing + ".log") && absent.Due == clock + ClaudeUsagePoller.Interval, "A missing CLI is skipped without an error and checked again in 15 minutes.");
+
+        // One read at a time: a tick while a read is running does nothing, and a refresh joins it.
+        var release = new TaskCompletionSource();
+        var calls = 0;
+        using var slow = new ClaudeUsagePoller(() => clock, async _ => { Interlocked.Increment(ref calls); await release.Task; return UsagePoll.Ok; }, _ => { });
+        Require(slow.Tick(), "A slow read starts.");
+        for (var waited = 0; Volatile.Read(ref calls) == 0 && waited < 200; waited++) Thread.Sleep(50);
+        clock += ClaudeUsagePoller.Interval * 2;
+        var joined = slow.RefreshAsync();
+        Require(!slow.Tick() && !slow.Opened() && calls == 1, "A tick, an open and a refresh while a read runs start no second one.");
+        release.SetResult();
+        Require(await joined == UsagePoll.Ok && calls == 1, "The refresh joined the running read.");
     }
 
     public static async Task Run(string root)

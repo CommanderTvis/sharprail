@@ -3,12 +3,15 @@ using System.Text.Json.Nodes;
 
 namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
 
+/// <summary>How a background usage read ended: it ran, it failed, or it did not run (no CLI, not signed in).</summary>
+internal enum UsagePoll { Ok, Failed, Skipped }
+
 /// <summary>Who Claude Code is signed in as, its version, and the usage limits <c>/usage</c> reports.</summary>
 internal static class ClaudeAccountReader
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
-    // A round trip to the service, so it gets its own longer budget.
-    private static readonly TimeSpan UsageTimeout = TimeSpan.FromSeconds(45);
+    // A round trip to the service, so it gets its own longer budget; a child past it is killed.
+    private static readonly TimeSpan UsageTimeout = TimeSpan.FromSeconds(30);
 
     // The fallback for a report without a limits list.
     private static readonly (string Id, string Label)[] NamedWindows = [("five_hour", "Session (5 hr)"), ("seven_day", "Weekly (7 day)")];
@@ -77,34 +80,56 @@ internal static class ClaudeAccountReader
         return null;
     }
 
-    // The last successful /usage per binary: opening the pane reads this, the hourly sync and Refresh run the command again.
+    // The last successful /usage per binary, and why the latest attempt failed (absent after a success). A failure keeps the
+    // last good numbers: the pane shows them with their age and the reason.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (List<ClaudeUsageWindow> Usage, string FetchedAt)> LastUsage = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastError = new();
 
     /// <summary>
-    /// <c>/usage</c> in print mode, the official way to read the limits: it costs no tokens. Its stream-json form carries
-    /// the report with full timestamps; the plain text has no year. Unavailable (empty, no time) when the command fails.
+    /// <c>/usage</c> in print mode, the official way to read the limits: it costs no tokens and starts no model turn. Its
+    /// stream-json form carries the report with full timestamps; the plain text has no year. A failure keeps the earlier numbers.
     /// </summary>
-    private static async Task<(List<ClaudeUsageWindow> Usage, string? FetchedAt)> FetchUsageAsync(string binary)
+    private static async Task<UsagePoll> FetchUsageAsync(string binary)
     {
         var run = await Bounded.RunAsync([binary, "-p", "--output-format", "stream-json", "--verbose", "/usage"], UsageTimeout);
         if (run.Ok && ParseUsage(run.Out, DateTimeOffset.UtcNow) is { } parsed)
         {
             LastUsage[binary] = parsed;
-            return parsed;
+            LastError.TryRemove(binary, out _);
+            return UsagePoll.Ok;
         }
-        LastUsage.TryRemove(binary, out _);
-        return ([], null);
+        LastError[binary] = run.TimedOut ? "Claude Code did not answer in time."
+            : run.LaunchFailed ? "Claude Code could not be started."
+            : "Claude Code gave no usage numbers.";
+        return UsagePoll.Failed;
+    }
+
+    /// <summary>
+    /// One background read for <see cref="ClaudeUsagePoller"/>. Unless <paramref name="manual"/>, it runs only when the CLI starts and
+    /// is signed in; otherwise it is skipped, without an error to show.
+    /// </summary>
+    public static async Task<UsagePoll> PollAsync(string claudeCommand, bool manual)
+    {
+        var binary = ClaudeCommands.ClaudeBinary(claudeCommand);
+        if (!manual)
+        {
+            var status = await Bounded.RunAsync([binary, "auth", "status", "--json"], Timeout);
+            if (!status.Ok) return UsagePoll.Skipped;
+            try { if (!Json.IsTrue((JsonNode.Parse(status.Out) as JsonObject)?["loggedIn"])) return UsagePoll.Skipped; }
+            catch (JsonException) { return UsagePoll.Skipped; }
+        }
+        return await FetchUsageAsync(binary);
     }
 
     public static async Task<ClaudeAccount> ReadAsync(string claudeCommand, bool refresh)
     {
         var binary = ClaudeCommands.ClaudeBinary(claudeCommand);
-        // Without a refresh the pane gets what the last fetch found, or nothing: its own first-view and hourly refresh fetch it.
-        var (usage, fetchedAt) = refresh ? await FetchUsageAsync(binary)
-            : LastUsage.TryGetValue(binary, out var last) ? (last.Usage, last.FetchedAt) : ([], null);
+        // The pane gets what the last fetch found, or nothing: the host's poller and the refresh button fetch it.
+        if (refresh) await FetchUsageAsync(binary);
+        var (usage, fetchedAt) = LastUsage.TryGetValue(binary, out var last) ? (last.Usage, last.FetchedAt) : ([], null);
         var versionRun = await Bounded.RunAsync([binary, "--version"], Timeout);
         var version = versionRun.Ok ? versionRun.Out.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : null;
-        var account = new ClaudeAccount(false, usage) { Version = version, UsageFetchedAt = fetchedAt };
+        var account = new ClaudeAccount(false, usage) { Version = version, UsageFetchedAt = fetchedAt, UsageError = LastError.GetValueOrDefault(binary) };
 
         var run = await Bounded.RunAsync([binary, "auth", "status", "--json"], Timeout);
         if (!run.Ok) return account;

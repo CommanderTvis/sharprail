@@ -22,6 +22,28 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
     /// <summary>Whether a forced read is running.</summary>
     public bool Busy => busy;
     private int generation;
+    private IDisposable? changes;
+    private DispatcherTimer? minute;
+
+    // The host reads the numbers in the background and says so; the age line is redrawn each minute so it keeps counting.
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        changes ??= context.Subscribe(ClaudeCodeContract.AccountUsage, _ => { if (!busy) Read(refresh: false); });
+        if (minute is null)
+        {
+            minute = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+            minute.Tick += (_, _) => { if (account is not null && !busy && error is null) Render(); };
+            minute.Start();
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        changes?.Dispose(); changes = null;
+        minute?.Stop(); minute = null;
+    }
 
     // The mount's read has nothing to force; only a press asks Claude Code to fetch the numbers again.
     public void Read(bool refresh)
@@ -135,7 +157,7 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
         usage.Children.Add(Heading("Usage"));
         if (account.Usage.Count == 0)
         {
-            var empty = ClaudeParts.Wrapped("No usage reading yet — Claude Code records one while it works.", Ui.Muted, 13);
+            var empty = ClaudeParts.Wrapped("No usage reading yet. Claude Code is asked for one in the background.", Ui.Muted, 13);
             empty.Name = "ClaudeUsageEmpty";
             usage.Children.Add(empty);
         }
@@ -147,6 +169,18 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
             age.Name = "ClaudeUsageAge";
             ToolTip.SetTip(age, ClaudeParts.Absolute(at));
             usage.Children.Add(age);
+            if (account.UsageError is { } stale)
+            {
+                var failed = ClaudeParts.Wrapped($"{stale} These numbers may be out of date.", Ui.Warning, 12);
+                failed.Name = "ClaudeUsageStale";
+                usage.Children.Add(failed);
+            }
+        }
+        else if (account.UsageError is { } missing)
+        {
+            var failed = ClaudeParts.Wrapped(missing, Ui.Warning, 12);
+            failed.Name = "ClaudeUsageStale";
+            usage.Children.Add(failed);
         }
         Children.Add(usage);
 

@@ -43,6 +43,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     private AgentWatch? watch;
     private ContextUsageRunner? contextUsage;
     private FileSystemWatcher? claudeHomeWatch;
+    private ClaudeUsagePoller? usagePoller;
 
     internal IdeBridge.IdeBridge? Bridge => bridge;
 
@@ -108,8 +109,17 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             // A launch another plugin governs runs under that source's account, so Claude's own account and usage are not read.
             if (context.AgentLaunchContributions("claude").Select(contribution => contribution.Account).OfType<AgentAccountSource>().FirstOrDefault() is { } governing)
                 return new ClaudeAccount(false, []) { Governed = await governing.Read(cancellationToken) };
-            return await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true);
+            if (p.Refresh == true) await usagePoller!.RefreshAsync().WaitAsync(cancellationToken);
+            else usagePoller!.Opened();
+            return await ClaudeAccountReader.ReadAsync(Command(), false);
         });
+        // The usage numbers are read in the background (at start, every 15 minutes, when the Account tab opens): a launch another
+        // plugin governs has no Claude account to read, so that read is skipped.
+        usagePoller = new ClaudeUsagePoller(() => DateTimeOffset.UtcNow,
+            manual => context.AgentLaunchContributions("claude").Select(contribution => contribution.Account).OfType<AgentAccountSource>().Any()
+                ? Task.FromResult(UsagePoll.Skipped) : ClaudeAccountReader.PollAsync(Command(), manual),
+            failed => context.Publish(ClaudeCodeContract.AccountUsage, new AccountUsageChanged(failed)));
+        usagePoller.Start();
         context.Method(ClaudeCodeContract.PermissionModesGet, async (_, _, _) => await permissionModes.GetAsync(Command()));
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.IgnoredEdits())));
         // The project's disable-list is the only way to shape the instructions; the generated files are never edited.
@@ -481,6 +491,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         watch?.Stop();
         claudeHomeWatch?.Dispose();
         contextUsage?.Dispose();
+        usagePoller?.Dispose();
         interrupts.StopAll();
         bridge?.Stop();
         clientForWorkspace.Clear();

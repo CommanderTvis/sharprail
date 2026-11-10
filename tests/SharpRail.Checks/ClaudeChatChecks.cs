@@ -44,6 +44,8 @@ internal static class ClaudeChatChecks
     internal const string FakeClaude = """
         #!/bin/bash
         D=$(cd "$(dirname "$0")" && pwd)
+        # The host's own usage reads (auth status, /usage) are not chat spawns.
+        case "$*" in "auth "*|*" /usage") exit 1 ;; esac
         echo "$*" >> "$D/args.log"
         sleep 300 >/dev/null 2>&1 &
         # The plugin also runs the command for its own queries (--help); only a chat's start names the grandchild to check.
