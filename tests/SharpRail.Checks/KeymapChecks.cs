@@ -278,6 +278,15 @@ internal static class KeymapChecks
             int Rows(string prefix = "KeymapRow_") => settings.GetLogicalDescendants().OfType<Border>().Count(border => border.Name?.StartsWith(prefix) == true);
             Until(() => Maybe<Button>("KeymapGroup_fake_Fake_group") is not null && Maybe<TextBlock>("KeymapPluginsHeading") is not null, "The plugin's group is listed under Plugins.");
             Require(Maybe<Button>("KeymapGroup_Language") is not null && Maybe<Button>("KeymapGroup_General") is not null, "Built-in groups are listed by area.");
+            var texts = settings.GetLogicalDescendants().OfType<TextBlock>().Select(block => block.Text ?? "").ToArray();
+            Require(texts.All(text => text != "Built in" && !text.EndsWith("· Built in", StringComparison.Ordinal)), "No label says Built in.");
+            Require(texts.All(text => !System.Text.RegularExpressions.Regex.IsMatch(text, @"^(.+) · \1$")), "No label repeats itself as X · X.");
+            var pluginName = ActiveKeymap.PluginActions.First(action => action.Plugin == "fake").PluginName;
+            var groupLabel = Maybe<Button>("KeymapGroup_fake_Fake_group")!.GetLogicalDescendants().OfType<TextBlock>().First().Text;
+            Require(groupLabel == pluginName + ": Fake group", "A plugin group heading names the plugin once.");
+            var same = new KeymapAction("p:x", "X", "Claude Code", "p", "Claude Code");
+            Require(same.GroupHeading == "Claude Code" && same.Category is null, "A group named like its plugin shows the name once and no category line.");
+            Require(new KeymapAction("a", "A", "Language").Category == "Language", "A built-in command shows only its category.");
             var total = Rows();
             Maybe<Button>("KeymapGroup_Language")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Until(() => Rows() == total - KeymapActions.All.Count(action => action.Group == KeymapActions.LanguageGroup), "Collapsing a group hides its rows.");

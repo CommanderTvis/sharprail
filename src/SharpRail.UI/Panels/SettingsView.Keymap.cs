@@ -187,10 +187,11 @@ public sealed partial class SettingsView
         // A plugin without an icon gets no slot; the whole row toggles, the state is in its automation name.
         if (pluginId is not null && window.Workbench.PluginRegistry.Manifests.GetValueOrDefault(pluginId)?.Icon is { Length: > 0 } icon)
             content.Children.Add(Plugins.PluginIcons.Resolve(icon, window.Workbench.PluginRegistry.Entry(pluginId), Ui.Muted));
-        content.Children.Add(Ui.Text(pluginName is null ? title : $"{pluginName}: {title}", Ui.TextBrush, 13));
+        var heading = pluginName is null ? title : title == pluginName ? pluginName : $"{pluginName}: {title}";
+        content.Children.Add(Ui.Text(heading, Ui.TextBrush, 13));
         content.Children.Add(Ui.Text(count.ToString(), Ui.Muted, 12));
         toggle.Content = content;
-        AutomationProperties.SetName(toggle, $"{(pluginName is null ? title : pluginName + " " + title)}, {count} actions, {(expanded ? "expanded" : "collapsed")}");
+        AutomationProperties.SetName(toggle, $"{heading}, {count} actions, {(expanded ? "expanded" : "collapsed")}");
         toggle.Click += (_, _) => { if (!keymapCollapsed.Remove(key)) keymapCollapsed.Add(key); RefreshKeymapList(); };
         header.Children.Add(toggle);
         if (reset is { } group)
@@ -233,8 +234,8 @@ public sealed partial class SettingsView
         var layout = new WrapPanel { Orientation = Orientation.Horizontal };
         var name = new StackPanel { MinWidth = 192, Margin = new Thickness(0, 0, 8, 0) };
         name.Children.Add(Ui.Text(action.Title, Ui.TextBrush));
-        // Where the action comes from: the built-in area, or the plugin that contributed it.
-        name.Children.Add(Ui.Text(action.IsPlugin ? $"{action.Group} · {action.PluginName}" : $"{action.Group} · Built in", Ui.Muted, 11));
+        // The category only: the group header above already names the plugin.
+        if (action.Category is { } category) name.Children.Add(Ui.Text(category, Ui.Muted, 11));
         if (keymapConflicting.Contains(action.Id)) name.Children.Add(Ui.Text("Conflict", Ui.Danger, 11));
         layout.Children.Add(name);
         for (var slot = 0; slot < KeymapBindings.MaxChords; slot++)

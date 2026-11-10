@@ -109,6 +109,12 @@ public sealed record KeymapAction(string Id, string Title, string Group, string 
     IReadOnlyList<string>? MacDefaults = null, IReadOnlyList<string>? OtherDefaults = null)
 {
     public bool IsPlugin => Plugin.Length > 0;
+
+    /// <summary>The category line under the title: the group, unless a plugin's group is just the plugin's own name (its group header already says it). Null means no line.</summary>
+    public string? Category => IsPlugin && Group == PluginName ? null : Group;
+
+    /// <summary>A plugin group's heading: the plugin's name once, with the group after it only when the group says something else.</summary>
+    public string GroupHeading => IsPlugin && Group != PluginName ? $"{PluginName}: {Group}" : IsPlugin ? PluginName : Group;
 }
 
 /// <summary>The commands with bindable chords, in the order the keymap page lists them.</summary>

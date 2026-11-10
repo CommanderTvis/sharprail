@@ -2210,6 +2210,8 @@ SharpRail.Host.Abstractions.KeymapBindings.BasedOn.get -> string!
 SharpRail.Host.Abstractions.KeymapBindings.BasedOn.set -> void
 SharpRail.Host.Abstractions.KeymapAction.Deconstruct(out string! Id, out string! Title, out string! Group, out string! Plugin, out string! PluginName, out System.Collections.Generic.IReadOnlyList<string!>? MacDefaults, out System.Collections.Generic.IReadOnlyList<string!>? OtherDefaults) -> void
 SharpRail.Host.Abstractions.KeymapAction.IsPlugin.get -> bool
+SharpRail.Host.Abstractions.KeymapAction.Category.get -> string?
+SharpRail.Host.Abstractions.KeymapAction.GroupHeading.get -> string!
 SharpRail.Host.Abstractions.KeymapAction.KeymapAction(string! Id, string! Title, string! Group, string! Plugin = "", string! PluginName = "", System.Collections.Generic.IReadOnlyList<string!>? MacDefaults = null, System.Collections.Generic.IReadOnlyList<string!>? OtherDefaults = null) -> void
 SharpRail.Host.Abstractions.KeymapAction.MacDefaults.get -> System.Collections.Generic.IReadOnlyList<string!>?
 SharpRail.Host.Abstractions.KeymapAction.MacDefaults.init -> void
