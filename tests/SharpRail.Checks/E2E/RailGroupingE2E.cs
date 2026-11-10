@@ -75,11 +75,40 @@ internal static class RailGroupingE2E
 
         TitleBudget(app, project, [project, orphan, creatorWorkspace, child, chatChild]);
 
+        // Two workspaces from one tab share one unbroken line from the tab's icon, whichever workspace is open.
+        var second = CreateWorkspaceViaDialog(app);
+        app.State.RecordWorkspaceCreator(second, new TerminalRef(creatorWorkspace, terminal));
+        Until(() => app.State.Current.WorkspaceCreators.Count == 4 && Item(app, second).Margin.Left > Item(app, creatorWorkspace).Margin.Left);
+        foreach (var open in new[] { creatorWorkspace, project })
+        {
+            app.Click(Select(app, open));
+            Until(() => Active(app, open));
+            Until(() => GuidesJoin(app, creatorWorkspace, terminal, child, second));
+        }
+        Console.WriteLine("PASS rail grouping: sibling guide lines form one line from the icon, with the creator's workspace open or not");
+
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
         Require(reloaded.Data.Preferences.GroupWorkspacesUnderCreator, "The preference must be stored and restored.");
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
             "The host must restore the recorded creator after a restart.");
         Console.WriteLine("PASS rail grouping: the preference and the creators are stored and restored");
+    }
+
+    /// <summary>Whether two children of one tab have guides that start at the tab's icon and touch, with no gap between the rows.</summary>
+    private static bool GuidesJoin(E2eWorkspace app, string creator, string tab, string first, string second)
+    {
+        Rect Span(string path)
+        {
+            var guide = Named<Border>(Item(app, path), "WorkspaceNestGuide");
+            return new Rect(guide.TranslatePoint(default, app.Window) ?? default, guide.Bounds.Size);
+        }
+        var upper = Item(app, first).TranslatePoint(default, app.Window).GetValueOrDefault().Y < Item(app, second).TranslatePoint(default, app.Window).GetValueOrDefault().Y ? first : second;
+        var lower = upper == first ? second : first;
+        var row = Controls(app).FirstOrDefault(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceTabPreview" && (string?)control.Tag == tab || control.Name == "DockTab_" + tab.Replace(':', '_').Replace('/', '_')));
+        if (row is null) return false;
+        var icon = row.GetVisualDescendants().OfType<MarkedRow>().First().Children.First(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading);
+        var iconBottom = (icon.TranslatePoint(new Point(0, icon.Bounds.Height), app.Window) ?? default).Y;
+        return Math.Abs(Span(upper).Top - iconBottom) <= 0.5 && Span(upper).Bottom >= Span(lower).Top - 0.5;
     }
 
     /// <summary>Whether a grouped row's guide line is centred, within half a pixel, on the leading icon of the tab row that created it.</summary>

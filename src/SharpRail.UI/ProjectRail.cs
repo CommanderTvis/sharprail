@@ -609,7 +609,8 @@ public sealed partial class WorkbenchWindow
         // The line tying a grouped workspace to the creator above it; shown only while it is grouped.
         var nestGuide = new Border { Name = "WorkspaceNestGuide", Width = 1, Margin = new Thickness(-8, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Ui.BorderBrush, IsHitTestVisible = false, IsVisible = false };
         item.Children.Add(nestGuide);
-        // The line runs under the middle of the creator tab's icon, wherever the indents put that icon.
+        // The line runs under the middle of the creator tab's icon and is one line with its siblings' lines: it starts at the icon
+        // for the first child and reaches the next child of the same tab across the space between rows.
         Control? creatorRow = null;
         item.LayoutUpdated += (_, _) =>
         {
@@ -617,7 +618,22 @@ public sealed partial class WorkbenchWindow
             if (creatorRow?.IsEffectivelyVisible != true) creatorRow = FindCreatorRow(worktree.Path);
             if (creatorRow?.GetVisualDescendants().OfType<MarkedRow>().FirstOrDefault() is not { } marked || marked.TranslatePoint(default, item) is not { } at) return;
             var left = at.X + MarkedRow.LeadingWidth / 2 - nestGuide.Width / 2;
-            if (Math.Abs(left - nestGuide.Margin.Left) > 0.01) nestGuide.Margin = new Thickness(left, 0, 0, 0);
+            var creator = state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == worktree.Path)?.Creator;
+            Grid? Sibling(IEnumerable<Control> others) => others.OfType<Grid>().FirstOrDefault(other => other.Name == "WorkspaceItem" && other.Tag is string path && path != worktree.Path &&
+                state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == path)?.Creator == creator &&
+                other.Children.OfType<Border>().Any(guide => guide.Name == "WorkspaceNestGuide" && guide.IsVisible));
+            var top = 0.0; var bottom = 0.0;
+            if (item.Parent is Panel panel)
+            {
+                var index = panel.Children.IndexOf(item);
+                if (Sibling(panel.Children.Take(index)) is null)
+                {
+                    if (marked.Children.FirstOrDefault(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading) is { } icon && icon.TranslatePoint(new Point(0, icon.Bounds.Height), item) is { } iconBottom) top = Math.Min(0, iconBottom.Y);
+                }
+                if (Sibling(panel.Children.Skip(index + 1)) is { } next && next.TranslatePoint(default, item) is { } nextAt) bottom = -Math.Max(0, nextAt.Y - item.Bounds.Height);
+            }
+            var margin = new Thickness(left, top, 0, bottom);
+            if (Math.Abs(margin.Left - nestGuide.Margin.Left) > 0.01 || Math.Abs(margin.Top - nestGuide.Margin.Top) > 0.01 || Math.Abs(margin.Bottom - nestGuide.Margin.Bottom) > 0.01) nestGuide.Margin = margin;
         };
         var menu = WorkspaceActions(worktree, button);
         button.ContextMenu = menu;
