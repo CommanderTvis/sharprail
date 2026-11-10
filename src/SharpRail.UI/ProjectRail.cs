@@ -184,6 +184,17 @@ public sealed partial class WorkbenchWindow
         return Layout.View.Documents.Values.SelectMany(tabs => tabs).FirstOrDefault(tab => IsCreatorTab(tab, creator.TabKey) && surface.TabTails.ContainsKey(tab.Id))?.Id;
     }
 
+    /// <summary>The visible tab row, in the rail, of the tab that created a workspace: a closed workspace's preview row or the open one's live row.</summary>
+    private Control? FindCreatorRow(string child)
+    {
+        if (projectsTree is null || state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator) return null;
+        var ids = (Layout.State.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Documents.Values.SelectMany(tabs => tabs) ?? [])
+            .Where(tab => IsCreatorTab(tab, creator.TabKey)).Select(tab => tab.Id).Append(creator.TabKey).ToHashSet();
+        var live = ids.Select(id => "DockTab_" + id.Replace(':', '_').Replace('/', '_')).ToHashSet();
+        return projectsTree.GetVisualDescendants().OfType<Control>().FirstOrDefault(control => control.IsEffectivelyVisible &&
+            (control.Name == "WorkspaceTabPreview" && control.Tag is string id && ids.Contains(id) || control.Name is not null && live.Contains(control.Name)));
+    }
+
     private ScrollViewer? railScroller;
     private string railNestingSignature = "";
 
@@ -592,7 +603,18 @@ public sealed partial class WorkbenchWindow
         button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, worktree.ProjectRoot != projectRoot);
         var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         // The line tying a grouped workspace to the creator above it; shown only while it is grouped.
-        item.Children.Add(new Border { Name = "WorkspaceNestGuide", Width = 1, Margin = new Thickness(-8, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Ui.BorderBrush, IsHitTestVisible = false, IsVisible = false });
+        var nestGuide = new Border { Name = "WorkspaceNestGuide", Width = 1, Margin = new Thickness(-8, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Ui.BorderBrush, IsHitTestVisible = false, IsVisible = false };
+        item.Children.Add(nestGuide);
+        // The line runs under the middle of the creator tab's icon, wherever the indents put that icon.
+        Control? creatorRow = null;
+        item.LayoutUpdated += (_, _) =>
+        {
+            if (!nestGuide.IsVisible) return;
+            if (creatorRow?.IsEffectivelyVisible != true) creatorRow = FindCreatorRow(worktree.Path);
+            if (creatorRow?.GetVisualDescendants().OfType<MarkedRow>().FirstOrDefault() is not { } marked || marked.TranslatePoint(default, item) is not { } at) return;
+            var left = at.X + MarkedRow.LeadingWidth / 2 - nestGuide.Width / 2;
+            if (Math.Abs(left - nestGuide.Margin.Left) > 0.01) nestGuide.Margin = new Thickness(left, 0, 0, 0);
+        };
         var menu = WorkspaceActions(worktree, button);
         button.ContextMenu = menu;
         // The menu key and Shift+F10 open the actions from the focused row, since the row has no actions button.

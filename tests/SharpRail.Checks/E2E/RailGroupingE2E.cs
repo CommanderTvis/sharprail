@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Core;
 using SharpRail.Plugins.Api;
@@ -57,6 +58,8 @@ internal static class RailGroupingE2E
             control.Name == "WorkspaceTabPreview" && (string?)control.Tag is { } tab && (tab == terminal || tab == "plugin:claude:chat-1")))
             .Select(control => control.Name == "WorkspaceItem" ? (string)control.Tag! : "tab:" + control.Tag).ToArray();
         Until(() => Sequence().SequenceEqual([creatorWorkspace, "tab:" + terminal, child, "tab:plugin:claude:chat-1", chatChild]));
+        Until(() => GuideUnderIcon(app, child, Controls(app).First(control => control.Name == "WorkspaceTabPreview" && (string?)control.Tag == terminal)));
+        Until(() => GuideUnderIcon(app, chatChild, Controls(app).First(control => control.Name == "WorkspaceTabPreview" && (string?)control.Tag == "plugin:claude:chat-1")));
 
         // The same holds while the creator's workspace is open: its live tab rows hold the nested workspaces in place.
         app.Click(Select(app, creatorWorkspace));
@@ -66,6 +69,8 @@ internal static class RailGroupingE2E
             control.Name == Live(terminal) || control.Name == Live("plugin:claude:chat-1")))
             .Select(control => control.Name == "WorkspaceItem" ? (string)control.Tag! : control.Name == Live(terminal) ? "tab:terminal" : "tab:chat").ToArray();
         Until(() => LiveSequence().SequenceEqual([creatorWorkspace, "tab:terminal", child, "tab:chat", chatChild]));
+        Until(() => GuideUnderIcon(app, child, Controls(app).First(control => control.Name == Live(terminal))));
+        Until(() => GuideUnderIcon(app, chatChild, Controls(app).First(control => control.Name == Live("plugin:claude:chat-1"))));
         Console.WriteLine("PASS rail grouping: on nests under the creator and falls back to flat when the creator is gone");
 
         TitleBudget(app, project, [project, orphan, creatorWorkspace, child, chatChild]);
@@ -75,6 +80,16 @@ internal static class RailGroupingE2E
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
             "The host must restore the recorded creator after a restart.");
         Console.WriteLine("PASS rail grouping: the preference and the creators are stored and restored");
+    }
+
+    /// <summary>Whether a grouped row's guide line is centred, within half a pixel, on the leading icon of the tab row that created it.</summary>
+    private static bool GuideUnderIcon(E2eWorkspace app, string workspace, Control tabRow)
+    {
+        var guide = Named<Border>(Item(app, workspace), "WorkspaceNestGuide");
+        var marked = tabRow.GetVisualDescendants().OfType<MarkedRow>().First();
+        var icon = marked.Children.First(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading);
+        if (!guide.IsEffectivelyVisible || guide.TranslatePoint(new Point(guide.Bounds.Width / 2, 0), icon) is not { } at) return false;
+        return Math.Abs(at.X - icon.Bounds.Width / 2) <= 0.5;
     }
 
     /// <summary>A project's titles share one line budget that shrinks as its list grows, and they wrap between words.</summary>
