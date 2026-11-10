@@ -503,7 +503,7 @@ public sealed partial class SettingsView : UserControl
         refreshers.Add(FileIconChoices);
         WindowDecorationSettings(panel);
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
-        CompactSteppers(size, 24);
+        CompactSteppers(size, 24); FitDigits(size, 24);
         size.Value = (decimal)state.Preferences.FontSize;
         size.ValueChanged += (_, _) => { if (size.Value is not null) { state.Preferences.FontSize = (double)size.Value; Save(); } };
         foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
@@ -651,7 +651,7 @@ public sealed partial class SettingsView : UserControl
         var panel = Page("EditorPage");
         var preferences = state.Preferences;
         var size = PageControl<NumericUpDown>(panel, "EditorSize");
-        CompactSteppers(size, 24);
+        CompactSteppers(size, 24); FitDigits(size, 24);
         size.Value = (decimal)SharpRail.Scintilla.ScintillaEditor.TextSize;
         size.ValueChanged += (_, _) =>
         {
@@ -660,7 +660,7 @@ public sealed partial class SettingsView : UserControl
             preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.TextSize; Save();
         };
         var tab = PageControl<NumericUpDown>(panel, "EditorTabWidth");
-        CompactSteppers(tab, 24);
+        CompactSteppers(tab, 24); FitDigits(tab, 24);
         tab.Value = preferences.EditorTabWidth;
         tab.ValueChanged += (_, _) =>
         {
@@ -859,6 +859,22 @@ public sealed partial class SettingsView : UserControl
         window.Slot.Layout = layout.State; Save();
     }
 
+    // Small-number fields are as wide as the digits of their maximum (at least two) plus the two steppers, the
+    // content padding and the border, and sit on the row's right edge; big-value fields do not call this.
+    internal static double DigitFieldWidth(NumericUpDown input, double stepper)
+    {
+        var digits = Math.Max(2, Math.Abs(input.Maximum).ToString("0", CultureInfo.InvariantCulture).Length);
+        return Math.Ceiling(digits * input.FontSize * 0.62 + 10 + input.Padding.Left + input.Padding.Right + 2 * stepper + 2);
+    }
+
+    private static void FitDigits(NumericUpDown input, double stepper)
+    {
+        input.Padding = new Thickness(8, 0);
+        input.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        input.HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+        input.Width = DigitFieldWidth(input, stepper);
+    }
+
     // The spinner's template draws its own large chevrons; small muted ones of the app's icon set replace them.
     private static void CompactSteppers(NumericUpDown input, double width)
     {
@@ -890,7 +906,6 @@ public sealed partial class SettingsView : UserControl
             Minimum = 1,
             Maximum = 32,
             Value = value,
-            Width = 88,
             Height = 28,
             MinHeight = 28,
             FontSize = 13,
@@ -901,7 +916,7 @@ public sealed partial class SettingsView : UserControl
         };
         // A setting that rarely changes: the steppers stay small and muted, lighting only on hover. The spinner's
         // template sizes its buttons itself, so they are narrowed once it exists, leaving room for the digits.
-        CompactSteppers(input, 22);
+        CompactSteppers(input, 22); FitDigits(input, 22);
         AutomationProperties.SetName(input, "Maximum " + region + " groups");
         var save = Ui.Button("Save", () =>
         {

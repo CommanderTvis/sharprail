@@ -528,6 +528,21 @@ internal static class UiChecks
             "Changing content font size enlarged labels beyond the fixed tab header.");
         fontSize.Value = 14;
         liveSettings.ShowSection("Editor");
+        {
+            // Small-number fields are as wide as their digits plus stepper and padding and end on the row's right edge.
+            liveSettings.UpdateLayout();
+            foreach (var name in new[] { "EditorSize", "EditorTabWidth" })
+            {
+                var spin = Find<NumericUpDown>(liveSettings, name);
+                var limit = SettingsView.DigitFieldWidth(spin, 24);
+                Require(spin.Bounds.Width > 0 && spin.Bounds.Width <= limit + 0.5 && spin.Bounds.Width < 120, name + " is wider than its digits plus stepper: " + spin.Bounds.Width);
+                var row = spin.GetVisualAncestors().OfType<Border>().First(border => border.Classes.Contains("settings-row"));
+                var edge = spin.TranslatePoint(new Avalonia.Point(spin.Bounds.Width, 0), row)!.Value.X;
+                Require(Math.Abs(edge - (row.Bounds.Width - row.Padding.Right - row.BorderThickness.Right)) < 1, name + " does not end on the row's right edge: " + edge + " vs " + row.Bounds.Width);
+            }
+            var languageInput = new NumericUpDown { Maximum = 2147483647 };
+            Require(SettingsView.DigitFieldWidth(languageInput, 24) > 120, "A large-value field must keep a width fitting its digits.");
+        }
         var previewWidth = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
         var markdownWidth = Find<TextBox>(liveSettings, "MarkdownLineWidthInput");
         markdownWidth.Text = "60";

@@ -231,7 +231,7 @@
               <TextBlock Text="Interface font size" Classes="settings-label" />
               <TextBlock Text="Geist for the interface · JetBrains Mono for code" Classes="settings-description" />
             </StackPanel>
-            <NumericUpDown x:Name="InterfaceSize" Grid.Column="1" Minimum="10" Maximum="24" Increment="1" Width="150" />
+            <NumericUpDown x:Name="InterfaceSize" Grid.Column="1" Minimum="10" Maximum="24" Increment="1" />
           </Grid>
         </Border>
       </StackPanel>
@@ -246,7 +246,7 @@
               <TextBlock Text="Editor font size" Classes="settings-label" />
               <TextBlock Text="Separate from the interface font size; pinching an editor changes it too" Classes="settings-description" />
             </StackPanel>
-            <NumericUpDown x:Name="EditorSize" Grid.Column="1" Minimum="6" Maximum="40" Increment="1" Width="150" />
+            <NumericUpDown x:Name="EditorSize" Grid.Column="1" Minimum="6" Maximum="40" Increment="1" />
           </Grid>
         </Border>
         <Border Classes="settings-row">
@@ -255,7 +255,7 @@
               <TextBlock Text="Tab width" Classes="settings-label" />
               <TextBlock Text="Columns a tab stop spans in code editors" Classes="settings-description" />
             </StackPanel>
-            <NumericUpDown x:Name="EditorTabWidth" Grid.Column="1" Minimum="1" Maximum="8" Increment="1" Width="150" />
+            <NumericUpDown x:Name="EditorTabWidth" Grid.Column="1" Minimum="1" Maximum="8" Increment="1" />
           </Grid>
         </Border>
         <Border Classes="settings-row">
