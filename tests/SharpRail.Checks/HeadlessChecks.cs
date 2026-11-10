@@ -42,6 +42,7 @@ internal static partial class HeadlessChecks
         await File.WriteAllTextAsync(Path.Combine(state, "language", "servers.json"), JsonSerializer.Serialize(new { typescript = new { command = executable, arguments } }));
 
         await Conversation(workspace, state);
+        await ColdStart(workspace, state);
         await Terminate(workspace, state);
         await Configuration(root, workspace, state);
         await using (var listing = Host.Start(["languages"], state))
@@ -200,6 +201,45 @@ internal static partial class HeadlessChecks
             Require(node is JsonObject frame && frame["jsonrpc"]?.GetValue<string>() == "2.0" && (frame.ContainsKey("result") || frame.ContainsKey("error")), "stdout carried something besides a JSON-RPC response: " + line[..Math.Min(line.Length, 200)]);
         }
         Require(host.Errors.Contains("sharprail-headless: serving", StringComparison.Ordinal) && host.Errors.Contains("sharprail-headless: stopping", StringComparison.Ordinal), "stderr lost the host's log lines.");
+    }
+
+    private static readonly string[] LanguageTools = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format"];
+
+    /// <summary>Spec and Blueprint are off by default: a cold start offers the language tools only and says how to opt in; opted in, spec alone or with Blueprint, the tools appear.</summary>
+    private static async Task ColdStart(string workspace, string state)
+    {
+        async Task<(string[] Tools, string Instructions, JsonNode Call)> Session(Dictionary<string, string> environment, string[]? extra = null)
+        {
+            await using var host = Host.Start(["mcp", "--workspace", workspace, .. extra ?? []], state, environment);
+            host.Send("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}""");
+            host.Send("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""");
+            host.Send("""{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"spec_validate","arguments":{}}}""");
+            var replies = await host.ReplyAsync([1, 2, 3], TimeSpan.FromSeconds(90));
+            host.CloseInput();
+            Require(await host.ExitAsync(TimeSpan.FromSeconds(30)) == 0, "A headless run did not exit 0. stderr:\n" + host.Errors);
+            return ([.. replies[2]["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>()).Order(StringComparer.Ordinal)], replies[1]["result"]!["instructions"]!.GetValue<string>(), replies[3]);
+        }
+        var cold = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" });
+        Require(cold.Tools.SequenceEqual(LanguageTools.Order(StringComparer.Ordinal)), "A cold start must offer only the six language tools: " + string.Join(", ", cold.Tools));
+        Require(cold.Instructions.Contains("lsp_navigate", StringComparison.Ordinal) && !cold.Instructions.Contains("spec_", StringComparison.Ordinal) && !cold.Instructions.Contains("blueprint_check", StringComparison.Ordinal)
+            && cold.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE=spec,blueprint", StringComparison.Ordinal), "The cold-start instructions must name only offered tools and the opt-in: " + cold.Instructions);
+        Require(cold.Call["error"]?["code"]?.GetValue<int>() == -32602, "A spec tool must be unknown on a cold start: " + cold.Call.ToJsonString());
+
+        var all = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint" });
+        Require(all.Tools.Length == 14 && all.Tools.Contains("blueprint_check") && all.Tools.Count(name => name.StartsWith("spec_", StringComparison.Ordinal)) == 7, "Opted in, the table must hold all 14 tools: " + string.Join(", ", all.Tools));
+        Require(all.Instructions.Contains("language, spec and Blueprint tools", StringComparison.Ordinal) && !all.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE", StringComparison.Ordinal), "The opted-in instructions must not offer an opt-in: " + all.Instructions);
+        Require(all.Call["result"]?["isError"] is null, "An opted-in spec tool failed: " + all.Call.ToJsonString());
+
+        var byFlag = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" }, ["--enable-tools", "blueprint"]);
+        Require(byFlag.Tools.Length == 14, "--enable-tools blueprint must bring the spec graph along: " + string.Join(", ", byFlag.Tools));
+
+        var specOnly = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec" });
+        Require(specOnly.Tools.Length == 13 && !specOnly.Tools.Contains("blueprint_check") && specOnly.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE=blueprint", StringComparison.Ordinal), "Spec alone must leave Blueprint off and say so: " + string.Join(", ", specOnly.Tools));
+
+        var config = await CheckConfig(workspace, state, [], new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" });
+        Require(Offered(config).Length == 6 && Offered(config).All(name => name.StartsWith("lsp_", StringComparison.Ordinal)), "check-config must list the six language tools on a cold start: " + config.ToJsonString());
+        await using var bad = Host.Start(["check-config", "--workspace", workspace], state, new() { ["SHARPRAIL_TOOLS_ENABLE"] = "specs" });
+        Require(await bad.ExitAsync(TimeSpan.FromSeconds(30)) == 2 && bad.Errors.Contains("SHARPRAIL_TOOLS_ENABLE: unknown group \"specs\"", StringComparison.Ordinal), "An unknown group must exit 2: " + bad.Errors);
     }
 
     private static async Task Terminate(string workspace, string state)
@@ -431,6 +471,8 @@ internal static partial class HeadlessChecks
             foreach (var name in new[] { "SHARPRAIL_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING" }) start.Environment.Remove(name);
             start.Environment["SHARPRAIL_STATE_DIR"] = state;
             foreach (var name in start.Environment.Keys.Where(name => name is "SHARPRAIL_ARM" or "SHARPRAIL_LOG" or "SHARPRAIL_LOG_LEVEL" or "SHARPRAIL_RUNS_DIR" || name.StartsWith("SHARPRAIL_TOOLS_", StringComparison.Ordinal)).ToArray()) start.Environment.Remove(name);
+            // Spec and Blueprint are off by default; the checks that use their tools opt in, and the cold-start check passes an empty value.
+            start.Environment["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint";
             foreach (var (name, value) in environment ?? new Dictionary<string, string>()) start.Environment[name] = value;
             return new(Process.Start(start)!);
         }

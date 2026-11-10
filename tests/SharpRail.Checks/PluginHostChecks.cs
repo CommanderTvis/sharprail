@@ -326,15 +326,40 @@ internal static partial class PluginHostChecks
         foreach (var manifest in headless.Select(plugin => plugin.Manifest))
             Require(manifest.DependsOn.All(dependency => byId[dependency.Id].Headless == HeadlessSupport.Yes), $"{manifest.Id} depends on a plugin that is not headless.");
 
-        // Default enablement: only the declared plugins are on, and SpecDialect and Blueprint start on although a desktop leaves them off.
+        // Default enablement: the declared plugins are on except the spec graph and Blueprint, which are off here as on a desktop until a run opts in.
+        string[] optIn = ["blueprint", "spec-dialect"];
+        Require(!byId["spec-dialect"].EnabledByDefault && !byId["blueprint"].EnabledByDefault && byId["spec-dialect"].HeadlessEnabledByDefault is null && byId["blueprint"].HeadlessEnabledByDefault is null,
+            "The spec graph and Blueprint must be off by default everywhere: no EnabledByDefault, no HeadlessEnabledByDefault.");
         await using (var host = await Compose(Path.Combine(directory, "defaults"), headless, seams => seams with { Kind = HostKind.Headless }))
         {
             await host.Runtime.Schedule();
             var roster = await host.Runtime.ListAsync();
-            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared), "A headless host does not run exactly the declared plugins by default: " + string.Join(", ", roster.Select(entry => entry.Id + ":" + entry.Status)));
-            Require(!byId["spec-dialect"].EnabledByDefault && !byId["blueprint"].EnabledByDefault, "A desktop still leaves the spec graph and Blueprint off by default.");
+            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared.Except(optIn)), "A headless host does not run exactly the declared plugins but the spec graph and Blueprint by default: " + string.Join(", ", roster.Select(entry => entry.Id + ":" + entry.Status)));
+            Require(roster.Where(entry => optIn.Contains(entry.Id)).All(entry => entry.Status == PluginStatus.Disabled), "The spec graph and Blueprint must be disabled on a fresh headless profile.");
             await host.Enable("lsp-css", false);
             Require((await host.Row("lsp-css")).Status == PluginStatus.Disabled, "A headless plugin still obeys an explicit disable.");
+            await host.Enable("spec-dialect");
+            await host.Enable("blueprint");
+            Require((await host.Row("spec-dialect")).Status == PluginStatus.Active && (await host.Row("blueprint")).Status == PluginStatus.Active, "An explicit stored enabled state must be honoured headless.");
+        }
+        // A run that opts in (what SHARPRAIL_TOOLS_ENABLE does) turns the two on in memory; a stored choice still beats it.
+        var optedIn = headless.Select(plugin => optIn.Contains(plugin.Manifest.Id) ? (plugin.Manifest with { HeadlessEnabledByDefault = true }, plugin.Host) : plugin).ToArray();
+        await using (var host = await Compose(Path.Combine(directory, "opted-in"), optedIn, seams => seams with { Kind = HostKind.Headless }))
+        {
+            await host.Runtime.Schedule();
+            Require((await host.Runtime.ListAsync()).Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared), "An opted-in headless run must run every declared plugin.");
+            await host.Enable("blueprint", false);
+            Require((await host.Row("blueprint")).Status == PluginStatus.Disabled, "A stored disable beats the opt-in.");
+        }
+        // A desktop profile with no stored setting has both off; an explicit stored enable is kept, and Blueprint needs the spec graph.
+        (PluginManifest, PluginHostModule?)[] deskPair = [.. all.Where(plugin => optIn.Contains(plugin.Manifest.Id))];
+        await using (var host = await Compose(Path.Combine(directory, "desktop-defaults"), deskPair))
+        {
+            await host.Runtime.Schedule();
+            Require((await host.Runtime.ListAsync()).All(entry => entry.Status == PluginStatus.Disabled), "A fresh desktop profile must have the spec graph and Blueprint disabled.");
+            await host.Enable("spec-dialect");
+            await host.Enable("blueprint");
+            Require((await host.Runtime.ListAsync()).All(entry => entry.Status == PluginStatus.Active), "An explicit stored enabled state must be honoured on a desktop.");
         }
         // A plugin that does not declare Yes never activates headless, even enabled and handed to the host.
         await using (var host = await Compose(Path.Combine(directory, "everything"), all, seams => seams with { Kind = HostKind.Headless }))

@@ -2,7 +2,7 @@
 
 Status: the install script works on arm64 and x86_64 Linux in tests. The published image has both linux/amd64 and linux/arm64 under one tag. It is not yet tried on a real cloud VM. See [Limits](#limits).
 
-A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` and `blueprint_check` tools of [headless SharpRail](headless.md). The idea is one setup script in the cloud environment that installs `sharprail-headless` and registers it as an MCP server. The main use is research, for example whether the language tools help a cloud agent.
+A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [headless SharpRail](headless.md), and the `spec_*` and `blueprint_check` tools when you opt in with `SHARPRAIL_TOOLS_ENABLE=spec,blueprint` (add it as `env` in the `.mcp.json` below). The idea is one setup script in the cloud environment that installs `sharprail-headless` and registers it as an MCP server. The main use is research, for example whether the language tools help a cloud agent.
 
 ## Steps
 

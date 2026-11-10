@@ -1,6 +1,6 @@
 ---
 name: writing-specs
-description: "Use when drafting or revising a spec in a project that keeps a SharpRail spec graph — a goal-and-requirements, an architecture, or a module SPEC — or when another spec skill names it at such a step. The shared quality bar for specs — not a workflow, nothing to execute. Not for projects without specs unless the user asked for specs."
+description: "Use when drafting or revising a spec in a project that keeps a SharpRail spec graph — a goal-and-requirements, an architecture, or a module SPEC — or when another spec skill names it at such a step. The shared quality bar for specs — not a workflow, nothing to execute. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs unless the user asked for specs."
 ---
 
 # Writing Specs

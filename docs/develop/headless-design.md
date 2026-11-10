@@ -169,13 +169,14 @@ Every plugin states the decision in its manifest: `Headless = HeadlessSupport.Ye
 which a check refuses for a builtin, so a new plugin forces a conscious choice. A headless host (`HostKind.Headless`) runs
 only plugins that say `Yes`. Any other plugin is refused with "not available in headless SharpRail", and so is a plugin
 that depends on it. A headless plugin still has to be enabled. `HeadlessEnabledByDefault` replaces `EnabledByDefault` on a
-headless host, which keeps the spec graph and Blueprint on there while a desktop leaves them off. The roster
-`BuiltinPlugins.Headless` is the builtins that declare `Yes`. No tool is added: the table stays at 11 tools.
+headless host. Nothing uses it by default now: the spec graph and Blueprint are off in headless too, and the run opts in
+with `SHARPRAIL_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in memory. The roster
+`BuiltinPlugins.Headless` is the builtins that declare `Yes`. No tool is added.
 
 | Plugin | Headless | Reason |
 | --- | --- | --- |
-| `spec-dialect` | yes, on by default | The `spec_*` tools read and edit the spec graph on disk. |
-| `blueprint` | yes, on by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
+| `spec-dialect` | yes, off by default | The `spec_*` tools read and edit the spec graph on disk. |
+| `blueprint` | yes, off by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
 | `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-kotlin` (8) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Each installs into the cache from a pinned, checksummed download on a pinned runtime (.NET SDK, Bun) or as a self-contained archive. `lsp-clangd` is left out on linux/arm64, which has no pinned archive (the official one is the 1.8 GB LLVM toolchain, a `tar.xz`). |
 | `lsp-java`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-ruby`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (9) | no | Their servers need a toolchain with no pinned download (JDK, Go, Rust, Coursier, Ruby, R, PowerShell, Swift, Dart); each flips to yes when that runtime is pinned with a checksum. |
 | `lsp-intellij` | yes, opt-in | Not in the default roster: it exists only when `SHARPRAIL_PREFETCH` or `SHARPRAIL_ACCEPT_TERMS` names it. Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `SHARPRAIL_ACCEPT_TERMS`. See [headless.md](../headless.md#the-intellij-server-opt-in). |

@@ -31,13 +31,20 @@ internal sealed record LogSettings(bool Enabled, string Level, int MaxResultChar
 
 /// <summary>What the project's <c>.sharprail/mcp.toml</c>, the selected arm, the environment and the flags add up to.</summary>
 internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string> Disable, IReadOnlyList<string>? Allow,
-    IReadOnlyDictionary<string, ToolRule> Rules, LogSettings Log, IReadOnlyList<string> Warnings)
+    IReadOnlyDictionary<string, ToolRule> Rules, LogSettings Log, IReadOnlyList<string> Warnings, IReadOnlyList<string>? Enable = null)
 {
     internal const string FileName = ".sharprail/mcp.toml";
 
     /// <summary>Whether the tool exists for this run: allowed, not disabled and not switched off by its own table.</summary>
     internal bool Offers(string tool) =>
+        (!tool.StartsWith("spec_", StringComparison.Ordinal) || Groups.Contains("spec")) && (tool != "blueprint_check" || Groups.Contains("blueprint")) &&
         (Allow is null || Allow.Contains(tool)) && !Disable.Contains(tool) && !(Rules.TryGetValue(tool, out var rule) && rule.Enabled == false);
+
+    /// <summary>The opt-in groups that are on. The spec graph and Blueprint plugins are off by default; Blueprint needs the spec graph, so it brings it along.</summary>
+    internal IReadOnlyList<string> Groups => Enable is null ? [] : Enable.Contains("blueprint") ? ["spec", "blueprint"] : [.. Enable];
+
+    /// <summary>The ids of the opt-in plugins this run turns on.</summary>
+    internal IEnumerable<string> EnabledPlugins => Groups.Select(group => group == "spec" ? "spec-dialect" : group);
 
     internal string[] Offered(IEnumerable<string> tools) => [.. tools.Where(Offers)];
 
@@ -50,6 +57,7 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
         {
             ["disable"] = Strings(Disable),
             ["allow"] = Allow is null ? null : Strings(Allow),
+            ["enable"] = Strings(Groups),
             ["rules"] = new JsonObject(Rules.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => KeyValuePair.Create(pair.Key, (JsonNode?)new JsonObject
             {
                 ["enabled"] = pair.Value.Enabled,
@@ -95,7 +103,8 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
         if (Env(environment, "SHARPRAIL_LOG_LEVEL") is { } level)
             outside.Level = Levels.Contains(level) ? level : throw new McpConfigException($"SHARPRAIL_LOG_LEVEL: expected meta, args or full, got \"{level}\".");
         if (Env(environment, "SHARPRAIL_RUNS_DIR") is { } directory) outside.Directory = directory;
-        var fromFlags = new Layer { Disable = flags.Disable is null ? null : Names(flags.Disable, "--disable-tools") };
+        if (Env(environment, "SHARPRAIL_TOOLS_ENABLE") is { } enable) outside.Enable = ParseGroups(enable, "SHARPRAIL_TOOLS_ENABLE");
+        var fromFlags = new Layer { Disable = flags.Disable is null ? null : Names(flags.Disable, "--disable-tools"), Enable = flags.Enable is null ? null : ParseGroups(flags.Enable, "--enable-tools") };
 
         var merged = new Layer();
         foreach (var layer in new[] { fromFile, selected ?? new Layer(), outside, fromFlags }) merged.Overlay(layer);
@@ -105,7 +114,7 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
         var rules = merged.Tools.ToDictionary(pair => pair.Key, pair => new ToolRule(pair.Value.Enabled, pair.Value.Operations));
         var settings = new LogSettings(merged.LogEnabled ?? false, merged.Level ?? "meta", merged.MaxResultChars ?? 4000, merged.MaxFileKb ?? 51200,
             Path.GetFullPath(merged.Directory ?? Path.Combine(".sharprail", "runs"), workspace));
-        return new McpConfig(arm, found ? FileName : null, merged.Disable ?? [], merged.Allow, rules, settings, warnings);
+        return new McpConfig(arm, found ? FileName : null, merged.Disable ?? [], merged.Allow, rules, settings, warnings, merged.Enable ?? []);
     }
 
     private static readonly string[] Levels = ["meta", "args", "full"];
@@ -118,6 +127,14 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
         return names.Count > 0 ? names : throw new McpConfigException($"{origin}: expected a comma-separated list of tool names.");
     }
 
+    private static readonly string[] OptIn = ["spec", "blueprint"];
+
+    private static List<string> ParseGroups(string commaList, string origin)
+    {
+        var names = Names(commaList, origin);
+        return names.Find(name => !OptIn.Contains(name)) is { } unknown ? throw new McpConfigException($"{origin}: unknown group \"{unknown}\". Use spec or blueprint.") : names;
+    }
+
     private sealed class ToolLayer
     {
         internal bool? Enabled;
@@ -127,7 +144,7 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
     /// <summary>Settings from one source. A null field was not set there, so it does not replace a lower layer's value.</summary>
     private sealed class Layer
     {
-        internal List<string>? Disable, Allow;
+        internal List<string>? Disable, Allow, Enable;
         internal Dictionary<string, ToolLayer> Tools = new(StringComparer.Ordinal);
         internal bool? LogEnabled;
         internal string? Level, Directory;
@@ -137,6 +154,7 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
         {
             Disable = top.Disable ?? Disable;
             Allow = top.Allow ?? Allow;
+            Enable = top.Enable ?? Enable;
             LogEnabled = top.LogEnabled ?? LogEnabled;
             Level = top.Level ?? Level;
             Directory = top.Directory ?? Directory;
@@ -193,7 +211,12 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
                     var key = prefix + "tools." + name;
                     if (name == "disable") layer.Disable = StringList(node, key, allowEmpty: true);
                     else if (name == "allow") layer.Allow = StringList(node, key, allowEmpty: false);
-                    else if (node is not JsonObject rule) throw Fail(key, "unknown key. Use disable, allow, or a [tools.<tool name>] table.");
+                    else if (name == "enable")
+                    {
+                        layer.Enable = StringList(node, key, allowEmpty: true);
+                        if (layer.Enable.Find(group => !OptIn.Contains(group)) is { } unknown) throw Fail(key, $"unknown group \"{unknown}\". Use spec or blueprint.");
+                    }
+                    else if (node is not JsonObject rule) throw Fail(key, "unknown key. Use disable, allow, enable, or a [tools.<tool name>] table.");
                     else
                     {
                         var own = new ToolLayer();
@@ -315,23 +338,24 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
 
 internal sealed record ToolRule(bool? Enabled, IReadOnlyList<string>? Operations);
 
-/// <summary>The command-line flags that sit above the environment: <c>--arm</c> and <c>--disable-tools</c>.</summary>
+/// <summary>The command-line flags that sit above the environment: <c>--arm</c>, <c>--disable-tools</c> and <c>--enable-tools</c>.</summary>
 internal sealed class McpFlags
 {
     internal string? Arm { get; private set; }
     internal string? Disable { get; private set; }
+    internal string? Enable { get; private set; }
 
     /// <summary>Takes the flag at <paramref name="index"/> (and its value) when it is one of ours.</summary>
     internal bool TryTake(string[] args, ref int index)
     {
         var argument = args[index];
-        foreach (var name in new[] { "--arm", "--disable-tools" })
+        foreach (var name in new[] { "--arm", "--disable-tools", "--enable-tools" })
         {
             string? value = null;
             if (argument == name && index + 1 < args.Length) value = args[++index];
             else if (argument.StartsWith(name + "=", StringComparison.Ordinal)) value = argument[(name.Length + 1)..];
             else continue;
-            if (name == "--arm") Arm = value; else Disable = value;
+            if (name == "--arm") Arm = value; else if (name == "--enable-tools") Enable = value; else Disable = value;
             return true;
         }
         return false;

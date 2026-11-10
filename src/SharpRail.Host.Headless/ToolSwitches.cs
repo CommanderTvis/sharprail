@@ -75,7 +75,7 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
     private static string? Default(McpServer.McpTool tool) => tool.InputSchema["properties"]?["operation"]?["default"] is JsonValue value ? value.GetValue<string>() : null;
 
     /// <summary>The initialize text, generated from the tools that exist, so an arm never hears about a tool it does not have.</summary>
-    internal static string Instructions(IReadOnlyList<McpServer.McpTool> offered, string languages = "", string terms = "")
+    internal static string Instructions(IReadOnlyList<McpServer.McpTool> offered, string languages = "", string terms = "", IReadOnlyList<string>? enabled = null)
     {
         var names = offered.Select(tool => tool.Name).ToHashSet();
         if (names.Count == 0) return "SharpRail with every tool switched off for this run.";
@@ -93,6 +93,8 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
         if ((navigate || diagnostics) && languages.Length > 0)
             text += $" Language servers here: {languages}. Each downloads on first use, so a call may answer initializing: wait and call again, never treat it as no results. Other file types have no server: use grep and Read.";
         if ((navigate || diagnostics) && terms.Length > 0 && names.Contains("accept_terms")) text += " " + terms;
+        if (enabled is not null && new[] { "spec", "blueprint" }.Where(group => !enabled.Contains(group)).ToArray() is { Length: > 0 } off)
+            text += $" The {string.Join(" and ", off)} tools are off by default: start the server with SHARPRAIL_TOOLS_ENABLE={string.Join(",", off)} to offer them.";
         return text;
     }
 }

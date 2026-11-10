@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "Use before implementing a feature, a change in behavior, or a bug fix — however small — in a project that keeps a SharpRail spec graph. Not for projects without specs, questions, checks, or edits that change no behavior (typos, documentation or configuration only, mechanical refactors)."
+description: "Use before implementing a feature, a change in behavior, or a bug fix — however small — in a project that keeps a SharpRail spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs, questions, checks, or edits that change no behavior (typos, documentation or configuration only, mechanical refactors)."
 ---
 
 # Brainstorming

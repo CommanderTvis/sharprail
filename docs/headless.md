@@ -2,7 +2,7 @@
 
 Status: the stdio server works and a container image is built by the Container workflow. The package is private until the owner makes it public.
 
-SharpRail can run without a window. It serves its language, spec and Blueprint tools to an agent over MCP, on stdin and stdout, for one project. The main use is research: does the LSP toolset help an agent do a task?
+SharpRail can run without a window. It serves its language tools to an agent over MCP, on stdin and stdout, for one project. The spec and Blueprint tools are off by default and you opt in (see [Spec and Blueprint tools](#spec-and-blueprint-tools)). The main use is research: does the LSP toolset help an agent do a task?
 
 To use it in a cloud session of Claude Code on the web, see [headless-cloud.md](headless-cloud.md).
 
@@ -19,7 +19,7 @@ To use it in a cloud session of Claude Code on the web, see [headless-cloud.md](
 }
 ```
 
-That is the exact snippet for Docker. With Apple `container` use a host directory for the cache, because it has no named volumes in this form, and make it writable by uid 1000:
+That is the exact snippet for Docker. With the spec and Blueprint tools, add `"-e", "SHARPRAIL_TOOLS_ENABLE=spec,blueprint"` before the image name. With Apple `container` use a host directory for the cache, because it has no named volumes in this form, and make it writable by uid 1000:
 
 ```sh
 mkdir -p ~/.cache/sharprail && chmod 777 ~/.cache/sharprail
@@ -85,10 +85,26 @@ The server reads one JSON-RPC message per line and writes one per line. Logs go 
 | Setting | Meaning |
 | --- | --- |
 | `--workspace <dir>` | The project. Defaults to `SHARPRAIL_ROOT`, then the current directory. |
-| `--arm`, `--disable-tools` | Tool switches, see below. |
+| `--arm`, `--disable-tools`, `--enable-tools` | Tool switches, see below. |
 | `SHARPRAIL_STATE_DIR` | Where settings and language server installs live. Defaults to `~/.sharprail/headless`. |
 
-Tools: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, `lsp_code_actions`, `lsp_rename`, `lsp_format`, the `spec_*` tools and `blueprint_check`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
+Tools by default: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, `lsp_code_actions`, `lsp_rename` and `lsp_format`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
+
+### Spec and Blueprint tools
+
+The Spec plugin (the `spec_*` tools) and the Blueprint plugin (`blueprint_check`) are off by default, in headless and in the desktop app. To opt in, set `SHARPRAIL_TOOLS_ENABLE=spec,blueprint`, pass `--enable-tools spec,blueprint`, or put `enable = ["spec", "blueprint"]` under `[tools]` in `.sharprail/mcp.toml`. Use `spec` alone for the spec tools, or `blueprint` (which brings `spec` along, because Blueprint needs it). With the tools off, `tools/list` and `initialize` do not mention them, and the `initialize` text says how to turn them on. The setting applies to one run and writes nothing to the state directory.
+
+```json
+{
+  "mcpServers": {
+    "sharprail": {
+      "command": "/path/to/sharprail-headless",
+      "args": ["mcp", "--workspace", "."],
+      "env": { "SHARPRAIL_TOOLS_ENABLE": "spec,blueprint" }
+    }
+  }
+}
+```
 
 ## Languages
 
@@ -150,13 +166,14 @@ It is a JetBrains product with its own terms (the JetBrains User Agreement, vers
 
 ## Tool switches and the call log
 
-Both live in one file, `.sharprail/mcp.toml` in the project. Without the file, every tool is offered and nothing is logged or written.
+Both live in one file, `.sharprail/mcp.toml` in the project. Without the file, the language tools are offered and nothing is logged or written.
 
 ```toml
 version = 1
 
 [tools]
 disable = ["blueprint_check"]        # these tools do not exist for the run
+# enable = ["spec", "blueprint"]     # opt in to the spec_* tools and blueprint_check (off by default)
 # allow = ["lsp_navigate"]           # if set, only these exist (disable still wins)
 
 [tools.lsp_navigate]
@@ -186,6 +203,7 @@ An arm replaces the top-level value of every key it sets. Precedence, lowest to 
 | Arm | `SHARPRAIL_ARM` | `--arm <name>` |
 | `tools.disable` | `SHARPRAIL_TOOLS_DISABLE` (comma list) | `--disable-tools <a,b>` |
 | `tools.allow` | `SHARPRAIL_TOOLS_ALLOW` (comma list) | |
+| `tools.enable` | `SHARPRAIL_TOOLS_ENABLE` (`spec`, `blueprint`) | `--enable-tools <a,b>` |
 | `log.enabled` | `SHARPRAIL_LOG` (`0` or `1`) | |
 | `log.level` | `SHARPRAIL_LOG_LEVEL` | |
 | `log.dir` | `SHARPRAIL_RUNS_DIR` | |

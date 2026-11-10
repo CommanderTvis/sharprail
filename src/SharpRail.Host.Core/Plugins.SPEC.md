@@ -95,7 +95,7 @@ Every language server plugin except CSS lists `PureWeb`, so a browser tab's cata
 A host of kind `Headless` also refuses every plugin whose manifest `Headless` is not `Yes` (`Undeclared` and `No`), with the reason
 `plugin <id> is not available in headless SharpRail`, and its dependents follow the same way. An external plugin is
 held to the same rule; one whose manifest says nothing counts as `No`, and one that says `Yes` is still refused while the seam is null. On such a host `HeadlessEnabledByDefault`, when set,
-replaces `EnabledByDefault`. `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
+replaces `EnabledByDefault`; no builtin sets it, and the headless program sets it in memory for the spec graph and Blueprint only when the run opts in (`SHARPRAIL_TOOLS_ENABLE`). `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
 A plugin already active is left alone (the kind never changes during a run). A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired

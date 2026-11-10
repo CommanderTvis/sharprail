@@ -14,7 +14,7 @@ tags: [headless, mcp, research]
 ## Responsibility
 
 A console executable, `sharprail-headless`, that starts the host core and the non-UI builtin plugins and serves MCP over
-stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's language, spec and Blueprint tools from a
+stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's language tools, and on opt-in the spec and Blueprint tools, from a
 `.mcp.json` entry, with no window, terminal or agent of SharpRail's own. The user page is [docs/headless.md](../../docs/headless.md).
 
 ## Boundary
@@ -31,13 +31,12 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - Commands: `sharprail-headless mcp|check-config [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
 - State (settings, language server installs and sessions) lives in `SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`. A store with no
   directory would turn language services off, so there is always one. Two processes on one directory are last-writer-wins.
-- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and nine language servers, enabled by default
-  (`HeadlessEnabledByDefault` turns the first two on). Every builtin states `Yes` or `No`, a check fails on `Undeclared`, and the host runs as
+- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and nine language servers. The language servers are on by default; the spec graph and Blueprint are off by default, as on the desktop, and a run turns them on with `SHARPRAIL_TOOLS_ENABLE` (below). An explicit stored enabled state in the state directory wins over both. Every builtin states `Yes` or `No`, a check fails on `Undeclared`, and the host runs as
   `HostKind.Headless`, so a plugin without `Yes` is refused there and so is a dependent of a refused plugin. The decision per plugin is in
   [headless-design.md](../../docs/develop/headless-design.md). The language servers that declare `Yes` are those whose installation and launch need nothing preinstalled: C#, TypeScript and JavaScript, Python, CSS, shell, PHP, C and C++ (not on linux/arm64, which has no clangd build), Kotlin and Java / Kotlin by IntelliJ, each downloaded on first use
   from a pinned, checksummed source on the pinned .NET SDK or Bun, or as a self-contained archive. Go, Rust, Scala, Ruby, R, PowerShell, Swift and Dart need a toolchain without a pinned
-  download, declare `No` and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*`, `spec_*` and
-  `blueprint_check`, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
+  download, declare `No` and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*` by default, plus `spec_*` and
+  `blueprint_check` when opted in, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
 - Opt-in server. The IntelliJ server is headless-capable but not in the default roster: it exists only when `SHARPRAIL_PREFETCH` or `SHARPRAIL_ACCEPT_TERMS` names it.
   Without that it is absent everywhere (languages, initialize text, server list, tool list, no `accept_terms`), `.java` has no server, `.kt` goes to the Kotlin
   server, and nothing is downloaded or written. The desktop is unaffected.
@@ -104,8 +103,8 @@ This is the third host composition, beside the app's own host and the remote hos
 
 ## Tool switches and call log
 
-- `.sharprail/mcp.toml` (`version = 1`, strict: unknown keys, wrong types and unknown operations exit 2 with `file:line: key: message`) holds `tools.disable`, `tools.allow`, `[tools.<name>]` (`enabled`, `operations` for `lsp_navigate`, `lsp_status`, `lsp_code_actions`, `lsp_rename` and `lsp_format`; removing `apply` makes a refactoring tool read-only), `[log]` and `[arms.<name>]` tables of tools and log. An arm replaces each key it sets.
-- Precedence: defaults, file top level, arm, environment (`SHARPRAIL_ARM`, `SHARPRAIL_TOOLS_DISABLE`, `SHARPRAIL_TOOLS_ALLOW`, `SHARPRAIL_LOG`, `SHARPRAIL_LOG_LEVEL`, `SHARPRAIL_RUNS_DIR`), flags (`--arm`, `--disable-tools`). A selected arm the file lacks is an error.
+- `.sharprail/mcp.toml` (`version = 1`, strict: unknown keys, wrong types and unknown operations exit 2 with `file:line: key: message`) holds `tools.disable`, `tools.allow`, `[tools.<name>]` (`enabled`, `operations` for `lsp_navigate`, `lsp_status`, `lsp_code_actions`, `lsp_rename` and `lsp_format`; removing `apply` makes a refactoring tool read-only), `[log]` and `[arms.<name>]` tables of tools and log. `tools.enable` (`spec`, `blueprint`; Blueprint brings the spec graph along) turns the two off-by-default plugins on for the run only, without writing the state directory; the spec and Blueprint tools are absent from the list and the instructions otherwise, and the instructions say how to opt in. An arm replaces each key it sets.
+- Precedence: defaults, file top level, arm, environment (`SHARPRAIL_ARM`, `SHARPRAIL_TOOLS_DISABLE`, `SHARPRAIL_TOOLS_ALLOW`, `SHARPRAIL_TOOLS_ENABLE`, `SHARPRAIL_LOG`, `SHARPRAIL_LOG_LEVEL`, `SHARPRAIL_RUNS_DIR`), flags (`--arm`, `--disable-tools`, `--enable-tools`). A selected arm the file lacks is an error.
 - One decorator over the tool table drops switched-off tools (unknown tool for list and call), narrows operations in the schema and at call time, and feeds the log. The initialize instructions are generated from the offered tools.
 - The log is off by default and then nothing is created in `.sharprail`. When on, `<dir>/<session>.jsonl` (default `.sharprail/runs`) gets `start`, `call` and `end` lines from a background writer, flushed per line, bounded by `max_file_kb`. It never fails a call.
 - `check-config` prints the effective configuration as JSON and exits 0, or 2.

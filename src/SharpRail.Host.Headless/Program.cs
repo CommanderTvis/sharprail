@@ -10,7 +10,7 @@ using SharpRail.Plugins.Api;
 var frames = Console.OpenStandardOutput();
 Console.SetOut(Console.Error);
 
-const string Usage = "Usage: sharprail-headless mcp|check-config [--workspace <dir>] [--arm <name>] [--disable-tools <a,b>]\n" +
+const string Usage = "Usage: sharprail-headless mcp|check-config [--workspace <dir>] [--arm <name>] [--disable-tools <a,b>] [--enable-tools spec,blueprint]\n" +
     "       sharprail-headless warm [server ...] [--workspace <dir>]   (installs the pinned runtimes and servers, default csharp; needs network)\n" +
     "       sharprail-headless languages   (prints the language servers this build serves, one per line: id, name, extensions, and a note when its terms need the user's agreement)\n" +
     "check-config prints the effective .sharprail/mcp.toml configuration as JSON and exits 0, or 2 when it is invalid.\n" +
@@ -77,7 +77,7 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
 // Consent to the terms of servers that have them (Java and Kotlin by IntelliJ): nothing is accepted unless the user says so (LanguageConsent.cs).
 var consent = state.EnableLanguageConsent(Environment.GetEnvironmentVariable, workspace);
 var client = new ClientChannel();
-var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = roster, Kind = HostKind.Headless });
+var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [.. roster.Select(plugin => config.EnabledPlugins.Contains(plugin.Manifest.Id) ? (plugin.Manifest with { HeadlessEnabledByDefault = true }, plugin.Host) : plugin)], Kind = HostKind.Headless });
 await plugins.Start();
 if (command == "warm") return await WarmAsync();
 foreach (var warning in consent.EnvironmentWarnings()) Console.Error.WriteLine("sharprail-headless: " + warning);
@@ -124,7 +124,7 @@ using var stop = new CancellationTokenSource();
 using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, context => { context.Cancel = true; stop.Cancel(); });
 using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; stop.Cancel(); });
 Console.Error.WriteLine($"sharprail-headless: serving {workspace}, state in {stateDirectory}");
-var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers), string.Join(' ', consent.Gated.Select(server => $"{LanguageConsent.Name(server)} needs the user's agreement to its terms before first use: a call for its files returns the terms and the steps. Call accept_terms only after the user said yes in chat, never on your own.")));
+var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers), string.Join(' ', consent.Gated.Select(server => $"{LanguageConsent.Name(server)} needs the user's agreement to its terms before first use: a call for its files returns the terms and the steps. Call accept_terms only after the user said yes in chat, never on your own.")), config.Groups);
 await new StdioMcp(Console.OpenStandardInput(), frames, Tools, Instructions, Console.Error, client).RunAsync(stop);
 Console.Error.WriteLine("sharprail-headless: stopping");
 if (callLog is not null) await callLog.DisposeAsync();
