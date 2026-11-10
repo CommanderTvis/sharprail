@@ -584,6 +584,10 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        // The title takes the row's whole width; the dot's column is reserved only while the dot shows.
+        void PadForDot() => button.Padding = new Thickness(4, 4, unreadDot.IsVisible ? RailDotInset : 4, 4);
+        unreadDot.PropertyChanged += (_, e) => { if (e.Property == Visual.IsVisibleProperty) PadForDot(); };
+        PadForDot();
         railSelection["workspace:" + worktree.Path] = () =>
         {
             var selected = !atHome && worktree.Path == workspaceRoot;
