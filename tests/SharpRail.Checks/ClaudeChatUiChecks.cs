@@ -226,6 +226,7 @@ internal static class ClaudeChatUiChecks
         PastConversations();
         CommandMenu();
         HoverAffordance();
+        UserMarkdown();
         AttachmentChipsContained();
         PasteImages();
         WrappedHistory();
@@ -1820,6 +1821,32 @@ internal static class ClaudeChatUiChecks
         finally { bigWindow.Close(); }
     }
 
+    // A prompt is read as Markdown like a reply: the backticks of inline code are styling, not text; a prompt without Markdown keeps its words and line breaks.
+    private static void UserMarkdown()
+    {
+        static (string Text, double Height, ChatRowLayout Layout) Of(string text, bool expanded = false)
+        {
+            var layout = ChatRowLayout.Build(new ChatRow(new ChatUserItem("u", 1, text), 0, 1, expanded, null), 420, true);
+            layout.Realize(0, layout.Height);
+            return (layout.SelectableText(), layout.Height, layout);
+        }
+        var (code, _, codeLayout) = Of("implement browser extension in JS in `./tools/`");
+        using (codeLayout) Require(code == "implement browser extension in JS in ./tools/", $"Inline code in a prompt shows without its backticks (got '{code}').");
+        var (list, _, listLayout) = Of("**bold** and _italic_\n\n- one\n- two\n\n```sh\nls -la\n```");
+        using (listLayout) Require(!list.Contains("**") && !list.Contains("```") && list.Contains("one") && list.Contains("ls -la"), $"Bold, lists and fenced code in a prompt are rendered (got '{list}').");
+        var (plain, plainHeight, plainLayout) = Of("first line\nsecond line");
+        using (plainLayout) Require(plain == "first line\nsecond line", $"A prompt without Markdown keeps its text and single newlines (got '{plain}').");
+        var (_, oneHeight, oneLayout) = Of("first line");
+        oneLayout.Dispose();
+        Require(plainHeight > oneHeight + 10, "A single newline in a prompt stays a visible line break.");
+        var long_ = string.Join("\n", Enumerable.Range(0, 20).Select(i => "- item " + i));
+        var (_, folded, foldedLayout) = Of(long_);
+        foldedLayout.Dispose();
+        var (_, open, openLayout) = Of(long_, expanded: true);
+        openLayout.Dispose();
+        Require(folded < 130 && open > folded + 100, $"A long Markdown prompt folds to a few lines and opens in full ({folded} folded, {open} open).");
+    }
+
     // Highlights cover glyphs only: inside a text line's box, inside the clip the text draws in, never in a gap, and clipped text is not copied.
     private static void SelectionGeometry()
     {
@@ -2295,12 +2322,14 @@ internal static class ClaudeChatUiChecks
             Require(reply.OwnHits.Count == 0 && reply.Height - reply.BlocksBottom < 24, $"A reply has no hover action and no strip below it (hits {reply.OwnHits.Count}, height {reply.Height}, blocks end {reply.BlocksBottom}).");
             Require(ChatList.CopyText(new ChatAssistantItem("r", 1, text)) == text && ChatList.CopyText(new ChatUserItem("p", 2, text)) == text && ChatList.CopyText(new ChatAssistantItem("e", 3, "")) is null, "Right-click Copy takes a reply's or a prompt's text.");
             using var prompt = ChatRowLayout.Build(new ChatRow(new ChatUserItem("p", 2, text) { Uuid = "u" }, 0, 1, false, null), 500, true);
+            prompt.Realize(0, prompt.Height);
             var actions = prompt.OwnHits.Where(hit => hit.Kind is ChatHitKind.Fork or ChatHitKind.Rewind).Select(hit => hit.Bounds).ToList();
             Require(actions.Count == 2 && actions.All(action => !prompt.TextBounds().Any(bounds => bounds.Intersects(action))) && actions.All(action => action.Bottom <= prompt.Height), $"Fork and Rewind clear the prompt's text ({text.Length} chars).");
         }
         // Insets: a bubble pads its text equally on all four sides, the rows' own 4 plus the edge pad equal the side inset, and the gap after a bubble with no actions is the rows' own 8.
         using (var bubble = ChatRowLayout.Build(new ChatRow(new ChatUserItem("b", 9, "is it a multiplexer or an IDE?"), 0, 1, false, null), 500, true))
         {
+            bubble.Realize(0, bubble.Height);
             var textBox = bubble.TextBounds().Single();
             Require(textBox.X == ChatRowLayout.Pad + ChatRowLayout.BubblePad && textBox.Y == 4 + ChatRowLayout.BubblePad, $"A bubble's text sits {ChatRowLayout.BubblePad} from its left and top edges (at {textBox.X - ChatRowLayout.Pad}, {textBox.Y - 4}).");
             Require(bubble.Height == 4 + 2 * ChatRowLayout.BubblePad + textBox.Height + 4, $"A bubble with no actions is followed by the rows' own gap of 8 and padded {ChatRowLayout.BubblePad} below its text (height {bubble.Height}).");
