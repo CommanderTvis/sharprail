@@ -50,6 +50,26 @@ internal sealed partial class ChatFolder
         headerDirty = true;
     }
 
+    private bool cleared;
+
+    /// <summary>Whether the CLI recorded a command that starts a fresh conversation (/clear and its aliases) since the last call.</summary>
+    public bool TakeCleared()
+    {
+        var was = cleared;
+        cleared = false;
+        return was;
+    }
+
+    /// <summary>Forgets the conversation after /clear: every row and the context counters go; messages still queued for the new one stay.</summary>
+    public void ResetConversation()
+    {
+        var queued = order.Select(id => items[id]).OfType<ChatUserItem>().Where(user => user.Queued).ToList();
+        Clear();
+        contextTokens = null;
+        SetHeader(header => header with { Usage = header.Usage with { ContextTokens = 0 } });
+        foreach (var user in queued) Put(user);
+    }
+
     /// <summary>The items and header changed since the last call.</summary>
     public (IReadOnlyList<ChatItem> Items, ChatHeader? Header, IReadOnlyList<string> Removed) Drain()
     {

@@ -125,6 +125,11 @@ internal static class ClaudeChatChecks
                   emit '{"type":"control_request","request_id":"ask-1","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion","input":{"questions":[{"question":"Pick one?","header":"Pick","multiSelect":false,"options":[{"label":"A","description":"first"},{"label":"B"}]},{"question":"Which more?","header":"More","multiSelect":true,"options":[{"label":"X"},{"label":"Y"}]}]},"tool_use_id":"toolu_ask"}}'
                   IFS= read -r answer; echo "$answer" > "$D/ask.txt"
                   result ;;
+                */clear*)
+                  emit '{"type":"user","uuid":"clear-1","message":{"role":"user","content":"<command-name>/clear</command-name>\n<command-message>clear</command-message>\n<command-args></command-args>"},"parent_tool_use_id":null}'
+                  emit '{"type":"user","uuid":"clear-2","message":{"role":"user","content":"<local-command-stdout></local-command-stdout>"},"parent_tool_use_id":null}'
+                  emit "{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"cleared-session\",\"model\":\"$MODEL\",\"permissionMode\":\"$MODE\",\"cwd\":\"$PWD\",\"claude_code_version\":\"9.9\",\"slash_commands\":[\"compact\",\"fix\"],\"skills\":[\"fix\"]}"
+                  result ;;
                 *compact*)
                   emit '{"type":"system","subtype":"compact_boundary","compact_metadata":{"trigger":"auto","pre_tokens":1234}}'
                   result ;;
@@ -205,8 +210,32 @@ internal static class ClaudeChatChecks
             Directory.CreateDirectory(path);
             Environment.SetEnvironmentVariable(name, path);
         }
-        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); await ChromeOverride(Path.Combine(directory, "chrome")); await ExitStderr(Path.Combine(directory, "exit-stderr")); }
+        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); await ChromeOverride(Path.Combine(directory, "chrome")); await ExitStderr(Path.Combine(directory, "exit-stderr")); await ClearConversation(Path.Combine(directory, "clear")); }
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
+    }
+
+    // /clear starts a fresh conversation: the rows and counters go, the new session id is kept, and the next prompt builds on the empty chat.
+    private static async Task ClearConversation(string directory)
+    {
+        await using var fixture = await Start(directory, new StateHolder());
+        var project = fixture.Project;
+        var chat = Guid.NewGuid().ToString();
+        fixture.Watch(chat);
+        await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat));
+        await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the chat to be ready");
+        await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "hello"));
+        var talked = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle && view.Items.OfType<ChatAssistantItem>().Any(), "the first answer");
+        var before = fixture.Pushes.OfType<ChatResetPush>().Count();
+        await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "/clear"));
+        var wiped = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle && view.Header.SessionId == "cleared-session", "the cleared conversation");
+        Require(talked.Header.SessionId != "cleared-session" && wiped.Items is [ChatNoticeItem { Text: "Conversation cleared" }] && wiped.Header.Usage.ContextTokens is null or 0,
+            "/clear empties the transcript to a Conversation cleared notice and restarts the context counters.");
+        for (var wait = 0; wait < 100 && fixture.Pushes.OfType<ChatResetPush>().Count() == before; wait++) await Task.Delay(20);
+        Require(fixture.Pushes.OfType<ChatResetPush>().Count() > before, "/clear tells the view to drop the rows it shows.");
+        Require((await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat))).SessionId == "cleared-session", "The chat now belongs to the new session, so a revival resumes it and not the cleared one.");
+        await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "hello"));
+        var again = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle && view.Items.OfType<ChatAssistantItem>().Any(), "an answer after the clear");
+        Require(again.Items.OfType<ChatUserItem>().Count() == 1 && again.Items.OfType<ChatNoticeItem>().Any(notice => notice.Text == "Conversation cleared"), "The next prompt continues in the emptied conversation.");
     }
 
     // The launcher's per-run Chrome and advisor choices ride the open params into the chat record, whatever the setting says.

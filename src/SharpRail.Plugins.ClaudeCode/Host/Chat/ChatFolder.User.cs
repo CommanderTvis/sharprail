@@ -383,6 +383,7 @@ internal sealed partial class ChatFolder
         var name = Tag(text, "command-name");
         if (name.Length == 0) return false;
         var args = Tag(text, "command-args");
+        if (name.TrimStart('/') is "clear" or "reset" or "new") cleared = true;
         var sections = new List<ChatSection> { new("Command", name) };
         if (Tag(text, "command-message") is { Length: > 0 } message) sections.Add(new("Command message", message));
         if (Tag(text, "command-contents") is { Length: > 0 } contents) sections.Add(new("Command contents", contents));

@@ -51,6 +51,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     private ChatRecord record = initial;
     private ChatProcess? process;
     private int generation;
+    private bool awaitingNewSession;
     private long controlSequence;
     private int flushing;
     private bool closed;
@@ -146,6 +147,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         {
             current = record;
             mine = ++generation;
+            awaitingNewSession = false;
             stderrTail.Clear();
         }
         var launch = deps.Launch(current, spawn);
@@ -274,12 +276,29 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         var type = ChatFolder.Str(message, "type");
         var folded = folder.Apply(message);
+        if (folder.TakeCleared())
+        {
+            // /clear: the CLI starts a new conversation, so the rows go, the counters restart and the next message names the new session.
+            folder.ResetConversation();
+            deps.Push(new ChatResetPush(record.WorkspaceId, record.ChatId));
+            folder.AddNotice(ChatNoticeLevel.Info, "Conversation cleared");
+            awaitingNewSession = true;
+        }
+        if (awaitingNewSession && ChatFolder.Str(message, "parent_tool_use_id") is null && ChatFolder.Str(message, "session_id") is { } fresh && fresh != record.SessionId)
+        {
+            awaitingNewSession = false;
+            record = record with { SessionId = fresh };
+            deps.Save(record);
+            folder.SetHeader(current => current with { SessionId = fresh });
+            ReportStatus("session_start");
+        }
         if (folded.Signal == ChatFolder.Signal.Init)
         {
             var header = folder.Header;
             record = record with { SessionId = header.SessionId ?? record.SessionId, Cwd = header.Cwd ?? record.Cwd, Model = header.Model ?? record.Model, PermissionMode = header.PermissionMode ?? record.PermissionMode, ForkOf = null, ForkBefore = null };
             deps.Save(record);
             folder.SetHeader(current => current with { Pending = null });
+            awaitingNewSession = false;
             if (header.Status == ChatStatus.Starting) folder.SetStatus(ChatStatus.Idle);
             ReportStatus("session_start");
         }
