@@ -115,6 +115,14 @@ internal static partial class HeadlessChecks
         var dockerfile = File.ReadAllText(Path.Combine(repository!.FullName, "docker", "headless", "Dockerfile"));
         Require(arm64.Format == "tar.zst" && dockerfile.Contains("ARG CLANGD_ARM64_URL=" + arm64.Url + "\n", StringComparison.Ordinal) && dockerfile.Contains("ARG CLANGD_ARM64_SHA256=" + arm64.Sha256 + "\n", StringComparison.Ordinal),
             "The Dockerfile's arm64 clangd URL or SHA-256 differs from the pin in ClangdPlugin.");
+        // Every base image is pinned by digest; only a stage declared earlier in the file may be named without one.
+        var stages = new HashSet<string>(StringComparer.Ordinal);
+        foreach (System.Text.RegularExpressions.Match from in System.Text.RegularExpressions.Regex.Matches(dockerfile, @"^FROM (\S+)(?: AS (\S+))?", System.Text.RegularExpressions.RegexOptions.Multiline))
+        {
+            var image = from.Groups[1].Value;
+            Require(stages.Contains(image) || System.Text.RegularExpressions.Regex.IsMatch(image, @"@sha256:[0-9a-f]{64}$"), $"The Dockerfile base image {image} is not pinned by digest.");
+            if (from.Groups[2].Success) stages.Add(from.Groups[2].Value);
+        }
         // Every language server that declares No still needs a toolchain without a pin, so flipping it requires the pin first.
         var desktop = BuiltinPlugins.Create(null).Where(plugin => plugin.Manifest.Headless == HeadlessSupport.No).Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().Where(plugin => plugin.Spec.Id != "intellij").ToArray();
         Require(desktop.Select(plugin => plugin.Spec.Id).Order().SequenceEqual(["dart", "go", "java", "powershell", "r", "ruby", "rust", "scala", "swift"]), "The language servers declared desktop-only changed: " + string.Join(", ", desktop.Select(plugin => plugin.Spec.Id)));
