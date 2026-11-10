@@ -51,6 +51,23 @@ internal static class LanguageTerms
         return result;
     }
 
+    /// <summary>Records that these exact terms were accepted with these answers (every question answered); returns the time.</summary>
+    internal static async Task<string> WriteAsync(string storage, string server, LanguageServerTerms terms, IReadOnlyDictionary<string, string> answers, CancellationToken token)
+    {
+        var timestamp = DateTimeOffset.UtcNow.ToString("O");
+        var record = Record(storage, server, terms.ArtifactId);
+        Directory.CreateDirectory(Path.GetDirectoryName(record)!);
+        var temporary = record + ".partial-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new Acceptance(terms.ArtifactId, terms.Version, terms.TextSha256, timestamp, terms.Questions.ToDictionary(question => question.Id, question => answers[question.Id])), HostJson.Default.Acceptance), token);
+            token.ThrowIfCancellationRequested();
+            File.Move(temporary, record, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        return timestamp;
+    }
+
     internal static async Task<LanguageTermsResult> ReviewAsync(string storage, LanguageServer server, ILanguageServerInstallation installation, LanguageTermsRequest request, CancellationToken token)
     {
         if (request.Accept && (request.ArtifactId is not { Length: 64 } || request.EulaSha256 is not { Length: 64 }))
@@ -70,17 +87,7 @@ internal static class LanguageTerms
                 return result with { State = "changed", Detail = "The installation or terms changed. Read the updated text and accept again.", Accepted = false, AcceptedAtUtc = "" };
             if (result.Accepted) return result;
             if (!Answered(terms.Questions, request.Answers)) throw new ArgumentException("Answer every question before accepting.");
-            var timestamp = DateTimeOffset.UtcNow.ToString("O");
-            var record = Record(storage, server.Id, terms.ArtifactId);
-            Directory.CreateDirectory(Path.GetDirectoryName(record)!);
-            var temporary = record + ".partial-" + Guid.NewGuid().ToString("N");
-            try
-            {
-                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new Acceptance(terms.ArtifactId, terms.Version, terms.TextSha256, timestamp, terms.Questions.ToDictionary(question => question.Id, question => request.Answers[question.Id])), HostJson.Default.Acceptance), token);
-                token.ThrowIfCancellationRequested();
-                File.Move(temporary, record, true);
-            }
-            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            var timestamp = await WriteAsync(storage, server.Id, terms, request.Answers, token);
             return result with { State = "accepted", Accepted = true, AcceptedAtUtc = timestamp, Answers = AnswersFor(storage, server.Id, terms) };
         }
         catch (OperationCanceledException) { throw; }

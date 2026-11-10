@@ -15,7 +15,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
-        Headless = HeadlessSupport.No,
+        Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.IntelliJ.dll"
@@ -47,6 +47,14 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         TermsAsync = async (installation, prepare, token) => await IntelliJTerms.ReadAsync(
             prepare ? await IntelliJDistribution.PrepareAsync(installation, token) : IntelliJDistribution.Existing(installation), token),
         LaunchAsync = (installation, _) => Task.FromResult(IntelliJDistribution.Launch(installation)),
+        Artifacts = IntelliJDistribution.Platforms.Select(platform => IntelliJDistribution.Bundle(platform)).Select(bundle => new LanguageServerArtifact(bundle.Platform, bundle.Url.AbsoluteUri, bundle.Sha256,
+            bundle.Url.AbsolutePath.EndsWith(".tar.gz", StringComparison.Ordinal) ? "tar.gz" : bundle.Url.AbsolutePath.EndsWith(".zip", StringComparison.Ordinal) ? "zip" : "sit", "download.jetbrains.com", ["download.jetbrains.com"])).ToArray(),
+        TermsTitle = IntelliJDistribution.TermsTitle,
+        TermsUrl = IntelliJDistribution.TermsUrl,
+        TermsSha256 = IntelliJDistribution.TermsSha256,
+        TermsQuestions = IntelliJTerms.Questions,
+        TermsSummary = "The IntelliJ language server is a JetBrains product with its own licence. Every build has a free 30-day trial, which a host with no window starts for you on the first run; after that it needs an IntelliJ IDEA Ultimate subscription, " +
+            "an activation code or a licence server. You may not give anyone else access to it. The terms name two choices that JetBrains asks before the first start: your region, and whether usage statistics go to JetBrains.",
         TermsNote = "Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then accept its agreement before starting. " +
             "The server is licensed by JetBrains: every build has a free 30-day trial, then it needs an IntelliJ IDEA Ultimate subscription.",
         ConfigureInitialization = JvmInitialization.Configure,

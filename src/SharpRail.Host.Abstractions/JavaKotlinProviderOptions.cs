@@ -6,12 +6,12 @@ public static class JavaKotlinProviderOptions
     public const string Standard = "standard";
 
     /// <summary>The offered choices: <c>standard</c> only while every server the replacing ones replace is present, then each replacing server present.</summary>
-    public static string[] Available(IEnumerable<string> presentServers, IEnumerable<(string Id, IReadOnlyList<string> Replaces)> replacing)
+    public static string[] Available(IEnumerable<string> presentServers, IEnumerable<(string Id, IReadOnlyList<string> Replaces)> replacing, bool standardWithAnyReplaced = false)
     {
         var present = presentServers.ToHashSet();
         var offered = replacing.Where(server => present.Contains(server.Id)).ToArray();
         var replaced = offered.SelectMany(server => server.Replaces).Distinct().ToArray();
-        var standard = replaced.Length > 0 && replaced.All(present.Contains);
+        var standard = replaced.Length > 0 && (standardWithAnyReplaced ? replaced.Any(present.Contains) : replaced.All(present.Contains));
         return [.. standard ? [Standard] : Array.Empty<string>(), .. offered.Select(server => server.Id)];
     }
 

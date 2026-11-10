@@ -21,6 +21,10 @@ internal static class HeadlessLanguages
     /// <summary>Why a server is not served headless on a platform, or null when it is.</summary>
     internal static string? Refusal(LanguageServerSpec spec, string platform)
     {
+        // A server with terms is installed by its provider from archives the spec pins; the terms text is pinned too, so consent can come before the download.
+        if (spec.TermsAsync is not null)
+            return spec.TermsSha256.Length != 64 ? "its terms text has no pinned hash"
+                : spec.Artifacts.Any(artifact => artifact.Platform == platform && artifact.Sha256.Length == 64 && artifact.Url.StartsWith("https://", StringComparison.Ordinal)) ? null : "it has no pinned archive for " + platform;
         if (spec.Pinning == LanguageServerPinning.None) return "it has no managed installation and runs the machine's own toolchain";
         if (Undeclared.TryGetValue(spec.Id, out var reason)) return reason;
         foreach (var dependency in spec.Dependencies)

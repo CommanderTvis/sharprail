@@ -127,6 +127,9 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
 
     internal LanguageServer? Detect(string path) => Current.Detect(path);
 
+    /// <summary>The grant a host with no window holds for a server's pinned terms, or null; the desktop never sets it.</summary>
+    internal Func<LanguageServer, LanguageConsent.Grant?>? Consent { get; set; }
+
     internal static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly ConcurrentDictionary<string, SemaphoreSlim> installations = new();
     private readonly HttpClient managedHttp = managedDownloads ?? ArtifactInstaller.CreateClient();
@@ -140,10 +143,18 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         if (server.Spec.TermsAsync is { } terms)
         {
             // A server with terms is the provider's to install and launch, and starts only once these exact terms were accepted.
-            LanguageServerTerms reviewed;
+            LanguageServerTerms? reviewed = null;
             try { reviewed = await terms(installation, false, token); }
-            catch (IOException) { throw new LanguageTermsRequiredException(server); }
-            if (!LanguageTerms.Accepted(directory, server.Id, reviewed)) throw new LanguageTermsRequiredException(server);
+            catch (IOException) { }
+            if (reviewed is null || !LanguageTerms.Accepted(directory, server.Id, reviewed))
+            {
+                // A host with no window may hold a grant for the pinned terms text (LanguageConsent), given before the download: the provider installs the pinned
+                // archive, and the terms inside must be exactly the ones the grant names before the installation counts as accepted.
+                if (Consent?.Invoke(server) is not { } grant) throw new LanguageTermsRequiredException(server);
+                reviewed = await terms(installation, true, token);
+                if (!string.Equals(reviewed.TextSha256, grant.TextSha256, StringComparison.Ordinal)) throw new LanguageTermsRequiredException(server);
+                await LanguageTerms.WriteAsync(directory, server.Id, reviewed, grant.Answers, token);
+            }
             installation.AcceptedTerms = reviewed with { Answers = LanguageTerms.AnswersFor(directory, server.Id, reviewed) };
             // Overrides cannot replace the acknowledged launcher or its mandatory protocol arguments.
             if (!server.Spec.AllowsOverride && Options(server.Id) is { Command.Length: > 0 })

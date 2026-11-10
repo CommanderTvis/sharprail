@@ -969,3 +969,13 @@ static SharpRail.Plugins.Api.Host.AgentSession.operator ==(SharpRail.Plugins.Api
 SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.get -> System.Func<string!, string?>?
 SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.init -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.BunPathAsync(string! workspace, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsTitle.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsTitle.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsUrl.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsUrl.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsSha256.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsSha256.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsSummary.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsSummary.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsQuestions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.LanguageServerQuestion!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsQuestions.init -> void

@@ -2384,7 +2384,7 @@ SharpRail.Host.Abstractions.LanguageResult.Method.get -> string!
 SharpRail.Host.Abstractions.LanguageResult.Method.init -> void
 const SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Standard = "standard" -> string!
 SharpRail.Host.Abstractions.JavaKotlinProviderOptions
-static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Available(System.Collections.Generic.IEnumerable<string!>! presentServers, System.Collections.Generic.IEnumerable<(string! Id, System.Collections.Generic.IReadOnlyList<string!>! Replaces)>! replacing) -> string![]!
+static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Available(System.Collections.Generic.IEnumerable<string!>! presentServers, System.Collections.Generic.IEnumerable<(string! Id, System.Collections.Generic.IReadOnlyList<string!>! Replaces)>! replacing, bool standardWithAnyReplaced = false) -> string![]!
 static SharpRail.Host.Abstractions.JavaKotlinProviderOptions.Effective(string! saved, string![]! options) -> string!
 SharpRail.Host.Abstractions.BranchCatalog.DefaultBranch.get -> string?
 SharpRail.Host.Abstractions.BranchCatalog.Tips.get -> System.Collections.Generic.IReadOnlyDictionary<string!, SharpRail.Host.Abstractions.BranchTip!>!

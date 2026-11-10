@@ -14,6 +14,12 @@ public sealed partial class HostStateStore
     /// <summary>Where language servers keep installations, caches and per-workspace state.</summary>
     internal string LanguageDirectory => Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language");
 
+    /// <summary>Consent to terms by a host with no window (headless); null on the desktop, which asks in a window.</summary>
+    internal LanguageConsent? LanguageConsent { get; private set; }
+
+    /// <summary>Turns on headless consent: Java and Kotlin use the server with terms once it has a grant, and a grant lets its provisioning install the pinned archive.</summary>
+    internal LanguageConsent EnableLanguageConsent(Func<string, string?> environment) => LanguageConsent = new(LanguageDirectory, () => LanguageCatalog, environment);
+
     internal LanguageService Languages
     {
         get
@@ -23,7 +29,7 @@ public sealed partial class HostStateStore
                 if (languages is not null) return languages;
                 languages = new(LanguageDirectory,
                     () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
-                { DeathObserved = PublishLanguageDeath, GlobalProvider = () => Current.Settings.JavaKotlinProvider, ToolPaths = () => Current.Settings.LanguageTools, Limits = CurrentLanguageLimits };
+                { DeathObserved = PublishLanguageDeath, GlobalProvider = () => LanguageConsent?.Provider() ?? Current.Settings.JavaKotlinProvider, StandardWithAnyReplaced = () => LanguageConsent is not null, Consent = server => LanguageConsent?.GrantFor(server), ToolPaths = () => Current.Settings.LanguageTools, Limits = CurrentLanguageLimits };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }

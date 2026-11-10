@@ -16,6 +16,20 @@ internal static class IntelliJDistribution
 
     internal const string CatalogSource = "https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua";
 
+    /// <summary>The platforms with a pinned bundle.</summary>
+    internal static readonly string[] Platforms = ["macos-aarch64", "macos-x86_64", "linux-aarch64", "linux-x86_64", "windows-aarch64", "windows-x86_64"];
+
+    /// <summary>
+    /// The terms inside every pinned bundle: the JetBrains User Agreement as the file <c>EULA.txt</c>. Its SHA-256 was read from the macOS bundle on disk and from the
+    /// linux-x86_64 and linux-aarch64 archives streamed from download.jetbrains.com (the archive hashes matched the pins); Windows is not verified separately.
+    /// The page under <see cref="TermsUrl"/> is JetBrains' legal index named in the agreement itself.
+    /// </summary>
+    internal const string TermsSha256 = "cd82e6cdaf2790f1aa1a4e08479828a2cd8d790d14f702f2a6edd884410c9a25";
+
+    internal const string TermsTitle = "JetBrains User Agreement, version 2.0, effective April 16, 2025";
+
+    internal const string TermsUrl = "https://www.jetbrains.com/legal/";
+
     internal static IntelliJBundle Bundle(string platform)
     {
         var hash = platform switch

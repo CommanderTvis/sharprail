@@ -43,6 +43,9 @@ internal static class IntelliJLicensing
 
     private static Tracker Of(ILanguageServerSession session) => Trackers.GetValue(session, _ => new());
 
+    /// <summary>Whether the host starts the anonymous trial itself: <c>SHARPRAIL_INTELLIJ_AUTO_TRIAL=1</c>, which the headless host sets unless the user set it (<c>0</c> turns it off).</summary>
+    internal static bool AutomaticTrial => Environment.GetEnvironmentVariable("SHARPRAIL_INTELLIJ_AUTO_TRIAL") == "1";
+
     internal static string? EnvironmentLicense() =>
         EnvironmentVariables.FirstOrDefault(name => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)));
 
@@ -61,6 +64,15 @@ internal static class IntelliJLicensing
                     // A server holding no license looks for one in the environment, Toolbox or a product key file, once.
                     try { await session.RequestAsync(Prefix + "discovery/autoActivate", new JsonObject(), CancellationToken.None, Timeouts.Medium); }
                     catch (Exception error) when (error is IOException or OperationCanceledException or TimeoutException) { }
+                    // A host with no window cannot show the trial button: it starts the free anonymous trial the accepted agreement allows, once, when nothing else licensed the server.
+                    if (AutomaticTrial && EnvironmentLicense() is null)
+                    {
+                        bool unlicensed;
+                        lock (tracker.Gate) unlicensed = tracker.State?["activeLicense"] is null;
+                        if (unlicensed)
+                            try { await ActionAsync(session, "trial", null, CancellationToken.None); }
+                            catch (Exception error) when (error is IOException or OperationCanceledException or TimeoutException) { }
+                    }
                 });
             }
         }
@@ -85,7 +97,8 @@ internal static class IntelliJLicensing
         session.SetState(view.ToJsonString());
         var kind = view["kind"]!.GetValue<string>();
         session.SetUnavailable(kind is "parked" or "unlicensed" or "authenticating"
-            ? view["message"]!.GetValue<string>() + " Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license."
+            ? view["message"]!.GetValue<string>() + " Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license." +
+                (AutomaticTrial ? " Without a window, start the host with INTELLIJ_SERVER_LICENSE, INTELLIJ_SERVER_LICENSE_FILE or JETBRAINS_LICENSE_SERVER set to a license you own." : "")
             : null);
     }
 

@@ -35,6 +35,7 @@ namespace SharpRail.Host.Core;
 [JsonSerializable(typeof(LanguageUsageStore.Entry), TypeInfoPropertyName = "LanguageUsageEntry")]
 [JsonSerializable(typeof(List<LanguageUsageStore.Entry>), TypeInfoPropertyName = "ListLanguageUsageEntry")]
 [JsonSerializable(typeof(LanguageTerms.Acceptance))]
+[JsonSerializable(typeof(LanguageConsent.Stored))]
 [JsonSerializable(typeof(ExecutableResolution))]
 [JsonSerializable(typeof(LanguageConfigurationCatalog.Description))]
 [JsonSerializable(typeof(ProjectLanguageProfile))]

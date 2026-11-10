@@ -349,6 +349,24 @@ public sealed class LanguageServerSpec
     /// <summary>What the user should know before reviewing the terms, such as an evaluation-only licence and how the vendor ends it.</summary>
     public string TermsNote { get; init; } = "";
 
+    /// <summary>
+    /// The name of the terms text the pinned <see cref="Artifacts"/> carry, for a host with no window that must show the terms before it downloads anything.
+    /// Empty when the terms are known only after the download.
+    /// </summary>
+    public string TermsTitle { get; init; } = "";
+
+    /// <summary>Where the terms can be read online; empty when there is no such page.</summary>
+    public string TermsUrl { get; init; } = "";
+
+    /// <summary>The SHA-256 (lowercase hex) of the terms text inside every pinned artifact, so consent can be given to exactly that text before the download.</summary>
+    public string TermsSha256 { get; init; } = "";
+
+    /// <summary>What agreeing means, in plain sentences for a host with no window: licence, trial, limits, what is downloaded.</summary>
+    public string TermsSummary { get; init; } = "";
+
+    /// <summary>The questions the provider asks next to its terms, known before any download; <see cref="LanguageServerTerms.Questions"/> repeats them once the installation is read.</summary>
+    public IReadOnlyList<LanguageServerQuestion> TermsQuestions { get; init; } = [];
+
     /// <summary>Fills initialization options from the typed options, the manifests and the server's directories, after <see cref="DefaultInitialization"/>.</summary>
     public Action<ILanguageServerStart, JsonObject> ConfigureInitialization { get; init; } = (_, _) => { };
 

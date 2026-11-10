@@ -89,6 +89,12 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 
+    /// <summary>The grant a host with no window holds for a server's pinned terms (LanguageConsent).</summary>
+    internal Func<LanguageServer, LanguageConsent.Grant?>? Consent { set => servers.Consent = value; }
+
+    /// <summary>Whether <c>standard</c> is offered as the Java and Kotlin provider while only some of the servers it stands for are present (a host that serves no Java server).</summary>
+    internal Func<bool>? StandardWithAnyReplaced { get; init; }
+
     // Operations the Code Intelligence pane and the lifecycle make; per-keystroke editor operations are not logged.
     private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "capabilities" or "setProjectHidden" or "javaKotlinProvider" or "provision";
 
@@ -497,7 +503,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (GlobalProvider?.Invoke() is { } global)
         {
             // The saved choice applies only while the plugins it needs are enabled; otherwise the first available option does.
-            var effective = JavaKotlinProviderOptions.Effective(global, JavaKotlinProviderOptions.Available(current.Servers.Select(server => server.Id), replacing.Select(server => (server.Id, server.Spec.Replaces))));
+            var effective = JavaKotlinProviderOptions.Effective(global, JavaKotlinProviderOptions.Available(current.Servers.Select(server => server.Id), replacing.Select(server => (server.Id, server.Spec.Replaces)), StandardWithAnyReplaced?.Invoke() == true));
             foreach (var server in replacing)
                 if (server.Id == effective) return server;
             return null;
