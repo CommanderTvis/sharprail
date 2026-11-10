@@ -11,6 +11,8 @@ public static class LayoutRoles
     public const double TopbarRow = 40;
     /// <summary>Side-pane and tool-pane header strips and the width of their full-height actions.</summary>
     public const double PanelHeaderRow = 28;
+    /// <summary>The whole height of a pane's header strip, bottom border included, and of any slim row at the top of a tab body that sits beside one, so their bottom edges share a line whatever the row holds.</summary>
+    public const double PaneHeaderStrip = 32;
     /// <summary>A control inside a panel header: the header row less 4.</summary>
     public const double PanelHeaderControl = 24;
     /// <summary>Side-pane tree and list rows.</summary>

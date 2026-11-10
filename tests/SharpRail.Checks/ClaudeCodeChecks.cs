@@ -598,11 +598,24 @@ internal static class ClaudeCodeChecks
                 return (tab, view);
             }
 
+            // The offer row is exactly a pane header strip tall, so its bottom border and the Files pane header's share one line,
+            // whatever buttons it holds (Resume and Start fresh, or Start fresh alone for a session open elsewhere).
+            void RequireAlignedWithPaneHeader(SharpRail.UI.Terminal.TerminalView view, string variant)
+            {
+                var row = view.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "TerminalResumeOffer");
+                var filesGroup = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
+                var header = app.Find<Border>("TabStrip_" + filesGroup);
+                double Bottom(Control control) => control.TranslatePoint(new Point(0, control.Bounds.Height), app.Window)!.Value.Y;
+                Require(Math.Abs(row.Bounds.Height - header.Bounds.Height) < .01 && Math.Abs(Bottom(row) - Bottom(header)) < .01,
+                    $"The resume offer ({variant}) must end on the Files pane header's bottom line: offer {Bottom(row)} (height {row.Bounds.Height}), header {Bottom(header)} (height {header.Bounds.Height}).");
+            }
+
             // A stale lock (its process is gone) does not block Resume, which launches the recorded session.
             const string stale = "7d1c2b3a-1111-4c5d-8e9f-000000000001";
             var (first, firstView) = Revive("terminal:resume-offer-stale", stale);
             E2eWorkspace.Settle(1500);
             Require(Launches().Length == 0, "A revived tab does not launch its agent until asked: " + string.Join(" | ", Launches()));
+            RequireAlignedWithPaneHeader(firstView, "resume and start fresh");
             Console.WriteLine("PASS Claude revival: the revived tab offers its session and launches nothing on its own");
             using (var gone = System.Diagnostics.Process.Start("/bin/sh", ["-c", "exit 0"])!)
             {
@@ -630,6 +643,7 @@ internal static class ClaudeCodeChecks
                 "A session another SharpRail holds is not resumed: " + secondView.ResumeOffer.Text);
             Require(!secondView.ResumeOffer.Quit && secondView.ResumeOffer.Text.Contains($"SharpRail window/instance (pid {holder.Id}), tab terminal:other", StringComparison.Ordinal),
                 "A live SharpRail owner is named and never offered a quit: " + secondView.ResumeOffer.Text);
+            RequireAlignedWithPaneHeader(secondView, "open elsewhere");
             Console.WriteLine("PASS Claude revival: a session locked by another live SharpRail is refused as open elsewhere");
             secondView.AnswerResumeOffer(false);
             E2eWorkspace.Until(() => Launches().Length > before);

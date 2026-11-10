@@ -318,7 +318,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
         this.FindControl<Button>("TerminalResumeOfferQuit")!.IsVisible = text is not null && quit is not null;
         offer.IsVisible = text is not null;
         if (text is null) return;
-        this.FindControl<TextBlock>("TerminalResumeOfferText")!.Text = text;
+        var offerText = this.FindControl<TextBlock>("TerminalResumeOfferText")!;
+        offerText.Text = text;
+        ToolTip.SetTip(offerText, text);
         var resumeButton = this.FindControl<Button>("TerminalResumeOfferResume")!;
         resumeButton.IsVisible = resume is not null;
         this.FindControl<Button>("TerminalResumeOfferFresh")!.IsVisible = fresh is not null;

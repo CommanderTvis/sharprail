@@ -5,6 +5,7 @@
     "note": "Named layout roles: values that must stay equal across surfaces. Generated/LayoutRoles.g.cs is produced from them; a role is either a size or a rhythm step, and a step role must be on the scale.",
     "TopbarRow": { "value": 40, "kind": "size", "reason": "the window header's location strip" },
     "PanelHeaderRow": { "value": 28, "kind": "size", "reason": "side-pane and tool-pane header strips and the width of their full-height actions" },
+    "PaneHeaderStrip": { "value": 32, "kind": "step", "reason": "the whole height of a pane's header strip, bottom border included, and of any slim row at the top of a tab body that sits beside one, so their bottom edges share a line whatever the row holds" },
     "PanelHeaderControl": { "value": 24, "kind": "size", "reason": "a control inside a panel header: the header row less 4" },
     "PanelRow": { "value": 22, "kind": "size", "reason": "side-pane tree and list rows" },
     "PanelInset": { "value": 8, "kind": "step", "reason": "tool-pane padding" },

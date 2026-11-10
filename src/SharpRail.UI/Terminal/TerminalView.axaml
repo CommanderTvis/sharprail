@@ -8,7 +8,7 @@
   <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,Auto,0">
     <Border x:Name="FileDropHighlight" Grid.RowSpan="4" Grid.ColumnSpan="3" BorderBrush="{x:Static rendering:Ui.Accent}" BorderThickness="2" IsVisible="False" IsHitTestVisible="False" ZIndex="10" />
     <!-- A revived agent tab's session, offered rather than resumed: another SharpRail may have it open. -->
-    <Border x:Name="TerminalResumeOffer" Grid.Row="0" Grid.ColumnSpan="3" IsVisible="False" Padding="12,4,8,4"
+    <Border x:Name="TerminalResumeOffer" Grid.Row="0" Grid.ColumnSpan="3" IsVisible="False" Padding="12,0,8,0" Height="{x:Static rendering:LayoutRoles.PaneHeaderStrip}"
             BorderThickness="0,0,0,1" BorderBrush="{x:Static rendering:Ui.BorderBrush}" Background="{x:Static rendering:Ui.Elevated}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
@@ -16,7 +16,7 @@
           <Button x:Name="TerminalResumeOfferQuit" Content="_Quit that process and resume" Padding="8,2" FontSize="12" IsVisible="False" />
           <Button x:Name="TerminalResumeOfferFresh" Content="Start _fresh" Padding="8,2" FontSize="12" />
         </StackPanel>
-        <TextBlock x:Name="TerminalResumeOfferText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12" />
+        <TextBlock x:Name="TerminalResumeOfferText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
       </DockPanel>
     </Border>
     <StackPanel x:Name="TerminalAccessories" Grid.Row="3" Grid.ColumnSpan="3" />

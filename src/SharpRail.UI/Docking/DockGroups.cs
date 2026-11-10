@@ -53,7 +53,7 @@ public sealed partial class DockSurface
         var panel = new Grid
         {
             Name = group.Region == "center" ? "CenterPanel" : "DockGroup",
-            RowDefinitions = new RowDefinitions(group.Folded ? "27,*" : "32,*")
+            RowDefinitions = new RowDefinitions(group.Folded ? "27,*" : $"{LayoutRoles.PaneHeaderStrip},*")
         };
         panel.AddHandler(PointerPressedEvent, (_, _) => Session.Focus(group.Id), RoutingStrategies.Bubble, handledEventsToo: true);
         panel.GotFocus += (_, _) => Session.Focus(group.Id);

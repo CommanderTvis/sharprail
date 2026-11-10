@@ -484,6 +484,7 @@ static readonly SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.Att
 const SharpRail.Plugins.UI.Kit.LayoutRoles.LocationIconSlot = 16 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderControl = 24 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow = 28 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip = 32 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelRow = 22 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.TopbarRow = 40 -> double
