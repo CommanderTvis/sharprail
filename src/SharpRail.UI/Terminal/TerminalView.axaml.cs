@@ -82,6 +82,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
         this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
         this.FindControl<Button>("TerminalResumeOfferFresh")!.Click += (_, _) => freshOffered?.Invoke();
         this.FindControl<Button>("TerminalResumeOfferQuit")!.Click += (_, _) => quitOffered?.Invoke();
+        var dismiss = Ui.IconButton("close", "Dismiss", () => { dismissedOffer = shownOffer; this.FindControl<Control>("TerminalResumeOffer")!.IsVisible = false; });
+        dismiss.Name = "TerminalResumeOfferDismissButton";
+        this.FindControl<ContentControl>("TerminalResumeOfferDismiss")!.Content = dismiss;
         takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         // Held input never reaches a renderer: keys, composed text and the pointer's paste and menu buttons are
@@ -304,19 +307,24 @@ public sealed partial class TerminalView : UserControl, IDisposable
     public StackPanel Accessories { get; }
 
     private Action? resumeOffered, freshOffered, quitOffered;
+    private string? shownOffer, dismissedOffer;
 
     /// <summary>
     /// Shows the host's resume offer for this tab above the surface, or hides it when <paramref name="text"/> is null. A null
     /// <paramref name="resume"/> leaves only Start fresh, for a session open elsewhere. Both buttons take keyboard focus and
     /// carry access keys (Alt+R, Alt+F). A <paramref name="quit"/> adds "Quit that process and resume" (Alt+Q), offered only for a stray
-    /// owner the host may end.
+    /// owner the host may end. A session open elsewhere (no resume) is informational and gets a close cross: the dismissal holds for
+    /// this view until <paramref name="key"/> (the session and its owner) changes, and answers nothing.
     /// </summary>
-    internal void ShowResumeOffer(string? text, Action? resume, Action? fresh, Action? quit = null)
+    internal void ShowResumeOffer(string? text, Action? resume, Action? fresh, Action? quit = null, string? key = null)
     {
         var offer = this.FindControl<Control>("TerminalResumeOffer")!;
         resumeOffered = resume; freshOffered = fresh; quitOffered = quit;
+        shownOffer = text is null ? null : key;
+        if (text is null) dismissedOffer = null;
         this.FindControl<Button>("TerminalResumeOfferQuit")!.IsVisible = text is not null && quit is not null;
-        offer.IsVisible = text is not null;
+        this.FindControl<Control>("TerminalResumeOfferDismiss")!.IsVisible = text is not null && resume is null && key is not null;
+        offer.IsVisible = text is not null && (key is null || key != dismissedOffer);
         if (text is null) return;
         var offerText = this.FindControl<TextBlock>("TerminalResumeOfferText")!;
         offerText.Text = text;

@@ -21,7 +21,8 @@ public sealed partial class WorkbenchWindow
         terminal.ShowResumeOffer(ResumeOfferText(offer),
             offer.OpenElsewhere ? null : () => _ = ShareAsync(HostStateChange.AnswerResume(target, true)),
             () => _ = ShareAsync(HostStateChange.AnswerResume(target, false)),
-            offer.QuitConfirmation.Length > 0 ? () => _ = ConfirmQuitAsync(offer) : null);
+            offer.QuitConfirmation.Length > 0 ? () => _ = ConfirmQuitAsync(offer) : null,
+            offer.OpenElsewhere ? $"{offer.SessionId}|{offer.OwnerText}" : null);
     }
 
     // The confirmation shows on the client that clicked; the host does the ending and reports progress or failure on the offer.

@@ -76,7 +76,7 @@ the id> was running here.” with Resume (Alt+R) and Start fresh (Alt+F) buttons
 button. Either answer goes to the host as `HostStateChange.AnswerResume`, so every window and remote client shows
 and settles the same offer. When the host finds the session open in another tab, window or SharpRail instance the
 row names the owner (pid, age, tty: “…is open in pid 4463 (started 2 days ago, ttys003). The SharpRail instance that
-started it is no longer running.”, or “…another SharpRail window/instance (pid N), tab X”) and offers only Start fresh.
+started it is no longer running.”, or “…another SharpRail window/instance (pid N), tab X”) and offers only Start fresh, followed by a close cross. The cross hides the row in that window until the owner changes; it answers nothing.
 For a stray left by a stopped instance it also shows “Quit that process and resume” (Alt+Q): a confirmation dialog on
 the clicking client names the pid, command and age, then `HostStateChange.QuitOwnerAndResume` asks the host to end it
 (Plugins.SPEC); progress or failure shows inline in the row. A live SharpRail owner never gets the button. The row is applied when a terminal view is created and on every state

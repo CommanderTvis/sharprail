@@ -279,7 +279,7 @@ internal static class FileDropChecks
         Console.WriteLine("PASS attach button: hidden without a running agent, three-option menu, upload, host browse (up/home/error/pick) and workspace file inserted unsubmitted, share queued without an agent, watcher rejected");
     }
 
-    private sealed class RecordingTerminal : ITerminalBackend
+    internal sealed class RecordingTerminal : ITerminalBackend
     {
         private readonly TaskCompletionSource detached = new();
         public Control View { get; } = new Border();

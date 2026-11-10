@@ -22,6 +22,7 @@ using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Plugins;
+using SharpRail.UI.Terminal;
 
 namespace SharpRail.Checks;
 
@@ -166,6 +167,45 @@ internal static class ClaudeChatUiChecks
         3 => new ChatToolItem("i" + index, index, "Bash", JsonSerializer.SerializeToElement(new { command = "echo " + index }), ChatToolState.Done) { Summary = "echo " + index, Output = "line\nline\nline" },
         _ => new ChatNoticeItem("i" + index, index, ChatNoticeLevel.Info, "Interrupted") { Category = ChatNoticeKinds.Interrupt }
     };
+
+    // The resume offer of a session open in another process: a close cross after Start fresh, the same size as the chat notice's,
+    // hides it for that view without answering, and a different owner brings it back. A plain offer has no cross.
+    internal static void ResumeOfferDismiss()
+    {
+        var backend = new FileDropChecks.RecordingTerminal();
+        using var terminal = new TerminalView(_ => backend, new(Path.GetTempPath(), "offer-probe", "", "offer-client"));
+        var window = new Window { Content = terminal, Width = 900, Height = 300 };
+        window.Show(); Frame(window);
+        try
+        {
+            var answers = 0;
+            const string owner = "is open in pid 8432 (started 24 minutes ago), which SharpRail did not start.";
+            var row = terminal.FindControl<Control>("TerminalResumeOffer")!;
+            var holder = terminal.FindControl<ContentControl>("TerminalResumeOfferDismiss")!;
+            var cross = (Button)holder.Content!;
+            var fresh = terminal.FindControl<Button>("TerminalResumeOfferFresh")!;
+            terminal.ShowResumeOffer("Claude session 1aec5204 was running here.", () => answers++, () => answers++, key: null); Frame(window);
+            Require(row.IsVisible && !holder.IsEffectivelyVisible, "A plain offer waiting for an answer has no close cross.");
+            terminal.ShowResumeOffer("Claude session 1aec5204 " + owner, null, () => answers++, key: "s|" + owner); Frame(window);
+            Require(row.IsVisible && holder.IsEffectivelyVisible && ToolTip.GetTip(cross) as string == "Dismiss", "A session open elsewhere shows a Dismiss cross.");
+            var reference = Ui.IconButton("close", "Dismiss", () => { });
+            Require(cross.Bounds.Width == reference.Width && cross.Bounds.Height == reference.Height, $"The cross is the app's icon button size ({cross.Bounds.Size}).");
+            var at = cross.TranslatePoint(default, row)!.Value;
+            var freshAt = fresh.TranslatePoint(default, row)!.Value;
+            Require(at.X >= freshAt.X + fresh.Bounds.Width && Math.Abs(at.X + cross.Bounds.Width - (row.Bounds.Width - 8)) < 0.5, $"The cross follows Start fresh at the right edge (x {at.X}, row {row.Bounds.Width}).");
+            Require(Math.Abs(at.Y + cross.Bounds.Height / 2 - row.Bounds.Height / 2) <= 1, "The cross is centred in the row (the row border is 1px).");
+            cross.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Frame(window);
+            Require(!row.IsVisible && answers == 0, "Dismissing hides the row and answers nothing.");
+            terminal.ShowResumeOffer("Claude session 1aec5204 " + owner, null, () => answers++, key: "s|" + owner); Frame(window);
+            Require(!row.IsVisible, "The same state keeps it dismissed.");
+            terminal.ShowResumeOffer("Claude session 1aec5204 is open in pid 9001.", null, () => answers++, key: "s|pid 9001"); Frame(window);
+            Require(row.IsVisible && holder.IsEffectivelyVisible, "A different owner brings it back.");
+            terminal.ShowResumeOffer(null, null, null); Frame(window);
+            terminal.ShowResumeOffer("Claude session 1aec5204 is open in pid 9001.", null, () => answers++, key: "s|pid 9001"); Frame(window);
+            Require(row.IsVisible, "A withdrawn and renewed offer shows again.");
+        }
+        finally { window.Close(); }
+    }
 
     private static void Frame(Window window)
     {
