@@ -56,7 +56,7 @@ internal static class SettledWorkspacesE2E
         Console.WriteLine("PASS settled workspaces: an opened settled workspace stays settled");
 
         // Never settles nothing automatically; the header follows.
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         app.Click(Named<Button>(settings, "Settings_Workspaces"));

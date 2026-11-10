@@ -100,13 +100,6 @@ public sealed partial class DockSurface
 
     private Border RailFrame(string region, StackPanel entries)
     {
-        Control content = entries;
-        if (region == "right" && RightRailFooter is { } footer)
-        {
-            Detach(footer);
-            Avalonia.Controls.DockPanel.SetDock(footer, Avalonia.Controls.Dock.Bottom);
-            content = new Avalonia.Controls.DockPanel { LastChildFill = true, Children = { footer, entries } };
-        }
         return new()
         {
             Name = region + "Rail",
@@ -114,7 +107,7 @@ public sealed partial class DockSurface
             Background = Ui.Sidebar,
             BorderBrush = Ui.BorderBrush,
             BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
-            Child = content
+            Child = entries
         };
     }
 

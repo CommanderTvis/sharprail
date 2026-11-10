@@ -43,14 +43,18 @@ internal static partial class BrowserChecks
         return await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var window = BrowserSession.Current!.Workbench!.ActiveWindow!;
-            var gear = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "SettingsButton");
+            // The window has no gear: Settings opens from the three-dots menu, whose item is measured while the menu is open.
+            var gear = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "AppMenuButton");
             var point = gear.TranslatePoint(default, window)!.Value;
+            var entry = window.ViewMenu.Items.OfType<Avalonia.Controls.MenuItem>().FirstOrDefault(item => item.Name == "SettingsMenu");
+            var entryPoint = window.ViewMenu.IsOpen && entry is not null ? entry.TranslatePoint(default, window) : null;
             return JsonSerializer.Serialize(new
             {
                 Width = window.ClientSize.Width,
                 Height = window.ClientSize.Height,
                 window.RenderScaling,
                 Gear = new { point.X, point.Y, Width = gear.TranslatePoint(new Point(gear.Bounds.Width, 0), window)!.Value.X - point.X, Height = gear.TranslatePoint(new Point(0, gear.Bounds.Height), window)!.Value.Y - point.Y },
+                Item = entryPoint is { } at ? new { at.X, at.Y, entry!.Bounds.Width, entry.Bounds.Height } : null,
                 Dialogs = window.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsView>().Select(dialog =>
                 {
                     var close = dialog.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose");

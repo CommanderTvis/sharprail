@@ -345,7 +345,7 @@ internal static class ThemeE2E
 
     private static SettingsView Open(E2eWorkspace app)
     {
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
         return app.Window.OpenSettingsViews.Single(window => window.IsVisible);
     }

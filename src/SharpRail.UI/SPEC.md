@@ -236,12 +236,13 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
   not hideable, and absent from the Layout page's offerings (its group limit reads "Right side groups"). A saved layout's other left
   tools move to the right side when it loads (and after every preset), documents there go to the centre.
 - A header tops the rail. On macOS its first row is the title region the traffic lights sit over, at the native 40pt height, draggable
-  and double-click zoomed by the system, with the add-project button and the three-dots overflow button at its right (the list has no caption row); in the browser there is no such row and the buttons
-  share the project's row. The overflow button opens the View menu, which a right-click on the header opens too. Below it come the
+  and double-click zoomed by the system, with the add-project button at its right (the list has no caption row; the application menu holds About and Settings); in the browser there is no such row and the add-project button and the three-dots overflow button
+  share the project's row. The overflow button opens the View menu, which a right-click on the header opens too (on a Mac only the right-click). Below it come the
   Project switcher, the Branch block (the branch card, and beside it the Remote block with the sync state and its one action), the repo hosting
   provider's Pull request item, the plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
+  A 1 px line in the border colour closes the header block, and the project list starts right below it.
   Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
-- The right tool bar ends with Settings alone, which keeps its chord, tooltip and automation name; About is in the overflow menu, the application menu and Settings.
+- The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About SharpRail; the right tool bar holds only the tools.
 
 Everything else about those controls is as described in Location bar; the moved controls keep their names.
 

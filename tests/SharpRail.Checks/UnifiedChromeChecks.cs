@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using SharpRail.Checks.E2E;
 using SharpRail.UI;
 using SharpRail.UI.Docking;
+using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -32,20 +33,27 @@ internal static class UnifiedChromeChecks
         var menu = app.Window.ViewMenu;
         for (var round = 0; round < 2; round++)
         {
-            if (unified) app.Click(app.Find<Button>("AppMenuButton"), freshGesture: false);
+            if (unified && !OperatingSystem.IsMacOS()) app.Click(app.Find<Button>("AppMenuButton"), freshGesture: false);
+            else if (unified) app.Find<StackPanel>("RailHeader").RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent });
             else app.Find<Grid>("MainHeader").RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent });
             Until(() => menu.IsOpen);
             var entries = Entries(menu.Items).ToArray();
             Require(entries.Any(item => item.Name == "NewWindow") && entries.Any(item => Equals(item.Header, "Reset frame")) && entries.Any(item => Equals(item.Header, "Toggle right")),
                 $"The View menu lists its entries on round {round}: " + string.Join("|", entries.Select(item => item.Name + "/" + item.Header)));
             Require(!unified || entries.Any(item => item.Name == "AboutMenu"), "The overflow menu keeps About reachable.");
+            var names = entries.Select(item => item.Name).ToList();
+            var settings = entries.SingleOrDefault(item => item.Name == "SettingsMenu");
+            Require(unified == (settings is not null), "Only the window without a top bar lists Settings in the overflow menu.");
+            if (settings is not null)
+                Require(Equals(settings.Header, "Settings…") && settings.Icon is not null && names.IndexOf("SettingsMenu") + 1 == names.IndexOf("AboutMenu"),
+                    "The overflow menu holds Settings, with its icon, right before About.");
             foreach (var entry in entries.Where(item => item.Items.Count > 0)) { entry.Open(); entry.Close(); }
             menu.Close();
             Until(() => !menu.IsOpen);
         }
     }
 
-    /// <summary>The rail header's other popups open without an exception: the project switcher, the branch card and the right bar's Settings.</summary>
+    /// <summary>The rail header's other popups open without an exception: the project switcher, the branch card and the overflow menu's Settings.</summary>
     private static void HeaderPopups(E2eWorkspace app)
     {
         var projects = app.Find<Button>("ScopeProject").ContextMenu!;
@@ -65,7 +73,7 @@ internal static class UnifiedChromeChecks
             branch.Flyout!.Hide();
             Until(() => !branch.Flyout.IsOpen);
         }
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any());
         app.Window.OpenSettingsViews.Single().Close();
     }
@@ -93,6 +101,37 @@ internal static class UnifiedChromeChecks
         Require(popup.X >= window.X - 1 && popup.X + popup.W <= window.X + window.W + 1 && popup.Y + popup.H <= window.Y + window.H + 1, "The add-project menu stays inside the window.");
         Require(menu.Bounds.Width <= menu.MaxWidth + 0.5, $"The add-project menu is {menu.Bounds.Width:0.#} wide, past its bound {menu.MaxWidth:0.#}.");
         menu.Close();
+    }
+
+    /// <summary>A 1 px line in the border role closes the rail header: at its bottom edge, the rail's full width, with the list right below it.</summary>
+    private static void HeaderDivider(E2eWorkspace app)
+    {
+        Dispatcher.UIThread.RunJobs();
+        app.Window.UpdateLayout();
+        var top = app.Find<Border>("FixedLeftHeader");
+        var body = app.Find<Control>("DockBody_" + app.Window.Layout.State.Groups.Single(group => group.Region == "left").Id);
+        var group = (Control)top.Parent!;
+        Require(top.BorderThickness == new Thickness(0, 0, 0, 1) && Equals(top.BorderBrush, Ui.BorderBrush), "The rail header's bottom edge is a 1 px line in the border colour.");
+        Require(Math.Abs(top.Bounds.Width - group.Bounds.Width) <= 1 && Math.Abs(top.Bounds.Left) <= 1, $"The line spans the rail's full width ({top.Bounds.Width}, {group.Bounds.Width}).");
+        Require(Math.Abs(top.Bounds.Bottom - body.Bounds.Top) <= 1, $"The project list starts right at the line, with no gap ({top.Bounds.Bottom}, {body.Bounds.Top}).");
+    }
+
+    /// <summary>The right tool bar has no Settings gear: its tools start at the rail's top and nothing sits below them.</summary>
+    private static void RightBar(E2eWorkspace app)
+    {
+        Dispatcher.UIThread.RunJobs();
+        app.Window.UpdateLayout();
+        var rail = app.Find<Border>("rightRail");
+        var entries = app.Find<StackPanel>("rightRailEntries");
+        Rect Box(Control control) => new(control.TranslatePoint(default, app.Window)!.Value, control.Bounds.Size);
+        Require(ReferenceEquals(rail.Child, entries) && !app.Find<Button>("SettingsButton").IsEffectivelyVisible && !rail.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "SettingsButton"),
+            "The right tool bar holds only its tools: no Settings gear anywhere in the window's corner.");
+        var railBox = Box(rail);
+        var cluster = entries.GetLogicalDescendants().OfType<StackPanel>().First(panel => panel.Name?.StartsWith("RailCluster_", StringComparison.Ordinal) == true);
+        // The rail's inset (2) and the first drop boundary (9) are all that precede the first tool.
+        Require(Math.Abs(Box(cluster).Top - railBox.Top - 11) <= 1, $"The tool icons start at the top of the rail ({Box(cluster).Top - railBox.Top}).");
+        var first = cluster.GetLogicalDescendants().OfType<Button>().First(button => button.IsVisible);
+        Require(Math.Abs(Box(first).Top - Box(cluster).Top) <= 1, $"The first tool opens the cluster ({Box(first).Top - Box(cluster).Top}).");
     }
 
     private static void Layout(E2eWorkspace app, StackPanel header)
@@ -130,7 +169,9 @@ internal static class UnifiedChromeChecks
         var credits = app.Window.GetLogicalDescendants().OfType<Border>().FirstOrDefault(border => border.Name == "CreditsSegment");
         if (credits is { IsVisible: true })
             Require(credits.GetLogicalDescendants().OfType<Button>().Where(button => button.IsVisible).All(button => Math.Abs(Right(button) - rowEnd) <= 1), "The credits value fills the row like the others.");
-        Require(Math.Abs(header.Bounds.Width - Right(app.Find<Button>("AppMenuButton"))) < 0.5 || !OperatingSystem.IsMacOS(), "The three-dots button ends the first row.");
+        var more = app.Window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "AppMenuButton");
+        Require(OperatingSystem.IsMacOS() == (more is null), "The three-dots button is drawn in the browser only: a Mac has the native application menu.");
+        Require(Math.Abs(header.Bounds.Width - Right(more ?? app.Find<Button>("AddProjectMenu"))) <= 1 || !OperatingSystem.IsMacOS(), "The last button of the first row ends at the rail's right edge.");
     }
 
     private static void Classic(string directory)
@@ -178,7 +219,7 @@ internal static class UnifiedChromeChecks
                 "There is no top bar: the workbench starts at the top of the window.");
             var header = app.Find<StackPanel>("RailHeader");
             bool InHeader(Control control) => header.IsLogicalAncestorOf(control);
-            Require(InHeader(app.Find<Button>("AppMenuButton")) && InHeader(app.Find<Button>("ScopeProject")) && InHeader(app.Find<Button>("ScopeBranch")) &&
+            Require((OperatingSystem.IsMacOS() || InHeader(app.Find<Button>("AppMenuButton"))) && InHeader(app.Find<Button>("ScopeProject")) && InHeader(app.Find<Button>("ScopeBranch")) &&
                 InHeader(app.Find<Avalonia.Controls.DockPanel>("RemoteRow")), "The rail header holds the overflow menu, the project switcher and the branch block with its sync state.");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "left") == 1 && app.Window.Layout.State.LeftVisible,
                 "The left column is the Projects rail alone.");
@@ -192,13 +233,12 @@ internal static class UnifiedChromeChecks
             Require(panel.RowDefinitions.Count == 1 && panel.Margin.Top == 0, "The project list starts right below the header blocks.");
             Require(all.OfType<StackPanel>().Where(panel => panel.Name == "ProjectWorkspaces").All(panel => panel.IsVisible == panel.Children.Any(child => child.IsVisible)),
                 "A project with nothing visible under it takes no room beyond its own row, whether closed or expanded.");
-            var footer = app.Find<StackPanel>("RailFooter");
-            Require(footer.IsLogicalAncestorOf(app.Find<Button>("SettingsButton")) && footer.GetLogicalChildren().Count() == 1,
-                "Settings alone closes the right tool bar.");
+            RightBar(app);
+            HeaderDivider(app);
             Layout(app, header);
             ViewMenu(app, unified: true);
             HeaderPopups(app);
-            Console.WriteLine("PASS unified chrome: no top bar, the rail header, its menus and popups open, the right bar's Settings");
+            Console.WriteLine("PASS unified chrome: no top bar, the rail header, its menus and popups open, no Settings gear in the right bar");
         }
         finally { UnifiedChrome.Override = false; }
     }

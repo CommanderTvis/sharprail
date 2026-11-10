@@ -58,7 +58,7 @@ internal static class IconChecks
     internal static void HostSettings(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "host-icon"), openFiles: false);
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         var host = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Host");

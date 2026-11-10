@@ -211,7 +211,7 @@ internal static class EditorE2E
 
     private static SettingsView OpenSettings(E2eWorkspace app)
     {
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any());
         return app.Window.OpenSettingsViews.Single();
     }

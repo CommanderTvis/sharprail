@@ -24,8 +24,6 @@ public sealed partial class DockSurface : Grid
     public LayoutSession Session { get; }
     /// <summary>With <see cref="LayoutSession.FixedLeft"/>: the controls above the Projects rail in the left column.</summary>
     public Control? LeftHeader { get; set; }
-    /// <summary>The buttons at the bottom of the right rail, such as Settings and About.</summary>
-    public Control? RightRailFooter { get; set; }
     public event Action? GestureCanceled;
     /// <summary>Requests a shared title change for a terminal tab.</summary>
     public Action<string, DockTab>? RenameTerminal { get; set; }

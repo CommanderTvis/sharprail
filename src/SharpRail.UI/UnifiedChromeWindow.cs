@@ -12,7 +12,7 @@ namespace SharpRail.UI;
 
 /// <summary>
 /// The window without a top bar (<see cref="UnifiedChrome"/>): the controls the bar carried move into a header on top of the Projects
-/// rail, and Settings into the footer of the right tool bar. The moved controls keep their names, so
+/// rail, and Settings leaves the window's corner for the overflow menu. The moved controls keep their names, so
 /// every reader of them is unchanged.
 /// </summary>
 public sealed partial class WorkbenchWindow
@@ -26,28 +26,34 @@ public sealed partial class WorkbenchWindow
         this.FindControl<Border>("WindowTitleBar")!.IsVisible = false;
         rootGrid.RowDefinitions[0].Height = new GridLength(0);
 
-        var more = new Button
+        // A Mac has the native application menu (About, Settings), so only the browser draws the overflow button.
+        Button? more = null;
+        if (!OperatingSystem.IsMacOS())
         {
-            Name = "AppMenuButton",
-            Content = Ui.Icon("moreHorizontal", null, 14),
-            Width = 32,
-            Height = 32,
-            Padding = new Thickness(0),
-            Background = Avalonia.Media.Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        ((Border)more.Content!).Bind(Border.BackgroundProperty, more.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
-        ToolTip.SetTip(more, "More"); AutomationProperties.SetName(more, "More");
-        // The View menu belongs to this button; a right-click on the header's empty space opens it as well.
-        // A context menu opens only on the control it is attached to: the button and the rail header each carry their own.
-        viewMenu = more.ContextMenu = NewViewMenu();
-        // Opening fires for a right-click only, so the button fills the menu itself.
-        more.Click += (_, _) => { FillViewMenu(viewMenu); viewMenu.Open(more); };
+            more = new Button
+            {
+                Name = "AppMenuButton",
+                Content = Ui.Icon("moreHorizontal", null, 14),
+                Width = 32,
+                Height = 32,
+                Padding = new Thickness(0),
+                Background = Avalonia.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                CornerRadius = new CornerRadius(0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ((Border)more.Content!).Bind(Border.BackgroundProperty, more.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
+            ToolTip.SetTip(more, "More"); AutomationProperties.SetName(more, "More");
+            // The View menu belongs to this button; a right-click on the header's empty space opens it as well.
+            // A context menu opens only on the control it is attached to: the button and the rail header each carry their own.
+            viewMenu = more.ContextMenu = NewViewMenu();
+            // Opening fires for a right-click only, so the button fills the menu itself.
+            more.Click += (_, _) => { FillViewMenu(viewMenu); viewMenu.Open(more); };
+        }
 
-        // The add-project button leaves the rail's caption row (there is none) and sits beside the overflow button.
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { NewAddProjectButton(), more } };
+        // The add-project button leaves the rail's caption row (there is none) and sits beside the overflow button where there is one.
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { NewAddProjectButton() } };
+        if (more is not null) actions.Children.Add(more);
 
         var header = new StackPanel { Name = "RailHeader", Spacing = 4, Margin = new Thickness(0, 0, 0, 8) };
         if (OperatingSystem.IsMacOS())
@@ -130,13 +136,12 @@ public sealed partial class WorkbenchWindow
         }
         header.Children.Add(marks);
 
-        // Settings closes the right tool bar and keeps its name, chord and tooltip.
-        tools.Children.Remove(settings);
-        settings.IsVisible = true;
+        // Settings is not drawn in the window: the application menu and the overflow menu open it. The button stays in the
+        // hidden title bar, which the window's Settings wiring and the other layouts share.
         SuppressButtonMenus(header);
         header.ContextMenu = NewViewMenu();
+        if (more is null) viewMenu = header.ContextMenu;
         surface.LeftHeader = header;
-        surface.RightRailFooter = new StackPanel { Name = "RailFooter", Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4), Children = { settings } };
         ApplyChromeZoom();
     }
 

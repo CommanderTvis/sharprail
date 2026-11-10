@@ -25,7 +25,7 @@ internal static class LayoutSettingsE2E
 
     private static SettingsView Open(E2eWorkspace app)
     {
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));

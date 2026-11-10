@@ -26,7 +26,7 @@ internal static class SettingsGitHubE2E
         Environment.SetEnvironmentVariable("PATH", emptyPath);
         try
         {
-            app.Click(app.Find<Button>("SettingsButton"));
+            app.OpenSettings();
             Until(() => app.Window.OpenSettingsViews.Any());
             var settings = app.Window.OpenSettingsViews.Single();
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_plugin_github_github"));

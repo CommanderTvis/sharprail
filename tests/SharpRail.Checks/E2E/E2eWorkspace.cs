@@ -321,6 +321,19 @@ internal sealed class E2eWorkspace : IDisposable
             Click(confirm, freshGesture: false);
     }
 
+    /// <summary>Opens Settings the way the user does: the header's gear, or the overflow menu where the window has no gear.</summary>
+    internal void OpenSettings()
+    {
+        if (Find<Button>("SettingsButton").IsEffectivelyVisible) { Click(Find<Button>("SettingsButton")); return; }
+        // A Mac has no overflow button: the rail header's context menu is the same View menu.
+        if (Window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "AppMenuButton") is { } more) Click(more);
+        else Find<StackPanel>("RailHeader").RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent });
+        Until(() => Window.ViewMenu.IsOpen);
+        var item = Window.ViewMenu.Items.OfType<MenuItem>().Single(entry => entry.Name == "SettingsMenu");
+        item.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        Window.ViewMenu.Close();
+    }
+
     internal Control Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
     {
         var name = control.Name;

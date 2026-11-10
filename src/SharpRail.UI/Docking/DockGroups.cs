@@ -32,7 +32,8 @@ public sealed partial class DockSurface
     {
         var panel = new Grid { Name = "DockGroup", RowDefinitions = new RowDefinitions("Auto,*") };
         panel.AddHandler(PointerPressedEvent, (_, _) => Session.Focus(group.Id), RoutingStrategies.Bubble, handledEventsToo: true);
-        var header = new Border { Name = "FixedLeftHeader" };
+        // A hairline in the border role closes the header block, so the project list starts on its own side of a line.
+        var header = new Border { Name = "FixedLeftHeader", BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1) };
         if (LeftHeader is { } top) { Detach(top); header.Child = top; }
         Ui.Place(panel, header);
         groupHeaders[group.Id] = header;

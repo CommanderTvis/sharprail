@@ -34,7 +34,7 @@ internal static class RailGroupingE2E
         Require(!Controls(app).OfType<Border>().Any(guide => guide.Name == "WorkspaceNestGuide" && guide.IsEffectivelyVisible), "Off, no row shows a nesting guide.");
         Console.WriteLine("PASS rail grouping: off keeps the flat list");
 
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
         var settings = app.Window.OpenSettingsViews.Single(window => window.IsVisible);
         app.Click(Named<Button>(settings, "Settings_Projects"));

@@ -255,7 +255,7 @@ internal static class VerticalTabsE2E
 
     private static void SetLayout(E2eWorkspace app, Action<SettingsView> change)
     {
-        app.Click(app.Find<Button>("SettingsButton"));
+        app.OpenSettings();
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
         var settings = app.Window.OpenSettingsViews.Single(window => window.IsVisible);
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));

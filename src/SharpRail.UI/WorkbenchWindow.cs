@@ -409,9 +409,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         window.Name = "NewWindow";
         window.InputGesture = WindowShortcuts.NewWindow.Gesture is { Key: not Key.None } newWindowChord ? newWindowChord : null;
         menu.Items.Add(window);
-        // Without the top bar the app menu is the only other way to About on platforms that have none.
+        // Without the top bar the app menu is the only other way to About on platforms that have none, and to Settings where
+        // the native menu is absent (the browser).
         if (unified)
         {
+            var settings = Ui.Menu("Settings…", ShowSettings);
+            settings.Name = "SettingsMenu";
+            settings.Icon = Ui.Icon("settings", null, 14);
+            settings.InputGesture = WindowShortcuts.Settings.Gesture is { Key: not Key.None } settingsChord ? settingsChord : null;
+            menu.Items.Add(settings);
             var about = Ui.Menu("About " + AboutInfo.Name, () => Dialogs.About(this));
             about.Name = "AboutMenu";
             menu.Items.Add(about);
