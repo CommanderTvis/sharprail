@@ -70,6 +70,30 @@ internal static class UnifiedChromeChecks
     }
 
     /// <summary>The header's blocks share one left edge for their icon column, and their values fill the rail's width.</summary>
+    // The add-project menu opens directly below its + button, left edges aligned, inside the window, never over the button, and is bounded in width.
+    private static void AddMenuUnderButton(E2eWorkspace app)
+    {
+        var add = app.Find<Button>("AddProjectMenu");
+        app.Click(add);
+        Until(() => add.ContextMenu!.IsOpen);
+        var menu = add.ContextMenu!;
+        Until(() => menu.Bounds.Width > 0 && menu.Bounds.Height > 0);
+        (double X, double Y, double W, double H) Screen(Control control)
+        {
+            var top = TopLevel.GetTopLevel(control)!;
+            var origin = top.PointToScreen(control.TranslatePoint(default, top)!.Value);
+            return (origin.X, origin.Y, control.Bounds.Width * top.RenderScaling, control.Bounds.Height * top.RenderScaling);
+        }
+        var button = Screen(add);
+        var popup = Screen(menu);
+        var window = Screen(app.Window);
+        Require(popup.Y >= button.Y + button.H - 1, $"The add-project menu starts at y={popup.Y:0.#}, above the bottom of its button ({button.Y + button.H:0.#}).");
+        Require(Math.Abs(popup.X - button.X) <= 8 || popup.X + popup.W >= window.X + window.W - 1, $"The add-project menu starts at x={popup.X:0.#}, not at its button's edge x={button.X:0.#}.");
+        Require(popup.X >= window.X - 1 && popup.X + popup.W <= window.X + window.W + 1 && popup.Y + popup.H <= window.Y + window.H + 1, "The add-project menu stays inside the window.");
+        Require(menu.Bounds.Width <= menu.MaxWidth + 0.5, $"The add-project menu is {menu.Bounds.Width:0.#} wide, past its bound {menu.MaxWidth:0.#}.");
+        menu.Close();
+    }
+
     private static void Layout(E2eWorkspace app, StackPanel header)
     {
         double Left(Control control) => control.TranslatePoint(default, header)!.Value.X;
@@ -149,6 +173,7 @@ internal static class UnifiedChromeChecks
                 !all.OfType<Button>().Any(button => button.Name == "Tab_projects"), "The rail has no title, icon or tool tabs.");
             Require(InHeader(app.Find<Button>("AddProjectMenu")) && !all.OfType<TextBlock>().Any(text => text.Text == "PROJECTS"),
                 "The add button sits in the rail header and there is no caption row.");
+            AddMenuUnderButton(app);
             var panel = app.Find<Grid>("ProjectsPanel");
             Require(panel.RowDefinitions.Count == 1 && panel.Margin.Top == 0, "The project list starts right below the header blocks.");
             Require(all.OfType<StackPanel>().Where(panel => panel.Name == "ProjectWorkspaces").All(panel => panel.IsVisible == panel.Children.Any(child => child.IsVisible)),

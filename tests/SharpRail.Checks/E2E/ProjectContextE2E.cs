@@ -174,8 +174,8 @@ internal static class ProjectContextE2E
         app.Click(add);
         Until(() => add.ContextMenu!.IsOpen);
         var recents = add.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Name == "RecentProject").ToArray();
-        Require(recents.Any(item => Equals(item.Header, fixture)) && recents.Any(item => Equals(item.Header, second)), "Closed projects appear under Recents.");
-        app.Click(recents.Single(item => Equals(item.Header, fixture)), freshGesture: false);
+        Require(recents.Any(item => Equals(item.Tag, fixture)) && recents.Any(item => Equals(item.Tag, second)), "Closed projects appear under Recents.");
+        app.Click(recents.Single(item => Equals(item.Tag, fixture)), freshGesture: false);
         Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == fixture && HasWelcome(app) && WelcomeTitle(app) == "sample-project");
         Require(app.Tabs.Count == 0, "Reopening lands on Project Home.");
         Until(() => WorktreePaths(app).Contains(workspace));

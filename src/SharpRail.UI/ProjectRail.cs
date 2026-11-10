@@ -351,6 +351,9 @@ public sealed partial class WorkbenchWindow
         var open = Ui.IconButton("add", "Add project", () => { });
         open.Name = "AddProjectMenu";
         var addMenu = ProjectMenu();
+        // Directly under the button, left edges aligned, so the menu never covers the button it came from.
+        addMenu.Placement = Avalonia.Controls.PlacementMode.BottomEdgeAlignedLeft;
+        addMenu.PlacementTarget = open;
         open.ContextMenu = addMenu;
         open.Click += (_, _) => { FillProjectMenu(addMenu); addMenu.Open(open); };
         open.Width = open.Height = 28;

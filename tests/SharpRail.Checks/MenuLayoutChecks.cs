@@ -157,6 +157,37 @@ internal static class MenuLayoutChecks
         BottomPadding();
         ShortcutsFit();
         PopupsStayInWindow();
+        RecentProjectRows();
+    }
+
+    // The add-project menu's recent paths read as folder name plus a muted parent, cut in the middle, and never widen the menu past its bound.
+    private static void RecentProjectRows()
+    {
+        var anchor = new Button { Content = "+", Width = 28, Height = 28, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var window = new Window { Width = 360, Height = 400, Content = new Grid { Children = { anchor } } };
+        window.Show();
+        var menu = new ContextMenu { Placement = Avalonia.Controls.PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = anchor };
+        menu.Items.Add(Ui.IconMenu("Create project…", () => { }, ActionIcon.NewFolder));
+        menu.Items.Add(Ui.IconMenu("Clone repository…", () => { }, ActionIcon.Clone));
+        menu.Items.Add(new Separator());
+        var paths = new[] { "/Users/commandertvis/ansible-configuration", "/Users/commandertvis/thinkrail/a-project-with-a-really-long-folder-name-that-goes-on-and-on", "/Users/commandertvis/some/very/deeply/nested/directory/structure/that/is/long/sample-project" };
+        foreach (var path in paths) menu.Items.Add(new MenuItem { Header = SharpRail.UI.WorkbenchWindow.RecentLabel(path) });
+        anchor.ContextMenu = menu;
+        menu.Open(anchor);
+        Settle();
+        var popup = ScreenBounds(menu);
+        var button = ScreenBounds(anchor);
+        Require(menu.Bounds.Width <= menu.MaxWidth + 0.5, $"recent paths: the menu is {menu.Bounds.Width:0.#} wide, past {menu.MaxWidth:0.#}.");
+        Require(popup.Y >= button.Y + button.Height - 1 && Inside(popup, ScreenBounds(window)), $"recent paths: the menu spans {popup} against the button {button}.");
+        foreach (var label in menu.Items.OfType<MenuItem>().Select(item => item.Header).OfType<StackPanel>())
+        {
+            var shown = ScreenBounds(label);
+            Require(Inside(shown, popup), $"recent paths: a row's text spans {shown}, outside the menu {popup}.");
+        }
+        Require(((TextBlock)SharpRail.UI.WorkbenchWindow.RecentLabel(paths[0]).Children[0]).Text == "ansible-configuration", "recent paths: the folder name leads the row.");
+        menu.Close();
+        window.Close();
+        Console.WriteLine("PASS menu layout: recent project rows show the folder name, stay bounded and sit under the button");
     }
 
     // Every menu the app builds, by the shape its builder gives it. A new menu is added here, and a menu that leaves the window fails the sweep.

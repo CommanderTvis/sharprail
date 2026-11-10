@@ -229,11 +229,30 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(new MenuItem { Header = "Recent", IsEnabled = false });
         foreach (var path in recents)
         {
-            var item = Ui.Menu(path, () => OpenRecentProject(path));
+            var item = Ui.Menu("", () => OpenRecentProject(path));
             item.Name = "RecentProject";
+            item.Tag = path;
+            item.Header = RecentLabel(path);
+            ToolTip.SetTip(item, path);
             menu.Items.Add(item);
         }
     }
+
+    // A recent project reads as its folder name with the parent directory muted beside it; long parts are cut in the middle so the menu stays narrow.
+    internal static StackPanel RecentLabel(string path)
+    {
+        var trimmed = path.TrimEnd('/', '\\');
+        var cut = trimmed.LastIndexOfAny(['/', '\\']);
+        var name = cut < 0 ? trimmed : trimmed[(cut + 1)..];
+        var parent = cut <= 0 ? "" : trimmed[..cut];
+        var label = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
+        label.Children.Add(new TextBlock { Text = MiddleEllipsis(name.Length == 0 ? path : name, 32), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+        if (parent.Length > 0) label.Children.Add(Ui.Text(MiddleEllipsis(parent, 28), Ui.Hint, 11));
+        return label;
+    }
+
+    private static string MiddleEllipsis(string text, int max) =>
+        text.Length <= max ? text : text[..((max - 1) / 2)] + "…" + text[^(max - 1 - (max - 1) / 2)..];
 
     /// <summary>The host's recent projects that are not open, as the add-project menu lists them.</summary>
     internal string[] RecentProjects() => state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
