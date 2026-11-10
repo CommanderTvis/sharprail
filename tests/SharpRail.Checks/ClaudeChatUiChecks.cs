@@ -240,6 +240,7 @@ internal static class ClaudeChatUiChecks
         OnlyRunningChips();
         RunningFooter();
         FooterChipEdges();
+        ChipVisibility();
         ChromeChip();
         PrimaryContrast();
         QuestionPreview();
@@ -586,6 +587,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         // The environment plugin mounts its row first; each plugin's row is hidden until it has something to show, as in the running app; three of them stand in for the plugins that offer one.
         var view = new ChatView(new ChatEnvironment(chat, TestAgent) { WorkspaceChips = () => [.. Enumerable.Range(0, 3).Select(_ => (Control)new ContentControl { Name = "PluginMount_env", Content = new WrapPanel { Name = "TerminalEnvironmentChips", Margin = new Thickness(8, 0), IsVisible = false } })] }, Workspace, Chat);
+        view.SetChipShown("advisor", true);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -632,6 +634,66 @@ internal static class ClaudeChatUiChecks
     }
 
     // A primary button reads when enabled and when disabled: its label takes the button's colour, never its own.
+    // The gear chip lists the chips the user may hide. A fresh profile hides the working directory, the token spending and the advisor; a toggle applies
+    // at once, the popup stays open and inside the window, and the choice is read back by a rebuilt view.
+    private static void ChipVisibility()
+    {
+        var header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/project", Advisor = "opus", Chrome = true, Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5, ContextTokens = 40_000, ContextWindow = 200_000 } };
+        var preference = new MemoryPreference();
+        ChatView Make()
+        {
+            var chat = new FakeChat { Header = header };
+            chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, header));
+            return new ChatView(new ChatEnvironment(chat, TestAgent) { ComposerPreference = preference }, Workspace, Chat);
+        }
+        static bool Has(ChatView view, string name) => view.GetVisualDescendants().OfType<Control>().Any(control => control.Name == name && control.IsVisible);
+        var view = Make();
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window); Frame(window);
+            Require(!Has(view, "TerminalAgentFact_cwd") && !Has(view, "TerminalAgentFact_advisor") && !view.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Name == "ChatHint" && text.IsVisible),
+                "By default the working directory, the advisor and the token spending are not shown.");
+            Require(Has(view, "TerminalAgentFact_chrome") && Has(view, "TerminalIdeContextToggle") && Has(view, "TerminalAttachFile") && Has(view, "TerminalAgentFact_model") && Has(view, "ChatPlus"), "The other chips stay on by default.");
+            var gear = view.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "ChatChipSettings");
+            Require(ToolTip.GetTip(gear) as string == "Configure chips", "The gear chip says what it does.");
+            gear.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Frame(window); Frame(window);
+            var flyout = view.ChipSettingsFlyout;
+            Require(flyout is { IsOpen: true }, "The gear chip opens the chip popup.");
+            var content = (Control)flyout!.Content!;
+            var toggles = content.GetVisualDescendants().OfType<CheckBox>().ToList();
+            Require(toggles.Count == ChatView.ConfigurableChips.Length && toggles.Single(box => box.Name == "ChatChipToggle_cwd").IsChecked == false && toggles.Single(box => box.Name == "ChatChipToggle_ide").IsChecked == true, "The popup lists every configurable chip with its state.");
+            Require(!toggles.Any(box => box.Name is "ChatChipToggle_model" or "ChatChipToggle_plus" or "ChatChipToggle_gear"), "The model chip, the plus and the gear are not in the list.");
+            var root = TopLevel.GetTopLevel(content);
+            Require(root is not null && content.Bounds.Width <= window.Width && content.Bounds.Height <= window.Height, "The chip popup is smaller than the window.");
+            var origin = root!.PointToScreen(new Point(0, 0));
+            Require(origin.X >= window.Position.X - 1 && origin.Y >= window.Position.Y - 1 && origin.X + content.Bounds.Width <= window.Position.X + window.Width + 1, $"The chip popup sits inside the window (at {origin.X},{origin.Y}, window at {window.Position.X},{window.Position.Y}).");
+            toggles.Single(box => box.Name == "ChatChipToggle_cwd").IsChecked = true;
+            toggles.Single(box => box.Name == "ChatChipToggle_chrome").IsChecked = false;
+            Frame(window); Frame(window);
+            Require(flyout.IsOpen, "Toggling a chip does not close the popup.");
+            Require(Has(view, "TerminalAgentFact_cwd") && !Has(view, "TerminalAgentFact_chrome"), "A toggle shows or hides its chip at once.");
+            flyout.Hide();
+        }
+        finally { window.Close(); }
+        var again = Make();
+        var second = new Window { Width = 900, Height = 700, Content = again, Background = Ui.Surface };
+        second.Show();
+        try
+        {
+            Frame(second); Frame(second); Frame(second);
+            Require(Has(again, "TerminalAgentFact_cwd") && !Has(again, "TerminalAgentFact_chrome") && !Has(again, "TerminalAgentFact_advisor"), "A rebuilt view reads the saved chip choice.");
+            // A hidden context chip still shows when little context is left: that needs an action.
+            again.SetChipShown("context", false);
+            Frame(second);
+            Require(Has(again, "ChatContextPie") == false, "A hidden context chip stays hidden while plenty of context is left.");
+            Console.WriteLine("PASS chat chip visibility: defaults, gear popup, immediate toggles and persistence");
+        }
+        finally { second.Close(); }
+    }
+
     // The Chrome fact chip looks and sits as the terminal's: lowercase "chrome" with the Chrome mark, right after the IDE switch.
     private static void ChromeChip()
     {

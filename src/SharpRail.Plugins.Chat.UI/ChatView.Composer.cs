@@ -523,7 +523,8 @@ internal sealed partial class ChatView
     private void ShowPie(ChatUsage usage)
     {
         var remaining = ContextRemaining(usage);
-        pie.IsVisible = remaining is not null || statsText.Length > 0;
+        // A user who hid the chip still sees it when under half the context is left: that needs an action.
+        pie.IsVisible = (remaining is not null || statsText.Length > 0) && (ChipShown("context") || remaining is < 50);
         if (remaining is not { } left) { ToolTip.SetTip(pie, "Session usage"); return; }
         var percent = (int)Math.Round(left);
         ToolTip.SetTip(pie, left < 50 ? $"{percent}% of context remaining until auto-compact.\nClick for usage, or to compact now." : $"{percent}% of context remaining. Click for usage.");
@@ -578,7 +579,7 @@ internal sealed partial class ChatView
         statsText = string.Join("  \u00B7  ", parts);
         hint.Text = statsText;
         ToolTip.SetTip(hint, "Session usage\n\u2191 input tokens\n\u2193 output tokens\nR tokens read from the prompt cache\nW tokens written to the prompt cache\n$ cost so far\nThe bar: context used / the model's context window");
-        hint.IsVisible = densityLevel < 1 && statsText.Length > 0;
+        hint.IsVisible = densityLevel < 1 && statsText.Length > 0 && ChipShown("usage");
     }
 
     /// <summary>The usage popover: the session's tokens, cost and context meter, and a way to compact now.</summary>
@@ -1068,7 +1069,7 @@ internal sealed partial class ChatView
     private const int RecentLimit = 30;
     private ComposerPreferences? composerPreferences;
 
-    internal sealed record ComposerPreferences(bool EnterSends, IReadOnlyList<string> Recents, string? Destination = null)
+    internal sealed record ComposerPreferences(bool EnterSends, IReadOnlyList<string> Recents, string? Destination = null, IReadOnlyList<string>? HiddenChips = null)
     {
         public static ComposerPreferences Parse(string? json)
         {
@@ -1090,6 +1091,57 @@ internal sealed partial class ChatView
     internal bool SendsOnKeys(bool primary, bool shift) => Composer.EnterSends ? !shift : primary;
 
     internal bool EnterSends => Composer.EnterSends;
+
+    /// <summary>The chips the user can hide, in the order the popup lists them, with the icon each wears there.</summary>
+    internal static readonly (string Key, string Label, string Icon)[] ConfigurableChips =
+    [
+        ("environment", "Environment", "stack"), ("advisor", "Advisor", "sparkling"), ("cwd", "Working directory", "folder"), ("ide", "IDE context", "code"),
+        ("chrome", "Chrome", "chrome"), ("attach", "Attach file", "attachment"), ("mode", "Permission mode", "shield"), ("context", "Context usage", "barChartBox"), ("usage", "Token spending", "coins")
+    ];
+
+    /// <summary>What a fresh profile hides: the working directory, the token spending and the advisor.</summary>
+    internal static readonly string[] DefaultHiddenChips = ["cwd", "usage", "advisor"];
+
+    internal bool ChipShown(string key) => !(Composer.HiddenChips ?? DefaultHiddenChips).Contains(key);
+
+    internal void SetChipShown(string key, bool shown)
+    {
+        var hidden = (Composer.HiddenChips ?? DefaultHiddenChips).Where(other => other != key).ToList();
+        if (!shown) hidden.Add(key);
+        SaveComposer(Composer with { HiddenChips = hidden });
+        if (transcript.Header is { } header)
+        {
+            chipSignature = "";
+            RebuildChips(header);
+            ShowStats(header.Usage);
+            ShowPie(header.Usage);
+        }
+    }
+
+    /// <summary>The gear chip's popup: one check per configurable chip. It stays open while the user toggles; each change applies at once.</summary>
+    internal Control BuildChipSettings()
+    {
+        var list = new StackPanel { Spacing = 2 };
+        foreach (var (key, label, icon) in ConfigurableChips)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            row.Children.Add(Ui.Icon(icon, Ui.Muted, 14));
+            row.Children.Add(Ui.Text(label, Ui.TextBrush, 13));
+            var box = new CheckBox { Name = "ChatChipToggle_" + key, Content = row, IsChecked = ChipShown(key) };
+            box.IsCheckedChanged += (_, _) => SetChipShown(key, box.IsChecked == true);
+            list.Children.Add(box);
+        }
+        return ChatPopup.Container("ChatChipSettings", "Chips under the input", list);
+    }
+
+    internal Flyout? ChipSettingsFlyout { get; private set; }
+
+    private void ShowChipSettings()
+    {
+        var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedRight, Content = BuildChipSettings() };
+        ChipSettingsFlyout = flyout;
+        ChatPopup.Show(flyout, gear!);
+    }
 
     internal void SetEnterSends(bool value) => SaveComposer(Composer with { EnterSends = value });
 
@@ -1223,7 +1275,7 @@ internal sealed partial class ChatView
         if (level == densityLevel) return;
         densityLevel = level;
         compact = level >= 2;
-        hint.IsVisible = level < 1 && hint.Text is { Length: > 0 };
+        hint.IsVisible = level < 1 && hint.Text is { Length: > 0 } && ChipShown("usage");
         working.IsVisible = workingActive && level < 3;
         history.IsVisible = level < 4;
         if (transcript.Header is { } header) { chipSignature = ""; RebuildChips(header); }

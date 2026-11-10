@@ -422,6 +422,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     }
 
     private IReadOnlyList<Control>? environmentChips;
+    private Button? gear;
 
     /// <summary>
     /// Gives a fact chip the pickers' look: no box, the same padding, text size and weight. The chips set these as local values, so a style
@@ -461,12 +462,13 @@ internal sealed partial class ChatView : Grid, IChatRowActions
 
     private void RebuildChips(ChatHeader header)
     {
-        var signature = string.Join("|", densityLevel, header.Pending, header.Status, header.Model, header.Effort, header.PermissionMode, string.Join(",", header.PermissionModes.Select(mode => mode.Key)), header.Cwd, pendingModel, pendingEffort, pendingMode, ide, header.Advisor, header.Chrome,
+        var signature = string.Join("|", densityLevel, string.Join(",", Composer.HiddenChips ?? DefaultHiddenChips), header.Pending, header.Status, header.Model, header.Effort, header.PermissionMode, string.Join(",", header.PermissionModes.Select(mode => mode.Key)), header.Cwd, pendingModel, pendingEffort, pendingMode, ide, header.Advisor, header.Chrome,
             string.Join(",", header.Models.Select(model => model.Id)), string.Join(",", header.McpServers.Select(server => server.Name + server.Status)));
         if (signature == chipSignature) return;
         chipSignature = signature;
-        chips.Children.Clear();
-        void Add(Control chip) { Flatten(chip); chips.Children.Add(chip); }
+        // The gear stays in the row across rebuilds: taking it out would close the popup it opened.
+        foreach (var old in chips.Children.Where(child => child != gear).ToList()) chips.Children.Remove(old);
+        void Add(Control chip) { Flatten(chip); chips.Children.Insert(chips.Children.Count - (gear is not null && chips.Children.Contains(gear) ? 1 : 0), chip); }
         // The pickers sit last, nearest Send; the facts come before them, in the same plain look.
         var pickers = new List<Control>();
         void AddPicker(Control chip) => pickers.Add(chip);
@@ -486,11 +488,11 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         var currentMode = offeredModes.FirstOrDefault(mode => mode.Key == header.PermissionMode);
         var modeLabel = header.PermissionMode is null && waiting ? "permissions" : currentMode?.Label ?? ModeLabel(header.PermissionMode);
         var modeShown = shortened ? (header.PermissionMode is null or "default" ? "ask" : modeLabel.Split(' ')[^1].ToLowerInvariant()) : modeLabel;
-        AddPicker(PickerButton("permission", pendingMode is null || pendingMode == header.PermissionMode ? modeShown : modeShown + "…",
+        if (ChipShown("mode")) AddPicker(PickerButton("permission", pendingMode is null || pendingMode == header.PermissionMode ? modeShown : modeShown + "…",
             (currentMode?.Description ?? env.Agent.DescribeMode(header.PermissionMode ?? "default").Description) + ". Click to change, or press Shift+Tab to cycle.",
             flyout => ModePanel(header, flyout)));
         if (header.PermissionMode == "plan") Add(TerminalFacts.FactChip("plan", "Plan mode", $"{env.Agent.Short} plans and asks before changing anything"));
-        foreach (var row in environmentChips ??= env.WorkspaceChips())
+        foreach (var row in ChipShown("environment") ? environmentChips ??= env.WorkspaceChips() : Array.Empty<Control>())
         {
             row.Margin = new Thickness(0);
             // A plugin's row hides itself until it has chips; its empty mount would still take a wrap gap, pushing the first row in.
@@ -499,16 +501,18 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         }
         // The facts the terminal shows beside the pickers: the launch choices, the folder, the IDE switch and attach. A fact chip is read-only.
         // They give way with the width (see the density levels): the read-only facts at level 2, attach and the IDE switch at level 3 (the switch stays in the "+" popup).
-        if (header.Advisor is { Length: > 0 } advisor) Add(TerminalFacts.FactChip("advisor", "advisor " + advisor, "Started with --advisor"));
-        if (TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"{env.Agent.Short} runs in {header.Cwd}"));
-        AddFactButton(TerminalFacts.IdeContextChip(ide, () => _ = ToggleIde()));
+        if (ChipShown("advisor") && header.Advisor is { Length: > 0 } advisor) Add(TerminalFacts.FactChip("advisor", "advisor " + advisor, "Started with --advisor"));
+        if (ChipShown("cwd") && TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"{env.Agent.Short} runs in {header.Cwd}"));
+        if (ChipShown("ide")) AddFactButton(TerminalFacts.IdeContextChip(ide, () => _ = ToggleIde()));
         // Looks and sits as in the terminal: lowercase "chrome" with the Chrome mark, right after the IDE switch.
-        if (header.Chrome) Add(TerminalFacts.FactChip("chrome", "chrome", "Started with Claude in Chrome (--chrome)", Ui.Icon("chrome", Ui.Muted, 12)));
+        if (ChipShown("chrome") && header.Chrome) Add(TerminalFacts.FactChip("chrome", "chrome", "Started with Claude in Chrome (--chrome)", Ui.Icon("chrome", Ui.Muted, 12)));
         Button? attach = null;
         attach = TerminalFacts.AttachButton($"Put a file or folder in front of {env.Agent.Short}, as @path", () => PickFileOrFolder(attach!), AddAttachment,
             error => env.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ChatErrors.Text(error)));
-        AddFactButton(attach);
+        if (ChipShown("attach")) AddFactButton(attach);
         foreach (var picker in pickers) Add(picker);
+        gear ??= TerminalFacts.ChipButton("ChatChipSettings", Ui.Icon("settings", Ui.Muted, 14), "Configure chips", ShowChipSettings);
+        if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Brushes.Transparent; Add(gear); }
         // The "+" wears a warning dot when an MCP server is down.
         var down = header.McpServers.Count(server => server.Status is not ("connected" or "ok"));
         plusBadge.IsVisible = down > 0;
