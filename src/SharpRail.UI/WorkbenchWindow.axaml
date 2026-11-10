@@ -131,9 +131,9 @@
                   </Grid>
                 </Button>
               </Grid>
-              <Grid x:Name="RemoteBlock" Grid.Column="1" RowDefinitions="14,20" Margin="8,0,0,0" MinWidth="96" ClipToBounds="True" IsVisible="False">
+              <Grid x:Name="RemoteBlock" Grid.Column="1" RowDefinitions="14,20" Margin="8,0,0,0" MinWidth="200" ClipToBounds="True" IsVisible="False">
                 <TextBlock Classes="location-caption tr-text-metadata" Text="Remote" />
-                <DockPanel x:Name="RemoteRow" Grid.Row="1" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <DockPanel x:Name="RemoteRow" Grid.Row="1" Height="20" Margin="8,0,0,0" VerticalAlignment="Center" />
               </Grid>
             </Grid>
           </Border>

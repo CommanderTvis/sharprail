@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -111,48 +112,92 @@ public sealed partial class WorkbenchWindow
         if (lookup != branchStatusLookup) return;
         statusLookupPending = false;
         if (key != branchStatusKey) { SyncStatusBusy(); return; }
-        branchStatus = status;
-        if (status is not null) statusCache[key] = status;
+        // A read that failed leaves the facts already shown; only a value that differs is drawn.
+        if (status is not null) { branchStatus = status; statusCache[key] = status; }
         UpdateShipSegments();
         SyncStatusBusy();
     }
 
+    // The Remote block's parts are built once and only edited afterwards: a refresh never removes or re-adds a control.
+    private ContentControl? remoteIcon;
+    private TextBlock? remoteState, remoteAhead, remoteBehind;
+    private Button? remotePublish, remotePush, remoteSync;
+    private (BranchStatus? Status, bool Busy)? shownShip;
+
+    /// <summary>How many times the Remote block was actually edited (a refresh of an unchanged value is not counted); checks read it.</summary>
+    internal int ShipApplies { get; private set; }
+
+    /// <summary>The Remote block's controls in their fixed order, built on first use; checks watch them for changes.</summary>
+    internal IReadOnlyList<Control> RemoteParts { get { EnsureRemoteParts(); return [remoteIcon!, remotePublish!, remotePush!, remoteSync!, remoteState!, remoteAhead!, remoteBehind!]; } }
+
+    private static void Put(AvaloniaObject target, AvaloniaProperty property, object? value)
+    {
+        if (!Equals(target.GetValue(property), value)) target.SetValue(property, value);
+    }
+
+    private void EnsureRemoteParts()
+    {
+        if (remoteIcon is not null) return;
+        var remoteRow = this.FindControl<DockPanel>("RemoteRow")!;
+        remoteIcon = ShipIcon("RemoteIcon", "network", Ui.Muted);
+        remotePublish = ShipButton("RemotePublish", "Publish", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
+        remotePush = ShipButton("RemotePush", "Push", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
+        remoteSync = ShipButton("RemoteSync", "Sync", () => { if (branchStatus is { } status) _ = SyncBranchAsync(status); });
+        remoteState = ShipText("RemoteState", "", Ui.Muted);
+        remoteAhead = ShipText("RemoteAhead", "", Ui.TextBrush);
+        remoteBehind = ShipText("RemoteBehind", "", Ui.Warning);
+        foreach (var button in new[] { remotePublish, remotePush, remoteSync }) { button.Margin = new Thickness(8, 0, 0, 0); DockPanel.SetDock(button, Dock.Right); }
+        foreach (var text in new[] { remoteState, remoteAhead, remoteBehind }) { text.Margin = new Thickness(0, 0, 8, 0); DockPanel.SetDock(text, Dock.Left); }
+        DockPanel.SetDock(remoteIcon, Dock.Left);
+        remoteRow.LastChildFill = false;
+        foreach (var part in new Control[] { remoteIcon, remotePublish, remotePush, remoteSync, remoteState, remoteAhead, remoteBehind })
+        {
+            part.IsVisible = false;
+            remoteRow.Children.Add(part);
+        }
+        // The block always holds its column, so a status arriving or going never resizes the Branch block beside it.
+        this.FindControl<Grid>("RemoteBlock")!.IsVisible = true;
+    }
+
     private void UpdateShipSegments()
     {
-        var remoteRow = this.FindControl<DockPanel>("RemoteRow")!;
-        var remoteBlock = this.FindControl<Grid>("RemoteBlock")!;
-        remoteRow.Children.Clear();
-        var status = branchStatus;
+        EnsureRemoteParts();
         repoSurface?.Raise();
-        // Without a status the Remote block takes no room, so the branch block runs to the row's end; while one is expected it
-        // keeps its place with an empty row, so the arrival fills it without moving its neighbours.
-        remoteBlock.IsVisible = status is not null || ShipExpected;
-        if (status is null) return;
-        var remoteAction = RemoteAction(status);
-        // Remote: its icon slot, its one action at the right end, and its state filling what is left (it trims, never overflows).
-        var icon = ShipIcon("RemoteIcon", "network", status.HasOrigin ? Ui.Muted : Ui.Hint);
-        remoteRow.Children.Add(icon);
-        switch (remoteAction)
+        var status = branchStatus;
+        if (shownShip is { } shown && shown.Status == status && shown.Busy == shipBusy) return;
+        shownShip = (status, shipBusy); ShipApplies++;
+        // Without a status the block keeps its size and shows nothing; a refresh edits what changed in place.
+        if (status is null)
         {
-            case "publish": AddDocked(ShipButton("RemotePublish", "Publish", () => _ = PushBranchAsync(status)), Dock.Right); break;
-            case "push": AddDocked(ShipButton("RemotePush", $"Push {status.Ahead}", () => _ = PushBranchAsync(status)), Dock.Right); break;
-            case "sync": AddDocked(ShipButton("RemoteSync", "Sync", () => _ = SyncBranchAsync(status)), Dock.Right); break;
+            foreach (var part in RemoteParts) Put(part, Visual.IsVisibleProperty, false);
+            return;
         }
-        if (!status.HasOrigin) AddDocked(ShipText("RemoteState", "No remote", Ui.Hint), Dock.Left);
-        else if (!status.Published) AddDocked(ShipText("RemoteState", "Not published", Ui.Muted), Dock.Left);
-        else if (status.Ahead <= 0 && status.Behind <= 0) AddDocked(ShipText("RemoteState", "In sync", Ui.Muted), Dock.Left);
-        else
+        var action = RemoteAction(status);
+        Put(remoteIcon!, Visual.IsVisibleProperty, true);
+        if (((Border)remoteIcon!.Content!) is { } glyph) Put(glyph, Border.BackgroundProperty, status.HasOrigin ? Ui.Muted : Ui.Hint);
+        Ship(remotePublish!, action == "publish", "Publish");
+        Ship(remotePush!, action == "push", $"Push {status.Ahead}");
+        Ship(remoteSync!, action == "sync", "Sync");
+        var inSync = status.HasOrigin && status.Published && status.Ahead <= 0 && status.Behind <= 0;
+        var plain = !status.HasOrigin || !status.Published || inSync;
+        Text(remoteState!, plain, !status.HasOrigin ? "No remote" : !status.Published ? "Not published" : "In sync", !status.HasOrigin ? Ui.Hint : Ui.Muted);
+        Text(remoteAhead!, !plain && status.Ahead > 0, "↑" + status.Ahead, Ui.TextBrush);
+        Text(remoteBehind!, !plain && status.Behind > 0, "↓" + status.Behind, Ui.Warning);
+
+        void Ship(Button button, bool visible, string label)
         {
-            if (status.Ahead > 0) AddDocked(ShipText("RemoteAhead", "↑" + status.Ahead, Ui.TextBrush), Dock.Left);
-            if (status.Behind > 0) AddDocked(ShipText("RemoteBehind", "↓" + status.Behind, Ui.Warning), Dock.Left);
+            Put(button, Visual.IsVisibleProperty, visible);
+            Put(button, InputElement.IsEnabledProperty, !shipBusy);
+            if (!visible) return;
+            if (button.Content is TextBlock text) Put(text, TextBlock.TextProperty, label);
+            Put(button, AutomationProperties.NameProperty, label);
         }
 
-        void AddDocked(Control control, Dock dock)
+        static void Text(TextBlock block, bool visible, string text, IBrush brush)
         {
-            if (dock == Dock.Left && control is TextBlock) control.Margin = new Thickness(0, 0, 8, 0);
-            if (dock == Dock.Right) control.Margin = new Thickness(8, 0, 0, 0);
-            DockPanel.SetDock(control, dock);
-            remoteRow.Children.Add(control);
+            Put(block, Visual.IsVisibleProperty, visible);
+            if (!visible) return;
+            Put(block, TextBlock.TextProperty, text); Put(block, TextBlock.ForegroundProperty, brush); Put(block, ToolTip.TipProperty, text);
         }
     }
 

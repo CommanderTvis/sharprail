@@ -125,7 +125,7 @@ internal static class LocationBarChecks
         Until(() => app.Find<Avalonia.Controls.DockPanel>("RemoteRow").Children.Count > 0);
         Require(app.Find<Avalonia.Controls.DockPanel>("RemoteRow").GetVisualAncestors().Contains(app.Find<Border>("BranchSegment")), "The sync state lives in the Branch segment.");
         Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && !app.Find<Border>("PullRequestSegment").IsVisible &&
-            !Buttons(app).Any(button => button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
+            !Buttons(app).Any(button => button.IsVisible && button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
             "Without an origin the header says so and offers no push.");
         var pill = app.Find<Button>("ScopeBranch");
         var flyout = (Flyout)pill.Flyout!;

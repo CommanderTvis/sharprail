@@ -494,10 +494,13 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
     /// <summary>A slow status read: every branch status waits this long first.</summary>
     internal TimeSpan StatusDelay { get; set; }
+    /// <summary>When set, every branch status read answers this (checks drive the Remote block's content variants with it).</summary>
+    internal Func<BranchStatus?, BranchStatus?>? StatusMap { get; set; }
     public async ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default)
     {
         if (StatusDelay > TimeSpan.Zero) await Task.Delay(StatusDelay, cancellationToken);
         var status = await inner.GetBranchStatusAsync(fresh, cancellationToken);
+        if (StatusMap is not null) status = StatusMap(status);
         return status is null || Review is null ? status : status with { Review = Review(status.Review) };
     }
     public ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default) => inner.ApplyBranchActionAsync(action, cancellationToken);

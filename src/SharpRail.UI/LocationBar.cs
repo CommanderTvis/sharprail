@@ -121,9 +121,11 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(home);
     }
 
-    private void SetBranch(string branch)
+    internal void SetBranch(string branch)
     {
-        branchLabel.Text = branch; branchIcon.IsVisible = branch.Length > 0;
+        if (branchLabel.Text != branch) branchLabel.Text = branch;
+        branchLabel.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        branchIcon.IsVisible = branch.Length > 0;
         if (branch.Length > 0 && !atHome && workspaceRoot.Length > 0) lastBranches[workspaceRoot] = branch;
         UpdateBranchSegment();
     }
@@ -133,6 +135,7 @@ public sealed partial class WorkbenchWindow
         var branch = branchLabel.Text ?? "";
         this.FindControl<Border>("BranchSegment")!.IsVisible = projectRoot.Length > 0 && !atHome && (branch.Length > 0 || ShipExpected);
         AutomationProperties.SetName(this.FindControl<Button>("ScopeBranch")!, "Branch " + branch);
+        ToolTip.SetTip(branchLabel, branch.Length > 0 ? branch : null);
         // A managed workspace names what it was cut from; the Default workspace is plain "Branch".
         this.FindControl<TextBlock>("ScopeBase")!.Text = workspaceRoot != projectRoot && comparison.Length > 0 ? "· from " + comparison : "";
     }

@@ -118,6 +118,7 @@ internal static class UiChecks
         Gate.Case("CrossProjectTabsE2E", () => E2E.CrossProjectTabsE2E.Run(root));
         Gate.Case("RailRetentionChecks", () => E2E.RailRetentionChecks.Run(root));
         Gate.Case("StatusSwitchChecks", () => E2E.StatusSwitchChecks.Run(root));
+        Gate.Case("StatusRefreshChecks", () => E2E.StatusRefreshChecks.Run(root));
     }
 
     public static void Run(string root, bool translations = true)
