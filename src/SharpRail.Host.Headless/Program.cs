@@ -74,8 +74,6 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
 }
 
 // Consent to the terms of servers that have them (Java and Kotlin by IntelliJ): nothing is accepted unless the user says so (LanguageConsent.cs).
-// No window can show the trial button, so the host starts JetBrains' free anonymous trial itself once the terms were accepted (the user can set it to 0).
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SHARPRAIL_INTELLIJ_AUTO_TRIAL"))) Environment.SetEnvironmentVariable("SHARPRAIL_INTELLIJ_AUTO_TRIAL", "1");
 var consent = state.EnableLanguageConsent(Environment.GetEnvironmentVariable);
 var client = new ClientChannel();
 var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = roster, Kind = HostKind.Headless });

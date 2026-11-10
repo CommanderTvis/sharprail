@@ -421,7 +421,7 @@ internal static partial class HeadlessChecks
             // The checks switch language services off for themselves; the host under test must run them.
             start.Environment.Remove("SHARPRAIL_LSP_DISABLE");
             start.Environment.Remove("SHARPRAIL_ROOT");
-            foreach (var name in new[] { "SHARPRAIL_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING", "SHARPRAIL_INTELLIJ_AUTO_TRIAL" }) start.Environment.Remove(name);
+            foreach (var name in new[] { "SHARPRAIL_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING" }) start.Environment.Remove(name);
             start.Environment["SHARPRAIL_STATE_DIR"] = state;
             foreach (var name in start.Environment.Keys.Where(name => name is "SHARPRAIL_ARM" or "SHARPRAIL_LOG" or "SHARPRAIL_LOG_LEVEL" or "SHARPRAIL_RUNS_DIR" || name.StartsWith("SHARPRAIL_TOOLS_", StringComparison.Ordinal)).ToArray()) start.Environment.Remove(name);
             foreach (var (name, value) in environment ?? new Dictionary<string, string>()) start.Environment[name] = value;

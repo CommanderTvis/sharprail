@@ -500,6 +500,8 @@ ranked by count, and an example type and member from the primary language's most
 memory and in `<language storage>/profiles/`; a lookup returns the cached profile at once and starts a
 background census at most once a minute; only a change of the top servers or the example replaces it.
 
+A chosen replacing server (IntelliJ) serves only while it works: its terms are accepted, it started and, where it holds answers for a missing license, it is licensed. Otherwise the servers it replaces keep serving, answers carry a hint saying why, the server list shows it as not in use, `retry` clears the reason, and a reason is kept five minutes so the servers do not flap. A start waiting for the user's acceptance is not a failure. This applies on every host; the desktop still chooses the replacing server in the host-wide provider setting, while headless chooses it as soon as the terms are accepted.
+
 ## Explicit diagnostic scans
 
 Agents can select `paths` containing every edited file, or `scope: "workspace"` to enumerate

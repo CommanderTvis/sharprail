@@ -473,6 +473,9 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     void ILanguageServerSession.SetState(string? state) =>
         pluginState = state is { Length: > 16 * 1024 } ? throw new ArgumentException("Plugin state exceeds 16 KiB.") : state ?? "";
 
+    /// <summary>Why the provider holds this session's answers (no license), or empty.</summary>
+    internal string UnavailableReason => unavailable;
+
     void ILanguageServerSession.SetUnavailable(string? reason) => unavailable = reason ?? "";
 
     internal Task<JsonNode?> RunActionAsync(string name, JsonNode? arguments, CancellationToken token) =>

@@ -101,9 +101,45 @@ internal static partial class HeadlessChecks
             && NewConsent(environmentDirectory, With("nosuch")).EnvironmentWarnings().Any(text => text.Contains("nosuch", StringComparison.Ordinal)), "A bad answer or an unknown server was not refused.");
         Require(NewConsent(environmentDirectory, answers).GrantFor(server) is null && !Directory.Exists(environmentDirectory), "Without the variable there must be no consent, and the variable must write nothing.");
 
+        // Not accepted, Kotlin files get a hint saying why IntelliJ is not in use; Java files get the terms. Accepted, nothing of the sort.
+        var waiting = NewConsent(Path.Combine(root, "waiting"));
+        Require(waiting.WaitingFor(Args("""{"path":"src/Main.kt"}""")) is { Id: "intellij" } && waiting.WaitingFor(Args("""{"path":"src/Main.java"}""")) is null && waiting.WaitingFor(Args("""{"path":"a.cs"}""")) is null, "The files served by the previous server are not recognised.");
+        var hinted = await new LanguageConsentTools(waiting, null, null).Guard(new McpServer.McpTool("lsp_navigate", "t", "d", [], (_, _) => Task.FromResult(("""{"state":"ready"}""", false)))).Call(Args("""{"path":"src/Main.kt"}"""), default);
+        Require(!hinted.Error && hinted.Text.Contains("not in use", StringComparison.Ordinal) && hinted.Text.Contains("accept_terms", StringComparison.Ordinal), "A Kotlin answer must say why IntelliJ is not in use: " + hinted.Text);
+        // The unlicensed message says plainly that a window-less host needs a license; no trial is ever started or switchable there.
+        var held = await new LanguageConsentTools(waiting, null, null).Guard(new McpServer.McpTool("lsp_navigate", "t", "d", [], (_, _) => Task.FromResult(("{\"state\":\"actionRequired\",\"detail\":\"No active license. " + LanguageConsentTools.DesktopLicenceSentence + "\"}", false)))).Call(Args("""{"path":"a.cs"}"""), default);
+        Require(!held.Text.Contains("Open Settings", StringComparison.Ordinal) && held.Text.Contains("INTELLIJ_SERVER_LICENSE_FILE", StringComparison.Ordinal) && held.Text.Contains("JETBRAINS_LICENSE_SERVER", StringComparison.Ordinal) && held.Text.Contains("no trial", StringComparison.Ordinal), "The unlicensed message must name the license routes: " + held.Text);
+        if (BoundaryChecks.Checkout() is { } source)
+        {
+            var everything = string.Join('\n', new[] { "src/SharpRail.Host.Headless", "src/SharpRail.Host.Core/Language", "src/SharpRail.Plugins.Lsp.IntelliJ", "docker", "scripts" }
+                .SelectMany(folder => Directory.EnumerateFiles(Path.Combine(source, folder), "*", SearchOption.AllDirectories).Where(file => file.EndsWith(".cs", StringComparison.Ordinal) || file.EndsWith(".sh", StringComparison.Ordinal) || Path.GetFileName(file) == "Dockerfile"))
+                .Where(file => !file.Contains("/obj/", StringComparison.Ordinal) && !file.Contains("/bin/", StringComparison.Ordinal)).Select(File.ReadAllText));
+            Require(!everything.Contains("AUTO_TRIAL", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.Matches(everything, "trial/startAnonymous").Count == 1,
+                "Only the desktop's trial action may start a trial, and no variable may exist for it.");
+            Require(!File.ReadAllText(Path.Combine(source, "src", "SharpRail.Host.Headless", "Program.cs")).Contains("\"trial\"", StringComparison.Ordinal), "The headless host must never invoke the trial action.");
+        }
+        await Supersession(root, server);
         await Prompts(root, server);
         await ChildProcesses(root, server);
         Console.WriteLine("PASS headless consent: refusal text with the hash, accept_terms refuses a wrong hash, version or answer and records the right one, SHARPRAIL_ACCEPT_TERMS plain and strict, elicitation accept, decline, unsupported and failed, state kept with a volume and not without, nothing accepted by default");
+    }
+
+    /// <summary>A chosen IntelliJ that fails to start or is unlicensed stops serving: the previous server answers, and the answer says why. No server is started.</summary>
+    private static async Task Supersession(string root, LanguageServer server)
+    {
+        var directory = Path.Combine(root, "supersession");
+        var workspace = Path.Combine(directory, "workspace");
+        Directory.CreateDirectory(workspace);
+        await File.WriteAllTextAsync(Path.Combine(workspace, "Main.java"), "class Main {}");
+        var state = new HostStateStore(directory) { LanguageServerSource = () => [.. Catalog().Select(item => item.Spec)] };
+        var consent = state.EnableLanguageConsent(name => null);
+        Require((await consent.AcceptAsync(server, server.Spec.TermsSha256, null, new Dictionary<string, string> { ["region"] = "europe", ["dataSharing"] = "none" }, "tool", default)).Accepted && consent.Provider() == "intellij", "The grant did not choose IntelliJ.");
+        state.Languages.MarkNotInUse(workspace, "intellij", "the license has expired.");
+        var java = await state.Languages.ExecuteAsync(new(workspace, "Main.java", "definition"));
+        Require(java.State == "unavailable" && java.Detail.Contains("not in use", StringComparison.Ordinal) && java.Detail.Contains("expired", StringComparison.Ordinal), "A Java call must say why IntelliJ is not in use: " + java.State + " " + java.Detail);
+        var listed = await state.Languages.ExecuteAsync(new(workspace, Operation: "servers"));
+        Require(listed.Servers.Single(item => item.Id == "intellij") is { State: "error" } row && row.Detail.Contains("replaces answer instead", StringComparison.Ordinal), "The server list does not show IntelliJ as not in use.");
+        await state.StopLanguagesAsync();
     }
 
     private static async Task Until(Func<bool> condition)

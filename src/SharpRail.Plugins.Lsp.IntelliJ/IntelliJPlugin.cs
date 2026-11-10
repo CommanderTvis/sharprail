@@ -53,7 +53,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         TermsUrl = IntelliJDistribution.TermsUrl,
         TermsSha256 = IntelliJDistribution.TermsSha256,
         TermsQuestions = IntelliJTerms.Questions,
-        TermsSummary = "The IntelliJ language server is a JetBrains product with its own licence. Every build has a free 30-day trial, which a host with no window starts for you on the first run; after that it needs an IntelliJ IDEA Ultimate subscription, " +
+        TermsSummary = "The IntelliJ language server is a JetBrains product with its own licence. Every build has a free 30-day trial in the desktop app, but a host with no window has no trial: there it needs a license you own (INTELLIJ_SERVER_LICENSE, INTELLIJ_SERVER_LICENSE_FILE or JETBRAINS_LICENSE_SERVER). A license means an IntelliJ IDEA Ultimate subscription, " +
             "an activation code or a licence server. You may not give anyone else access to it. The terms name two choices that JetBrains asks before the first start: your region, and whether usage statistics go to JetBrains.",
         TermsNote = "Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then accept its agreement before starting. " +
             "The server is licensed by JetBrains: every build has a free 30-day trial, then it needs an IntelliJ IDEA Ultimate subscription.",

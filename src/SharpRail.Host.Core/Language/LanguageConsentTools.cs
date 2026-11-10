@@ -74,7 +74,23 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
     }
 
     /// <summary>A language tool that refuses, with the terms, a call needing a server whose terms are not accepted.</summary>
-    internal McpServer.McpTool Guard(McpServer.McpTool tool) => tool with
+    /// <summary>The sentence the desktop shows for an unlicensed server (IntelliJLicensing), which points to a window this host does not have.</summary>
+    internal const string DesktopLicenceSentence = "Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license.";
+
+    internal const string HeadlessLicenceSentence = "This host has no window, no trial and no sign-in: it needs a license you own. Start it with INTELLIJ_SERVER_LICENSE, INTELLIJ_SERVER_LICENSE_FILE or JETBRAINS_LICENSE_SERVER set (a license found by the server's own discovery also counts). Until then the previous server answers.";
+
+    internal McpServer.McpTool Guard(McpServer.McpTool tool) => Headless(Inner(tool));
+
+    private static McpServer.McpTool Headless(McpServer.McpTool tool) => tool with
+    {
+        Call = async (arguments, token) =>
+        {
+            var reply = await tool.Call(arguments, token);
+            return reply.Text.Contains(DesktopLicenceSentence, StringComparison.Ordinal) ? (reply.Text.Replace(DesktopLicenceSentence, HeadlessLicenceSentence, StringComparison.Ordinal), reply.Error) : reply;
+        }
+    };
+
+    private McpServer.McpTool Inner(McpServer.McpTool tool) => tool with
     {
         Call = async (arguments, token) =>
         {
@@ -84,6 +100,17 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
                 return (consent.Refusal(needed, declined.ContainsKey(needed.Id)), true);
             }
             var reply = await tool.Call(arguments, token);
+            // A file the previous server answers because the server with terms is not accepted yet: say why, in the answer's own hint.
+            if (!reply.Error && consent.WaitingFor(arguments) is { } waiting && StateOf(reply.Text) is not "")
+                try
+                {
+                    if (JsonNode.Parse(reply.Text) is JsonObject body && !body.ContainsKey("hint"))
+                    {
+                        body["hint"] = consent.NotInUse(waiting);
+                        return (body.ToJsonString(new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }), false);
+                    }
+                }
+                catch (JsonException) { }
             // A scan over a whole workspace found a file the server with unaccepted terms serves.
             if (!reply.Error && StateOf(reply.Text) == "requiresAcceptance" && consent.Gated.FirstOrDefault(server => consent.GrantFor(server) is null) is { } found)
                 return await AskAsync(found, token) ? await tool.Call(arguments, token) : (consent.Refusal(found, declined.ContainsKey(found.Id)), true);

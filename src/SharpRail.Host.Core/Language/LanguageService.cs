@@ -183,6 +183,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Operation == "projects") return await ProjectRootsAsync(request, token);
         if (request.Operation == "rawRequest" && LanguageSession.RawRefusal(request.Method) is { } refusal) return new("refused", refusal, Version: request.Version) { Freshness = "current" };
         if (request.Operation is "capabilities" or "rawRequest" && request.Path.Length == 0) return await ServerScopedAsync(workspace, request, token);
+        // An explicit retry or restart gives a replacing server that fell back another chance.
+        if (request.Operation is "retry" or "restart") ForgetNotInUse(workspace);
         var provider = Replacing(workspace);
         if (Competing(provider).Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
             await SwitchProviderAsync(workspace, provider, CancellationToken.None);
@@ -290,6 +292,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (server is null) return new("unsupported", "No language server is configured for this file type.", Version: request.Version);
         if (request.Operation != "stop" && request.Operation != "close")
         {
+            if (server.Spec.Replaces.Count > 0 && Replacing(workspace)?.Id != server.Id && NotInUse(workspace, server) is { } unused)
+                return new("unavailable", $"{Name(server)} is not in use: {unused} No other server here serves {string.Join(", ", server.Extensions.Take(4))}. Use retry for {server.Id} to try it again.", server.Id, request.Version) { Freshness = "unavailable" };
             if (server.Spec.Replaces.Count > 0 && Replacing(workspace)?.Id != server.Id)
                 return new("disabled", $"Select {Name(server)} for {Languages(server)} in the host settings before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
             if (Replacing(workspace) is { } replacing && replacing.Spec.Replaces.Contains(server.Id))
@@ -414,7 +418,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             }
             foreach (var location in result.Locations)
                 if (Path.IsPathFullyQualified(location.Path)) exposed[(workspace, location.Path)] = true;
-            return result;
+            return result.Hint.Length == 0 && FallbackHint(workspace, server) is { } fallback ? result with { Hint = fallback } : result;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception error) { return new(error is LanguageTermsRequiredException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
@@ -463,6 +467,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                     else if (task.IsCanceled) { state = "stopped"; detail = "Startup was cancelled."; }
                 }
             }
+            if (NotInUse(workspace, catalogServer) is { } unused) { state = "error"; detail = $"Not in use: {unused} The servers it replaces answer instead. Use Retry to try it again."; }
             if (Replacing(workspace) is { } replacing && replacing.Spec.Replaces.Contains(id)) { state = "disabled"; detail = $"{Name(replacing)} is selected for {Languages(replacing)}. Existing provider settings are preserved."; }
             if (!enabled()) { state = "disabled"; detail = "Language services are disabled on this host. Workspace settings are preserved."; }
             var exit = exits.Get(workspace, id);
@@ -505,11 +510,56 @@ public sealed partial class LanguageService : IAsyncDisposable
             // The saved choice applies only while the plugins it needs are enabled; otherwise the first available option does.
             var effective = JavaKotlinProviderOptions.Effective(global, JavaKotlinProviderOptions.Available(current.Servers.Select(server => server.Id), replacing.Select(server => (server.Id, server.Spec.Replaces)), StandardWithAnyReplaced?.Invoke() == true));
             foreach (var server in replacing)
-                if (server.Id == effective) return server;
+                if (server.Id == effective) return NotInUse(workspace, server) is null ? server : null;
             return null;
         }
         foreach (var server in replacing)
-            if (WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id).UseForJavaAndKotlin) return server;
+            if (WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id).UseForJavaAndKotlin) return NotInUse(workspace, server) is null ? server : null;
+        return null;
+    }
+
+    /// <summary>Why a server that replaces others is not serving now although it is chosen: its start failed or it reports it is unavailable (no license). The servers it replaces serve meanwhile.</summary>
+    private readonly ConcurrentDictionary<string, (string Reason, DateTime At)> notInUse = new();
+
+    /// <summary>Records that a chosen replacing server is not serving, as a failed start or a missing license does; for checks.</summary>
+    internal void MarkNotInUse(string workspace, string server, string reason) => notInUse[workspace + "\0" + server] = (reason, DateTime.UtcNow);
+
+    private void ForgetNotInUse(string workspace)
+    {
+        foreach (var key in notInUse.Keys.Where(key => key.StartsWith(workspace + "\0", StringComparison.Ordinal)).ToArray()) notInUse.TryRemove(key, out _);
+    }
+
+    /// <summary>
+    /// The reason a chosen replacing server does not serve, or null when it does (or nothing is known against it). A failed start, or a session that holds its answers
+    /// because the server is not licensed, counts; a start that waits for the user's acceptance in the terms window does not, because that is the user's to answer.
+    /// The reason is kept for a while so the replaced servers do not flap with the replacement.
+    /// </summary>
+    private string? NotInUse(string workspace, LanguageServer server)
+    {
+        if (server.Spec.Replaces.Count == 0) return null;
+        var key = workspace + "\0" + server.Id;
+        if (notInUse.TryGetValue(key, out var known))
+        {
+            if (DateTime.UtcNow - known.At < NotInUseFor) return known.Reason;
+            notInUse.TryRemove(key, out _);
+        }
+        if (!entries.TryGetValue(key, out var entry) || !entry.Session.IsValueCreated) return null;
+        var task = entry.Session.Value;
+        string? reason = null;
+        if (task.IsFaulted && task.Exception!.GetBaseException() is { } error and not LanguageTermsRequiredException) reason = "it did not start: " + error.Message;
+        else if (task.IsCompletedSuccessfully && task.Result.UnavailableReason is { Length: > 0 } held) reason = "it is not licensed or not ready: " + held;
+        if (reason is null) return null;
+        notInUse[key] = (reason, DateTime.UtcNow);
+        return reason;
+    }
+
+    private static readonly TimeSpan NotInUseFor = TimeSpan.FromMinutes(5);
+
+    /// <summary>What to tell the user when a replaced server answers because the replacement chosen for this workspace is not in use.</summary>
+    private string? FallbackHint(string workspace, LanguageServer served)
+    {
+        foreach (var replacing in servers.Current.Replacing)
+            if (replacing.Spec.Replaces.Contains(served.Id) && NotInUse(workspace, replacing) is { } why) return $"{Name(replacing)} is not in use: {why} {Name(served)} answers instead. Use retry for {replacing.Id} to try it again.";
         return null;
     }
 

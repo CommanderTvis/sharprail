@@ -169,7 +169,15 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
     /// The server with terms and no grant that a tool call needs, or null. A file type that another server without terms also serves
     /// (Kotlin) stays with that server until the terms are accepted; a type only the server with terms serves (Java) needs the terms.
     /// </summary>
-    internal LanguageServer? NeededBy(JsonObject arguments)
+    internal LanguageServer? NeededBy(JsonObject arguments) => Pending(arguments, shared: false);
+
+    /// <summary>The server with terms and no grant that would serve a file now served by another server (Kotlin), or null; the answer says why it is not in use.</summary>
+    internal LanguageServer? WaitingFor(JsonObject arguments) => Pending(arguments, shared: true);
+
+    internal string NotInUse(LanguageServer server) =>
+        $"{LanguageConsent.Name(server)} is not in use: its terms are not accepted, so the previous server answers. Once the user agrees (call accept_terms with the hash from a Java call's answer, or read the terms with accept_terms and only the server), {LanguageConsent.Name(server)} takes over Java and Kotlin automatically.";
+
+    private LanguageServer? Pending(JsonObject arguments, bool shared)
     {
         var gated = Gated;
         if (gated.Count == 0) return null;
@@ -182,10 +190,10 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
             var extension = Path.GetExtension(name);
             if (extension.Length == 0) continue;
             foreach (var server in gated)
-                if (server.Extensions.Contains(extension) && !all.Any(other => other != server && other.Spec.TermsAsync is null && other.Extensions.Contains(extension)) && GrantFor(server) is null)
+                if (server.Extensions.Contains(extension) && all.Any(other => other != server && other.Spec.TermsAsync is null && other.Extensions.Contains(extension)) == shared && GrantFor(server) is null)
                     return server;
         }
-        if (arguments["server"] is JsonValue id && id.TryGetValue<string>(out var wanted) && arguments["operation"]?.GetValue<string>() is "retry" or "restart")
+        if (!shared && arguments["server"] is JsonValue id && id.TryGetValue<string>(out var wanted) && arguments["operation"]?.GetValue<string>() is "retry" or "restart")
             return gated.FirstOrDefault(server => server.Id == wanted && GrantFor(server) is null);
         return null;
     }

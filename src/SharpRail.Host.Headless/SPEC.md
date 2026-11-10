@@ -47,9 +47,13 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
   the pinned archive is installed the host checks that the text inside is that text, then writes the same acceptance record the desktop writes. Until then
   Kotlin stays with the Kotlin server and Java has none. Consent is the agent's word for the user's: nothing technical stops an agent from calling the tool,
   so the tool says plainly it needs the user's yes, and the image holds no acceptance. Records live in the state directory, so they last as long as it does.
-- The free trial of the IntelliJ server starts on the first run, because no window can show its button (`SHARPRAIL_INTELLIJ_AUTO_TRIAL=0` turns it off).
-  A licence the user owns is given with the vendor's variables `INTELLIJ_SERVER_LICENSE`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`.
-  Signing in to a JetBrains Account is not possible without a window.
+- Supersession. The IntelliJ server takes over Java and Kotlin from the other servers (the Kotlin server, and the Java server where one is available) only while it works:
+  its terms are accepted, it started, and it is licensed. When any of these fails, the previous server keeps serving, nothing regresses, and the answer's hint or
+  message says why IntelliJ is not in use; `retry` for it tries again, and a reason is kept for five minutes so the servers do not flap. There is no setting to keep
+  the old server once IntelliJ works. A choice left waiting for the user's acceptance in a window is not a failure.
+- Licence. There is no trial and no sign-in without a window, and no variable that starts a trial. The server needs a license the user owns, given with the vendor's
+  variables `INTELLIJ_SERVER_LICENSE`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`, or found by the server's own discovery. Unlicensed, the
+  unlicensed message says so plainly and the previous server answers.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.
 - Protocol: one JSON-RPC 2.0 object per line on stdin, one per line on stdout. `initialize` carries headless instructions.
