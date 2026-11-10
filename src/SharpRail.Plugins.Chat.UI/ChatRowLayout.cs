@@ -49,9 +49,6 @@ internal sealed class ChatRowLayout : IDisposable
     private double y;
     // An assistant reply is a stack of blocks: each is measured once for its height and realized only while it is near the viewport.
     private readonly List<BlockPlan> plans = [];
-    // A prompt's blocks sit inside its bubble: each fragment is narrowed by this much on both sides, and a clipped prompt draws them through plansClip.
-    private double inset;
-    private Rect? plansClip;
 
     private sealed class BlockPlan(Markdown.Piece piece, double top, double height, bool caret, IReadOnlyList<string> texts)
     {
@@ -69,12 +66,8 @@ internal sealed class ChatRowLayout : IDisposable
     /// <summary>The y where a reply's text ends and its action strip begins; zero for rows that have none.</summary>
     internal double BlocksBottom => blocksBottom;
 
-    /// <summary>The bounds of the row's text (realized blocks included), hover-only action labels left out: what an action must not overlap.</summary>
-    internal IReadOnlyList<Rect> TextBounds() =>
-    [
-        .. texts.Where(text => !text.HoverOnly).Select(text => new Rect(text.Origin, new Size(text.Text.Width, text.Text.Height))),
-        .. plans.Where(plan => plan.Fragment is not null).SelectMany(plan => plan.Fragment!.TextBounds().Select(bounds => bounds.Translate(new Vector(0, plan.Top))).Select(bounds => plansClip is { } clipped ? bounds.Intersect(clipped) : bounds))
-    ];
+    /// <summary>The bounds of the row's own text, hover-only action labels left out: what an action must not overlap.</summary>
+    internal IReadOnlyList<Rect> TextBounds() => [.. texts.Where(text => !text.HoverOnly).Select(text => new Rect(text.Origin, new Size(text.Text.Width, text.Text.Height)))];
 
     /// <summary>The row's own click targets (those of realized blocks not included).</summary>
     public IReadOnlyList<ChatHit> OwnHits => hits;
@@ -287,7 +280,6 @@ internal sealed class ChatRowLayout : IDisposable
             plan.Fragment ??= Fragment(plan.Piece, plan.Caret);
             var inside = marks?.Where(mark => mark.Bottom > plan.Top && mark.Top < plan.Top + plan.Height).Select(mark => mark.Translate(new Vector(0, -plan.Top))).ToList();
             var washInside = wash is { } over && over.Bottom > plan.Top && over.Top < plan.Top + plan.Height ? over.Translate(new Vector(0, -plan.Top)) : (Rect?)null;
-            using (plansClip is { } shown ? context.PushClip(shown) : default)
             using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside, washInside, copied);
         }
         foreach (var fill in fills) context.DrawRectangle(fill.Brush, fill.Pen, fill.Bounds, fill.Radius, fill.Radius);
@@ -421,26 +413,9 @@ internal sealed class ChatRowLayout : IDisposable
         foreach (var (shape, pen) in geometries) context.DrawGeometry(null, pen, shape);
     }
 
-    // A fade to the bubble colour over the foot of a clipped block.
-    private void Fade(Rect area)
-    {
-        if (Ui.Elevated is not ISolidColorBrush solid) return;
-        var color = solid.Color;
-        var fade = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-            GradientStops = [new GradientStop(Color.FromArgb(0, color.R, color.G, color.B), 0), new GradientStop(color, 1)]
-        };
-        overlays.Add(new(area, fade, 0, null));
-    }
+    private const int UserClipLines = 3;
 
-    private const double UserClipHeight = 60;
-
-    // The space a block leaves below itself, which the last block of a bubble does not need.
-    private static double TrailingGap(Markdown.Piece piece) => piece.Kind switch { Markdown.Kind.Item => 2, Markdown.Kind.Code => Gap - 2, Markdown.Kind.Rule => 9, _ => Gap };
-
-    // A human prompt is the one bubble: Markdown like a reply, clipped to about 60 pixels with Show more and Show less. A prompt that did not come from
+    // A human prompt is the one bubble: plain text, clipped to about 60 pixels with Show more and Show less. A prompt that did not come from
     // a human is a collapsed row instead, as the extension draws a message from a plugin, channel or the SDK.
     private void User(ChatUserItem user, bool expanded)
     {
@@ -451,29 +426,14 @@ internal sealed class ChatRowLayout : IDisposable
             return;
         }
         var textWidth = inner - 2 * BubblePad;
-        // The prompt is read as Markdown, like a reply; a prompt without any reads as the plain text it is, newlines kept.
-        var boxTop = y;
-        inset = BubblePad;
-        var start = y + BubblePad;
-        y = start;
-        var pieces = Blocks(user.Text, false);
-        var contentHeight = pieces.Count == 0 ? 0 : y - start - TrailingGap(pieces[^1]);
-        if (pieces.Count == 0)
-        {
-            using var blank = Make(" ", Ui.TextBrush, Ui.FontSize, textWidth);
-            contentHeight = blank.Height;
-        }
-        var large = contentHeight > 64;
-        var shown = large && !expanded ? UserClipHeight : contentHeight;
-        if (large && !expanded)
-        {
-            plansClip = new Rect(left, start, inner, shown);
-            Fade(new Rect(left + 1, start + shown - 11, inner - 2, 11));
-        }
+        var whole = Make(user.Text.Length == 0 ? " " : user.Text, Ui.TextBrush, Ui.FontSize, textWidth);
+        var large = whole.Height > 64;
+        var layout = large && !expanded ? Make(user.Text, Ui.TextBrush, Ui.FontSize, textWidth, maxLines: UserClipLines) : whole;
         var extra = (user.Attachments is { Count: > 0 } ? 18 : 0) + (user.Queued ? 16 : 0) + (large ? 20 : 0);
-        var box = new Rect(left, boxTop, inner, shown + 2 * BubblePad + extra);
+        var box = new Rect(left, y, inner, layout.Height + 2 * BubblePad + extra);
         fills.Add(new(box, Ui.Elevated, 8, new Pen(Ui.BorderBrush)));
-        var cursor = start + shown;
+        Place(layout, left + BubblePad, y + BubblePad);
+        var cursor = y + BubblePad + layout.Height;
         if (user.Attachments is { Count: > 0 } attachments)
         {
             Place(Make(string.Join(", ", attachments.Select(item => item.Name)), Ui.Muted, 12, textWidth, maxLines: 1), left + BubblePad, cursor + 2);
@@ -524,7 +484,14 @@ internal sealed class ChatRowLayout : IDisposable
     // Each block is laid out once to learn its height and let go; the ones near the viewport are laid out again when drawn.
     private void Assistant(ChatAssistantItem assistant)
     {
-        var pieces = Blocks(assistant.Text, assistant.Streaming);
+        var pieces = Markdown.Parse(assistant.Text);
+        for (var index = 0; index < pieces.Count; index++)
+        {
+            var caret = assistant.Streaming && index == pieces.Count - 1;
+            using var fragment = Fragment(pieces[index], caret);
+            plans.Add(new BlockPlan(pieces[index], y, fragment.y, caret, [.. fragment.OwnParts().Select(part => part.Text)]));
+            y += fragment.y;
+        }
         if (assistant.Streaming && pieces.Count == 0)
         {
             fills.Add(new(new Rect(left, y + 2, 7, 14), Ui.Accent, 1, null));
@@ -534,22 +501,9 @@ internal sealed class ChatRowLayout : IDisposable
         if (!assistant.Streaming) blocksBottom = y;
     }
 
-    private IReadOnlyList<Markdown.Piece> Blocks(string text, bool streaming)
-    {
-        var pieces = Markdown.Parse(text);
-        for (var index = 0; index < pieces.Count; index++)
-        {
-            var caret = streaming && index == pieces.Count - 1;
-            using var fragment = Fragment(pieces[index], caret);
-            plans.Add(new BlockPlan(pieces[index], y, fragment.y, caret, [.. fragment.OwnParts().Select(part => part.Text)]));
-            y += fragment.y;
-        }
-        return pieces;
-    }
-
     private ChatRowLayout Fragment(Markdown.Piece piece, bool caret)
     {
-        var fragment = new ChatRowLayout(left + inset, left + inner - inset + Pad);
+        var fragment = new ChatRowLayout(left, left + inner + Pad);
         fragment.Piece(piece, caret);
         Interlocked.Increment(ref live);
         Interlocked.Add(ref liveTexts, fragment.texts.Count);
@@ -762,7 +716,17 @@ internal sealed class ChatRowLayout : IDisposable
             lineTop += line.Height;
         }
         if (shownChars < shown.Length) Sources.AddOrUpdate(layout, shown[..shownChars]);
-        if (layout.Height > clip) Fade(new Rect(box.X + 1, box.Bottom - 5 - 11, box.Width - 2, 11));
+        if (layout.Height > clip && Ui.Elevated is ISolidColorBrush solid)
+        {
+            var color = solid.Color;
+            var fade = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                GradientStops = [new GradientStop(Color.FromArgb(0, color.R, color.G, color.B), 0), new GradientStop(color, 1)]
+            };
+            overlays.Add(new(new Rect(box.X + 1, box.Bottom - 5 - 11, box.Width - 2, 11), fade, 0, null));
+        }
         if (ToolCards.Openable(text)) hits.Add(new(box, ChatHitKind.OpenText, which));
         y = box.Bottom + 4;
     }
