@@ -468,6 +468,13 @@
       <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
     </Style>
+    <Style Selector="Border.settings-row.grouped">
+      <Setter Property="Padding" Value="0,6" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.settings-row.group-end">
+      <Setter Property="Padding" Value="0,6,0,12" />
+    </Style>
     <Style Selector="Border.settings-row.compact">
       <Setter Property="Padding" Value="0,4" />
     </Style>

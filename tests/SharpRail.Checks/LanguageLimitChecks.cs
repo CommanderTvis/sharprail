@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
@@ -284,6 +285,16 @@ internal static class LanguageLimitChecks
                 Require(running.GetVisualDescendants().OfType<Button>().Any(button => button.Content as string is { } label && label.Contains("1 running", StringComparison.Ordinal)), "The Running summary lacks the count.");
                 Require(view.FindControl<TextBlock>("LimitsSummary")!.Text!.Contains("budget", StringComparison.Ordinal), "The summary lacks the budget.");
                 Require(view.FindControl<TextBox>("LimitsCSharp")!.Text == "4" && view.FindControl<TextBox>("LimitsIdle")!.Text == "10", "The defaults are not shown.");
+                // Related limits form two groups (timeout and budget, then the three server caps): one hairline between the
+                // groups, none between rows of a group and none directly above the Save button.
+                var limitRows = view.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("settings-row")).ToList();
+                Require(limitRows.Count == 5, "The limits page lost a row.");
+                static bool Hairline(Border border) => !border.Classes.Contains("grouped");
+                Require(limitRows.Select(Hairline).SequenceEqual([false, true, false, false, false]),
+                    "Limit rows must share a group with no line between them, one line between the groups and none above the button.");
+                var limitsStack = (StackPanel)limitRows[0].GetLogicalParent()!;
+                Require(limitsStack.Children[limitsStack.Children.IndexOf(view.FindControl<Button>("LimitsSave")!) - 1] == limitRows[^1] && !Hairline(limitRows[^1]),
+                    "A hairline sits directly above Save limits.");
                 view.FindControl<TextBox>("LimitsIdle")!.Text = "25";
                 view.FindControl<TextBox>("LimitsCSharp")!.Text = "3";
                 view.FindControl<Button>("LimitsSave")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

@@ -308,7 +308,7 @@ It polls the host's `running` operation every 5 s off the UI thread while shown.
 Settings › Code Intelligence holds only configuration in a Limits section (`LanguageLimitsView`): the idle
 timeout, memory budget (automatic or fixed, with the automatic derivation and memory pressure noted), the
 explanation of when servers stop, and the C#, JVM and other count caps, saved as the `language-limits` host
-setting and re-shown from its broadcast. Settings shows no live server state. `--lsp-limits` checks it headless.
+setting and re-shown from its broadcast; its rows form two groups (timeout and budget, then the three caps) with one hairline between them and none between rows of a group or above Save. Settings shows no live server state. `--lsp-limits` checks it headless.
 
 Settings › Terminal ends its host settings with a Memory guard section: a switch, the per-terminal and the total limit
 (automatic or a fixed size) and a comma-separated list of protected programs, saved as one `terminal-memory` host setting and
