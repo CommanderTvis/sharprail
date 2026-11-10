@@ -109,6 +109,8 @@ internal sealed partial class ChatFolder
     {
         if (!message.TryGetProperty("message", out var body) || !body.TryGetProperty("content", out var content)) return;
         var uuid = Str(message, "uuid");
+        // The echo of the command that reset the conversation would put its text back as the first row of the new one.
+        if (uuid is not null && uuid == resetEcho) return;
         var texts = new List<string>();
         var attachments = new List<ChatAttachment>();
         var isString = content.ValueKind == JsonValueKind.String;

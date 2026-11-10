@@ -126,8 +126,8 @@ internal static class ClaudeChatChecks
                   IFS= read -r answer; echo "$answer" > "$D/ask.txt"
                   result ;;
                 */clear*)
-                  emit '{"type":"user","uuid":"clear-1","message":{"role":"user","content":"<command-name>/clear</command-name>\n<command-message>clear</command-message>\n<command-args></command-args>"},"parent_tool_use_id":null}'
-                  emit '{"type":"user","uuid":"clear-2","message":{"role":"user","content":"<local-command-stdout></local-command-stdout>"},"parent_tool_use_id":null}'
+                  emit '{"type":"conversation_reset","new_conversation_id":"reset-conversation","uuid":"reset-conversation","trigger":"clear","user_message_uuid":"'"$UUID"'","timestamp":"2026-11-10T00:00:00Z","session_id":"'"$SID"'"}'
+                  emit '{"type":"system","subtype":"background_tasks_changed","tasks":[]}'
                   emit "{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"cleared-session\",\"model\":\"$MODEL\",\"permissionMode\":\"$MODE\",\"cwd\":\"$PWD\",\"claude_code_version\":\"9.9\",\"slash_commands\":[\"compact\",\"fix\"],\"skills\":[\"fix\"]}"
                   result ;;
                 *compact*)

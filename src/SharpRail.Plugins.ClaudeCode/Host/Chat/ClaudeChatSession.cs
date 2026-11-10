@@ -283,6 +283,13 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             deps.Push(new ChatResetPush(record.WorkspaceId, record.ChatId));
             folder.AddNotice(ChatNoticeLevel.Info, "Conversation cleared");
             awaitingNewSession = true;
+            if (folder.ResetConversationId is { } named)
+            {
+                awaitingNewSession = false;
+                record = record with { SessionId = named };
+                deps.Save(record);
+                folder.SetHeader(current => current with { SessionId = named });
+            }
         }
         if (awaitingNewSession && ChatFolder.Str(message, "parent_tool_use_id") is null && ChatFolder.Str(message, "session_id") is { } fresh && fresh != record.SessionId)
         {

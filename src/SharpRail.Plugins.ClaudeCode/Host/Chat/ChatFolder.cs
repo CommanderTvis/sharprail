@@ -51,6 +51,10 @@ internal sealed partial class ChatFolder
     }
 
     private bool cleared;
+    private string? resetEcho;
+
+    /// <summary>The conversation id the CLI named with the reset; the init that follows names the real session and wins.</summary>
+    public string? ResetConversationId { get; private set; }
 
     /// <summary>Whether the CLI recorded a command that starts a fresh conversation (/clear and its aliases) since the last call.</summary>
     public bool TakeCleared()
@@ -228,6 +232,15 @@ internal sealed partial class ChatFolder
             case "assistant": Assistant(message, parent); return new(Signal.None);
             case "user": User(message, parent); return new(Signal.None);
             case "rate_limit_event": RateLimit(message); return new(Signal.None);
+            case "conversation_reset":
+                // The CLI starts a new conversation (/clear, /new, /reset); compaction has its own boundary and keeps the rows.
+                if (Str(message, "trigger") is not ("compact" or "compaction" or "auto_compact"))
+                {
+                    cleared = true;
+                    ResetConversationId = Str(message, "new_conversation_id");
+                    resetEcho = Str(message, "user_message_uuid");
+                }
+                return new(Signal.None);
             case "result": return Result(message);
             default: return new(Signal.None);
         }
