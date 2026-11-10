@@ -118,10 +118,13 @@ internal static class IntelliJDistribution
             throw new IOException("IntelliJ region and data-sharing choices were not recorded for this artifact.");
         Directory.CreateDirectory(installation.SessionDirectory);
         RecordLaunch(installation.SessionDirectory, root);
+        var environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = sharing, ["INTELLIJ_REGION"] = region };
+        foreach (var (name, value) in IntelliJLicenseMount.Prepare(installation.SessionDirectory)) environment[name] = value;
+        if (IntelliJLicenseMount.Current is { } mounted) Console.Error.WriteLine("sharprail: IntelliJ licence mount: " + mounted.Kind + ". " + mounted.Message);
         return new(Path.Combine(root, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"),
             ["--stdio", "--system-path", installation.SessionDirectory, "--eula", actual[..16]])
         {
-            Environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = sharing, ["INTELLIJ_REGION"] = region }
+            Environment = environment
         };
     }
 

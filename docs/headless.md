@@ -202,9 +202,35 @@ It is a JetBrains product with its own terms (the JetBrains User Agreement, vers
 3. If your MCP client supports elicitation, the host asks you directly and shows the terms with Accept and Decline; a client that cannot show a long text gets the first pages and the instruction to read the rest through `accept_terms`. A Decline, a failure or no elicitation falls back to the text, and a declined prompt is not repeated in the same run.
 4. To accept without a question, also set `SHARPRAIL_ACCEPT_TERMS=intellij` and your answers: `INTELLIJ_REGION` (`europe`, `africa`, `americas`, `apac`, `china`, `middle_east`, `oceania`) and `INTELLIJ_DATA_SHARING` (`full`, `anonymous`, `none`). `intellij:<hash>` accepts only the exact text that hash names. With both `SHARPRAIL_PREFETCH=intellij` and `SHARPRAIL_ACCEPT_TERMS=intellij` the host downloads and then starts the server. A missing or unknown answer means no acceptance, and stderr says why.
 5. A yes given to `accept_terms` or a prompt is stored in the state directory, so it lasts as long as the state: with the cache volume mounted it survives restarts, without a volume it lasts until the container is gone. The host writes the acceptance record only after the archive is installed and its terms file matches the pinned hash; a text that does not match fails the download and nothing runs.
-6. The licence: there is no trial and no sign-in here, because there is no window. The server needs a license you own: add `-e INTELLIJ_SERVER_LICENSE=...`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER` (a license the server finds itself also counts). Not verified against a real server: that these routes unlock it, and that Java analysis finds a JDK; give the server one with `lsp_status` operation `configure` and the `projectJdk` setting if the project needs one that is not in the image.
+6. The licence: there is no trial and no sign-in here, because there is no window. The server needs a license you own, in one of these ways (a license the server finds itself also counts):
+   - Your personal licence, mounted as a directory (see "Your own licence, mounted" below).
+   - `-e INTELLIJ_SERVER_LICENSE=...` (the code itself), `-e INTELLIJ_SERVER_LICENSE_FILE=<file, directory or the downloaded zip>`, or `-e JETBRAINS_LICENSE_SERVER=<url>`. `INTELLIJ_SERVER_LICENSE` wins over a mounted licence; so does `JETBRAINS_LICENSE_SERVER`.
+
+   Not verified against a real server: that these routes unlock it, and that Java analysis finds a JDK; give the server one with `lsp_status` operation `configure` and the `projectJdk` setting if the project needs one that is not in the image.
 7. When IntelliJ takes over: once it works, it replaces the Kotlin server for `.kt` and is the only server for `.java`. Working means the terms are accepted, it started and it is licensed. If any of these fails (not accepted, fails to start, no license or an expired one), the previous server keeps serving, nothing regresses, and the answer carries a hint saying why IntelliJ is not in use. There is no setting to keep the old server once IntelliJ works. `retry` for `intellij` tries it again.
 8. `warm intellij` downloads the server and prints the terms (exit 2) unless the consent variable is set.
+
+### Your own licence, mounted
+
+If you own an IntelliJ IDEA licence, use JetBrains' offline activation code. On account.jetbrains.com, open Licenses, choose the licence and use "Download a code for offline activation". That gives a zip named `<LICENSEID> - <your account email>.zip` holding two one-line text files, `... - for 2018.2 or later.txt` and `... - for 2018.1 or earlier.txt`. Only the first one is used here; the second is for old IDEs.
+
+Put the zip, as downloaded, in a directory of its own (the extracted text files work too, or one bare file holding the code) and mount it read-only at `/license`. The host finds it without any flag:
+
+```sh
+mkdir -p ~/jetbrains-license && mv ~/Downloads/*.zip ~/jetbrains-license/
+docker run -i --rm --init -v "$PWD:/workspace" -v sharprail-cache:/cache -v ~/jetbrains-license:/license:ro \
+  -e SHARPRAIL_PREFETCH=intellij ghcr.io/commandertvis/sharprail:nightly
+```
+
+In `.mcp.json` the `args` pass through no shell, so `~` is not expanded there; use `${HOME}`:
+
+```json
+"args": ["run", "-i", "--rm", "--init", "-v", "${PWD}:/workspace", "-v", "sharprail-cache:/cache", "-v", "${HOME}/jetbrains-license:/license:ro", "-e", "SHARPRAIL_PREFETCH=intellij", "ghcr.io/commandertvis/sharprail:nightly"]
+```
+
+How it works: before the server starts, the host checks the shape of the code, writes it to a private file under `/cache` (never into `/license`) and points the server's `INTELLIJ_SERVER_LICENSE_FILE` at that file; JetBrains documents that variable as a file holding the key text, read into memory and authoritative. The code is never logged and never put in a process argument. `INTELLIJ_SERVER_LICENSE_FILE` may also name the file, the directory or the zip, in place of the mount. A directory with several licences uses the one that includes IntelliJ IDEA; if more than one does, the answer lists their ids and you mount a directory with just one.
+
+To see whether it worked, call `lsp_status` with operation `servers`: the IntelliJ row's state has a `mountedLicense` entry (`kind`: `provided`, `expired`, `invalid`, `ambiguous`, `unreadable`, `unchecked` or `overridden`, with the licence id and a sentence), and `kind` next to it is the server's own verdict (`licensed` once it accepted the code). The same sentence is added to the hold message of Java answers and goes to stderr at start. An expired-looking licence is still handed to the server, which decides. The licence stays your own: do not share a container that holds it.
 
 ## Tool switches and the call log
 

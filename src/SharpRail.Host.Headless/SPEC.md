@@ -54,7 +54,7 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
   message says why IntelliJ is not in use; `retry` for it tries again, and a reason is kept for five minutes so the servers do not flap. There is no setting to keep
   the old server once IntelliJ works. A choice left waiting for the user's acceptance in a window is not a failure.
 - Licence. There is no trial and no sign-in without a window, and no variable that starts a trial. The server needs a license the user owns, given with the vendor's
-  variables `INTELLIJ_SERVER_LICENSE`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`, or found by the server's own discovery. Unlicensed, the
+  variables `INTELLIJ_SERVER_LICENSE`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`, or found by the server's own discovery, or the offline activation download mounted read-only at `/license` (the IntelliJ plugin's spec has the rules; the licence id and its state show in the server row's `mountedLicense`). Unlicensed, the
   unlicensed message says so plainly and the previous server answers.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.

@@ -98,7 +98,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
     /// <summary>The sentence the desktop shows for an unlicensed server (IntelliJLicensing), which points to a window this host does not have.</summary>
     internal const string DesktopLicenceSentence = "Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license.";
 
-    internal const string HeadlessLicenceSentence = "This host has no window, no trial and no sign-in: it needs a license you own. Start it with INTELLIJ_SERVER_LICENSE, INTELLIJ_SERVER_LICENSE_FILE or JETBRAINS_LICENSE_SERVER set (a license found by the server's own discovery also counts). Until then the previous server answers.";
+    internal const string HeadlessLicenceSentence = "This host has no window, no trial and no sign-in: it needs a license you own. Mount the offline activation download at /license (-v ~/jetbrains-license:/license:ro), or start it with INTELLIJ_SERVER_LICENSE, INTELLIJ_SERVER_LICENSE_FILE or JETBRAINS_LICENSE_SERVER set (a license found by the server's own discovery also counts). Until then the previous server answers.";
 
     internal McpServer.McpTool Guard(McpServer.McpTool tool) => Headless(Inner(tool));
 

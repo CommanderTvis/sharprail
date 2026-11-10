@@ -44,7 +44,8 @@ internal static class IntelliJLicensing
     private static Tracker Of(ILanguageServerSession session) => Trackers.GetValue(session, _ => new());
 
     internal static string? EnvironmentLicense() =>
-        EnvironmentVariables.FirstOrDefault(name => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)));
+        EnvironmentVariables.FirstOrDefault(name => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)))
+        ?? (IntelliJLicenseMount.Current is { Injected: true } ? IntelliJLicenseMount.FileVariable : null);
 
     internal static void OnMessage(ILanguageServerSession session, string method, JsonNode? parameters)
     {
@@ -80,12 +81,14 @@ internal static class IntelliJLicensing
             view = Project(tracker.State);
             view["busy"] = tracker.Busy;
             view["environment"] = EnvironmentLicense();
+            if (IntelliJLicenseMount.Current is { } mounted)
+                view["mountedLicense"] = new JsonObject { ["kind"] = mounted.Kind, ["licenseId"] = mounted.LicenseId, ["message"] = mounted.Message };
             if (tracker.Page is not null) view["page"] = new JsonObject { ["id"] = tracker.PageId, ["uri"] = tracker.Page };
         }
         session.SetState(view.ToJsonString());
         var kind = view["kind"]!.GetValue<string>();
         session.SetUnavailable(kind is "parked" or "unlicensed" or "authenticating"
-            ? view["message"]!.GetValue<string>() + " Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license."
+            ? view["message"]!.GetValue<string>() + (IntelliJLicenseMount.Current is { } note ? " " + note.Message : "") + " Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license."
             : null);
     }
 
