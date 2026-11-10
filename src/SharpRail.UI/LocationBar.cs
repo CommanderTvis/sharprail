@@ -147,16 +147,22 @@ public sealed partial class WorkbenchWindow
         var copy = Ui.Button("Copy", () => _ = CopyBranchAsync(branch));
         copy.Name = "ScopeBranchCopy"; copy.Padding = new(8, 2);
         ToolTip.SetTip(copy, "Copy branch name"); AutomationProperties.SetName(copy, "Copy branch name");
-        var rows = new StackPanel { Children = { CardRow("Branch", name, copy), CardRow("Compare to", ComparisonPicker("ScopeDiffBase", "")) } };
+        // The two header rows keep their height; the branch list takes the rest up to the card's cap and scrolls inside it.
+        var rows = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*") };
+        Ui.Place(rows, CardRow("Branch", name, copy));
+        Ui.Place(rows, CardRow("Compare to", ComparisonPicker("ScopeDiffBase", "")), 1);
         if (branchList is not null)
         {
             (branchList.Parent as Panel)?.Children.Remove(branchList);
-            rows.Children.Add(branchList);
+            Ui.Place(rows, branchList, 2);
         }
-        var card = new Border { Name = "ScopeBranchCard", Width = 400, Child = rows, Focusable = true };
+        var card = new Border { Name = "ScopeBranchCard", Width = 400, MaxHeight = BranchCardMaxHeight(), Child = rows, Focusable = true };
         AutomationProperties.SetName(card, "Branch " + branch);
         return card;
     }
+
+    /// <summary>70% of the window's height, never under 320.</summary>
+    internal double BranchCardMaxHeight() => Math.Max(320, Bounds.Height * 0.7);
 
     private static Grid CardRow(string label, Control value, Control? action = null)
     {

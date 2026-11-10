@@ -12,10 +12,10 @@ namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
 {
-    private StackPanel? branchList;
-    private readonly StackPanel branchRows = new() { Name = "BranchRows", Spacing = 2 };
+    private Grid? branchList;
+    private readonly StackPanel branchRows = new() { Name = "BranchRows" };
     internal StackPanel BranchRowPanel => branchRows;
-    private readonly ScrollViewer branchScroll = new() { MaxHeight = 360, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    private readonly ScrollViewer branchScroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
 
     /// <summary>
     /// The topbar branch is a control: it lists the project's local branches with the worktree occupying each,
@@ -28,12 +28,13 @@ public sealed partial class WorkbenchWindow
         var fetch = Ui.Button("Fetch", () => _ = FetchBranchesAsync(), "refresh");
         fetch.Name = "BranchFetch";
         ToolTip.SetTip(fetch, "Bring every remote up to date; no local branch moves");
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 8, 0, 4) };
         Ui.Place(header, title); Ui.Place(header, fetch, 0, 1);
-        var list = new StackPanel { Name = "BranchList", Spacing = 8, Width = 380, Margin = new Thickness(4) };
-        list.Children.Add(header);
+        // The header keeps its natural height; the rows take whatever the popup leaves and scroll inside it.
+        var list = new Grid { Name = "BranchList", RowDefinitions = new RowDefinitions("Auto,*"), Width = 380, Margin = new Thickness(LayoutRoles.RowInset) };
+        Ui.Place(list, header);
         branchScroll.Content = branchRows;
-        list.Children.Add(branchScroll);
+        Ui.Place(list, branchScroll, 1);
         branchList = list;
         branchCard.Opened += (_, _) => _ = LoadBranchesAsync();
     }
@@ -78,17 +79,23 @@ public sealed partial class WorkbenchWindow
             {
                 if (parts.Worktree is null)
                 {
-                    var path = Ui.Text(holder.Path, Ui.Hint, 12);
-                    path.Name = "BranchWorktree"; path.TextTrimming = Avalonia.Media.TextTrimming.PrefixCharacterEllipsis;
+                    var path = Ui.Text("", Ui.Hint, 12);
+                    path.Name = "BranchWorktree";
                     parts.Text.Children.Add(path);
                     parts.Worktree = path;
+                    parts.Row.MinHeight = TwoLineRow;
                 }
-                else if (parts.Worktree.Text != holder.Path) parts.Worktree.Text = holder.Path;
+                if (!Equals(ToolTip.GetTip(parts.Worktree), holder.Path))
+                {
+                    parts.Worktree.Text = PathLine.Label(holder.Path);
+                    ToolTip.SetTip(parts.Worktree, holder.Path);
+                }
             }
             else if (parts.Worktree is not null)
             {
                 parts.Text.Children.Remove(parts.Worktree);
                 parts.Worktree = null;
+                parts.Row.MinHeight = OneLineRow;
             }
             // The host refuses these too; the reason lives on the control so nobody has to try to find out.
             parts.Delete.IsEnabled = holder is null;
@@ -100,14 +107,17 @@ public sealed partial class WorkbenchWindow
         }
     }
 
+    /// <summary>A branch row is one text line, or two when a workspace occupies it; the card's rows share these heights.</summary>
+    internal const double OneLineRow = LayoutRoles.PanelHeaderRow, TwoLineRow = 40;
+
     private BranchRowParts NewBranchRow(string name)
     {
-        var row = new Grid { Name = "BranchRow", Tag = name, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(4, 2) };
-        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        var row = new Grid { Name = "BranchRow", Tag = name, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(LayoutRoles.RowInset, 0), MinHeight = OneLineRow };
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(Ui.Text(name, Ui.TextBrush));
         Ui.Place(row, text);
         var delete = Ui.IconButton("trash", "Delete branch", () => _ = DeleteBranchAsync(name));
-        delete.Name = "BranchDelete"; delete.Width = delete.Height = 28;
+        delete.Name = "BranchDelete"; delete.Width = delete.Height = LayoutRoles.PanelHeaderControl;
         AutomationProperties.SetName(delete, "Delete " + name);
         Ui.Place(row, delete, 0, 1);
         return new BranchRowParts(row, text, delete);

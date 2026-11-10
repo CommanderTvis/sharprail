@@ -336,7 +336,7 @@ the host refuses them again, as it does the project's default branch. One shared
 plugins (`DeleteBranchAsync`): it refuses with a short message, confirms with the tip's short hash, counts the
 commits that stop being reachable for an unmerged branch and labels that button "Delete unmerged branch", and after
 a delete shows a toast naming the old tip whose Undo recreates the branch there. Disabled delete icons stay dimmed on transparent backgrounds, matching idle
-enabled icons. The list's Fetch brings every remote up to date without moving a local branch.
+enabled icons. The list's Fetch brings every remote up to date without moving a local branch. The card keeps its Branch, Compare to and BRANCHES header rows at their natural height and gives the branch list the rest of its height up to 70% of the window (never under 320), so its rows stay compact (28 px, or 40 px with the worktree path as a middle-trimmed hint line) and at least six show at 800 px.
 
 Workspace descriptions wrap to at most three lines, with an ellipsis for overflow.
 

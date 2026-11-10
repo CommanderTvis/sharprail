@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.LogicalTree;
@@ -23,6 +24,41 @@ internal static class BranchListE2E
         GuardsDeletion(Path.Combine(root, "branch-list"));
         Fetches(Path.Combine(root, "branch-list-fetch"));
         ReconcilesInPlace(Path.Combine(root, "branch-list-in-place"));
+        CompactList(Path.Combine(root, "branch-list-compact"));
+    }
+
+    /// <summary>
+    /// The card keeps its header compact and gives the branch list the rest of its height: rows stay within one or two compact lines, six
+    /// or more are visible at 800 px with ten branches, the list is over half the card, and the card stays inside the window.
+    /// </summary>
+    private static void CompactList(string directory)
+    {
+        using var git = new IsolatedGit(directory + "-git");
+        using var app = OpenFixtureProject(directory);
+        CreateWorkspaceViaDialog(app);
+        for (var index = 1; index < 9; index++) Git(app.Root, "branch", "extra-" + index);
+        foreach (var height in new[] { 600, 800, 1000 })
+        {
+            app.Window.Height = height; Settle(300); app.Window.UpdateLayout();
+            var list = Open(app);
+            Until(() => Rows(list).Length >= 10);
+            var card = list.GetLogicalAncestors().OfType<Border>().First(border => border.Name == "ScopeBranchCard");
+            var scroll = list.GetLogicalDescendants().OfType<ScrollViewer>().Single();
+            Until(() => card.Bounds.Height > 0 && scroll.Bounds.Height > 0);
+            Settle(100);
+            foreach (var row in Rows(list))
+            {
+                var budget = row.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "BranchWorktree") ? WorkbenchWindow.TwoLineRow : WorkbenchWindow.OneLineRow;
+                Require(row.Bounds.Height <= budget + 0.5, $"A branch row is {row.Bounds.Height:0.#} tall at window height {height}, over its {budget} budget.");
+            }
+            var visible = Rows(list).Count(row => row.TranslatePoint(new Point(0, row.Bounds.Height), scroll) is { } bottom && bottom.Y <= scroll.Bounds.Height + 0.5);
+            if (height == 800) Require(visible >= 6, $"Only {visible} branch rows are fully visible at window height 800.");
+            Require(scroll.Bounds.Height > card.Bounds.Height / 2, $"The list is {scroll.Bounds.Height:0.#} of a {card.Bounds.Height:0.#} card at window height {height}.");
+            var top = card.TranslatePoint(default, app.Window)!.Value.Y;
+            Require(top >= 0 && top + card.Bounds.Height <= app.Window.Bounds.Height + 0.5, $"The branch card leaves the window at height {height}.");
+            Close(app);
+        }
+        Console.WriteLine("PASS branch card: compact rows, the list takes the card's height, inside the window at 600, 800 and 1000");
     }
 
     private static string[] Names(StackPanel rows) => [.. rows.Children.OfType<Grid>().Select(row => (string)row.Tag!)];
@@ -82,12 +118,12 @@ internal static class BranchListE2E
         Console.WriteLine("PASS branch list, rail, Files and Changes update in place; theme switch keeps their instances");
     }
 
-    private static StackPanel Open(E2eWorkspace app)
+    private static Grid Open(E2eWorkspace app)
     {
         var button = app.Find<Button>("ScopeBranch");
         app.Click(button);
         Until(() => button.Flyout is Flyout { IsOpen: true });
-        var list = ((Control)((Flyout)button.Flyout!).Content!).GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "BranchList");
+        var list = ((Control)((Flyout)button.Flyout!).Content!).GetLogicalDescendants().OfType<Grid>().Single(panel => panel.Name == "BranchList");
         Until(() => Rows(list).Length > 0);
         return list;
     }
@@ -98,8 +134,8 @@ internal static class BranchListE2E
         Settle(100);
     }
 
-    private static Grid[] Rows(StackPanel list) => list.GetLogicalDescendants().OfType<Grid>().Where(row => row.Name == "BranchRow").ToArray();
-    private static Grid? Row(StackPanel list, string name) => Rows(list).SingleOrDefault(row => Equals(row.Tag, name));
+    private static Grid[] Rows(Grid list) => list.GetLogicalDescendants().OfType<Grid>().Where(row => row.Name == "BranchRow").ToArray();
+    private static Grid? Row(Grid list, string name) => Rows(list).SingleOrDefault(row => Equals(row.Tag, name));
 
     private static void GuardsDeletion(string directory)
     {
@@ -114,7 +150,7 @@ internal static class BranchListE2E
 
         var list = Open(app);
         var mine = Row(list, branch)!;
-        Require(Named<TextBlock>(mine, "BranchWorktree").Text!.Contains("worktrees", StringComparison.Ordinal),
+        Require(ToolTip.GetTip(Named<TextBlock>(mine, "BranchWorktree")) is string full && full.Contains("worktrees", StringComparison.Ordinal),
             "The workspace's branch must show where it is checked out.");
         Require(!Named<Button>(mine, "BranchDelete").IsEnabled && ToolTip.GetTip(Named<Button>(mine, "BranchDelete")) is string,
             "The workspace's branch must refuse deletion and say why.");
