@@ -85,6 +85,8 @@ public sealed class WindowProfile
     public bool LastAtHome { get; set; }
     /// <summary>The companion open beside each terminal, by <c>workspace\ntab key</c>: <c>plugin id:kind</c>. View state of this window.</summary>
     public Dictionary<string, string> Companions { get; set; } = [];
+    /// <summary>The width in pixels of each tab's companion pane the user left, by <c>workspace\ntab key</c>. View state of this window.</summary>
+    public Dictionary<string, double> CompanionWidths { get; set; } = [];
 }
 
 public sealed class Profile

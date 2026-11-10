@@ -33,18 +33,20 @@ public sealed class VisualizeUI : PluginUIModule
             return drawings.Get(host) is not null;
         }
 
-        // A new or updated revision surfaces the drawing even if its pane was closed. A workspace's first snapshot is
-        // what the host already held, so it only refocuses companions; a detached drawing's tab is opened by a call
-        // made while this UI watches, and restores with the layout otherwise.
+        // The first drawing of a tab opens its pane; a later revision updates the drawing and leaves the pane as the user
+        // left it (closed stays closed, the strip counts the drawings). A workspace's first snapshot is what the
+        // host already held, so it only opens companions; a detached drawing's tab is opened by a call made while this UI
+        // watches, and restores with the layout otherwise.
         void Apply(VisualizationsChanged payload)
         {
             var snapshot = !drawings.Knows(payload.WorkspaceId);
+            var had = payload.Visualizations.Keys.Where(tabKey => drawings.Get(new CompanionHost(payload.WorkspaceId, tabKey)) is not null).ToHashSet();
             var drawn = drawings.Set(payload);
             context.Invalidate();
             foreach (var tabKey in drawn)
             {
                 var drawing = payload.Visualizations[tabKey];
-                if (!drawing.Detached) context.FocusCompanion(new CompanionHost(payload.WorkspaceId, tabKey), Kind);
+                if (!drawing.Detached) { if (!had.Contains(tabKey)) context.FocusCompanion(new CompanionHost(payload.WorkspaceId, tabKey), Kind); }
                 else if (!snapshot) Show(payload.WorkspaceId, tabKey, drawing.Title);
             }
         }
@@ -105,6 +107,7 @@ public sealed class VisualizeUI : PluginUIModule
         context.Companion(new CompanionRegistration(Kind, "Visualization", "bar-chart-box-line", Available, host => new VisualizationPane(context, drawings, host))
         {
             InstanceTitle = host => drawings.Get(host)?.Title,
+            Items = host => drawings.Get(host) is { } drawing ? [drawing.Title] : [],
             // A chat tab that hosts companions tells the host half, so its calls draw a pane there instead of a tab.
             HostChanged = (host, present) => _ = ReportHosting(host, present)
         });

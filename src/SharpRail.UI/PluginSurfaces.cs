@@ -416,20 +416,12 @@ public sealed partial class WorkbenchWindow
         var hostRef = document.Host;
         foreach (var child in document.Accessories.Children.ToArray()) document.Accessories.Children.Remove(child);
         var available = Plugins.Companions.Where(row => Safely(() => row.Value.IsAvailable(hostRef))).ToArray();
-        if (available.Length > 0)
-        {
-            var bar = new StackPanel { Name = "DocumentCompanions", Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0) };
-            foreach (var companion in available)
-            {
-                var title = (companion.Value.InstanceTitle is { } instance ? Safely(() => instance(hostRef)) : null) ?? companion.Value.Title;
-                var button = Chips.Button("DocumentCompanion_" + companion.PluginId + "_" + companion.Value.Kind, Chips.Label(title), title,
-                    () => ToggleCompanion(document, companion.PluginId, companion.Value.Kind));
-                button.Margin = Chips.Gap;
-                bar.Children.Add(button);
-            }
-            document.Accessories.Children.Add(bar);
-        }
-        var open = slot.Companions.GetValueOrDefault(hostRef.WorkspaceId + "\n" + hostRef.TabKey);
+        var openKey = slot.Companions.GetValueOrDefault(hostRef.WorkspaceId + "\n" + hostRef.TabKey);
+        document.Strips.Children.Clear();
+        foreach (var companion in available)
+            document.Strips.Children.Add(CompanionStripFor("DocumentCompanion_", companion, hostRef, openKey, () => ToggleCompanion(document, companion.PluginId, companion.Value.Kind),
+                () => OpenCompanion(document, companion.PluginId, companion.Value.Kind)));
+        var open = openKey;
         var shown = open is null ? null : available.FirstOrDefault(row => row.PluginId + ":" + row.Value.Kind == open);
         if (shown is null) document.Companion = null;
         else if (!Equals((document.Companion as CompanionPane)?.Tag, shown))
@@ -437,8 +429,34 @@ public sealed partial class WorkbenchWindow
             var pane = new CompanionPane(Mount(shown.PluginId, () => shown.Value.Create(hostRef)),
                 () => ToggleCompanion(document, shown.PluginId, shown.Value.Kind));
             pane.Tag = shown;
+            document.WidthChanged -= WidthSaver(hostRef);
             document.Companion = pane;
+            document.WidthChanged += WidthSaver(hostRef);
+            if (slot.CompanionWidths.TryGetValue(CompanionKey(hostRef), out var width)) document.CompanionWidth = width;
         }
+    }
+
+    private static string CompanionKey(CompanionHost host) => host.WorkspaceId + "\n" + host.TabKey;
+
+    // One delegate per tab, so the subscription made on a pane's first opening is the one removed on the next.
+    private readonly Dictionary<string, Action<double>> widthSavers = [];
+
+    private Action<double> WidthSaver(CompanionHost host)
+    {
+        var key = CompanionKey(host);
+        if (!widthSavers.TryGetValue(key, out var saver))
+            widthSavers[key] = saver = width => { slot.CompanionWidths[key] = width; SaveProfile(); };
+        return saver;
+    }
+
+    private Border CompanionStripFor(string prefix, PluginRow<CompanionRegistration> companion, CompanionHost hostRef, string? openKey, Action toggle, Action open)
+    {
+        var title = (companion.Value.InstanceTitle is { } instance ? Safely(() => instance(hostRef)) : null) ?? companion.Value.Title;
+        var items = companion.Value.Items is { } list ? Safely(() => list(hostRef)) : [];
+        return CompanionStrip.Create(prefix + companion.PluginId + "_" + companion.Value.Kind,
+            PluginIcons.Resolve(companion.Value.Icon, Plugins.Entry(companion.PluginId), Ui.Muted, 14), title, companion.Value.Title.ToLowerInvariant(), items,
+            openKey == companion.PluginId + ":" + companion.Value.Kind, toggle,
+            index => { open(); if (companion.Value.SelectItem is { } select) Safely(() => select(hostRef, index)); });
     }
 
     private void ToggleCompanion(CompanionDocument document, string pluginId, string kind)
@@ -446,6 +464,15 @@ public sealed partial class WorkbenchWindow
         var key = document.Host.WorkspaceId + "\n" + document.Host.TabKey;
         if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) slot.Companions.Remove(key);
         else slot.Companions[key] = pluginId + ":" + kind;
+        SaveProfile();
+        AttachCompanionDocument(document);
+    }
+
+    private void OpenCompanion(CompanionDocument document, string pluginId, string kind)
+    {
+        var key = document.Host.WorkspaceId + "\n" + document.Host.TabKey;
+        if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) return;
+        slot.Companions[key] = pluginId + ":" + kind;
         SaveProfile();
         AttachCompanionDocument(document);
     }
@@ -472,24 +499,16 @@ public sealed partial class WorkbenchWindow
         if (!terminal.FileDropWired) { WireTerminalFileDrop(terminal); terminal.FileDropWired = true; }
         var tabKey = terminal.Launch.TabKey;
         var workspace = terminal.Launch.WorkspaceRoot;
-        foreach (var child in terminal.Accessories.Children.Where(child => child.Name == "TerminalCompanions" ||
+        foreach (var child in terminal.Accessories.Children.Where(child =>
                      child.Tag is PluginRow<TerminalAccessoryRegistration> row && !Plugins.TerminalAccessories.Contains(row)).ToArray())
             terminal.Accessories.Children.Remove(child);
         var hostRef = new CompanionHost(workspace, tabKey);
         var available = Plugins.Companions.Where(row => Safely(() => row.Value.IsAvailable(hostRef))).ToArray();
-        if (available.Length > 0)
-        {
-            var bar = new StackPanel { Name = "TerminalCompanions", Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0) };
-            foreach (var companion in available)
-            {
-                var title = (companion.Value.InstanceTitle is { } instance ? Safely(() => instance(hostRef)) : null) ?? companion.Value.Title;
-                var button = Chips.Button("TerminalCompanion_" + companion.PluginId + "_" + companion.Value.Kind, Chips.Label(title), title,
-                    () => ToggleCompanion(terminal, companion.PluginId, companion.Value.Kind));
-                button.Margin = Chips.Gap;
-                bar.Children.Add(button);
-            }
-            terminal.Accessories.Children.Insert(0, bar);
-        }
+        var openKey = slot.Companions.GetValueOrDefault(workspace + "\n" + tabKey);
+        terminal.CompanionStrips.Children.Clear();
+        foreach (var companion in available)
+            terminal.CompanionStrips.Children.Add(CompanionStripFor("TerminalCompanion_", companion, hostRef, openKey, () => ToggleCompanion(terminal, companion.PluginId, companion.Value.Kind),
+                () => OpenCompanion(terminal, companion.PluginId, companion.Value.Kind)));
         foreach (var accessory in Plugins.TerminalAccessories)
         {
             if (terminal.Accessories.Children.Any(child => Equals(child.Tag, accessory))) continue;
@@ -505,7 +524,10 @@ public sealed partial class WorkbenchWindow
             var companion = new CompanionPane(Mount(shown.PluginId, () => shown.Value.Create(hostRef)),
                 () => ToggleCompanion(terminal, shown.PluginId, shown.Value.Kind));
             companion.Tag = shown;
+            terminal.CompanionWidthChanged -= WidthSaver(hostRef);
             terminal.Companion = companion;
+            terminal.CompanionWidthChanged += WidthSaver(hostRef);
+            if (slot.CompanionWidths.TryGetValue(CompanionKey(hostRef), out var width)) terminal.CompanionWidth = width;
         }
     }
 
@@ -514,6 +536,15 @@ public sealed partial class WorkbenchWindow
         var key = terminal.Launch.WorkspaceRoot + "\n" + terminal.Launch.TabKey;
         if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) slot.Companions.Remove(key);
         else slot.Companions[key] = pluginId + ":" + kind;
+        SaveProfile();
+        AttachPluginTerminal(terminal);
+    }
+
+    private void OpenCompanion(Terminal.TerminalView terminal, string pluginId, string kind)
+    {
+        var key = terminal.Launch.WorkspaceRoot + "\n" + terminal.Launch.TabKey;
+        if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) return;
+        slot.Companions[key] = pluginId + ":" + kind;
         SaveProfile();
         AttachPluginTerminal(terminal);
     }
@@ -539,6 +570,18 @@ public sealed partial class WorkbenchWindow
     {
         try { return predicate(); }
         catch (Exception error) { Console.Error.WriteLine("Plugin predicate failed: " + error.Message); return false; }
+    }
+
+    private static IReadOnlyList<string> Safely(Func<IReadOnlyList<string>> items)
+    {
+        try { return items(); }
+        catch (Exception error) { Console.Error.WriteLine("Plugin companion items failed: " + error.Message); return []; }
+    }
+
+    private static void Safely(Action action)
+    {
+        try { action(); }
+        catch (Exception error) { Console.Error.WriteLine("Plugin companion item selection failed: " + error.Message); }
     }
 
     private static string? Safely(Func<string?> predicate)

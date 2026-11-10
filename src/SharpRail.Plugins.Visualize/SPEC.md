@@ -84,9 +84,9 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   one for another revision is dropped). Every mutation publishes the whole workspace map on
   `changed`; the UI half keeps its own per-workspace map built from that.
 - UI half: a companion of kind `visualization` whose availability predicate subscribes to `changed` for the
-  workspace it is asked about and answers whether that terminal has an entry; a new or updated revision calls
-  `FocusCompanion`, so the drawing surfaces even if the pane was closed, and `Invalidate`, so the companion's
-  title follows the drawing. The pane renders the card interactively (the diagram fills the pane and pans and
+  workspace it is asked about and answers whether that terminal has an entry, listing the drawing's title for the tab's strip (a tab holds one drawing, so the strip's list of several does not occur yet). A tab's first drawing calls
+  `FocusCompanion`, so it opens the pane; a later revision only calls `Invalidate`, so the companion's
+  title follows the drawing and a pane the user closed stays closed. The pane renders the card interactively (the diagram fills the pane and pans and
   zooms in place) and reports the verdict back through `report` once per shown revision, and the selected text (the kit's
   `VisualizationCard.SelectedText`: diagram labels or card text) through `select` after each pointer release or key
   when it changed. A publish for another
@@ -96,7 +96,7 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   the open and the close of such a tab to the companion's `HostChanged`, and the UI half passes that to the host half
   with the `hosting` method. The host half keeps those (workspace, chat id) pairs; a pair is host-side state only, so a
   host restart forgets it until the tab mounts again. The drawing is then a companion pane inside the chat tab (same
-  split, close button, resizable width, title chip and per-chat view state as a terminal's) and the tool answers
+  split, close button, resizable width, strip above the body and per-chat view state as a terminal's) and the tool answers
   "in SharpRail".
 - A caller that is neither a live terminal nor an open companion-hosting tab (a chat whose tab is closed or not yet
   mounted, or any other token holder) is detected by the host at call time against the host's terminal list and its
@@ -142,17 +142,17 @@ The host half contributes the `visualize` item to the agent instructions (H20, o
 ## Remaining verification
 
 Terminal ownership acceptance uses the HTTP MCP URL emitted by a real host PTY, then calls tools/list
-and tools/call through that token. Unknown tokens are refused. Updates reopen the owning terminal's
+and tools/call through that token. Unknown tokens are refused. A drawing reaches the owning terminal's
 companion while another window is active and leave unrelated terminals without a drawing.
 
 The focused checks cover `visualize_read` (nothing shown, diagram, comparison, failed parse, selection, another
 terminal's and no terminal's call, over the runtime's MCP table), shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,
 cancellation, immediate embedded reports, refusal/rollback and revision reuse, session binding/adoption,
-workspace removal and host restart, and chat callers: the flag and both answers, a registered chat tab being a pane host and its close returning to a tab, adoption by a terminal clearing it. The chat view inside the companion frame (pane arriving, close, reopen at the same width) is a headless Claude chat UI check; the chip and the window wiring (`FocusCompanion`, the layout key) need real windows and are not covered. Headless local and WebSocket RPC windows cover diagram/comparison companion
+workspace removal and host restart, and chat callers: the flag and both answers, a registered chat tab being a pane host and its close returning to a tab, adoption by a terminal clearing it. The chat view inside the companion frame (pane arriving, close, reopen at the same width) is a headless Claude chat UI check; the strip and the window wiring (`FocusCompanion`, the layout key) need real windows and are not covered. Headless local and WebSocket RPC windows cover diagram/comparison companion
 mounting, title, toolbar/wheel zoom bounds, theme navigation retention, close/reopen and rollback.
 The WebSocket RPC fixture's terminals now run on that remote host's PTYs: their emitted HTTP MCP URL lists
 and calls visualize, refuses unknown tokens and returns renderer refusals. Both local and WebSocket RPC
-cases reopen the owning terminal's closed drawing while another window stays active; the unrelated
+cases deliver an update to the owning terminal's closed pane while another window stays active, leave it closed until its strip is pressed; the unrelated
 window does not receive the drawing.
 
 The same E2E drives a chat caller (a synthetic call carrying a chat id's terminal token, as the chat host's child would send; the
@@ -164,7 +164,7 @@ The local and WebSocket RPC companion checks also cover every comparison option'
 single recommended badge; one versus two columns across the 640 boundary as the companion width changes;
 drag panning of a zoomed diagram; splitter resizing that expands the diagram viewport, with width restored
 after close/reopen; a second terminal of the same workspace receiving only its own drawing;
-and disabling then re-enabling the plugin, which unmounts every chip and pane and resubscribes from scratch.
+and disabling then re-enabling the plugin, which unmounts every button and pane and resubscribes from scratch.
 The UI activation owns its per-workspace subscriptions and releases them in its disposer, since a companion
 availability predicate has no unmount of its own.
 

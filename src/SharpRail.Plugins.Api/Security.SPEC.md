@@ -605,7 +605,7 @@ patterns, or is one of the two classes after them.
    unchanged. It is logged against the plugin. The members are:
    - UI: the label callbacks of `FileActionRegistration` and `TerminalTabActionRegistration`, `TabDecoration`'s
      `decorate`, `IsWorking` and `Adornment`, `AgentLauncher.Availability`, `Models` and `TerminalCommand`,
-     `CompanionRegistration.IsAvailable` and `InstanceTitle`, `AttentionNotification.StillNeeded`,
+     `CompanionRegistration.IsAvailable`, `InstanceTitle`, `Items`, `AttentionNotification.StillNeeded`,
      `KeymapActionRegistration.Enabled`, `SideToolRegistration.Retarget` and `FileViewerRegistration.Open`;
    - host: `AgentLaunch` contributors, `PromptContribution.When` and `WorkspaceText`,
      `ExternalFiles`, `AgentSessions`, and `LanguageServerSpec.ConfigureLaunch`, `ConfigureInitialization` and

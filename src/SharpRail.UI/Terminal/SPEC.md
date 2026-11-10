@@ -54,6 +54,7 @@ with the driven terminal: the driver either finishes or cancels (Claude Code can
 
 The companion starts at 45% of the terminal's width, as in the fork; its content fills the column as the user drags the splitter.
 Closing it returns the whole column to the terminal, and reopening restores the width for that view.
+The view reports the width after a splitter drag or a close, and a host can set a saved width back. Narrower than 560 the companion covers the terminal instead of squeezing it, keeps its saved width for when the view is wide again, and the terminal keeps its size underneath.
 The column owns the width so a fixed-width child cannot leave unused space around a clipped drawing.
 
 Accessories select the terminal's agent newline encoding through `SetKeyEncoding`. The view retains

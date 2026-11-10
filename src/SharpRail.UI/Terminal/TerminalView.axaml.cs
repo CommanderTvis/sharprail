@@ -78,6 +78,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
+        companionSplitter.DragCompleted += (_, _) => CompanionWidthChanged?.Invoke(CompanionColumns[2].ActualWidth);
+        SizeChanged += (_, _) => LayoutCompanion();
         retry.Click += (_, _) => Start(retrying: true);
         this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
         this.FindControl<Button>("TerminalResumeOfferFresh")!.Click += (_, _) => freshOffered?.Invoke();
@@ -346,7 +348,39 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Presses the offer's "Quit that process and resume" button, as a click would; false when it is not shown.</summary>
     internal bool QuitResumeOffer() { if (quitOffered is not { } quit) return false; quit(); return true; }
 
-    /// <summary>The embedded companion pane beside the surface; null closes it.</summary>
+    /// <summary>Below this view width the companion covers the surface instead of squeezing it.</summary>
+    public const double CompanionOverlayBelow = 560;
+
+    /// <summary>Whether the open companion currently covers the surface (the view is narrower than <see cref="CompanionOverlayBelow"/>).</summary>
+    public bool CompanionOverlay { get; private set; }
+
+    /// <summary>Raised with the column's width in pixels after the user drags the splitter or closes a resized companion.</summary>
+    public event Action<double>? CompanionWidthChanged;
+
+    /// <summary>Where the rows that stand for the tab's companions sit, above the surface.</summary>
+    public StackPanel CompanionStrips => this.FindControl<StackPanel>("TerminalCompanionStrips")!;
+
+    private ColumnDefinitions CompanionColumns => ((Grid)companion.Parent!).ColumnDefinitions;
+
+    /// <summary>
+    /// The companion column's width in pixels when it is open or was resized, else null (the first opening takes 45%).
+    /// Setting it restores a saved width; it applies at once when the companion is open beside the surface.
+    /// </summary>
+    public double? CompanionWidth
+    {
+        get => companion.IsVisible && !CompanionOverlay && CompanionColumns[2].ActualWidth > 0 ? CompanionColumns[2].ActualWidth
+            : companionWidth.IsAbsolute ? companionWidth.Value : null;
+        set
+        {
+            if (value is not > 0) return;
+            companionWidth = new GridLength(value.Value);
+            if (!companion.IsVisible || CompanionOverlay) return;
+            CompanionColumns[0].Width = new GridLength(1, GridUnitType.Star);
+            CompanionColumns[2].Width = companionWidth;
+        }
+    }
+
+    /// <summary>The embedded companion pane beside the surface (over it when narrow); null closes it.</summary>
     public Control? Companion
     {
         get => companion.Content as Control;
@@ -355,17 +389,50 @@ public sealed partial class TerminalView : UserControl, IDisposable
             var visible = value is not null;
             if (visible != companion.IsVisible)
             {
-                var columns = ((Grid)companion.Parent!).ColumnDefinitions;
+                var columns = CompanionColumns;
                 var column = columns[2];
                 // The first opening takes 45%; afterwards the width the user left is restored in pixels.
-                if (!visible && column.ActualWidth > 0) companionWidth = new(column.ActualWidth);
+                if (!visible && !CompanionOverlay && column.ActualWidth > 0)
+                {
+                    companionWidth = new(column.ActualWidth);
+                    CompanionWidthChanged?.Invoke(column.ActualWidth);
+                }
                 // A splitter drag rescales both star columns; the terminal's is reset to 1* so it owns the rest.
                 columns[0].Width = new GridLength(1, GridUnitType.Star);
-                column.Width = visible ? companionWidth : new GridLength(0);
+                column.Width = visible && !NarrowForCompanion ? companionWidth : new GridLength(0);
             }
             companion.Content = value;
-            companion.IsVisible = companionSplitter.IsVisible = visible;
+            companion.IsVisible = visible;
+            LayoutCompanion();
         }
+    }
+
+    private bool NarrowForCompanion => Bounds.Width is > 0 && Bounds.Width < CompanionOverlayBelow;
+
+    // Narrow, the open companion spans the view over the surface with its own surface colour; wide, it is the third column again.
+    private void LayoutCompanion()
+    {
+        var overlay = companion.IsVisible && NarrowForCompanion;
+        if (overlay != CompanionOverlay)
+        {
+            CompanionOverlay = overlay;
+            var columns = CompanionColumns;
+            Grid.SetColumn(companion, overlay ? 0 : 2);
+            Grid.SetColumnSpan(companion, overlay ? 3 : 1);
+            companion.Background = overlay ? Ui.Surface : null;
+            companion.ZIndex = overlay ? 5 : 0;
+            if (overlay)
+            {
+                if (columns[2].ActualWidth > 0) companionWidth = new(columns[2].ActualWidth);
+                columns[2].Width = new GridLength(0);
+            }
+            else if (companion.IsVisible)
+            {
+                columns[0].Width = new GridLength(1, GridUnitType.Star);
+                columns[2].Width = companionWidth;
+            }
+        }
+        companionSplitter.IsVisible = companion.IsVisible && !overlay;
     }
 
     /// <summary>Types into the shell as if typed; ignored until the shell has started.</summary>

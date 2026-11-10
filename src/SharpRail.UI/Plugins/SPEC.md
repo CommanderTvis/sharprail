@@ -198,13 +198,18 @@ and roster registration still precede reconciliation, preserving dormant tools a
   directly below it, as the fork's navigation nests them; Settings › Plugins is core's own section.
 - Companions (W6) open beside a terminal tab in an embedded split inside the terminal's body, never as a tab of
   their own; the open companion per terminal is window view state. The pane has a top-right close
-  button that clears that selection, leaving its terminal and title chip available to reopen it.
+  button that clears that selection, leaving its terminal and its strip available to reopen it.
+  A companion shows as a slim strip at the very top of the tab body, full width, above the transcript or terminal: its icon, the
+  drawing's title and "· N visualizations", in muted text on the tab's own background with a divider below. Pressing the strip
+  opens or closes the pane; with several items a chevron lists them and choosing one shows it in the pane. The strip exists only
+  while the tab has something to show (no strip, no gap), and is the same on terminals and chat tabs; there is no chip.
+  The pane's width is saved per tab with the open state, and below 560 px the pane covers the body instead of squeezing it. A pane belongs to its tab: it can be closed but not moved elsewhere (a drawing the agent detaches opens as its own tab instead).
   The companion frame clips its content to keep oversized plugin drawings inside its split.
   A plugin's focus request selects that companion in every window holding the named terminal, including when another window is active.
   Selecting a companion changes the embedded pane, preserving keyboard focus in the terminal or
   active window, as the fork's embedded-pane state action does.
   A plugin document registered with `HostsCompanions` (the chat tabs) is a companion host too: its body is wrapped in
-  the same split (frame, splitter, close button, width and chip strip) and the selection is keyed by workspace plus the
+  the same split (frame, splitter, close button, saved width, overlay and strip) and the selection is keyed by workspace plus the
   document id, so it survives restarts when the id does. The companions registered for terminals are offered there
   through the same `IsAvailable`/`Create` calls with the document id as the tab key; each registration's optional
   `HostChanged` hears when such a body mounts and when its tab goes away (terminals are never reported).

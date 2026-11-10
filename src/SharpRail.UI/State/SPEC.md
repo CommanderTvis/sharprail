@@ -139,7 +139,7 @@ in the profile directory's `terminals` subdirectory, so `SHARPRAIL_PROFILE` isol
 Plugins add two profile fields. `PluginPreferences` holds a UI half's client-local preferences under
 `<endpoint>|plugin:<id>:<key>`, so two hosts' plugins never share a value; the endpoint is `Workbench.Endpoint`
 (`local` unless the composition names the remote endpoint). `WindowProfile.Companions` records, per terminal
-(`<workspace>\n<tab key>`), the plugin companion open beside it in that window.
+(`<workspace>\n<tab key>`), the plugin companion open beside it in that window; the width the user left it at is kept with it.
 
 ## Location
 

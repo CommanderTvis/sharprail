@@ -114,18 +114,32 @@ internal static class VisualizeE2E
             return answer.Result.Text;
         }
         Control? Pane() => terminal.Companion;
-        Button Chip() => app.Find<Button>("TerminalCompanion_visualize_visualization");
+        const string StripName = "TerminalCompanion_visualize_visualization";
+        Border? Strip() => terminal.GetLogicalDescendants().OfType<Border>().SingleOrDefault(control => control.Name == StripName);
+        Button Chip() => app.Find<Button>(StripName + "Toggle");
+        string? Title() => Strip()?.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault()?.Text;
         string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Control Named(Control scope, string name) => scope.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == name);
         bool Has(Control scope, string name) => scope.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == name);
 
+        Require(Strip() is null && Math.Abs(terminal.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody").Bounds.Top) < 0.5,
+            "A tab without a visualization has no strip and no gap above its surface.");
         // The tool draws a live view keyed to this very terminal: an embedded pane in the terminal's own body, not a tab.
         var drawn = Call("""{"type":"diagram","title":"Wired graph","mermaid":"graph TD;A-->B;"}""");
         Require(drawn.Contains("Rendered \"Wired graph\" in SharpRail (revision 1)", StringComparison.Ordinal), "The tool reports the drawing: " + drawn);
         Until(() => Pane() is { IsEffectivelyVisible: true } pane && Has(pane, "VisualizationPane"));
         var pane = Pane()!;
         Require(TerminalsE2E.TerminalTabs(app).Length == terminals, "The pane must not cost the terminal its tab.");
-        Require(Texts(Chip()) == "Wired graph", "The companion reports the drawing's own title: " + Texts(Chip()));
+        Require(Title() == "Wired graph", "The companion reports the drawing's own title: " + Title());
+        Require(Texts(Strip()!).EndsWith("· 1 visualization", StringComparison.Ordinal), "The strip counts the tab's visualizations: " + Texts(Strip()!));
+        var strip = Strip()!;
+        var stripTop = strip.TranslatePoint(new Point(0, 0), terminal);
+        var surface = terminal.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody");
+        Require(stripTop is { } origin && Math.Abs(origin.X) < 0.5 && Math.Abs(origin.Y) < 0.5 && Math.Abs(strip.Bounds.Width - terminal.Bounds.Width) < 0.5 &&
+            Math.Abs(strip.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow) < 0.5 && strip.BorderThickness.Bottom == 1 && Equals(strip.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) &&
+            Math.Abs(surface.Bounds.Top - strip.Bounds.Height) < 0.5,
+            $"The strip is the tab's top row, full width, one slim row high with a divider below: {stripTop}, {strip.Bounds}, surface at {surface.Bounds.Top}.");
+        Require(!strip.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == StripName + "Items"), "One visualization has no list to choose from.");
 
         // The diagram is navigable in place.
         Until(() => Has(pane, "MermaidPanZoom"));
@@ -222,7 +236,9 @@ internal static class VisualizeE2E
         var width = companionColumn.Width;
         foreach (var size in new[] { 680.0, 400.0 })
         {
-            ResizeCompanion(companion.Bounds.Width - size);
+            // At 680 the splitter sits on the terminal's left edge, under the dock's own resize handle, so the way back is the saved-width setter.
+            if (size > 640) ResizeCompanion(companion.Bounds.Width - size);
+            else { ((SharpRail.UI.Terminal.TerminalView)terminal).CompanionWidth = size; Settle(); }
             Require(options.Columns == (options.Bounds.Width >= 640 ? 2 : 1) && (size > 640) == (options.Columns == 2),
                 $"Comparison columns follow the pane width: pane {size}, options {options.Bounds.Width}, columns {options.Columns}");
         }
@@ -245,7 +261,7 @@ internal static class VisualizeE2E
         var refused = Call("""{"type":"diagram","title":"Broken","mermaid":"flowchart TD; Start --> --> broken"}""", error: true);
         Require(refused.Contains("The diagram did not render", StringComparison.Ordinal) && refused.Contains("call visualize again", StringComparison.Ordinal),
             "A refused diagram reaches the agent: " + refused);
-        Until(() => Texts(Chip()) == "Wired graph" && Texts(Pane()!).Contains("OptA", StringComparison.Ordinal));
+        Until(() => Title() == "Wired graph" && Texts(Pane()!).Contains("OptA", StringComparison.Ordinal));
 
         app.Click(Chip());
         Until(() => Pane() is null);
@@ -253,6 +269,10 @@ internal static class VisualizeE2E
         peer.Window.Activate();
         Until(() => ReferenceEquals(app.Workbench.ActiveWindow, peer.Window));
         Call("""{"type":"comparison","title":"Background drawing","options":[{"name":"Owner only"}]}""");
+        Until(() => Title() == "Background drawing");
+        Require(Texts(Strip()!).EndsWith("· 1 visualization", StringComparison.Ordinal), "A revision replaces the tab's drawing: " + Texts(Strip()!));
+        Require(Pane() is null, "A later revision does not reopen a pane the user closed.");
+        app.Click(Chip());
         Until(() => Pane() is not null && Texts(Pane()!).Contains("Owner only", StringComparison.Ordinal));
         Require(ReferenceEquals(app.Workbench.ActiveWindow, peer.Window), "A background drawing must not activate the terminal's window.");
         Require(!peer.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "VisualizationPane"), "The unrelated window must not receive the terminal's drawing.");
@@ -274,7 +294,7 @@ internal static class VisualizeE2E
         SetEnabled(true);
         Call("""{"type":"comparison","title":"Remounted","options":[{"name":"After enable"}]}""");
         Until(() => Pane() is not null && Texts(Pane()!).Contains("After enable", StringComparison.Ordinal));
-        Require(Texts(Chip()) == "Remounted", "The re-enabled plugin's fresh subscription titles the companion: " + Texts(Chip()));
+        Require(Title() == "Remounted", "The re-enabled plugin's fresh subscription titles the companion: " + Title());
         // A second terminal of the same workspace keeps its own lifetime: its drawing opens beside it alone.
         var others = TerminalsE2E.TerminalTabs(app).Select(next => next.Id).ToHashSet();
         window.Layout.NewTerminal(window.Layout.View.FocusedCenter);

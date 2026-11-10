@@ -105,6 +105,12 @@ public sealed record CompanionRegistration(string Kind, string Title, string Ico
     /// <summary>A per-instance title, such as a document's heading; <see langword="null"/> falls back to <see cref="Title"/>. Re-evaluated on <see cref="IPluginUIContext.Invalidate"/>.</summary>
     public Func<CompanionHost, string?>? InstanceTitle { get; init; }
 
+    /// <summary>The titles of the items the pane holds for a tab, counted in the strip that opens it (several get a list to choose from); <see langword="null"/> counts one. Re-evaluated on <see cref="IPluginUIContext.Invalidate"/>.</summary>
+    public Func<CompanionHost, IReadOnlyList<string>>? Items { get; init; }
+
+    /// <summary>Called on the UI thread when the user picks an item of <see cref="Items"/> from the strip's list, with its index; the plugin shows it in the pane.</summary>
+    public Action<CompanionHost, int>? SelectItem { get; init; }
+
     /// <summary>
     /// Called on the UI thread when a document that hosts companions (<see cref="PluginDocumentRegistration.HostsCompanions"/>) mounts
     /// (<see langword="true"/>) or its tab goes away (<see langword="false"/>). Terminals are not reported.

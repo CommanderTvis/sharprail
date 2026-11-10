@@ -21,6 +21,7 @@ internal static class TerminalResumeHintChecks
     {
         Run(false);
         InputHold();
+        Companion();
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()) Run(true);
         else Console.WriteLine("SKIP native resume-hint input: libghostty-vt is unavailable on this platform; portable overlay checks passed.");
     }
@@ -136,6 +137,56 @@ internal static class TerminalResumeHintChecks
             disposing.Dispose();
         }
         Console.WriteLine("PASS terminal input hold: keys dropped during a driven entry, writes unaffected, nesting, restart, time limit and close release it");
+    }
+
+    // The companion beside the surface: 45% on first opening, a restored width, covering the surface when the view is narrow.
+    private static void Companion()
+    {
+        using var fixture = new Fixture(false, null);
+        var view = fixture.View;
+        var saved = new List<double>();
+        view.CompanionWidthChanged += saved.Add;
+        var body = view.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody");
+        var pane = new Border { Name = "CheckCompanion" };
+        view.Companion = pane; Settle();
+        Require(!view.CompanionOverlay && Math.Abs(pane.Bounds.Width / view.Bounds.Width - 0.45) < 0.02, $"The first opening takes 45%: {pane.Bounds.Width} of {view.Bounds.Width}.");
+        view.CompanionWidth = 300; Settle();
+        Require(Math.Abs(pane.Bounds.Width - 300) < 1 && Math.Abs(body.Bounds.Width + 300 - view.Bounds.Width) < 12, $"A restored width applies to the open companion: pane {pane.Bounds.Width}, body {body.Bounds.Width}, view {view.Bounds.Width}.");
+        fixture.Window.Width = 400; Settle();
+        Require(view.CompanionOverlay && Math.Abs(pane.Bounds.Width - view.Bounds.Width) < 1 && Math.Abs(body.Bounds.Width - view.Bounds.Width) < 1,
+            "A narrow view shows the companion over the surface, which keeps its width.");
+        fixture.Window.Width = 900; Settle();
+        Require(!view.CompanionOverlay && Math.Abs(pane.Bounds.Width - 300) < 1, "A wide view returns the companion to its column at the saved width.");
+        view.Companion = null; Settle();
+        Require(saved.Count == 1 && Math.Abs(saved[0] - 300) < 1 && view.CompanionWidth is { } kept && Math.Abs(kept - 300) < 1, "Closing reports the width and keeps it.");
+        Require(Math.Abs(body.Bounds.Width - view.Bounds.Width) < 1, "Closing returns the full width to the surface.");
+        fixture.Window.Width = 400; Settle();
+        view.Companion = pane; Settle();
+        Require(view.CompanionOverlay && view.CompanionWidth is { } narrow && Math.Abs(narrow - 300) < 1, "Opening while narrow covers the surface and still remembers the width.");
+        view.Companion = null; Settle();
+        Require(!view.CompanionOverlay && saved.Count == 1, "Closing an overlay reports no width.");
+        // The strip row above the surface: the tab's top row, a list only with several items, pressing it toggles.
+        var presses = 0;
+        var chosen = -1;
+        var one = SharpRail.UI.Plugins.CompanionStrip.Create("CheckStrip", SharpRail.Plugins.UI.Kit.Ui.Icon("close"), "Drawing", "visualization", ["Drawing"], false, () => presses++, null);
+        view.CompanionStrips.Children.Add(one); Settle();
+        Require(one.TranslatePoint(new Point(0, 0), view) is { } corner && Math.Abs(corner.X) < 0.5 && Math.Abs(corner.Y) < 0.5 && Math.Abs(one.Bounds.Width - view.Bounds.Width) < 0.5 &&
+            Math.Abs(one.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow) < 0.5 && one.BorderThickness.Bottom == 1 && Math.Abs(body.Bounds.Top - one.Bounds.Height) < 0.5,
+            $"The strip sits at the very top, full width, one slim row high with a divider; the surface starts below it: {one.Bounds}, surface at {body.Bounds.Top}.");
+        Require(one.GetLogicalDescendants().OfType<TextBlock>().Last().Text == "· 1 visualization" && !one.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CheckStripItems"), "One item reads as a singular count without a list.");
+        one.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CheckStripToggle").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Require(presses == 1, "Pressing the strip toggles the companion.");
+        view.CompanionStrips.Children.Clear();
+        var several = SharpRail.UI.Plugins.CompanionStrip.Create("CheckStrip", SharpRail.Plugins.UI.Kit.Ui.Icon("close"), "First", "visualization", ["First", "Second", "Third"], false, () => presses++, index => chosen = index);
+        view.CompanionStrips.Children.Add(several); Settle();
+        var chevron = several.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CheckStripItems");
+        var menu = (MenuFlyout)chevron.Flyout!;
+        Require(several.GetLogicalDescendants().OfType<TextBlock>().Last().Text == "· 3 visualizations" && menu.Items.OfType<MenuItem>().Select(item => item.Header).SequenceEqual(["First", "Second", "Third"]), "Several items read as a plural count with a list of their titles.");
+        menu.Items.OfType<MenuItem>().Last().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        Require(chosen == 2, "Choosing an item reports its index.");
+        view.CompanionStrips.Children.Clear(); Settle();
+        Require(Math.Abs(body.Bounds.Top) < 0.5, "Without a strip there is no gap above the surface.");
+        Console.WriteLine("PASS terminal companion: first opening takes 45%, a saved width is restored, a narrow view shows it as an overlay");
     }
 
     private sealed class Fixture : IDisposable

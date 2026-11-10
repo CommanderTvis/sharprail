@@ -763,7 +763,7 @@ to pi.
 | W3 | read a projection: projects, workspaces, active workspace, context project, active editor, applied settings, terminals, shown terminals, per-workspace file revision, roster, host platform; synchronously (`Host`) or observed by selection (`WatchHost`) | window fields and `SharedState` |
 | W4 | contribute a Settings section (`SettingsSection`) | `SettingsView`'s fixed section buttons |
 | W5 | contribute a side tool under `plugin:<id>:<tool>`, declared in the manifest, rendered by the UI half (`SideTool`) | `DockState.ToolNames`, `DockState.ToolRegion`, the tool body switch in `WorkbenchWindow`, the tool icon switch in `DockGroups` |
-| W6 | contribute an embedded companion pane beside a terminal, and focus it (`Companion`, `FocusCompanion`) | none |
+| W6 | contribute an embedded companion pane beside a terminal, and focus it (`Companion`, `FocusCompanion`; optional `Items` and `SelectItem` for the strip) | none |
 | W7 | register a file viewer: extensions, names and read strategy from the manifest, control and finer predicate from the UI half, optionally handling the open outright (`FileViewer`) | the open path picks text, Markdown or image by extension |
 | W8 | decorate a tab with an icon or adornment (`TabDecoration`) | the tab icon switch in `DockGroups` |
 | W9 | register an agent launcher, and enumerate registered launchers (`Launcher`, `Launchers`, `OnLaunchersChanged`) | the create-workspace flow starts no agent |
