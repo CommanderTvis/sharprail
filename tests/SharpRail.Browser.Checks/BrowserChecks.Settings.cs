@@ -5,6 +5,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Browser;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -23,6 +24,16 @@ internal static partial class BrowserChecks
         {
             var window = BrowserSession.Current!.Workbench!.ActiveWindow!;
             window.Width = width; window.Height = height;
+        });
+    }
+
+    [JSExport]
+    public static async Task ClearWorkbenchSizeRequest()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var window = BrowserSession.Current!.Workbench!.ActiveWindow!;
+            window.ClearValue(Layoutable.WidthProperty); window.ClearValue(Layoutable.HeightProperty);
         });
     }
 

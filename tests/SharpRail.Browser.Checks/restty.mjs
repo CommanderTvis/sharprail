@@ -458,11 +458,15 @@ try {
     const viewport = page.viewportSize();
     const fillsViewport = value => Math.abs(value.Width - page.viewportSize().width) < 1 && Math.abs(value.Height - page.viewportSize().height) < 1;
     await until(geometry, fillsViewport, 'The workbench retained its constructor size instead of the browser viewport');
-    const canvas = await page.locator('.sharprail-workbench > canvas').evaluate(element => ({ width: element.width, height: element.height }));
+    const dpr = Number(process.env.PROFILE_DPR ?? 1);
+    const canvas = await until(() => page.locator('.sharprail-workbench > canvas').evaluate(element => ({ width: element.width, height: element.height })),
+      value => value.width === Math.round(viewport.width * dpr) && value.height === Math.round(viewport.height * dpr), 'The workbench canvas did not take the viewport size');
     assert.equal(canvas.width, Math.round(viewport.width * Number(process.env.PROFILE_DPR ?? 1)));
     assert.equal(canvas.height, Math.round(viewport.height * Number(process.env.PROFILE_DPR ?? 1)));
     await invoke('RequestWorkbenchSize', 1441, 921);
     await until(geometry, fillsViewport, 'A window size request left the workbench smaller than its CSS viewport');
+    // The request must not leave an explicit Width/Height on the window: Settings would then paint offset and clipped inside it.
+    await invoke('ClearWorkbenchSizeRequest');
     for (const section of ['Appearance', 'Layout', 'Plugins']) {
       if (section === 'Appearance') {
         const { Gear } = await geometry();
