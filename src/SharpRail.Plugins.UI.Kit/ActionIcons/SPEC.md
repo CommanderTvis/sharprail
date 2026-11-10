@@ -50,6 +50,8 @@ show its own variant of "Delete".
 | Clone | `gitFork` | Add-project menu: Clone repository… |
 | CopyAbsolutePath | `mapPin` (Remix map-pin-line, a fixed location) | Files tree: Copy absolute path; project and workspace menus: Copy absolute path |
 | Settings | `settings` (the gear) | Browser unified-chrome overflow menu: Settings… |
+| Pin | `pushpin` | Project menu: Pin; the mark on a pinned project row |
+| Unpin | `pushpinFill` | Project menu: Unpin |
 
 ## Enforcement
 

@@ -36,6 +36,24 @@ public sealed partial class WorkbenchWindow
     }
     private Action? placeProjectTrailing;
 
+    /// <summary>The rail's project order: pinned projects first in the order they were pinned, then the rest in the host's order.</summary>
+    internal List<string> RailProjectOrder()
+    {
+        var projects = state.Current.Projects;
+        var pinned = profile.Data.PinnedProjects.Distinct().Where(projects.Contains).ToList();
+        pinned.AddRange(projects.Where(project => !pinned.Contains(project)));
+        return pinned;
+    }
+
+    private bool IsPinned(string project) => profile.Data.PinnedProjects.Contains(project);
+
+    private void SetPinned(string project, bool pin)
+    {
+        profile.Data.PinnedProjects.RemoveAll(item => item == project);
+        if (pin) profile.Data.PinnedProjects.Add(project);
+        SaveProfile(); UpdateRailSelection();
+    }
+
     internal void UpdateRailSelection()
     {
         if (projectsTree is null) return;
@@ -49,7 +67,7 @@ public sealed partial class WorkbenchWindow
         }
         var children = new List<Control>();
         railTabTails.Clear();
-        foreach (var project in state.Current.Projects)
+        foreach (var project in RailProjectOrder())
         {
             if (!projectRailRows.TryGetValue(project, out var entry))
             {
@@ -379,6 +397,9 @@ public sealed partial class WorkbenchWindow
         countText.VerticalAlignment = VerticalAlignment.Center;
         Ui.Place(row, countText, 0, 3);
         Ui.Place(projectLabel, folder); Ui.Place(projectLabel, name, 0, 2);
+        var pinMark = ActionIcons.Create(ActionIcon.Pin, Ui.Hint, 12);
+        pinMark.Name = "ProjectPinMark"; pinMark.Margin = new Thickness(4, 0, 0, 0); pinMark.VerticalAlignment = VerticalAlignment.Center;
+        Ui.Place(projectLabel, pinMark, 0, 3);
         railSelection["project:" + project] = () =>
         {
             var plain = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees);
@@ -393,6 +414,7 @@ public sealed partial class WorkbenchWindow
             var count = RailWorkspaces(project).Count(tree => tree.Kind != WorkspaceKinds.Default);
             countText.Text = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             countText.IsVisible = folded && count > 0;
+            pinMark.IsVisible = IsPinned(project);
             ToolTip.SetTip(toggle, folded ? "Expand project" : "Collapse project");
             workspaces.IsVisible = !folded && workspaces.Children.Any(child => child.IsVisible);
         };

@@ -55,6 +55,8 @@
   "openai": "OpenaiLine",
   "palette": "PaletteLine",
   "mapPin": "MapPinLine",
+  "pushpin": "PushpinLine",
+  "pushpinFill": "PushpinFill",
   "pencil": "PencilLine",
   "pencilRuler": "PencilRuler2Line",
   "play": "PlayLine",

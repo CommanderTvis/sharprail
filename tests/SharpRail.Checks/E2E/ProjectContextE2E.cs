@@ -70,10 +70,10 @@ internal static class ProjectContextE2E
         var menuOrigin = Menu(fixture).TranslatePoint(default, app.Window)!.Value;
         Require(Math.Abs(menuOrigin.X - pointer.X) < 8 && Math.Abs(menuOrigin.Y - pointer.Y) < 8, $"The project menu opens at the pointer ({menuOrigin} vs {pointer}).");
         var parts = Menu(fixture).Items.Cast<object>().ToArray();
-        Require(parts.Length == 6 && parts[0] is MenuItem { Header: "Copy absolute path", Icon: not null } && parts[1] is MenuItem { Header: "Start work", Icon: not null } &&
-            parts[2] is MenuItem { Header: "Open existing worktree…", Icon: null } && parts[3] is Separator && parts[4] is MenuItem { Header: "Rename…", Icon: null } &&
-            parts[5] is MenuItem { Header: "Close project", Icon: not null },
-            "Project actions stay compact: Copy absolute path, Start work, Open existing worktree, separator, Rename, Close project.");
+        Require(parts.Length == 7 && parts[0] is MenuItem { Header: "Copy absolute path", Icon: not null } && parts[1] is MenuItem { Header: "Start work", Icon: not null } &&
+            parts[2] is MenuItem { Header: "Open existing worktree…", Icon: null } && parts[3] is MenuItem { Header: "Pin", Icon: not null } && parts[4] is Separator &&
+            parts[5] is MenuItem { Header: "Rename…", Icon: null } && parts[6] is MenuItem { Header: "Close project", Icon: not null },
+            "Project actions stay compact: Copy absolute path, Start work, Open existing worktree, Pin, separator, Rename, Close project.");
         Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCopyPath").IsFocused);
         Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
@@ -81,6 +81,8 @@ internal static class ProjectContextE2E
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuOpenExisting").IsFocused);
         Press(Entry(fixture, "ProjectMenuOpenExisting"), Avalonia.Input.Key.Down);
+        Until(() => Entry(fixture, "ProjectMenuPin").IsFocused);
+        Press(Entry(fixture, "ProjectMenuPin"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuRename").IsFocused);
         Press(Entry(fixture, "ProjectMenuRename"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuClose").IsFocused);

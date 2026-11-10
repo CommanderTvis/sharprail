@@ -470,6 +470,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.ProjectContextE2E.Run(root);
+            E2E.ProjectPinE2E.Run(root);
             Console.WriteLine("PASS project closure checks");
             return;
         }

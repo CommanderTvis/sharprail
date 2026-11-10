@@ -93,6 +93,8 @@ public sealed class Profile
     /// <summary>One entry per open window, restored in order at launch.</summary>
     public List<WindowProfile> Windows { get; set; } = [];
     public HashSet<string> CollapsedProjects { get; set; } = [];
+    /// <summary>Projects pinned to the top of the rail, in the order they were pinned.</summary>
+    public List<string> PinnedProjects { get; set; } = [];
     /// <summary>Remotes whose branches every branch picker shows collapsed.</summary>
     public HashSet<string> CollapsedRemotes { get; set; } = [];
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];

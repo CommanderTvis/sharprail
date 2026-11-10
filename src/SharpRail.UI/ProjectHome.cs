@@ -280,6 +280,18 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(copy);
         menu.Items.Add(create);
         menu.Items.Add(existing);
+        // One entry whose meaning follows the project's pin state each time the menu opens.
+        var pin = Ui.IconMenu("Pin", () => SetPinned(project, !IsPinned(project)), ActionIcon.Pin);
+        pin.Name = "ProjectMenuPin";
+        void ShowPin()
+        {
+            var pinned = IsPinned(project);
+            pin.Header = pinned ? "Unpin" : "Pin";
+            pin.Icon = ActionIcons.Create(pinned ? ActionIcon.Unpin : ActionIcon.Pin);
+        }
+        ShowPin();
+        menu.Opening += (_, _) => ShowPin();
+        menu.Items.Add(pin);
         menu.Items.Add(new Separator());
         var rename = Ui.Menu("Rename…", () => _ = RenameProjectAsync(project));
         rename.Name = "ProjectMenuRename";
@@ -349,6 +361,7 @@ public sealed partial class WorkbenchWindow
         try
         {
             if (!await ShareAsync(HostStateChange.CloseProject(project))) { FocusProject(project); return; }
+            if (profile.Data.PinnedProjects.RemoveAll(item => item == project) > 0) SaveProfile();
             var next = state.Current.Projects.Where(item => item != project).FirstOrDefault();
             if (project == projectRoot)
             {
