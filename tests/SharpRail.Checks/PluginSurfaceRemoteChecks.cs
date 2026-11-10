@@ -218,12 +218,14 @@ internal static class PluginSurfaceRemoteChecks
             Require(sessions.Count == 1, "A plugin that floods a client whose UI thread is blocked ends that client's session on the host.");
             Require(flooded.Calls.Completion is { IsFaulted: true, Exception.InnerException: IOException { Message: "The plugin sent more than its client could take." } },
                 "The flooded client's session ends with the reason.");
+            // B's new session greets with a write of the plugin's whole settings, which a click written meanwhile would be lost to:
+            // A clicks once B's has activated and written.
+            E2eWorkspace.Until(() => recordedB.Opened.Count == 2 && sessions.Count == 2 && b.Workbench.PluginLoader.Registry.Active.Contains(Id) && Activations(a) > activations);
             before = shownA.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
             E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 7);
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool after B was flooded", before, Held);
             Require(ReferenceEquals(boardA.Surface, surfaceA) && runtime.RunnerPid(Id) == pid, "The other client keeps its session and surface in the same process.");
-            E2eWorkspace.Until(() => recordedB.Opened.Count == 2 && sessions.Count == 2 && b.Workbench.PluginLoader.Registry.Active.Contains(Id));
             Console.WriteLine($"PASS plugin surface remote flood: a plugin that floods client B while the UI thread is blocked ends B's session with the reason at {RemoteIsolatedUISession.MostUnread} unread calls, client A's clicks still reach the plugin, and B opens a new session");
 
             // A client that closes ends only its own session.
