@@ -671,3 +671,5 @@ static SharpRail.Plugins.UI.Kit.Units.Pair(long number, string! unit) -> string!
 static SharpRail.Plugins.UI.Kit.Units.Pair(string! number, string! unit) -> string!
 static SharpRail.Plugins.UI.Kit.Units.Seconds(long seconds) -> string!
 static SharpRail.Plugins.UI.Kit.Units.Size(long bytes) -> string!
+static readonly SharpRail.Plugins.UI.Kit.Ui.ChipFill -> Avalonia.Media.SolidColorBrush!
+static SharpRail.Plugins.UI.Kit.Ui.Blend(Avalonia.Media.Color from, Avalonia.Media.Color toward, int percent) -> Avalonia.Media.Color

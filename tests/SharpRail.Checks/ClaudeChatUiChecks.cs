@@ -680,13 +680,13 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
-    // The strip behind the footer chips is the terminal's colour, each chip is filled differently so it stands out, and its text reads on that fill.
+    // The strip behind the footer chips is the terminal's default background, each chip is filled with the shared chip fill so it floats on it, and its text reads on that fill.
     private static void ChipColours()
     {
         var original = Ui.Theme;
         try
         {
-            foreach (var theme in new[] { "dark", "light" })
+            foreach (var theme in SharpRail.UI.Rendering.Themes.All.Select(candidate => candidate.Id))
             {
                 Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
                 var header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/project", Advisor = "opus", Chrome = true };
@@ -701,16 +701,19 @@ internal static class ClaudeChatUiChecks
                     Frame(window); Frame(window); Frame(window);
                     var panel = view.GetVisualDescendants().OfType<WrapPanel>().First(candidate => candidate.Name == "ChatChips");
                     var strip = ((ISolidColorBrush)panel.Background!).Color;
-                    Require(strip == ((ISolidColorBrush)Ui.Terminal).Color, $"{theme}: the strip behind the chips is the terminal background.");
+                    Require(strip == SharpRail.UI.Terminal.TerminalTheme.Colors().Background, $"{theme}: the strip behind the chips is the terminal view's default background.");
                     var chips = panel.Children.OfType<Control>().Where(chip => chip.IsVisible && chip.Name is { } name && name.StartsWith("TerminalAgentFact_", StringComparison.Ordinal)).ToList();
                     Require(chips.Count >= 3, $"{theme}: the fact and picker chips are in the strip ({chips.Count}).");
                     foreach (var chip in chips)
                     {
                         var fill = chip switch { Border border => border.Background, Button button => button.Background, _ => null } as ISolidColorBrush;
-                        Require(fill is not null && fill.Color != strip, $"{theme}: {chip.Name} has a fill other than the strip's.");
+                        Require(fill is not null && ReferenceEquals(fill, Ui.ChipFill), $"{theme}: {chip.Name} is filled with the shared chip fill.");
+                        var (fillHi, fillLo) = (Math.Max(Luminance(fill!.Color), Luminance(strip)), Math.Min(Luminance(fill.Color), Luminance(strip)));
+                        var floating = (fillHi + 0.05) / (fillLo + 0.05);
+                        Require(floating >= 1.15, $"{theme}: {chip.Name} floats on the strip (contrast {floating:0.00}).");
                         foreach (var text in chip.GetVisualDescendants().OfType<TextBlock>().Where(text => !string.IsNullOrEmpty(text.Text)))
                         {
-                            var back = fill!.Color;
+                            var back = fill.Color;
                             var front = Over(((ISolidColorBrush)text.Foreground!).Color, back);
                             var (hi, lo) = (Math.Max(Luminance(front), Luminance(back)), Math.Min(Luminance(front), Luminance(back)));
                             var ratio = (hi + 0.05) / (lo + 0.05);
@@ -2512,7 +2515,7 @@ internal static class ClaudeChatUiChecks
                         if (pseudoState.Length > 0) pseudo.Set(pseudoState, false);
                     }
                     foreach (var button in root.GetVisualDescendants().OfType<Button>().Where(button => button.Name is "ChatPlus" or "TerminalAgentFact_model" or "TerminalAgentFact_effort" or "TerminalAgentFact_permission"))
-                        Require((button.Name == "ChatPlus" ? IsWash(button.Background) : ReferenceEquals(button.Background, Ui.Elevated)) && button.BorderThickness == default, $"{label}: {button.Name} is a borderless control (the chips filled, the plus plain).");
+                        Require((button.Name == "ChatPlus" ? IsWash(button.Background) : ReferenceEquals(button.Background, Ui.ChipFill)) && button.BorderThickness == default, $"{label}: {button.Name} is a borderless control (the chips filled, the plus plain).");
                     var model = root.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "Sonnet 5.5");
                     var effort = root.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text is { } t && t.StartsWith("medium", StringComparison.Ordinal));
                     Require(ReferenceEquals(model.Foreground, Ui.TextBrush) && ReferenceEquals(effort.Foreground, Ui.Muted), $"{label}: the model reads in the normal tone, the effort muted.");

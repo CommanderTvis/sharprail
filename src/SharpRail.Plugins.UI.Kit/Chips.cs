@@ -8,7 +8,7 @@ namespace SharpRail.Plugins.UI.Kit;
 /// <summary>The chip family every terminal accessory row draws from: one height, radius, type size, padding and fill.</summary>
 public static class Chips
 {
-    /// <summary>The 11 px label inside a chip, in the normal text colour: it sits on the elevated fill with high contrast.</summary>
+    /// <summary>The 11 px label inside a chip, in the normal text colour: it sits on the chip fill with high contrast.</summary>
     public static TextBlock Label(string text) => Ui.Text(text, Ui.TextBrush, 11);
 
     /// <summary>A control with the tooltip and accessible name of a chip.</summary>
@@ -31,7 +31,7 @@ public static class Chips
             Content = content,
             Padding = new Thickness(4, 2),
             MinHeight = 0,
-            Background = Ui.Elevated,
+            Background = Ui.ChipFill,
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(4),
             VerticalAlignment = VerticalAlignment.Center

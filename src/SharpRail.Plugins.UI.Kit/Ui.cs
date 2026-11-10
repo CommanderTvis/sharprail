@@ -33,11 +33,22 @@ public static partial class Ui
     /// <summary>Raised after every brush of a new theme has been written, so no consumer observes half a palette.</summary>
     public static event Action? ThemeChanged;
 
+    /// <summary>The fill of every chip: the terminal background nudged towards the text colour, so a chip floats on it in any theme (contrast with the background 1.2 or more).</summary>
+    public static readonly SolidColorBrush ChipFill = new();
+
+    /// <summary>A colour moved <paramref name="percent"/> of the way from <paramref name="from"/> towards <paramref name="toward"/>.</summary>
+    public static Color Blend(Color from, Color toward, int percent)
+    {
+        byte Mix(byte a, byte b) => (byte)Math.Round(a + (b - a) * percent / 100.0);
+        return Color.FromRgb(Mix(from.R, toward.R), Mix(from.G, toward.G), Mix(from.B, toward.B));
+    }
+
     public static void Apply(ThemeManifest theme)
     {
         if (ReferenceEquals(theme, Theme)) return;
         Theme = theme;
         ApplyRoles(theme);
+        ChipFill.Color = Blend(Terminal.Color, TextBrush.Color, 10);
         FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = Elevated.Color;
         FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(Elevated.Color, 0);
         if (Application.Current is { } app) ApplyResources(app);

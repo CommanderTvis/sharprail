@@ -68,7 +68,7 @@ public static class TerminalFacts
 
     private static Border Chip(Control content, string tooltip) => Chips.Tip(new Border
     {
-        Background = Ui.Elevated,
+        Background = Ui.ChipFill,
         CornerRadius = new CornerRadius(4),
         Padding = new Thickness(4, 2),
         MaxWidth = 256,

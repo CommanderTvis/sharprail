@@ -29,8 +29,8 @@ the module owns no session, account or terminal state.
   characters so a dropped filename cannot submit or split the prompt. The directory chip shows the path in full, as
   the terminal does (a long one loses its middle), with no home abbreviation. Every chip, the companion buttons above
   the rows included, is the kit's `Chips` family and takes its gap from the `ChipGap` layout role: rows share one left
-  edge and one row gap. A chip is filled with the elevated colour and its label is in the normal text colour, so it
-  reads on the fill; the chat's chip strip is the terminal background, so the chips stand out from it.
+  edge and one row gap. A chip is filled with the terminal background nudged 10% towards the text colour and its label is in the normal text
+  colour; the chat's chip strip is exactly the terminal's default background, so the chips float on it in every theme.
 - `InstructionSectionsView` is SharpRail's instructions as one context-table entry: a row with the PROJECT
   scope chip, a muted count (`8 sections · 1 off · Choose…`) and a size and source line the provider fills
   (`SetEntry`). The row is a button (hand cursor, hover fill, keyboard-activatable) which opens an in-window overlay dialog (the settings editor's `DialogWindow`: fixed title and Close, a body that

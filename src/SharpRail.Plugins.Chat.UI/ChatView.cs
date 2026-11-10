@@ -432,7 +432,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private Button? gear;
 
     /// <summary>
-    /// Gives a fact chip the pickers' look: the same elevated fill (set against the terminal-coloured strip), padding, text size and weight. The chips set these as local values, so a style
+    /// Gives a fact chip the pickers' look: the same chip fill (set against the terminal-coloured strip), padding, text size and weight. The chips set these as local values, so a style
     /// cannot; rows that fill in later (the environment chips) are followed as their children arrive.
     /// </summary>
     private static void Flatten(Control control, bool chip = true)
@@ -441,7 +441,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         {
             case Border { OpacityMask: not null }: break; // an icon: its fill is the glyph
             case Border border:
-                border.Background = chip ? Ui.Elevated : Brushes.Transparent; // only the chip itself is filled, not the borders nested inside it
+                border.Background = chip ? Ui.ChipFill : Brushes.Transparent; // only the chip itself is filled, not the borders nested inside it
                 border.Padding = new Thickness(4, 2);
                 border.MaxWidth = double.PositiveInfinity;
                 border.Margin = new Thickness(0);
@@ -479,7 +479,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         // The pickers sit last, nearest Send; the facts come before them, in the same plain look.
         var pickers = new List<Control>();
         void AddPicker(Control chip) => pickers.Add(chip);
-        void AddFactButton(Button button) { button.Classes.Add("plain"); button.Background = Ui.Elevated; Add(button); }
+        void AddFactButton(Button button) { button.Classes.Add("plain"); button.Background = Ui.ChipFill; Add(button); }
         // Until the agent has reported, a chip holds a one-word muted placeholder rather than a value it does not know.
         var waiting = header.Status == ChatStatus.Starting;
         var modelLabel = header.Model is null ? "model" : ModelLabel(header.Model, header);
@@ -519,7 +519,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         if (ChipShown("attach")) AddFactButton(attach);
         foreach (var picker in pickers) Add(picker);
         gear ??= TerminalFacts.ChipButton("ChatChipSettings", Ui.Icon("settings", Ui.Muted, 14), "Configure chips", ShowChipSettings);
-        if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Ui.Elevated; Add(gear); }
+        if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Ui.ChipFill; Add(gear); }
         // The "+" wears a warning dot when an MCP server is down.
         var down = header.McpServers.Count(server => server.Status is not ("connected" or "ok"));
         plusBadge.IsVisible = down > 0;

@@ -54,7 +54,7 @@ internal sealed partial class ChatView
             ChatPopup.Show(flyout, button!);
         });
         button.Classes.Add("plain");
-        button.Background = Ui.Elevated;
+        button.Background = Ui.ChipFill;
         return button;
     }
 
