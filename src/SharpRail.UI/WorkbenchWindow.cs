@@ -445,7 +445,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         switchingWorkspace = true; placeholderShown = false;
         foreach (var (id, control) in toolContent)
             if (id != "projects") control.IsHitTestVisible = false;
-        SetStatus("Loading");
+        SyncStatusBusy();
         var target = home ? HomeKey(path) : path;
         UpdateRailSelection();
         // Leaving a mounted workspace keeps its inert view until the target resolves, which a local host does within a frame, so a
@@ -490,10 +490,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             mountedWorkspaces.Add(workspaceRoot);
             atHome = home; cleanWelcome = false;
             UpdateScopeLabels();
-            SetBranch("");
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
+            gitLoading = true;
+            // The branch last seen here stays on the header meanwhile, and the block keeps its place when there is none.
+            SetBranch(sameProject && !home ? lastBranches.GetValueOrDefault(workspaceRoot, "") : "");
             Layout.SetGitAvailable(git.IsRepository);
-            gitLoading = true; gitStale = false; gitError = null;
+            gitStale = false; gitError = null;
             RestoreGitSelection();
             if (!sameProject) folderCache.Clear();
             RestoreFilesTree(sameProject);
@@ -518,6 +520,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             slot.LastAtHome = home;
             switchingWorkspace = false;
             WorkspaceMounted = true; restorePending = false;
+            // The header's branch status starts with the switch, from the last facts seen here, not after the git read.
+            RequestBranchStatus(false);
             if (!sameProject && filesPanel is FilesPaneFrame frame)
             {
                 var filesTree = frame.Children.OfType<DrawnTree>().Single();
@@ -574,7 +578,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         {
             if (request == projectRequest)
             {
-                switchingWorkspace = false;
+                switchingWorkspace = false; SyncStatusBusy();
                 // A switch that failed or was refused after making the panes inert must not leave the Code Intelligence pane unclickable and unscrollable.
                 if (toolContent.GetValueOrDefault("lsp") is { IsHitTestVisible: false } inert) inert.IsHitTestVisible = true;
             }

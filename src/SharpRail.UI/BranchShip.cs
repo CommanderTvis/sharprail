@@ -27,6 +27,49 @@ public sealed partial class WorkbenchWindow
     private long branchStatusLookup;
     private long branchStatusAt;
     private bool shipBusy;
+    private bool statusLookupPending, shipExpectedShown;
+    // Last-known facts of workspaces seen in this run: a switch back shows them at once, and the lookup replaces them in place.
+    private readonly Dictionary<string, BranchStatus> statusCache = [];
+    private readonly Dictionary<string, string> lastBranches = [];
+
+    /// <summary>How long a switch's loading may last before the busy line shows; a quicker load never shows it.</summary>
+    internal static readonly TimeSpan StatusBusyDelay = TimeSpan.FromMilliseconds(400);
+    private Border BusyLine => this.FindControl<Border>("StatusBusy")!;
+    private long busyTicket;
+    private bool busyWaiting;
+
+    /// <summary>True while the branch and Remote blocks wait for the workspace's git facts and keep their place meanwhile.</summary>
+    private bool ShipExpected => !atHome && git.IsRepository && (gitLoading || (branchStatus is null && statusLookupPending));
+
+    /// <summary>The busy line along the content's top edge is an overlay: it never takes room, so showing it cannot move the status area.</summary>
+    internal bool StatusBusyShown => BusyLine.Opacity > 0;
+
+    /// <summary>Forgets the facts seen in this run, as a first visit to every workspace would find them; checks use it.</summary>
+    internal void ForgetBranchFacts() { statusCache.Clear(); lastBranches.Clear(); }
+
+    /// <summary>A known status, even a cached one, is never "loading": its refresh runs unannounced.</summary>
+    private bool IsStatusBusy => switchingWorkspace || (branchStatus is null && (ShipExpected || statusLookupPending));
+
+    internal bool StatusLookupPending => statusLookupPending;
+    internal bool StatusBusyPending => IsStatusBusy;
+
+    private void SyncStatusBusy()
+    {
+        if (!IsStatusBusy)
+        {
+            busyTicket++; busyWaiting = false;
+            BusyLine.Opacity = 0;
+        }
+        else if (!busyWaiting && !StatusBusyShown) { busyWaiting = true; _ = ShowBusyLaterAsync(++busyTicket); }
+    }
+
+    private async Task ShowBusyLaterAsync(long ticket)
+    {
+        try { await Task.Delay(StatusBusyDelay, lifetime.Token); }
+        catch (OperationCanceledException) { return; }
+        if (ticket != busyTicket || !IsStatusBusy) return;
+        BusyLine.Opacity = 1;
+    }
 
     /// <summary>The branch status the header shows; checks read it.</summary>
     public BranchStatus? BranchStatus => branchStatus;
@@ -37,8 +80,19 @@ public sealed partial class WorkbenchWindow
 
     private void RequestBranchStatus(bool fresh, bool force = false)
     {
-        var key = WorkspaceMounted && !atHome && git.IsRepository && git.Branch.Length > 0 ? workspaceRoot + "\0" + git.Branch : "";
-        if (key != branchStatusKey) { branchStatusKey = key; branchStatus = null; branchStatusAt = 0; UpdateShipSegments(); force = true; }
+        // While the git facts load, the branch last seen in this workspace stands in, so its status starts at once.
+        var branch = git.Branch.Length > 0 ? git.Branch : gitLoading ? lastBranches.GetValueOrDefault(workspaceRoot, "") : "";
+        var key = WorkspaceMounted && !atHome && git.IsRepository && branch.Length > 0 ? workspaceRoot + "\0" + branch : "";
+        var expected = ShipExpected;
+        if (key != branchStatusKey)
+        {
+            branchStatusKey = key; branchStatus = statusCache.GetValueOrDefault(key); branchStatusAt = 0;
+            // The read for the new key follows below, so its wait already counts while the blocks are laid out.
+            statusLookupPending = key.Length > 0; expected = ShipExpected; shipExpectedShown = expected;
+            UpdateShipSegments(); UpdateBranchSegment(); force = true;
+        }
+        else if (expected != shipExpectedShown) { shipExpectedShown = expected; UpdateShipSegments(); UpdateBranchSegment(); }
+        SyncStatusBusy();
         if (key.Length == 0) return;
         // A watcher refresh asks at most every 15 seconds: each read may call gh.
         if (!force && !fresh && Environment.TickCount64 - branchStatusAt < 15_000) return;
@@ -49,13 +103,18 @@ public sealed partial class WorkbenchWindow
     private async Task LookupBranchStatusAsync(string key, bool fresh)
     {
         var lookup = ++branchStatusLookup;
+        statusLookupPending = true;
         BranchStatus? status;
         try { status = await Task.Run(async () => await host.GetBranchStatusAsync(fresh, lifetime.Token), lifetime.Token); }
         catch (OperationCanceledException) { return; }
         catch (Exception error) { Console.Error.WriteLine(error); status = null; }
-        if (lookup != branchStatusLookup || key != branchStatusKey) return;
+        if (lookup != branchStatusLookup) return;
+        statusLookupPending = false;
+        if (key != branchStatusKey) { SyncStatusBusy(); return; }
         branchStatus = status;
+        if (status is not null) statusCache[key] = status;
         UpdateShipSegments();
+        SyncStatusBusy();
     }
 
     private void UpdateShipSegments()
@@ -65,8 +124,9 @@ public sealed partial class WorkbenchWindow
         remoteRow.Children.Clear();
         var status = branchStatus;
         repoSurface?.Raise();
-        // Without a status the Remote block takes no room, so the branch block runs to the row's end.
-        remoteBlock.IsVisible = status is not null;
+        // Without a status the Remote block takes no room, so the branch block runs to the row's end; while one is expected it
+        // keeps its place with an empty row, so the arrival fills it without moving its neighbours.
+        remoteBlock.IsVisible = status is not null || ShipExpected;
         if (status is null) return;
         var remoteAction = RemoteAction(status);
         // Remote: its icon slot, its one action at the right end, and its state filling what is left (it trims, never overflows).

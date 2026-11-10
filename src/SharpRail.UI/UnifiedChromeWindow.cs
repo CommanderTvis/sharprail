@@ -89,7 +89,8 @@ public sealed partial class WorkbenchWindow
         // the branch block takes the whole row.
         var columns = this.FindControl<Grid>("BranchColumns")!;
         var remoteBlock = this.FindControl<Grid>("RemoteBlock")!;
-        remoteBlock.Margin = default;
+        remoteBlock.Margin = default; remoteBlock.MinWidth = 0;
+        this.FindControl<Button>("ScopeBranch")!.MinWidth = 0;
         // The grid always has three columns, so the remote block's column stays valid (a block placed past the last column is
         // clamped to the first and the grid keeps drawing it there); the unused two collapse to nothing.
         void Split() => columns.ColumnDefinitions = new ColumnDefinitions(remoteBlock.IsVisible ? "*,8,*" : "*,0,0");

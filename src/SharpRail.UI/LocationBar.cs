@@ -127,13 +127,14 @@ public sealed partial class WorkbenchWindow
     private void SetBranch(string branch)
     {
         branchLabel.Text = branch; branchIcon.IsVisible = branch.Length > 0;
+        if (branch.Length > 0 && !atHome && workspaceRoot.Length > 0) lastBranches[workspaceRoot] = branch;
         UpdateBranchSegment();
     }
 
     private void UpdateBranchSegment()
     {
         var branch = branchLabel.Text ?? "";
-        this.FindControl<Border>("BranchSegment")!.IsVisible = projectRoot.Length > 0 && !atHome && branch.Length > 0;
+        this.FindControl<Border>("BranchSegment")!.IsVisible = projectRoot.Length > 0 && !atHome && (branch.Length > 0 || ShipExpected);
         AutomationProperties.SetName(this.FindControl<Button>("ScopeBranch")!, "Branch " + branch);
         // A managed workspace names what it was cut from; the Default workspace is plain "Branch".
         this.FindControl<TextBlock>("ScopeBase")!.Text = workspaceRoot != projectRoot && comparison.Length > 0 ? "· from " + comparison : "";

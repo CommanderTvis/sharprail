@@ -492,8 +492,11 @@ internal sealed class E2eWorkspace : IDisposable
 
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
+    /// <summary>A slow status read: every branch status waits this long first.</summary>
+    internal TimeSpan StatusDelay { get; set; }
     public async ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default)
     {
+        if (StatusDelay > TimeSpan.Zero) await Task.Delay(StatusDelay, cancellationToken);
         var status = await inner.GetBranchStatusAsync(fresh, cancellationToken);
         return status is null || Review is null ? status : status with { Review = Review(status.Review) };
     }
