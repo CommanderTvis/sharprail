@@ -30,7 +30,8 @@
     "SettleIdleDays": 7,
     "ActiveKeymap": "",
     "EditorTabWidth": 0,
-    "EditorLineNumbers": true
+    "EditorLineNumbers": true,
+    "Accent": ""
   },
   "Presets": [
     {

@@ -12,6 +12,7 @@
     "MarkdownLineWidthBounded": true,
     "EditorTabWidth": 4,
     "EditorLineNumbers": true,
+    "Accent": "",
     "CustomPresets": {
       "Wide \u00E9diteur": {
         "Schema": 1,

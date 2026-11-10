@@ -82,6 +82,22 @@ distinguishable (at least 1.15) from every resting surface. A `contrast: "high"`
 against their selection fills: the stricter floor is what makes high contrast an enforced property rather
 than a label.
 
+## Accent colour
+
+The user's accent is one more host setting (`accent`, empty by default: the theme's own accent). It is an
+opaque id to the host, validated only for shape (a curated slug or a custom `#rrggbb`). `Accents.cs` owns its
+meaning: a curated palette (green, blue, purple, pink, red, orange, yellow, teal, graphite) and custom hex
+colours. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`,
+`accentHover`, `onAccent`), cached per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
+accent and baking consumer then follows with no control knowing about it. Green is the bundled accent, so the
+default is the manifest itself. Each accent keeps its hue and saturation (scaled by the theme's own accent
+saturation so Minimal stays quiet; custom colours keep theirs) and each theme solves the lightness: the text
+accent meets the theme's text floor on every resting surface and on `hover`, the solid fill is chosen with a
+black or white label that clears 4.5 on both fills, and the hover fill stays distinguishable from the solid fill.
+Feedback colours never follow the accent. `WorkbenchWindow.ApplyTheme` applies it on every settings broadcast,
+so open windows change live. The design check holds every curated accent and a spread of custom colours in every
+bundled theme to the same floors as a manifest.
+
 Bundled files are enumerated from the `Assets/Themes` avares folder rather than named in code, and validated
 all-or-nothing at first use of `Themes.All`. They are our own files, so an invalid or duplicate manifest, a
 missing default (`dark`), or a catalogue without at least one light and one dark theme fails loudly. The

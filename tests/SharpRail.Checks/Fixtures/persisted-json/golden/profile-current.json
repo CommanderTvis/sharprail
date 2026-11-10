@@ -2,6 +2,7 @@
   "Preferences": {
     "EditorTabWidth": 4,
     "EditorLineNumbers": true,
+    "Accent": "",
     "FontSize": 13,
     "CodeFontSize": 12.5,
     "Zoom": 1,
