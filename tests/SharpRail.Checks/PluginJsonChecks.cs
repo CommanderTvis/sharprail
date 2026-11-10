@@ -39,7 +39,7 @@ internal static class PluginJsonChecks
 
         // Tools register at activation, which refuses a parameters type without metadata; the schema walks it to its leaves.
         var state = new HostStateStore(Path.Combine(root, "plugin-json-state"));
-        var builtins = BuiltinPlugins.All.Where(entry => entry.Manifest.Id is "spec-dialect" or "visualize" or "blueprint" or "processes" or "air-context").ToArray();
+        var builtins = BuiltinPlugins.All.Where(entry => entry.Manifest.Id is "spec-dialect" or "visualize" or "blueprint" or "processes" or "air-context" or "code-intelligence").ToArray();
         await state.ChangeAsync([.. builtins.Select(entry => HostStateChange.PluginEnabled(entry.Manifest.Id, true))]);
         await using var runtime = new PluginRuntime(new() { StateDirectory = null, State = state, Builtins = builtins });
         await runtime.Start();

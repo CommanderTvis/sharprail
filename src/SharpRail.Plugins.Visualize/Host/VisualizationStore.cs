@@ -12,6 +12,9 @@ namespace SharpRail.Plugins.Visualize.Host;
 /// </summary>
 internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
 {
+    // Record serializes the tool's arguments, and a store can run before the host activates and registers the module's context.
+    static VisualizationStore() => PluginJson.Register(VisualizeHostJson.Default);
+
     internal const string StateName = "visualizations";
 
     internal const string ToolDescription =
