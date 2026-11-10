@@ -28,6 +28,7 @@ internal static partial class HeadlessChecks
         Dependencies();
         Languages();
         await Consent(fixture);
+        CloudSetup();
         var root = Path.Combine(fixture, "headless");
         var workspace = Path.Combine(root, "workspace");
         var state = Path.Combine(root, "state");
@@ -55,7 +56,24 @@ internal static partial class HeadlessChecks
         Console.WriteLine("PASS headless host: JSON-RPC lines only on stdout, logs on stderr, EOF and SIGTERM exit 0, bad configuration exits 2, no UI reference");
     }
 
+    /// <summary>The cloud setup script's config writing (the MCP entry with alwaysLoad, MCP_TIMEOUT, the notes) against a temporary HOME: existing keys kept, idempotent, invalid JSON untouched. Needs bash and jq.</summary>
+    private static void CloudSetup()
+    {
+        if (BoundaryChecks.Checkout() is not { } checkout || OperatingSystem.IsWindows()) { Console.WriteLine("SKIP headless cloud setup: no source checkout or no bash"); return; }
+        var start = new ProcessStartInfo("bash") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        start.ArgumentList.Add(Path.Combine(checkout, "scripts", "headless-cloud-setup.test.sh"));
+        using var process = Process.Start(start)!;
+        var error = process.StandardError.ReadToEndAsync();
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit(60_000);
+        var errors = error.GetAwaiter().GetResult();
+        if (errors.Contains("jq: command not found", StringComparison.Ordinal)) { Console.WriteLine("SKIP headless cloud setup: jq is not installed"); return; }
+        Require(process.ExitCode == 0, "The cloud setup script test failed:\n" + output + errors);
+        Console.Write(output);
+    }
+
     /// <summary>The restore graph, transitive packages and projects included, holds no UI, Skia or web server package.</summary>
+
     private static void Dependencies()
     {
         if (BoundaryChecks.Checkout() is not { } checkout) { Console.WriteLine("SKIP headless dependency graph: no source checkout"); return; }

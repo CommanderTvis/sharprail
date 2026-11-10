@@ -80,6 +80,36 @@ In a project's `.mcp.json`:
 
 The server reads one JSON-RPC message per line and writes one per line. Logs go to stderr. It stops with exit code 0 when stdin ends or on SIGTERM or SIGINT. A configuration error stops it with exit code 2 and a message on stderr.
 
+## Tool names and startup in Claude Code
+
+The server lists its tools on `tools/list` at once (the six `lsp_*` tools by default, all 14 when the spec and Blueprint tools are opted in), on a cold start too: nothing waits for the language roster, consent, a workspace or a first `languages` call, and a language that is still installing answers `initializing` from the call, not from the list. The list never changes while the server runs, so `tools.listChanged` is declared `false` and no `notifications/tools/list_changed` is sent. The protocol version is the client's own when it is `2024-11-05`, `2025-03-26` or `2025-06-18`, else `2025-06-18`. `initialize` takes about 20 ms; the `instructions` text names every tool.
+
+Claude Code names a tool `mcp__<server>__<tool>`, where `<server>` is the key in `mcpServers`. With the key `sharprail` they are `mcp__sharprail__lsp_navigate`, `mcp__sharprail__lsp_diagnostics`, `mcp__sharprail__lsp_status`, `mcp__sharprail__lsp_code_actions`, `mcp__sharprail__lsp_rename`, `mcp__sharprail__lsp_format`, `mcp__sharprail__spec_grep`, `mcp__sharprail__spec_get`, `mcp__sharprail__spec_graph`, `mcp__sharprail__spec_create`, `mcp__sharprail__spec_update`, `mcp__sharprail__spec_delete`, `mcp__sharprail__spec_validate` and `mcp__sharprail__blueprint_check`. A server bundled in a plugin is `mcp__plugin_<plugin>_<server>__<tool>` (the desktop app's own tools look like that), so a search for the exact `mcp__sharprail__...` name does not find it, while a search for `sharprail` does.
+
+Claude Code starts MCP servers in the background, 3 stdio servers at a time, and a server that has not connected within `MCP_TIMEOUT` (30 s by default) is marked failed; a stdio server is not retried. Tool schemas are deferred behind `ToolSearch`, which answers "No matching deferred tools found" while a server has not delivered its list or after it failed. In a Claude Code cloud session do not use a `.mcp.json` or Docker at all: paste `scripts/headless-cloud-setup.sh` into the environment's setup script, which installs the binary and writes the user-scope entry (with `alwaysLoad`) and `MCP_TIMEOUT`, see [headless-cloud.md](headless-cloud.md). The rest of this section is the background, and applies to a `.mcp.json` on your own machine.
+
+Two rules follow:
+
+- `"alwaysLoad": true` puts the tools into the first prompt instead of leaving the agent to find them (startup waits for the server, capped by `MCP_CONNECT_TIMEOUT_MS`, 5 s by default). It needs a server that starts in that time: the installed binary does, `docker run` with an image pull does not.
+- Do not start the server with `docker run` in a cloud session unless the image is already on the VM. The pull takes many seconds to minutes and counts against the 30 s. Use the setup script from [headless-cloud.md](headless-cloud.md) (a binary, no Docker), or set `MCP_TIMEOUT=300000` in the environment variables of the cloud environment and run `docker pull ghcr.io/commandertvis/sharprail:nightly` in the setup script, so the first start only creates the container.
+
+```json
+{
+  "mcpServers": {
+    "sharprail": {
+      "command": "${HOME}/.local/bin/sharprail-headless",
+      "args": ["mcp"],
+      "env": {"SHARPRAIL_TOOLCHAINS": "managed"},
+      "alwaysLoad": true
+    }
+  }
+}
+```
+
+The Docker variant, only with the image pulled beforehand: `"command": "docker"`, `"args": ["run", "-i", "--rm", "--init", "-v", "${PWD}:/workspace", "-v", "sharprail-cache:/cache", "ghcr.io/commandertvis/sharprail:nightly"]`, and the same `alwaysLoad`.
+
+If an agent's `ToolSearch` finds nothing, the server is still connecting or has failed: run `/mcp` (or `claude mcp list`), search again, and do not start the work without the tools. Which of these happened in the report that prompted this section is not known: it was not reproduced in a real cloud session.
+
 ## Settings
 
 | Setting | Meaning |

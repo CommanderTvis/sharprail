@@ -30,33 +30,28 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/101a12c2c7e1a1705aeef282658b4d4786b5ec17/scripts/headless-cloud-setup.sh | bash
    ```
 
-   Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is about 70 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
+   Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is about 150 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
    - picks the image layer for the machine's architecture from the manifest on `ghcr.io`, with no Docker and no login,
    - checks the layer's sha256 against the digest in the manifest,
    - installs the app in `~/.local/share/sharprail-headless` and links `~/.local/bin/sharprail-headless`,
    - installs `libicu74` with `apt-get` if the VM lacks it,
    - runs `warm csharp` if `SHARPRAIL_WARM=1` (downloads about 650 MB),
-   - runs `claude mcp add --scope user sharprail ...` if the `claude` CLI is there, else prints the `.mcp.json` below.
+   - writes the usage notes (below) into `~/.claude/CLAUDE.md`,
+   - registers the MCP server `sharprail` in Claude Code's user config, and sets `MCP_TIMEOUT` in `~/.claude/settings.json`.
 
    `SHARPRAIL_IMAGE_TAG` picks the image. It is a tag or a `sha256:` digest and defaults to `nightly`. `nightly` moves, so pin a `sha-<commit>` tag or a digest for an experiment.
-4. The script also writes the launcher's code-intelligence guidance, adapted to the headless server (use `lsp_navigate` before grep, run `lsp_diagnostics` on edited files, paths relative to the root, `initializing` means call again, and the list of languages with a server, taken from the installed binary), between marker lines in `~/.claude/CLAUDE.md`. It replaces its own block on each run and keeps your text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it, for example for a run that must not be told to prefer the tools. In the first real run the agent's first diagnostics call used a path relative to the wrong root, which this text now explains.
-5. Optional: commit a `.mcp.json` to the repo too. The docs promise that a repo's `.mcp.json` is loaded in a one-repository session. The server added by `claude mcp add` in the setup script reached the session in the first real run (see the end of this page), but the docs do not promise that, so the committed file is the documented path and a backup.
 
-   ```json
-   {
-     "mcpServers": {
-       "sharprail": {
-         "command": "${HOME}/.local/bin/sharprail-headless",
-         "args": ["mcp"],
-         "env": {"SHARPRAIL_TOOLCHAINS": "managed"}
-       }
-     }
-   }
-   ```
+   That is the whole setup: paste the script, nothing else. No `.mcp.json` in the repo and no Docker.
+4. The script runs before Claude Code starts (the docs: "a Bash script that runs when a new cloud session starts, before Claude Code launches", and they show a setup script that writes `~/.claude/CLAUDE.md` for the session), so the files it writes in the VM's home are what the session reads. It writes:
+   - The server, with the supported `claude mcp add-json --scope user sharprail ...` when the `claude` CLI exists (it accepts and validates `alwaysLoad`, tried with Claude Code 2.1.322), else by merging the entry into `~/.claude.json` with `jq`. The entry is `{"type":"stdio","command":"<home>/.local/bin/sharprail-headless","args":["mcp"],"env":{"SHARPRAIL_TOOLCHAINS":"managed"},"alwaysLoad":true}`. The key is `sharprail`, so the tools are `mcp__sharprail__lsp_navigate` and so on. `alwaysLoad` puts them into the first prompt instead of behind `ToolSearch` (startup then waits for the server, at most 5 s, `MCP_CONNECT_TIMEOUT_MS`; the binary starts in about 20 ms).
+   - `MCP_TIMEOUT=300000` in the `env` block of `~/.claude/settings.json` (the default is 30 s), unless the file already sets it. `MCP_TOOL_TIMEOUT` stays at its default of about 28 hours. Other keys of both files are kept; a file that is not a JSON object is left alone. A second run changes nothing (`scripts/headless-cloud-setup.test.sh`, part of the headless check, tests this against a temporary HOME).
+   - Short usage notes between marker lines in `~/.claude/CLAUDE.md`: the tools are `mcp__sharprail__*`, if a first search finds none then search again, use `lsp_navigate` before grep and run `lsp_diagnostics` on edited files, `initializing` means call again, and the languages with a server (taken from the installed binary). It replaces its own block on each run and keeps your text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it, for example for a run that must not be told to prefer the tools.
 
-   Also commit `.sharprail/mcp.toml` if you want arms or the call log (see [headless.md](headless.md#tool-switches-and-the-call-log)). The server runs in the repo directory, so no `--workspace` is needed. In a session without a repository it runs in `/home/user`; a project below it is reached with paths such as `demo/Shapes.cs`, or serve it directly with `SHARPRAIL_ROOT=/home/user/demo` (or `--workspace`) in the server's environment. The server states its root in `initialize` and `lsp_status`. If both the script and the file register `sharprail`, Claude Code warns about the same name in two scopes. Keep one of them.
-5. Add **Environment variables** if you need them: `SHARPRAIL_ARM=nolsp`, `SHARPRAIL_LOG=1`, `SHARPRAIL_LOG_LEVEL=args`. Anyone who can use the environment can read them, so no secrets.
-6. Start a session in a repository with this environment, run `/mcp` and look for `sharprail` with its tool count. A project server from `.mcp.json` may ask for approval first.
+   The same name in several places: Claude Code matches servers by name across local, project and user scope, connects once and uses the whole entry of the highest one (local, then project, then user). A `sharprail` entry in the repo's `.mcp.json` therefore wins over this one and is not merged with it, so either leave it out or give it the same `alwaysLoad`. The docs warn in `/mcp` when same-named entries differ.
+
+   Confirmed by the docs: the setup script runs before Claude Code launches, user-scope servers live in `~/.claude.json`, `alwaysLoad` is a field of an `mcpServers` entry on every server type, `MCP_TIMEOUT` defaults to 30000 ms, `env` is a settings key. Not confirmed by them: that a cloud session reads `~/.claude.json` and `~/.claude/settings.json` written by the setup script. They only say the settings file of your own machine is not read, and their example covers `~/.claude/CLAUDE.md`. The first real run (below) showed that a user-scope server added by the script reached the session. For `MCP_TIMEOUT` the documented place is the environment's own variables (next step), so set it there too if it matters.
+5. Add **Environment variables** if you need them: `SHARPRAIL_ARM=nolsp`, `SHARPRAIL_LOG=1`, `SHARPRAIL_LOG_LEVEL=args`, and optionally `MCP_TIMEOUT=300000`. Anyone who can use the environment can read them, so no secrets. A committed `.sharprail/mcp.toml` gives arms or the call log (see [headless.md](headless.md#tool-switches-and-the-call-log)); the server runs in the repo directory, so no `--workspace` is needed. In a session without a repository it runs in `/home/user`; a project below it is reached with paths such as `demo/Shapes.cs`, or serve it directly with `SHARPRAIL_ROOT=/home/user/demo` (or `--workspace`) in the server's environment. The server states its root in `initialize` and `lsp_status`.
+6. Start a session in a repository with this environment, run `/mcp` and look for `sharprail` with its tool count.
 
 ## Cost and caching
 
@@ -115,7 +110,7 @@ Unverified:
 - The NativeAOT binary on Linux. Everything verified above ran the earlier JIT build. The native binary has run only on macOS (arm64): `check-config`, initialize, tools/list and three tool calls. The next image built by hand is its first Linux run.
 - Everything on a real cloud VM beyond the setup script above, including the amd64 binary starting there (the setup script does not start it).
 - Whether `builds.dotnet.microsoft.com`, `pkg-containers.githubusercontent.com` and `globalcdn.nuget.org` are the only extra domains needed. They are what the code and the registry redirect use, and none is in the default list.
-- Whether `.mcp.json` expands `${HOME}` there, and whether the server's working directory is the repo root.
+- Whether a cloud session reads the `~/.claude.json` and `~/.claude/settings.json` entries (`alwaysLoad`, `MCP_TIMEOUT`) that the setup script now writes (the docs do not say; the plain user-scope server did reach the first real run), and the server's working directory (the repo root is assumed).
 - Whether `raw.githubusercontent.com` serves this repo to the VM (it needs the repo to be public).
 - Whether the setup script may run `apt-get` for `libicu74` (the docs say `apt install` works), and whether the VM already has libicu.
 - How to get a file out of a finished session.
