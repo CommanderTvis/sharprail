@@ -23,6 +23,7 @@
     "LanguageServers": "{\u0022csharp\u0022:{\u0022command\u0022:\u0022/opt/roslyn \\u003Clsp\\u003E \\u0026 \\u0027co\\u0027\u0022},\u0022python\u0022:{\u0022arguments\u0022:[\u0022--stdio\u0022]}}",
     "LanguageTools": "{\u0022go\u0022:\u0022/usr/local/bin/go\u0022,\u0022node\u0022:\u0022/opt/n\u00F6de/bin/node\u0022}",
     "LanguageLimits": "{\u0022idleMinutes\u0022:15,\u0022memoryMb\u0022:4096}",
+    "TerminalMemory": "",
     "CustomHighlighting": "",
     "VerticalCenterTabs": true,
     "VerticalTabsInProjects": false,

@@ -135,61 +135,61 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         switch (watch.State)
         {
             case GuardState.Terminating:
-            {
-                if (!over) { Settle(watch); break; }
-                var alive = tree.Any(process => Same(process, watch.Victim));
-                if (alive && now < watch.Deadline) break;
-                if (!alive) { Settle(watch); goto default; }
-                var victim = tree.First(process => Same(process, watch.Victim));
-                killer.Kill(victim);
-                Raise(target, GuardEventKind.Killed, $"SharpRail killed {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: it did not stop within {setting.GraceSeconds} s ({reason})");
-                watch.State = GuardState.Killing;
-                break;
-            }
+                {
+                    if (!over) { Settle(watch); break; }
+                    var alive = tree.Any(process => Same(process, watch.Victim));
+                    if (alive && now < watch.Deadline) break;
+                    if (!alive) { Settle(watch); goto default; }
+                    var victim = tree.First(process => Same(process, watch.Victim));
+                    killer.Kill(victim);
+                    Raise(target, GuardEventKind.Killed, $"SharpRail killed {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: it did not stop within {setting.GraceSeconds} s ({reason})");
+                    watch.State = GuardState.Killing;
+                    break;
+                }
             case GuardState.Killing:
-            {
-                if (!over) { Settle(watch); break; }
-                var rest = tree.Where(process => !setting.Protects(process.Name)).ToArray();
-                // Children first, so a parent cannot restart what was just ended.
-                foreach (var process in rest.OrderByDescending(process => process.Pid)) killer.Kill(process);
-                Raise(target, GuardEventKind.TreeKilled, $"SharpRail killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}): the terminal stayed over its limit ({reason})");
-                Settle(watch);
-                break;
-            }
+                {
+                    if (!over) { Settle(watch); break; }
+                    var rest = tree.Where(process => !setting.Protects(process.Name)).ToArray();
+                    // Children first, so a parent cannot restart what was just ended.
+                    foreach (var process in rest.OrderByDescending(process => process.Pid)) killer.Kill(process);
+                    Raise(target, GuardEventKind.TreeKilled, $"SharpRail killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}): the terminal stayed over its limit ({reason})");
+                    Settle(watch);
+                    break;
+                }
             default:
-            {
-                if (over && Victim(tree, setting) is { } victim)
                 {
-                    killer.Terminate(victim);
-                    Raise(target, GuardEventKind.Stopped, $"SharpRail stopped {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: {reason}");
-                    watch.State = GuardState.Terminating;
-                    watch.Victim = victim;
-                    watch.Deadline = now + TimeSpan.FromSeconds(setting.GraceSeconds);
-                    watch.ProtectedReported = false;
-                }
-                else if (over)
-                {
-                    // The biggest process is protected (or nothing is left to end): only warn, once per episode.
-                    watch.State = GuardState.Warned;
-                    if (!watch.ProtectedReported)
+                    if (over && Victim(tree, setting) is { } victim)
                     {
-                        watch.ProtectedReported = true;
-                        Raise(target, GuardEventKind.Protected, $"{target.Name} uses {Size(bytes)}, over its limit ({reason}), but {largest} is protected: SharpRail will not stop it");
+                        killer.Terminate(victim);
+                        Raise(target, GuardEventKind.Stopped, $"SharpRail stopped {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: {reason}");
+                        watch.State = GuardState.Terminating;
+                        watch.Victim = victim;
+                        watch.Deadline = now + TimeSpan.FromSeconds(setting.GraceSeconds);
+                        watch.ProtectedReported = false;
                     }
+                    else if (over)
+                    {
+                        // The biggest process is protected (or nothing is left to end): only warn, once per episode.
+                        watch.State = GuardState.Warned;
+                        if (!watch.ProtectedReported)
+                        {
+                            watch.ProtectedReported = true;
+                            Raise(target, GuardEventKind.Protected, $"{target.Name} uses {Size(bytes)}, over its limit ({reason}), but {largest} is protected: SharpRail will not stop it");
+                        }
+                    }
+                    else if (bytes >= limit * WarnAt && watch.State == GuardState.Ok)
+                    {
+                        watch.State = GuardState.Warned;
+                        Raise(target, GuardEventKind.Warned, $"{target.Name} uses {Size(bytes)} of {Size(limit)}: {largest}");
+                    }
+                    else if (watch.State == GuardState.Warned && bytes < limit * ClearBelow)
+                    {
+                        watch.State = GuardState.Ok;
+                        watch.ProtectedReported = false;
+                    }
+                    else if (watch.State == GuardState.Warned && !over) watch.ProtectedReported = false;
+                    break;
                 }
-                else if (bytes >= limit * WarnAt && watch.State == GuardState.Ok)
-                {
-                    watch.State = GuardState.Warned;
-                    Raise(target, GuardEventKind.Warned, $"{target.Name} uses {Size(bytes)} of {Size(limit)}: {largest}");
-                }
-                else if (watch.State == GuardState.Warned && bytes < limit * ClearBelow)
-                {
-                    watch.State = GuardState.Ok;
-                    watch.ProtectedReported = false;
-                }
-                else if (watch.State == GuardState.Warned && !over) watch.ProtectedReported = false;
-                break;
-            }
         }
         watch.Usage = watch.Usage with { State = watch.State };
     }

@@ -84,7 +84,7 @@ internal static class TerminalMemoryGuardChecks
 
     private static void Membership()
     {
-        ProcessEntry E(int pid, int ppid, long group, string name = "x") => new(pid, ppid, group, name, 1);
+        static ProcessEntry E(int pid, int ppid, long group, string name = "x") => new(pid, ppid, group, name, 1);
         // macOS: terminal devices. A build server that was reparented to init keeps the terminal and is still the terminal's.
         var table = new[] { E(1, 0, 0), E(10, 1, 55, "zsh"), E(11, 10, 55), E(12, 11, 55), E(99, 1, 55, "VBCSCompiler"), E(100, 1, 0), E(101, 100, 77) };
         Require(ProcessEntries.Members(table, 10).Select(entry => entry.Pid).Order().SequenceEqual([11, 12, 99]), "A terminal's processes are its descendants and the processes on its terminal.");
@@ -266,7 +266,7 @@ internal static class TerminalMemoryGuardChecks
         if (Perl() is not { } perl) { Console.WriteLine("SKIP terminal memory guard real process: no perl."); return; }
         var start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
         start.ArgumentList.Add("-c");
-        start.ArgumentList.Add($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' & wait");
+        start.ArgumentList.Add($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' & wait; sleep 120");
         using var shell = Process.Start(start)!;
         try
         {
@@ -282,7 +282,7 @@ internal static class TerminalMemoryGuardChecks
                 await Task.Delay(100);
             }
             Require(events[0].Text.StartsWith("SharpRail stopped perl (", StringComparison.Ordinal) && events[0].Text.EndsWith("terminal memory limit 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
-            while (sampler.Tree(shell.Id) is { Count: > 0 } && DateTime.UtcNow < deadline) { guard.Tick([new("real", "Real", shell.Id)]); sampler.Refresh(); await Task.Delay(100); }
+            while (sampler.Tree(shell.Id).Any(process => process.Name == "perl") && DateTime.UtcNow < deadline) { guard.Tick([new("real", "Real", shell.Id)]); sampler.Refresh(); await Task.Delay(100); }
             sampler.Refresh();
             Require(sampler.Tree(shell.Id).All(process => process.Name != "perl"), "The runaway child is still running.");
             Require(!shell.HasExited, "The shell was ended with its child.");

@@ -23,6 +23,7 @@
     "LanguageServers": "",
     "LanguageTools": "",
     "LanguageLimits": "",
+    "TerminalMemory": "",
     "CustomHighlighting": "",
     "VerticalCenterTabs": true,
     "VerticalTabsInProjects": true,
