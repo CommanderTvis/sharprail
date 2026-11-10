@@ -593,6 +593,20 @@ internal static class CodexE2E
             }
             catch (Exception) { return false; }
         });
+        // A selection in a plugin's own document, such as a Visualize Markdown drawing's file outside the workspace, is the active selection too.
+        var drawing = Path.Combine(root, "visualize-state", "abc.md");
+        codex.Loader.Editors.Emit(new EditorSelectionEvent(new EditorRef("visualize:" + workspace + ":t1", workspace, drawing, EditorKind.File, false),
+            new EditorSelection(3, 1, 5, 1, "First paragraph\n")));
+        E2eWorkspace.Until(() =>
+        {
+            try
+            {
+                var file = Ide(codex.Home, workspace).GetProperty("result").GetProperty("ideContext").GetProperty("activeFile");
+                return file.ValueKind == JsonValueKind.Object && file.GetProperty("path").GetString() == drawing
+                    && file.GetProperty("activeSelectionContent").GetString() == "First paragraph\n" && file.GetProperty("selection").GetProperty("start").GetProperty("line").GetInt32() == 2;
+            }
+            catch (Exception) { return false; }
+        });
         codex.Enable(false);
         E2eWorkspace.Until(() => IdeResult(codex.Home, workspace) != "success");
         codex.Enable(true);

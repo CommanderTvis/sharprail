@@ -18,6 +18,7 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Panels;
 
@@ -282,6 +283,31 @@ internal static class VisualizeE2E
         Require(ReferenceEquals(app.Workbench.ActiveWindow, peer.Window), "A background drawing must not activate the terminal's window.");
         Require(!peer.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "VisualizationPane"), "The unrelated window must not receive the terminal's drawing.");
         peer.Window.Close();
+
+        // A Markdown drawing is backed by a file on the host, and a selection in its pane is an editor selection of that file with the
+        // source lines the file preview names, which is how an agent's IDE integration learns what "this" is.
+        const string Notes = "# Plan\n\nFirst paragraph\ncontinues here.\n\nLast paragraph.\n";
+        var selections = new List<EditorSelectionEvent>();
+        using var selectionEvents = app.Workbench.PluginLoader.Editors.On(change => { if (change is EditorSelectionEvent selected) selections.Add(selected); });
+        Call(JsonSerializer.Serialize(new { type = "markdown", title = "Notes", markdown = Notes }));
+        Until(() => Pane() is { } markdownPane && markdownPane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
+        var preview = Pane()!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
+        var first = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(block => (block.Inlines?.Text ?? block.Text ?? "").StartsWith("First paragraph", StringComparison.Ordinal));
+        first.SelectAll();
+        Named(Pane()!, "VisualizationPane").RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.A });
+        Until(() => selections.Count > 0 && selections[^1].Selection is not null);
+        var markdownSelection = selections[^1];
+        Require(Path.IsPathRooted(markdownSelection.Editor.Path) && File.ReadAllText(markdownSelection.Editor.Path) == Notes
+            && markdownSelection.Selection is { StartLine: 3, StartColumn: 1, EndLine: 5, EndColumn: 1 } && markdownSelection.Selection.Text.StartsWith("First paragraph", StringComparison.Ordinal),
+            $"A selection in a Markdown drawing is an editor selection of its source file with the source lines: {markdownSelection.Editor.Path} {markdownSelection.Selection}");
+        if (!OperatingSystem.IsWindows())
+            Require(File.GetUnixFileMode(markdownSelection.Editor.Path) == (UnixFileMode.UserRead | UnixFileMode.UserWrite), "The source file is private to its owner.");
+        first.ClearSelection();
+        Named(Pane()!, "VisualizationPane").RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.Right });
+        Until(() => selections[^1].Selection is null);
+        Call("""{"type":"comparison","title":"Background drawing","options":[{"name":"Owner only"}]}""");
+        Until(() => Pane() is not null && Texts(Pane()!).Contains("Owner only", StringComparison.Ordinal));
+        Until(() => !File.Exists(markdownSelection.Editor.Path));
 
         // Disabling the plugin unmounts its panes and chips; enabling it again resubscribes from scratch.
         void SetEnabled(bool enabled)

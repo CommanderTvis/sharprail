@@ -24,7 +24,10 @@ public sealed class VisualizeHost : PluginHostModule
             (workspaceId, tabKey) => context.AgentRecord(new TerminalRef(workspaceId, tabKey))?.SessionId,
             new Persistence(context),
             // A chat's child holds a token but runs no terminal: its drawings open as a tab of their own unless its chat tab hosts a pane.
-            (workspaceId, tabKey) => context.Terminals().Any(item => item.Terminal.WorkspaceId == workspaceId && item.Terminal.TabKey == tabKey));
+            (workspaceId, tabKey) => context.Terminals().Any(item => item.Terminal.WorkspaceId == workspaceId && item.Terminal.TabKey == tabKey),
+            new VisualizationSourceFiles(VisualizationSourceFiles.DefaultDirectory(), context.ReadState<string[]>(VisualizationStore.FilesStateName, []),
+                paths => context.WriteState(VisualizationStore.FilesStateName, paths.ToArray())));
+        Store.SweepSourceFiles();
 
         context.Method(VisualizeContract.Report, (report, _, _) =>
         {
@@ -45,6 +48,7 @@ public sealed class VisualizeHost : PluginHostModule
 
         context.OnTerminal(change =>
         {
+            if (change is TerminalClosed closed) Store.TerminalClosed(closed.Terminal.WorkspaceId, closed.Terminal.TabKey);
             if (change is TerminalAgentChanged { Record.SessionId: { Length: > 0 } sessionId } agent)
                 Store.AdoptForSession(agent.Terminal.WorkspaceId, agent.Terminal.TabKey, sessionId);
         });

@@ -34,6 +34,8 @@ public static class CodexEditorContext
     {
         var selections = new Dictionary<string, EditorSelection?>();
         var activeEditors = new Dictionary<string, EditorRef>();
+        // A selection in a plugin's own document (a Visualize Markdown drawing's file): no editor tab lists it, yet it is what the user means.
+        var documents = new Dictionary<string, EditorRef>();
         void RememberActive()
         {
             if (context.Host().ActiveEditor is { } active) activeEditors[active.WorkspaceId] = active;
@@ -47,6 +49,12 @@ public static class CodexEditorContext
                 case EditorSelectionEvent selected:
                     selections[selected.Editor.Id] = selected.Selection is { Mapped: false } ? null : selected.Selection;
                     activeEditors[selected.Editor.WorkspaceId] = selected.Editor;
+                    if (context.Editors.List(selected.Editor.WorkspaceId).Any(editor => editor.Id == selected.Editor.Id)) documents.Remove(selected.Editor.WorkspaceId);
+                    else if (selected.Selection is { Mapped: true }) documents[selected.Editor.WorkspaceId] = selected.Editor;
+                    else if (documents.GetValueOrDefault(selected.Editor.WorkspaceId)?.Id == selected.Editor.Id) documents.Remove(selected.Editor.WorkspaceId);
+                    break;
+                case EditorLifecycleEvent { Lifecycle: EditorLifecycle.Activated } activated:
+                    documents.Remove(activated.Editor.WorkspaceId);
                     break;
                 case EditorLifecycleEvent { Lifecycle: EditorLifecycle.Closed } closed:
                     selections.Remove(closed.Editor.Id);
@@ -63,7 +71,8 @@ public static class CodexEditorContext
             var shownActive = host.ActiveWorkspaceId == request.WorkspaceId;
             var editors = context.Editors.List(request.WorkspaceId);
             if (!shownActive && editors.Count == 0 && host.ShownTerminalTabKeys.GetValueOrDefault(request.WorkspaceId) is not { Count: > 0 }) return;
-            var active = (shownActive ? host.ActiveEditor : null) ?? activeEditors.GetValueOrDefault(request.WorkspaceId);
+            var active = documents.GetValueOrDefault(request.WorkspaceId) ?? (shownActive ? host.ActiveEditor : null) ?? activeEditors.GetValueOrDefault(request.WorkspaceId);
+            if (documents.GetValueOrDefault(request.WorkspaceId) is { } document) editors = [.. editors, document];
             var ideContext = Build(editors, active, active is null ? null : selections.GetValueOrDefault(active.Id));
             var focused = shownActive && AppFocused();
             _ = Reply();

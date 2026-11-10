@@ -18,6 +18,12 @@ public sealed record TerminalVisualization(string Title, JsonElement Args, int R
     /// tab of its own instead of beside its tab. A drawing adopted by a terminal is never detached.
     /// </summary>
     public bool Detached { get; init; }
+
+    /// <summary>
+    /// The absolute path, on the host, of a file holding a Markdown drawing's source exactly (null for other kinds, or when it could not be written).
+    /// The pane reports a selection in the drawing as a selection in this file.
+    /// </summary>
+    public string? SourcePath { get; init; }
 }
 
 // The snapshot method (get) and the channel it feeds share this exact shape: the app's state-channel hydration

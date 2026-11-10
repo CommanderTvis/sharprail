@@ -17,6 +17,9 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
 
     internal const string StateName = "visualizations";
 
+    /// <summary>The Markdown source files this host wrote, so the next run can sweep what a crash left.</summary>
+    internal const string FilesStateName = "visualization-files";
+
     internal const string ToolDescription =
         "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal or chat (in a Visualization tab when your chat has none open) — " +
         "instead of ASCII art or a plain markdown table. Four kinds, chosen by `type`: 'diagram' renders a " +
@@ -34,7 +37,8 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         "Read this terminal's live visualize view as JSON: whether something is shown, its revision, type and title, " +
         "the `mermaid`, `svg` or `markdown` source or comparison `options` exactly as last drawn, the render verdict (render: ok, error " +
         "with renderError, or pending when no pane has reported), the last refused attempt (rejected) if the latest " +
-        "call did not render, and the text the user has selected in the pane (selection, null when none). Use it " +
+        "call did not render, and the text the user has selected in the pane (selection, null when none). A markdown view is also a file: " +
+        "sourcePath names it, and you may Read it. Use it " +
         "before editing a drawing you no longer have verbatim, or when the user refers to \"this node\" or " +
         "\"the selected option\". Only this terminal's own view is readable.";
 
@@ -65,9 +69,10 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     private readonly HashSet<(string Workspace, string Tab)> hosting = [];
     private Func<string, string, bool> isTerminal = (_, _) => true;
     private IPersistence persisted = new Nowhere();
+    private VisualizationSourceFiles? sourceFiles;
 
     /// <param name="terminalLookup">Whether a workspace and tab key name a live terminal; a caller that is none (a chat) gets a detached drawing unless its tab is a reported companion host. Unset, every caller is a terminal.</param>
-    internal void Connect(Action<VisualizationsChanged>? publisher, Func<string, string, string?>? sessionLookup, IPersistence? persistence = null, Func<string, string, bool>? terminalLookup = null)
+    internal void Connect(Action<VisualizationsChanged>? publisher, Func<string, string, string?>? sessionLookup, IPersistence? persistence = null, Func<string, string, bool>? terminalLookup = null, VisualizationSourceFiles? files = null)
     {
         lock (gate)
         {
@@ -75,7 +80,21 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             sessionOf = sessionLookup ?? ((_, _) => null);
             isTerminal = terminalLookup ?? ((_, _) => true);
             if (persistence is not null) persisted = persistence;
+            if (files is not null) sourceFiles ??= files;
         }
+    }
+
+    /// <summary>
+    /// Puts a Markdown drawing's source in its file (rewritten only when the text changed) and names the file in the drawing;
+    /// any other kind, or a file that cannot be written, leaves the drawing in memory only.
+    /// </summary>
+    private TerminalVisualization Materialize(string workspaceId, string tabKey, TerminalVisualization visualization)
+    {
+        var source = sourceFiles is null || !visualization.Args.TryGetProperty("type", out var type) || type.GetString() != "markdown"
+            || !visualization.Args.TryGetProperty("markdown", out var markdown) || markdown.GetString() is not { } text ? null : text;
+        if (source is null) sourceFiles?.Delete(workspaceId, tabKey);
+        var path = source is null ? null : sourceFiles!.Write(workspaceId, tabKey, source);
+        return visualization.SourcePath == path ? visualization : visualization with { SourcePath = path };
     }
 
     /// <summary>A companion-hosting tab (a chat's) is open or gone: while open, its caller's drawing is a pane of that tab, not a tab of its own.</summary>
@@ -144,6 +163,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             {
                 result["revision"] = current.Revision;
                 result["title"] = current.Title;
+                if (current.SourcePath is { } sourcePath) result["sourcePath"] = sourcePath;
                 // The arguments as last drawn (type, the explicit title if any, mermaid or options), field for field.
                 if (JsonNode.Parse(current.Args.GetRawText()) is JsonObject args)
                     foreach (var (name, value) in args.ToArray())
@@ -199,6 +219,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             if (current is not null && current.Revision >= stored.Revision) return null;
             // Whatever tab adopts a drawing is a terminal.
             if (stored.Detached) stored = stored with { Detached = false };
+            stored = Materialize(workspaceId, tabKey, stored);
             byTerminal[(workspaceId, tabKey)] = stored;
             publish?.Invoke(Snapshot(workspaceId));
             return stored;
@@ -216,16 +237,34 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
                 selections.Remove(key);
                 rejected.Remove(key);
             }
+            sourceFiles?.DeleteWorkspace(workspaceId);
             var all = persisted.Read();
             if (all.Remove(workspaceId)) persisted.Write(all);
         }
+    }
+
+    /// <summary>A terminal's tab is gone: its Markdown file goes with it. The session's record keeps the drawing, and a resume writes the file again.</summary>
+    internal void TerminalClosed(string workspaceId, string tabKey)
+    {
+        lock (gate)
+        {
+            sourceFiles?.Delete(workspaceId, tabKey);
+            if (byTerminal.GetValueOrDefault((workspaceId, tabKey)) is { SourcePath: not null } current)
+                byTerminal[(workspaceId, tabKey)] = current with { SourcePath = null };
+        }
+    }
+
+    /// <summary>Removes the files no drawing owns, once at start: what an earlier host left behind.</summary>
+    internal void SweepSourceFiles()
+    {
+        lock (gate) sourceFiles?.Sweep();
     }
 
     private void Restore(string workspaceId, string tabKey, TerminalVisualization visualization, Verdict? verdict)
     {
         lock (gate)
         {
-            byTerminal[(workspaceId, tabKey)] = visualization;
+            byTerminal[(workspaceId, tabKey)] = visualization = Materialize(workspaceId, tabKey, visualization);
             if (verdict is null) verdicts.Remove((workspaceId, tabKey));
             else verdicts[(workspaceId, tabKey)] = verdict;
             publish?.Invoke(Snapshot(workspaceId));
@@ -239,6 +278,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             var revision = (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision ?? 0) + 1;
             var title = string.IsNullOrEmpty(parameters.Title) ? parameters.Type switch { VisualizationType.Comparison => "Comparison", VisualizationType.Svg => "SVG", VisualizationType.Markdown => "Markdown", _ => "Diagram" } : parameters.Title;
             var visualization = new TerminalVisualization(title, PluginJson.SerializeToElement(parameters), revision) { Detached = detached };
+            visualization = Materialize(workspaceId, tabKey, visualization);
             byTerminal[(workspaceId, tabKey)] = visualization;
             if (sessionOf(workspaceId, tabKey) is { } sessionId) RememberForSession(workspaceId, sessionId, visualization);
             publish?.Invoke(Snapshot(workspaceId));

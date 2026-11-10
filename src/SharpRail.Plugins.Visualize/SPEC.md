@@ -65,6 +65,18 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
 - Markdown (`type: markdown`) draws `markdown` with the kit's `MarkdownPreview`, the same renderer as the Markdown
   preview (tables, HTML tables, code, fenced Mermaid, theme colours), with no workspace: images and links resolve to
   nothing. It cannot fail to render, so it settles when shown. It is a top-level type only, not a comparison field.
+- A Markdown drawing is also a real file on the host, so what the user selects in it is an IDE selection like one in a
+  file's Markdown preview. The source is kept exactly, with no title added, in a `visualize` folder of the host's state
+  directory (private to the owner: folder and file are readable by nobody else), under one stable name per workspace and
+  tab. It is written whole to a temporary name and moved over the old file, and only when the text changed, so a board
+  that redraws often does not churn the disk. The file goes when the drawing is replaced by another kind, when the
+  terminal closes (a resume of its agent session writes it again) and when the workspace is removed; files an earlier run of this host wrote and no live drawing
+  owns are swept when the host half starts (the host remembers which it wrote, so another host sharing the folder is left alone). If the file cannot be written the drawing stays in memory only and still works.
+  The drawing carries the file's path and `visualize_read` names it, so the agent can read it. The pane reports a
+  selection as an editor selection of that file, mapped to source lines exactly as the file preview maps it (whole
+  lines of the blocks touched; text that maps to none is reported unmapped), and reports it cleared when the selection
+  collapses or the revision changes. Because the file lives on the host, a remote client reports the host's path. Diagrams,
+  SVG and comparisons have no text source to quote, so they stay in memory and report only through `visualize_read`.
 - The title names the companion once: `title`, else "Diagram", "SVG", "Markdown" or "Comparison". The arguments travel verbatim as
   JSON: the UI half renders them with the kit's `VisualizationCard`.
 - A drawing belongs to the conversation, not to the tab. The live view is keyed by terminal, but every drawing
@@ -144,6 +156,8 @@ The host half contributes the `visualize` item to the agent instructions (H20, o
 Terminal ownership acceptance uses the HTTP MCP URL emitted by a real host PTY, then calls tools/list
 and tools/call through that token. Unknown tokens are refused. A drawing reaches the owning terminal's
 companion while another window is active and leave unrelated terminals without a drawing.
+
+The focused checks also cover the Markdown file: exact content, privacy, no rewrite for unchanged text, one file per tab, removal on replacement, terminal close and workspace removal, the orphan sweep, the in-memory fallback, and in the companion the selection reaching the editor-event stream with that path and the source lines, then clearing.
 
 The focused checks cover `visualize_read` (nothing shown, diagram, comparison, failed parse, selection, another
 terminal's and no terminal's call, over the runtime's MCP table), shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,

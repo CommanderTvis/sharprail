@@ -34,6 +34,10 @@ public static class VisualizationCard
         return new VisualizationCardFrame(new DiagramView(args, interactive, onRender), false);
     }
 
+    /// <summary>The one-based source lines of the Markdown blocks a drawing's selection touches, as the Markdown preview of a file reports them; null for other kinds or no mapping.</summary>
+    public static (int Start, int End)? SelectedLines(Control card) =>
+        card.GetVisualDescendants().OfType<MarkdownPreview>().FirstOrDefault()?.SelectedLines;
+
     /// <summary>The text the user has selected in a drawing: diagram labels or card text, empty when none.</summary>
     public static string SelectedText(Control card) =>
         card.GetVisualDescendants().Select(control => control switch

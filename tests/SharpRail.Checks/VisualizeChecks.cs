@@ -50,6 +50,7 @@ internal static class VisualizeChecks
         Require(second.Store.Get("isolation", "t1") is null, "Each host runtime receives an independent builtin visualization store.");
         await Store();
         await Read();
+        SourceFiles(Path.Combine(root, "visualize-sources"));
         await Module(Path.Combine(root, "visualize-host"));
         await Transport(Path.Combine(root, "visualize-transports"));
         Console.WriteLine("PASS visualize host: shape validation, revisions, render reports, rollback, session persistence and local/remote channels");
@@ -72,6 +73,60 @@ internal static class VisualizeChecks
         var markdownShown = markdownStore.Record("w", "t", new VisualizeParams(VisualizationType.Markdown) { Markdown = "**bold**" });
         Require(markdownShown.Title == "Markdown" && markdownStore.Read("w", "t")["markdown"]?.GetValue<string>() == "**bold**" && markdownStore.Read("w", "t")["type"]?.GetValue<string>() == "markdown",
             "A markdown call is titled Markdown and visualize_read returns its source.");
+    }
+
+    // A Markdown drawing is backed by a private file holding its source exactly.
+    private static void SourceFiles(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var orphan = Path.Combine(directory, "orphan.md");
+        File.WriteAllText(orphan, "left by an earlier host");
+        var store = new VisualizationStore();
+        var neighbour = Path.Combine(directory, "neighbour.md");
+        File.WriteAllText(neighbour, "another host's live drawing");
+        var remembered = new List<string>();
+        store.Connect(null, null, files: new VisualizationSourceFiles(directory, [orphan], paths => { remembered.Clear(); remembered.AddRange(paths); }));
+        store.SweepSourceFiles();
+        Require(!File.Exists(orphan) && File.Exists(neighbour), "An orphan this host wrote is swept at start, and a file it did not write is left alone.");
+        File.Delete(neighbour);
+
+        static VisualizeParams Notes(string text) => new(VisualizationType.Markdown) { Markdown = text };
+        var drawn = store.Record("w1", "t1", Notes("# One\n\nbody\n"));
+        var path = drawn.SourcePath;
+        Require(path is not null && Path.IsPathRooted(path) && path.StartsWith(directory, StringComparison.Ordinal) && File.ReadAllText(path) == "# One\n\nbody\n",
+            "A Markdown drawing is written to a file with its exact source.");
+        Require(store.Read("w1", "t1")["sourcePath"]?.GetValue<string>() == path, "visualize_read names the file.");
+        if (!OperatingSystem.IsWindows())
+            Require(File.GetUnixFileMode(path!) == (UnixFileMode.UserRead | UnixFileMode.UserWrite) && (File.GetUnixFileMode(directory) & (UnixFileMode.GroupRead | UnixFileMode.OtherRead | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) == 0,
+                "The file and its directory are private to the owner.");
+
+        var stamp = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(path!, stamp);
+        var again = store.Record("w1", "t1", Notes("# One\n\nbody\n"));
+        Require(again.SourcePath == path && File.GetLastWriteTimeUtc(path!) == stamp, "Unchanged text does not rewrite the file.");
+        var changed = store.Record("w1", "t1", Notes("# Two\n"));
+        Require(changed.SourcePath == path && File.ReadAllText(path!) == "# Two\n" && File.GetLastWriteTimeUtc(path!) != stamp, "Changed text rewrites the same file.");
+        Require(Directory.GetFiles(directory).Length == 1, "A rewrite leaves no temporary file.");
+
+        var other = store.Record("w1", "t2", Notes("other"));
+        Require(other.SourcePath != path && Directory.GetFiles(directory).Length == 2, "Each tab has its own file.");
+        var diagram = store.Record("w1", "t2", Diagram("graph TD;A"));
+        Require(diagram.SourcePath is null && Directory.GetFiles(directory).Length == 1, "A drawing that is not Markdown has no file, and replacing a Markdown one removes it.");
+
+        Require(remembered.Contains(path!) && remembered.Count == 1, "The host remembers the files it owns.");
+        store.TerminalClosed("w1", "t1");
+        Require(!File.Exists(path!) && store.Get("w1", "t1")!.SourcePath is null, "Closing the terminal removes its file.");
+        var third = store.Record("w2", "t1", Notes("third"));
+        store.Forget("w2");
+        Require(!File.Exists(third.SourcePath!), "Forgetting a workspace removes its files.");
+
+        var failing = new VisualizationStore();
+        var blocked = Path.Combine(directory, "blocked");
+        File.WriteAllText(blocked, "a file where the directory should be");
+        failing.Connect(null, null, files: new VisualizationSourceFiles(blocked));
+        var memoryOnly = failing.Record("w1", "t1", Notes("kept in memory"));
+        Require(memoryOnly.SourcePath is null && failing.Read("w1", "t1")["markdown"]?.GetValue<string>() == "kept in memory", "A file that cannot be written leaves the drawing in memory.");
+        File.Delete(blocked);
     }
 
     // store.test.ts

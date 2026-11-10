@@ -20,6 +20,7 @@ internal sealed partial class VisualizationPane : Border
     private TerminalVisualization? shown;
     private int? reported;
     private string selected = "";
+    private string? reportedPath;
     private readonly string? emptyText;
     private bool started;
 
@@ -54,6 +55,7 @@ internal sealed partial class VisualizationPane : Border
         started = true;
         shown = visualization;
         reported = null;
+        if (selected.Length > 0) ReportEditorSelection(null);
         selected = "";
         this.FindControl<ContentControl>("Drawing")!.Content = visualization is null ? Placeholder() : VisualizationCard.Create(visualization.Args, interactive: true, error => Report(visualization.Revision, error));
     }
@@ -67,6 +69,7 @@ internal sealed partial class VisualizationPane : Border
         var text = VisualizationCard.SelectedText(card);
         if (text == selected) return;
         selected = text;
+        ReportEditorSelection(text.Length == 0 ? null : card);
         _ = Send();
 
         async Task Send()
@@ -74,6 +77,21 @@ internal sealed partial class VisualizationPane : Border
             try { await context.RequestAsync(VisualizeContract.Select, new SelectionReport(host.WorkspaceId, host.TabKey, visualization.Revision) { Text = text.Length == 0 ? null : text }); }
             catch (Exception failure) when (failure is PluginCallException or OperationCanceledException) { }
         }
+    }
+
+    // A Markdown drawing is backed by a file on the host, so its selection is an editor selection of that file, mapped to source lines
+    // like the file preview's. Other kinds have no file and report only to visualize_read.
+    private void ReportEditorSelection(Control? card)
+    {
+        if (reportedPath is null && card is null) return;
+        var path = card is null ? reportedPath : shown?.SourcePath;
+        if (path is null) return;
+        var editor = new EditorRef("visualize:" + host.WorkspaceId + ":" + host.TabKey, host.WorkspaceId, path, EditorKind.File, false);
+        if (card is null) { context.Editors.ReportSelection(editor, null); reportedPath = null; return; }
+        var text = VisualizationCard.SelectedText(card);
+        context.Editors.ReportSelection(editor, VisualizationCard.SelectedLines(card) is { } lines
+            ? new EditorSelection(lines.Start, 1, lines.End + 1, 1, text) : new EditorSelection(1, 1, 1, 1, text) { Mapped = false });
+        reportedPath = path;
     }
 
     private void Report(int revision, string? error)
