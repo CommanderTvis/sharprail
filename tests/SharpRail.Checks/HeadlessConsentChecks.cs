@@ -131,6 +131,14 @@ internal static partial class HeadlessChecks
         var workspace = Path.Combine(directory, "workspace");
         Directory.CreateDirectory(workspace);
         await File.WriteAllTextAsync(Path.Combine(workspace, "Main.java"), "class Main {}");
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        try { await SupersessionCore(directory, workspace, server); }
+        finally { Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    private static async Task SupersessionCore(string directory, string workspace, LanguageServer server)
+    {
         var state = new HostStateStore(directory) { LanguageServerSource = () => [.. Catalog().Select(item => item.Spec)] };
         var consent = state.EnableLanguageConsent(name => null);
         Require((await consent.AcceptAsync(server, server.Spec.TermsSha256, null, new Dictionary<string, string> { ["region"] = "europe", ["dataSharing"] = "none" }, "tool", default)).Accepted && consent.Provider() == "intellij", "The grant did not choose IntelliJ.");

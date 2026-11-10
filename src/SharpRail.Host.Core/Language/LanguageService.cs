@@ -530,13 +530,14 @@ public sealed partial class LanguageService : IAsyncDisposable
     }
 
     /// <summary>
+    /// Only on a host with no window (the one that sets <see cref="StandardWithAnyReplaced"/>): the desktop keeps the chosen server running so its license and terms windows work.
     /// The reason a chosen replacing server does not serve, or null when it does (or nothing is known against it). A failed start, or a session that holds its answers
     /// because the server is not licensed, counts; a start that waits for the user's acceptance in the terms window does not, because that is the user's to answer.
     /// The reason is kept for a while so the replaced servers do not flap with the replacement.
     /// </summary>
     private string? NotInUse(string workspace, LanguageServer server)
     {
-        if (server.Spec.Replaces.Count == 0) return null;
+        if (server.Spec.Replaces.Count == 0 || StandardWithAnyReplaced?.Invoke() != true) return null;
         var key = workspace + "\0" + server.Id;
         if (notInUse.TryGetValue(key, out var known))
         {
