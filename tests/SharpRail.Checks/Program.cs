@@ -1042,6 +1042,14 @@ internal static class Program
             Console.WriteLine("PASS Claude chat host checks");
             return;
         }
+        if (args.SequenceEqual(["--closed-chat-views"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ClaudeChatUiChecks.ClosedViewsCollectable();
+            Console.WriteLine("PASS closed chat views are collectable");
+            return;
+        }
         if (args.SequenceEqual(["--claude-chat-ui"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

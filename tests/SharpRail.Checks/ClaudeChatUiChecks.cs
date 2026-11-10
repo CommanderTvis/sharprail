@@ -259,6 +259,7 @@ internal static class ClaudeChatUiChecks
         DocumentSelection();
         Grouping();
         Bounded();
+        ClosedViewsCollectable();
         StreamingStable();
         Composer();
         PageZoomSteps();
@@ -1862,6 +1863,31 @@ internal static class ClaudeChatUiChecks
             Require(view.List.Stuck && scroller.Offset.Y >= scroller.Extent.Height - scroller.Viewport.Height - 4, "The stream keeps following the end.");
         }
         finally { window.Close(); }
+    }
+
+    // The theme event is static, so a chat list still subscribed after its tab closed keeps the whole transcript alive for the life of the app.
+    // (Headless windows are never collected, so the subscribers are counted instead of weak references.)
+    private static int ThemeSubscribers() =>
+        ((Action?)typeof(Ui).GetField("ThemeChanged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null))
+            ?.GetInvocationList().Count(handler => handler.Target?.GetType().FullName?.Contains("ChatList", StringComparison.Ordinal) == true) ?? 0;
+
+    internal static void ClosedViewsCollectable()
+    {
+        var before = ThemeSubscribers();
+        for (var round = 0; round < 5; round++)
+        {
+            var chat = new FakeChat();
+            for (var index = 0; index < 50; index++) chat.Snapshot.Add(Item(Sample(index)));
+            var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+            var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+            window.Show();
+            Frame(window); Frame(window);
+            Require(ThemeSubscribers() == before + 1, "An open chat list follows theme changes.");
+            window.Content = null;
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+            Require(ThemeSubscribers() == before, $"Closed chat view {round + 1} is still subscribed to theme changes, so its transcript stays reachable.");
+        }
     }
 
     private static void Bounded()

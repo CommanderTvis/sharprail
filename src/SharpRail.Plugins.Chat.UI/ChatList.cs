@@ -869,7 +869,20 @@ internal sealed class ChatList : ScrollViewer
             KeyDown += (_, e) => owner.Key(e);
             GotFocus += (_, _) => Redraw();
             LostFocus += (_, _) => Redraw();
+        }
+
+        // Only while attached: the static event would otherwise keep every chat view ever opened, with its transcript, alive. A detached
+        // list has dropped its layouts and lays them out again on attaching, so it misses nothing.
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
             Ui.ThemeChanged += Retheme;
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            Ui.ThemeChanged -= Retheme;
+            base.OnDetachedFromVisualTree(e);
         }
 
         internal void Redraw() => drawing.InvalidateVisual();
