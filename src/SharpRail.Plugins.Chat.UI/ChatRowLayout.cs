@@ -276,6 +276,8 @@ internal sealed class ChatRowLayout : IDisposable
 
     public void Draw(DrawingContext context, bool hovered, double top = double.NegativeInfinity, double bottom = double.PositiveInfinity, IReadOnlyList<Rect>? marks = null, Rect? wash = null, string? copied = null)
     {
+        // The row's own fills (a prompt's bubble) go under the blocks that sit inside them, never over.
+        foreach (var fill in fills) context.DrawRectangle(fill.Brush, fill.Pen, fill.Bounds, fill.Radius, fill.Radius);
         foreach (var plan in plans)
         {
             var near = plan.Top + plan.Height >= top && plan.Top <= bottom;
@@ -290,7 +292,6 @@ internal sealed class ChatRowLayout : IDisposable
             using (plansClip is { } shown ? context.PushClip(shown) : default)
             using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside, washInside, copied);
         }
-        foreach (var fill in fills) context.DrawRectangle(fill.Brush, fill.Pen, fill.Bounds, fill.Radius, fill.Radius);
         DrawShapes(context);
         if (marks is not null)
             foreach (var mark in marks)

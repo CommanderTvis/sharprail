@@ -227,6 +227,7 @@ internal static class ClaudeChatUiChecks
         CommandMenu();
         HoverAffordance();
         UserMarkdown();
+        UserBubbleDrawsText();
         AttachmentChipsContained();
         PasteImages();
         WrappedHistory();
@@ -1819,6 +1820,45 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { bigWindow.Close(); }
+    }
+
+    // The bubble's fill is drawn first and the prompt's blocks over it: a replayed prompt shows its text, not an empty box.
+    private sealed class RowSurface(ChatRowLayout layout) : Control
+    {
+        public override void Render(DrawingContext context)
+        {
+            context.DrawRectangle(Ui.Surface, null, new Rect(0, 0, 420, layout.Height + 20));
+            layout.Draw(context, false, double.NegativeInfinity, double.PositiveInfinity);
+        }
+    }
+
+    private static void UserBubbleDrawsText()
+    {
+        var long_ = string.Join("\n", Enumerable.Range(0, 20).Select(i => "- item " + i));
+        var prompts = new[]
+        {
+            new ChatUserItem("u1", 1, "implement browser extension in JS"),
+            new ChatUserItem("u2", 2, "see the pictures") { Attachments = [new ChatAttachment("pasted-1.png", "/tmp/pasted-1.png"), new ChatAttachment("pasted-2.png", "/tmp/pasted-2.png")] },
+            new ChatUserItem("u3", 3, "held back **bold**") { Queued = true },
+            new ChatUserItem("u4", 4, long_)
+        };
+        foreach (var prompt in prompts)
+        {
+            using var layout = ChatRowLayout.Build(new ChatRow(prompt, 0, 1, false, null), 420, true);
+            Require(layout.Height > 30, $"Prompt {prompt.Id} has a height ({layout.Height}).");
+            var window = new Window { Width = 420, Height = 300, Content = new RowSurface(layout), Background = Ui.Surface };
+            window.Show();
+            try
+            {
+                Frame(window);
+                // The first line of the prompt's text sits under the bubble's top padding; inside the bubble, away from its edge, ink must differ from the fill.
+                var area = new Rect(ChatRowLayout.BubblePad + 14, ChatRowLayout.BubblePad + 3, 200, 14);
+                var fillPixel = Extreme(window, new Rect(area.X, 4, 1, 1));
+                var ink = Extreme(window, area);
+                Require(ink != fillPixel, $"Prompt {prompt.Id}: the bubble shows its text over the fill, not an empty box.");
+            }
+            finally { window.Close(); }
+        }
     }
 
     // A prompt is read as Markdown like a reply: the backticks of inline code are styling, not text; a prompt without Markdown keeps its words and line breaks.
