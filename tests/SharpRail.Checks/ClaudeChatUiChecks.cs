@@ -2908,6 +2908,7 @@ internal static class ClaudeChatUiChecks
             Frame(window);
             view.Input.Text = "!";
             E2eWorkspace.Until(() => view.BashMode && view.Input.Text == "");
+            Require(Equals(view.Input.FontFamily, Ui.CodeFont) && Equals(view.ShellMark.FontFamily, Ui.CodeFont), "Shell mode sets the input and its mark in the code font.");
             Require(view.BashMode && view.Input.Text == "" && view.ShellMark.IsVisible && view.Input.PlaceholderText == "Run a shell command", $"A ! typed first turns the box into a shell prompt and is not part of the command ({view.BashMode}, '{view.Input.Text}', {view.ShellMark.IsVisible}, '{view.Input.PlaceholderText}', {view.Transcript.Header?.CanRunShell}).");
             view.Input.Text = "/usr/bin/env @x"; view.Input.CaretIndex = view.Input.Text.Length;
             Frame(window); Frame(window);
@@ -2916,6 +2917,7 @@ internal static class ClaudeChatUiChecks
             var sendsBefore = chat.Sends.Count;
             Await(view.Submit());
             E2eWorkspace.Until(() => !view.BashMode && view.Input.Text == "");
+            Require(!Equals(view.Input.FontFamily, Ui.CodeFont), "Leaving shell mode restores the normal font.");
             Require(chat.Calls.Contains(ChatContract.RunShell.Name) && chat.Sends.Count == sendsBefore && !view.BashMode && view.Input.Text == "" && !view.ShellMark.IsVisible,
                 "Enter in bash mode runs the command instead of sending it, and the box goes back to messages.");
             view.Input.Text = "!";

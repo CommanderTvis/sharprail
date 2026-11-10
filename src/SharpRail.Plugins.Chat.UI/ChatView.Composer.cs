@@ -301,6 +301,9 @@ internal sealed partial class ChatView
     private void ShowShellMode()
     {
         shellMark.IsVisible = bashMode;
+        // A shell command is code: the box (text, caret and placeholder) and the "!" use the code font, then the inherited one again.
+        if (bashMode) { input.FontFamily = Ui.CodeFont; shellMark.FontFamily = Ui.CodeFont; }
+        else { input.ClearValue(TemplatedControl.FontFamilyProperty); shellMark.ClearValue(TextBlock.FontFamilyProperty); }
         input.PlaceholderText = Placeholder();
         Avalonia.Automation.AutomationProperties.SetName(input, bashMode ? "Shell command" : $"Message {env.Agent.Short}");
         if (send is not null) UpdateSend();
