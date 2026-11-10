@@ -123,7 +123,7 @@ jobs:
         with:
           name: appimage
 
-  # arm64 does not gate the release yet: the release job waits for this job but publishes without its asset when it fails
+  # arm64 does not gate the release: the release job waits for this job but publishes without its asset when it fails
   # (the job itself still shows red).
   appimage-arm64:
     runs-on: ubuntu-24.04-arm
@@ -290,8 +290,9 @@ jobs:
 
   release:
     needs: [dmg, apk, appimage, appimage-arm64, windows, windows-arm64]
-    # The needed jobs gate the release as before, except appimage-arm64, which may fail or be skipped without blocking it.
-    if: ${{ !cancelled() && needs.dmg.result == 'success' && needs.apk.result == 'success' && needs.appimage.result == 'success' && needs.windows.result == 'success' && needs.windows-arm64.result == 'success' }}
+    # Only the three packages the nightly exists for gate the release. The ARM64 AppImage and both Windows ZIPs attach when
+    # they were built and are listed as missing in the notes when not, so a red Windows job never withholds the release.
+    if: ${{ !cancelled() && needs.dmg.result == 'success' && needs.apk.result == 'success' && needs.appimage.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -300,26 +301,48 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: packages
+          pattern: SharpRail-nightly-*
           merge-multiple: true
-      # One prerelease that moves: the tag follows the commit, and the files keep their names from night to night.
+      # One prerelease that moves: the tag follows the commit, and the files keep their names from night to night. The
+      # previous release is never deleted before the new files are up, so a failing night leaves the last good release.
       - env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          set -eu
           mv packages/*.dmg SharpRail-nightly.dmg
           mv packages/*.apk SharpRail-nightly.apk
           mv packages/SharpRail-linux-x64.AppImage SharpRail-nightly-linux-x64.AppImage
-          assets=""
-          if [ -f packages/SharpRail-linux-arm64.AppImage ]; then
-            mv packages/SharpRail-linux-arm64.AppImage SharpRail-nightly-linux-arm64.AppImage
-            assets="SharpRail-nightly-linux-arm64.AppImage"
-          else
-            echo "::warning::appimage-arm64 produced no package (job result: ${{ needs.appimage-arm64.result }}); releasing without it"
-          fi
-          mv packages/SharpRail-win-x64.zip SharpRail-nightly-win-x64.zip
-          mv packages/SharpRail-win-arm64.zip SharpRail-nightly-win-arm64.zip
-          gh release delete nightly --cleanup-tag --yes || true
-          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-linux-x64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip $assets --prerelease --target "$GITHUB_SHA" \
-            --title "Nightly $(date -u +%Y-%m-%d)" \
-            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages (x64 and, when present, ARM64) are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+          assets="SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-linux-x64.AppImage"
+          missing=""
+          for pair in SharpRail-linux-arm64.AppImage:SharpRail-nightly-linux-arm64.AppImage SharpRail-win-x64.zip:SharpRail-nightly-win-x64.zip SharpRail-win-arm64.zip:SharpRail-nightly-win-arm64.zip; do
+            src="packages/${pair%%:*}"
+            dst="${pair##*:}"
+            if [ -f "$src" ]; then
+              mv "$src" "$dst"
+              assets="$assets $dst"
+            else
+              missing="$missing $dst"
+              echo "::warning::$dst was not built tonight; releasing without it"
+            fi
+          done
+          notes="Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+          if [ -n "$missing" ]; then
+            notes="$notes
 
+          Not built tonight, so not attached:$missing"
+          fi
+          if gh release view nightly > /dev/null 2>&1; then
+            # shellcheck disable=SC2086
+            gh release upload nightly $assets --clobber
+            # Drop assets this night did not produce, so an old file never sits under the new commit.
+            gh release view nightly --json assets --jq '.assets[].name' | while read -r name; do
+              case " $assets " in *" $name "*) ;; *) gh release delete-asset nightly "$name" --yes ;; esac
+            done
+            gh api -X PATCH "repos/$GH_REPO/git/refs/tags/nightly" -f sha="$GITHUB_SHA" -F force=true > /dev/null \
+              || echo "::warning::could not move the nightly tag to ${GITHUB_SHA}; the notes name the commit"
+            gh release edit nightly --prerelease --title "Nightly $(date -u +%Y-%m-%d)" --notes "$notes"
+          else
+            # shellcheck disable=SC2086
+            gh release create nightly $assets --prerelease --target "$GITHUB_SHA" --title "Nightly $(date -u +%Y-%m-%d)" --notes "$notes"
+          fi
