@@ -49,6 +49,7 @@ show its own variant of "Delete".
 | EnterPath | `inputCursor` | Add-project menu: Enter path…, Enter host path… |
 | Clone | `gitFork` | Add-project menu: Clone repository… |
 | CopyAbsolutePath | `mapPin` (Remix map-pin-line, a fixed location) | Files tree: Copy absolute path; project and workspace menus: Copy absolute path |
+| Settings | `settings` (the gear) | Browser unified-chrome overflow menu: Settings… |
 
 ## Enforcement
 

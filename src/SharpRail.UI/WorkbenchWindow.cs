@@ -415,7 +415,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         {
             var settings = Ui.Menu("Settings…", ShowSettings);
             settings.Name = "SettingsMenu";
-            settings.Icon = Ui.Icon("settings", null, 14);
+            settings.Icon = ActionIcons.Create(ActionIcon.Settings);
             settings.InputGesture = WindowShortcuts.Settings.Gesture is { Key: not Key.None } settingsChord ? settingsChord : null;
             menu.Items.Add(settings);
             var about = Ui.Menu("About " + AboutInfo.Name, () => Dialogs.About(this));
