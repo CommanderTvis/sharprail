@@ -10,12 +10,20 @@ namespace SharpRail.Host.Core.Language;
 /// Consent to the terms of a language server in a host with no window and no terminal (headless). The desktop shows the terms of an installed server in a
 /// window; here nobody can click, so consent comes from a tool the agent calls after the user agreed in chat, from the client's elicitation prompt, or from
 /// an environment variable the user set when starting the host. Consent names the server, its version and the SHA-256 of the pinned terms text
-/// (<see cref="LanguageServerSpec.TermsSha256"/>), so it can be given before anything is downloaded; once the provider has installed the pinned archive,
+/// (<see cref="LanguageServerSpec.TermsSha256"/>), once the archive was downloaded and its terms file matched that hash and the user saw the full text; when the provider has installed the pinned archive,
 /// <see cref="LanguageServers.ProvisionAsync"/> checks that the text inside is that text and writes the same acceptance record the desktop writes.
 /// Nothing is ever accepted by default.
 /// </summary>
-internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<LanguageServer>> catalog, Func<string, string?> environment)
+internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<LanguageServer>> catalog, Func<string, string?> environment,
+    Func<LanguageServer, bool, CancellationToken, Task<LanguageServerTerms>>? reader = null, Func<LanguageServer, string>? pinned = null)
 {
+    /// <summary>The environment variable listing servers to download at start, before anyone is asked: <c>intellij</c>, comma separated. A download executes nothing.</summary>
+    internal const string PrefetchVariable = "SHARPRAIL_PREFETCH";
+
+    internal string PinnedHash(LanguageServer server) => Pinned(server);
+
+    private string Pinned(LanguageServer server) => pinned?.Invoke(server) ?? server.Spec.TermsSha256;
+
     /// <summary>The environment variable listing servers the user accepts at start: <c>intellij</c>, or <c>intellij:&lt;terms hash&gt;</c> for strict mode, comma separated.</summary>
     internal const string EnvironmentVariable = "SHARPRAIL_ACCEPT_TERMS";
 
@@ -56,7 +64,7 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
             var path = RecordPath(server);
             if (!File.Exists(path)) return null;
             var stored = JsonSerializer.Deserialize(File.ReadAllText(path), HostJson.Default.Stored);
-            return stored is not null && stored.Version == server.Spec.Version && stored.TextSha256 == server.Spec.TermsSha256 && Answered(server, stored.Answers)
+            return stored is not null && stored.Version == server.Spec.Version && stored.TextSha256 == Pinned(server) && Answered(server, stored.Answers)
                 ? new Grant(stored.TextSha256, stored.Answers, "recorded") : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return null; }
@@ -70,9 +78,9 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
             var colon = raw.IndexOf(':');
             var id = colon < 0 ? raw : raw[..colon];
             if (!string.Equals(id, server.Id, StringComparison.Ordinal)) continue;
-            if (colon >= 0 && !string.Equals(raw[(colon + 1)..], server.Spec.TermsSha256, StringComparison.OrdinalIgnoreCase))
+            if (colon >= 0 && !string.Equals(raw[(colon + 1)..], Pinned(server), StringComparison.OrdinalIgnoreCase))
             {
-                warnings?.Add($"{EnvironmentVariable} names {server.Id} with another terms hash than this build's ({server.Spec.TermsSha256}); it is not accepted.");
+                warnings?.Add($"{EnvironmentVariable} names {server.Id} with another terms hash than this build's ({Pinned(server)}); it is not accepted.");
                 return null;
             }
             var answers = new Dictionary<string, string>();
@@ -88,7 +96,7 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
                 }
                 answers[question.Id] = match;
             }
-            return new Grant(server.Spec.TermsSha256, answers, "environment");
+            return new Grant(Pinned(server), answers, "environment");
         }
         return null;
     }
@@ -121,11 +129,13 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
 
     /// <summary>
     /// Records consent given by the user, through a tool or a prompt. Refuses a hash or version that is not the one this build pins, and answers outside the
-    /// offered ones; the message says why. Nothing is downloaded here.
+    /// offered ones, and anything before the download finished and its terms file matched the pinned hash; the message says why.
     /// </summary>
     internal async Task<(bool Accepted, string Message)> AcceptAsync(LanguageServer server, string hash, string? version, IReadOnlyDictionary<string, string> answers, string via, CancellationToken token)
     {
-        if (!string.Equals(hash.Trim(), server.Spec.TermsSha256, StringComparison.OrdinalIgnoreCase))
+        if (Prefetched(server).State != PrefetchState.Ready)
+            return (false, $"Nothing was accepted: the download of {Name(server)} has not finished, so the full terms text has not been shown yet. Call accept_terms with only the server to see where it stands.");
+        if (!string.Equals(hash.Trim(), Pinned(server), StringComparison.OrdinalIgnoreCase))
             return (false, $"The hash is not the current terms hash of {Name(server)}. Nothing was accepted. Read the terms again with accept_terms (server only, no hash) and ask the user about that text.");
         if (version is { Length: > 0 } && version != server.Spec.Version)
             return (false, $"The version is not the current version of {Name(server)} ({server.Spec.Version}). Nothing was accepted.");
@@ -137,7 +147,7 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
                 return (false, $"Nothing was accepted: the user has not answered \"{question.Prompt}\". Ask the user, then send one of: {string.Join(", ", question.Values)}. Never choose for the user.");
             clean[question.Id] = match;
         }
-        var stored = new Stored(server.Spec.Version, server.Spec.TermsSha256, clean, DateTimeOffset.UtcNow.ToString("O"), via);
+        var stored = new Stored(server.Spec.Version, Pinned(server), clean, DateTimeOffset.UtcNow.ToString("O"), via);
         var path = RecordPath(server);
         try
         {
@@ -155,7 +165,7 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
             return (false, $"Nothing was accepted: the state directory cannot be written ({error.Message}).");
         }
         lock (gate) recorded[server.Id] = new Grant(stored.TextSha256, stored.Answers, "recorded");
-        return (true, $"Recorded: the user accepted {server.Spec.TermsTitle} for {Name(server)} {server.Spec.Version} (terms hash {server.Spec.TermsSha256}).");
+        return (true, $"Recorded: the user accepted {server.Spec.TermsTitle} for {Name(server)} {server.Spec.Version} (terms hash {Pinned(server)}).");
     }
 
     internal static string Name(LanguageServer server) => server.Spec.Name.Length > 0 ? server.Spec.Name : server.Id;
@@ -201,38 +211,138 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
     private static string Choices(IReadOnlyList<string> values, IReadOnlyList<string> labels) =>
         string.Join(", ", values.Select((value, index) => index < labels.Count && labels[index] != value ? $"{value} ({labels[index]})" : value));
 
-    private static string Header(LanguageServer server) =>
+    private string Header(LanguageServer server) =>
         $"{Name(server)} {server.Spec.Version}. {server.Spec.TermsSummary}\n" +
-        $"Terms: {server.Spec.TermsTitle}" + (server.Spec.TermsUrl.Length > 0 ? $", see {server.Spec.TermsUrl}" : "") + $".\nTerms hash (SHA-256 of the terms file in the download): {server.Spec.TermsSha256}";
+        $"Terms: {server.Spec.TermsTitle}" + (server.Spec.TermsUrl.Length > 0 ? $", see {server.Spec.TermsUrl}" : "") + $".\nTerms hash (SHA-256 of the terms file in the download): {Pinned(server)}";
 
-    /// <summary>The text a call gets while the terms are not accepted: what it is, the terms and their hash, and the exact next step. Nothing was downloaded or started.</summary>
-    internal string Refusal(LanguageServer server, bool canPrompt = false)
+    private const int PageSize = 12_000;
+    private const int WholeLimit = 24_000;
+
+    // The download and the terms it carries. A download only fetches the pinned, checksummed archive; nothing in it runs before the user agreed.
+    internal enum PrefetchState { None, Downloading, Ready, Failed }
+
+    internal sealed record PrefetchInfo(PrefetchState State, string Detail, string Text);
+
+    private sealed record Fetch(PrefetchState State, string Detail, string Text, DateTime At, Task Task);
+
+    private readonly Dictionary<string, Fetch> fetches = new(StringComparer.Ordinal);
+
+    internal PrefetchInfo Prefetched(LanguageServer server)
     {
-        var text = new StringBuilder();
-        text.Append($"{Name(server)} needs the user's agreement to its terms before it can be used. Nothing was downloaded or started.\n\n").Append(Header(server)).Append("\n\n");
-        text.Append("Next step: ask the user in chat whether they accept these terms and answer the questions below. ");
-        text.Append("Only after the user clearly said yes, call the tool accept_terms with server \"").Append(server.Id).Append("\", hash \"").Append(server.Spec.TermsSha256).Append("\" and answers. ");
-        text.Append("Do not call it on your own, do not guess an answer and do not accept for the user. The tool only works with this exact hash.\n");
-        foreach (var question in server.Spec.TermsQuestions)
-            text.Append($"- {question.Id}: {question.Prompt}. One of: {Choices(question.Values, question.Labels)}.\n");
-        text.Append($"\nThe server (about 380 MB) is downloaded from the vendor only after that, and checked against a pinned SHA-256. The user can also start the host with {EnvironmentVariable}={server.Id}");
-        foreach (var question in server.Spec.TermsQuestions) text.Append($", {AnswerVariable(server, question)}=<{question.Id}>");
-        text.Append($" to accept without a question (use {server.Id}:<terms hash> to accept only this exact text).");
-        if (canPrompt) text.Append(" The user declined or did not answer the prompt of this client.");
-        if (server.Spec.Replaces.Count > 0) text.Append($"\nUntil then the other language servers keep serving the languages they serve (Kotlin keeps its Kotlin server); {Name(server)} is the only one for Java.");
-        return text.ToString();
+        lock (gate) return fetches.TryGetValue(server.Id, out var fetch) ? new(fetch.State, fetch.Detail, fetch.Text) : new(PrefetchState.None, "", "");
     }
 
-    /// <summary>The terms for reading (accept_terms with no hash), with the state.</summary>
-    internal string Review(LanguageServer server)
+    /// <summary>
+    /// Downloads the server's pinned archive in the background (nothing is executed from it) and reads the terms text it carries; the task ends when that is done.
+    /// A running or finished fetch is reused; one that failed is tried again after half a minute.
+    /// </summary>
+    internal Task StartPrefetch(LanguageServer server)
+    {
+        lock (gate)
+        {
+            if (fetches.TryGetValue(server.Id, out var known) && (known.State != PrefetchState.Failed || DateTime.UtcNow - known.At < TimeSpan.FromSeconds(30))) return known.Task;
+            var task = Task.Run(async () =>
+            {
+                try
+                {
+                    if (reader is null) throw new IOException("This host cannot read the server's terms.");
+                    var terms = await reader(server, true, CancellationToken.None);
+                    Set(server, !string.Equals(terms.TextSha256, Pinned(server), StringComparison.OrdinalIgnoreCase)
+                        ? new(PrefetchState.Failed, $"The terms file in the download (hash {terms.TextSha256}) is not the pinned text ({Pinned(server)}). Nothing was started or accepted.", "", DateTime.UtcNow, Task.CompletedTask)
+                        : new(PrefetchState.Ready, "", terms.Text, DateTime.UtcNow, Task.CompletedTask));
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    Set(server, new(PrefetchState.Failed, "The download failed: " + error.Message, "", DateTime.UtcNow, Task.CompletedTask));
+                }
+            });
+            fetches[server.Id] = new(PrefetchState.Downloading, $"Downloading since {DateTime.UtcNow:HH:mm:ss} UTC.", "", DateTime.UtcNow, task);
+            return task;
+        }
+    }
+
+    private void Set(LanguageServer server, Fetch fetch)
+    {
+        lock (gate) fetches[server.Id] = fetch with { Task = fetches[server.Id].Task };
+    }
+
+    /// <summary>The servers named by <see cref="PrefetchVariable"/> that have terms, and warnings for the names that do not.</summary>
+    internal (IReadOnlyList<LanguageServer> Servers, IReadOnlyList<string> Warnings) PrefetchRequests()
+    {
+        var servers = new List<LanguageServer>();
+        var warnings = new List<string>();
+        foreach (var id in (environment(PrefetchVariable) ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            if (Find(id) is { } server) servers.Add(server);
+            else warnings.Add($"{PrefetchVariable} names {id}, which has no terms to review (use the warm command for other servers).");
+        return (servers, warnings);
+    }
+
+    /// <summary>One page of a long text with a line saying where the others are.</summary>
+    internal static string Page(string text, int page, string how)
+    {
+        var pages = Math.Max(1, (text.Length + PageSize - 1) / PageSize);
+        page = Math.Clamp(page, 1, pages);
+        var slice = text.Substring((page - 1) * PageSize, Math.Min(PageSize, text.Length - (page - 1) * PageSize));
+        return pages == 1 ? slice : slice + $"\n\n[page {page} of {pages}" + (page < pages ? $"; {how} for page {page + 1}" : "") + "]";
+    }
+
+    private string Questions(LanguageServer server)
     {
         var text = new StringBuilder();
-        text.Append(GrantFor(server) is { } grant ? $"Accepted ({grant.Source}).\n\n" : "Not accepted.\n\n").Append(Header(server)).Append('\n');
         foreach (var question in server.Spec.TermsQuestions) text.Append($"- {question.Id}: {question.Prompt}. One of: {Choices(question.Values, question.Labels)}.\n");
         return text.ToString();
     }
 
-    /// <summary>The prompt for a client that supports elicitation: the terms and the questions, with the user's Accept or Decline.</summary>
+    private string NextStep(LanguageServer server)
+    {
+        var text = new StringBuilder();
+        text.Append("Next step: show the user the terms above (or tell them to read them), ask in chat whether they accept, and ask the questions below. ");
+        text.Append("Only after the user clearly said yes, call the tool accept_terms with server \"").Append(server.Id).Append("\", hash \"").Append(Pinned(server)).Append("\" and answers. ");
+        text.Append("Do not call it on your own, do not guess an answer and do not accept for the user. The tool only works with this exact hash.\n").Append(Questions(server));
+        text.Append($"\nThe user can also start the host with {EnvironmentVariable}={server.Id}");
+        foreach (var question in server.Spec.TermsQuestions) text.Append($", {AnswerVariable(server, question)}=<{question.Id}>");
+        text.Append($" to accept without a question (use {server.Id}:<terms hash> to accept only this exact text).");
+        if (server.Spec.Replaces.Count > 0) text.Append($"\nUntil the user agrees and {Name(server)} works (accepted, started, licensed), the other language servers keep serving what they serve (Kotlin keeps its Kotlin server); {Name(server)} is the only one for Java.");
+        return text.ToString();
+    }
+
+    /// <summary>What the user is asked to agree to: the full terms text once the download has finished, else a summary and where things stand.</summary>
+    private string Terms(LanguageServer server, int page, string how, bool whole)
+    {
+        var fetched = Prefetched(server);
+        switch (fetched.State)
+        {
+            case PrefetchState.Ready:
+                var text = fetched.Text.Length <= WholeLimit || !whole ? Page(fetched.Text, page, how) : Page(fetched.Text, 1, how);
+                return $"{Header(server)}\n\nThe full terms text, from the file in the downloaded server:\n\n{text}";
+            case PrefetchState.Failed:
+                return $"{Header(server)}\n\n{fetched.Detail} It is tried again on the next call. The full terms text cannot be shown until a download has finished and matched the pinned hash.";
+            default:
+                return $"{Header(server)}\n\nThe server (about 380 MB) is being downloaded from the vendor and checked against a pinned SHA-256; nothing in it is executed. {fetched.Detail}\n" +
+                    "The full terms text appears here once the download has finished: call again in a few minutes. Do not ask the user to accept before it has been shown.";
+        }
+    }
+
+    /// <summary>The text a call gets while the terms are not accepted: what it is, the full terms once downloaded and the exact next step. Nothing was started.</summary>
+    internal string Refusal(LanguageServer server, bool canPrompt = false)
+    {
+        var text = new StringBuilder();
+        text.Append($"{Name(server)} needs the user's agreement to its terms before it can be used. Nothing was started.\n\n").Append(Terms(server, 1, "call accept_terms with server and page", true)).Append("\n\n");
+        if (Prefetched(server).State == PrefetchState.Ready) text.Append(NextStep(server));
+        if (canPrompt) text.Append("\nThe user declined or did not answer the prompt of this client.");
+        return text.ToString();
+    }
+
+    /// <summary>The terms for reading (accept_terms with no hash), with the state, one page at a time.</summary>
+    internal string Review(LanguageServer server, int page = 1)
+    {
+        var text = new StringBuilder();
+        text.Append(GrantFor(server) is { } grant ? $"Accepted ({grant.Source}).\n\n" : "Not accepted.\n\n").Append(Terms(server, page, "call accept_terms with server and page", false)).Append('\n');
+        if (Prefetched(server).State == PrefetchState.Ready && GrantFor(server) is null) text.Append('\n').Append(NextStep(server));
+        return text.ToString();
+    }
+
+    /// <summary>The prompt for a client that supports elicitation: the terms and the questions, with the user's Accept or Decline. Only after the download finished.</summary>
     internal JsonObject ElicitationRequest(LanguageServer server)
     {
         var properties = new JsonObject();
@@ -248,9 +358,12 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
             };
             required.Add((JsonNode?)JsonValue.Create(question.Id));
         }
+        var terms = Prefetched(server).Text;
+        // A client that cannot show a long message gets the first pages and where to read the rest.
+        var shown = terms.Length <= WholeLimit ? terms : terms[..PageSize] + $"\n\n[the rest of the terms: ask the agent to call accept_terms with server \"{server.Id}\"]";
         return new JsonObject
         {
-            ["message"] = $"An agent wants to use {Name(server)}. Accept its terms to allow it.\n\n{Header(server)}\n\nAccept only if you agree to these terms. Decline keeps {Name(server)} off.",
+            ["message"] = $"An agent wants to use {Name(server)}. Accept its terms to allow it.\n\n{Header(server)}\n\n{shown}\n\nAccept only if you agree to these terms. Decline keeps {Name(server)} off.",
             ["requestedSchema"] = new JsonObject { ["type"] = "object", ["properties"] = properties, ["required"] = required }
         };
     }

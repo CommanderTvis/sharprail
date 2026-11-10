@@ -89,6 +89,8 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 
+    internal Task<LanguageServerTerms> ReadTermsAsync(LanguageServer server, string workspace, bool prepare, CancellationToken token) => servers.ReadTermsAsync(server, workspace, prepare, token);
+
     /// <summary>The grant a host with no window holds for a server's pinned terms (LanguageConsent).</summary>
     internal Func<LanguageServer, LanguageConsent.Grant?>? Consent { set => servers.Consent = value; }
 

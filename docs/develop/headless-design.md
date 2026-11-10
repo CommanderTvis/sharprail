@@ -178,7 +178,7 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 | `blueprint` | yes, on by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
 | `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-kotlin` (8) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Each installs into the cache from a pinned, checksummed download on a pinned runtime (.NET SDK, Bun) or as a self-contained archive. `lsp-clangd` is left out on linux/arm64, which has no pinned archive (the official one is the 1.8 GB LLVM toolchain, a `tar.xz`). |
 | `lsp-java`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-ruby`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (9) | no | Their servers need a toolchain with no pinned download (JDK, Go, Rust, Coursier, Ruby, R, PowerShell, Swift, Dart); each flips to yes when that runtime is pinned with a checksum. |
-| `lsp-intellij` | yes | Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `SHARPRAIL_ACCEPT_TERMS`. See [headless.md](../headless.md#terms-and-the-intellij-server). |
+| `lsp-intellij` | yes, opt-in | Not in the default roster: it exists only when `SHARPRAIL_PREFETCH` or `SHARPRAIL_ACCEPT_TERMS` names it. Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `SHARPRAIL_ACCEPT_TERMS`. See [headless.md](../headless.md#the-intellij-server-opt-in). |
 | `claude-code`, `codex`, `omp`, `pi`, `acp` | no | They launch an agent in a terminal or chat pane. Headless is the tool server an agent calls. |
 | `air-gateway` | no | It starts Codex and Claude Code through Air Gateway per launch. |
 | `air-context` | no | Sign-in and consent are user-only and the indexing is cloud processing. |
@@ -194,7 +194,7 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 
 ### Decisions needed
 
-- `lsp-intellij` is `yes`. Java is served by it only after the user agreed; Kotlin keeps the Kotlin server until then, and moves to IntelliJ after.
+- `lsp-intellij` is `yes` but opt-in by environment. Java is served by it only after the user asked for it and agreed; Kotlin keeps the Kotlin server until then, and moves to IntelliJ after.
 - `processes` is `no`. Flipping it adds `owned_process_report` and `owned_process_release`, which makes 13 tools, and needs a terminal owner that headless does not have.
 - The `env*` plugins are `no`. Flipping them would make language servers see `JAVA_HOME`, the venv or `mise` tools of the workspace. That needs the language server launch to read the merged environment, which it does not do today.
 - `air-context` is `no`. Flipping it needs a prepared JetBrains login and accepted consent mounted into the container.

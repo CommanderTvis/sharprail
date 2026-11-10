@@ -6,6 +6,7 @@
     <AssemblyName>sharprail-headless</AssemblyName>
     <RootNamespace>SharpRail.Host.Headless</RootNamespace>
   </PropertyGroup>
+  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
   </ItemGroup>

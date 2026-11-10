@@ -69,14 +69,21 @@ internal static partial class HeadlessChecks
     /// The served languages, offline: the roster follows what can be provisioned with no preinstalled toolchain, every served server pins its download
     /// (checksum, exact version, a pinned runtime), and the ones left out say why. Runs against the shipped catalog and pins.
     /// </summary>
+    private static readonly HashSet<string> OptIn = ["lsp-intellij"];
+
     private static void Languages()
     {
         var declared = BuiltinPlugins.Headless;
-        string Served(string platform) => string.Join(' ', HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)).Select(spec => spec.Id).Order());
-        Require(Served("linux-x86_64") == "clangd csharp css intellij kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
-        Require(Served("macos-aarch64") == "clangd csharp css intellij kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
+        string Served(string platform, bool intellij = false) => string.Join(' ', HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform, intellij ? OptIn : null)).Select(spec => spec.Id).Order());
+        Require(Served("linux-x86_64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
+        Require(Served("macos-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
         // clangd publishes no linux-arm64 build, so the arm64 image leaves it out instead of failing at the first call.
-        Require(Served("linux-aarch64") == "csharp css intellij kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
+        Require(Served("linux-aarch64") == "csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
+
+        // IntelliJ is opt-in: not in the roster unless the environment names it, then served on every platform that pins its archive.
+        Require(HeadlessLanguages.OptedIn(name => null).Count == 0 && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_PREFETCH" ? "intellij" : null).SequenceEqual(["lsp-intellij"])
+            && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_ACCEPT_TERMS" ? "csharp, intellij:" + new string('a', 64) : null).SequenceEqual(["lsp-intellij"]) && HeadlessLanguages.OptedIn(name => "csharp").Count == 0, "The opt-in rule for IntelliJ is wrong.");
+        Require(Served("linux-x86_64", true).Contains("intellij", StringComparison.Ordinal) && Served("linux-aarch64", true).Contains("intellij", StringComparison.Ordinal) && Served("macos-aarch64", true).Contains("intellij", StringComparison.Ordinal), "IntelliJ is missing when asked for.");
 
         // The manifests are the source of truth: the only server a platform drops from the declared set is clangd on linux-aarch64.
         Require(HeadlessLanguages.Left(declared, "linux-x86_64").Count == 0 && HeadlessLanguages.Left(declared, "macos-aarch64").Count == 0, "A manifest declares a language Headless = Yes that the pins cannot provision.");
@@ -89,7 +96,7 @@ internal static partial class HeadlessChecks
         Require(reasons["java"]!.Contains("JDK", StringComparison.Ordinal) && reasons["swift"]!.Contains("toolchain", StringComparison.Ordinal) && reasons["rust"]!.Contains("cargo", StringComparison.Ordinal), "A reason does not name the missing toolchain.");
 
         foreach (var platform in new[] { "linux-x86_64", "linux-aarch64", "macos-aarch64" })
-            foreach (var spec in HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)))
+            foreach (var spec in HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform, OptIn)))
             {
                 var name = $"{spec.Id} on {platform}";
                 Require(System.Text.RegularExpressions.Regex.IsMatch(spec.Version, @"^\d+(\.\d+)+"), $"{name} has no exact version: {spec.Version}");
@@ -169,8 +176,8 @@ internal static partial class HeadlessChecks
 
         var tools = replies[3]["result"]!["tools"]!.AsArray().ToDictionary(tool => tool!["name"]!.GetValue<string>(), tool => tool!);
         string[] required = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
-        Require(required.All(tools.ContainsKey) && tools.Keys.All(name => name.StartsWith("lsp_", StringComparison.Ordinal) || name.StartsWith("spec_", StringComparison.Ordinal) || name is "blueprint_check" or "accept_terms"),
-            "The headless tool table is not exactly the language, spec and Blueprint tools and accept_terms: " + string.Join(", ", tools.Keys));
+        Require(required.All(tools.ContainsKey) && tools.Keys.All(name => name.StartsWith("lsp_", StringComparison.Ordinal) || name.StartsWith("spec_", StringComparison.Ordinal) || name == "blueprint_check") && tools.Count == 14,
+            "The headless tool table is not exactly the 14 language, spec and Blueprint tools (accept_terms exists only when IntelliJ is asked for): " + string.Join(", ", tools.Keys));
         var desktop = LanguageMcpTools.Create(new HostStateStore(Path.Combine(Path.GetDirectoryName(state)!, "desktop-state")), workspace);
         Require(desktop.Count == 6 && desktop.All(tool => tools[tool.Name]["inputSchema"]!.ToJsonString() == tool.InputSchema.ToJsonString()), "A language tool's schema differs from the desktop's.");
         Require(replies[9]["error"]?["code"]?.GetValue<int>() == -32602, "A terminal-only tool must not exist headless.");

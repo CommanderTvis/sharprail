@@ -127,6 +127,10 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
 
     internal LanguageServer? Detect(string path) => Current.Detect(path);
 
+    /// <summary>Reads a server's terms text from its installation, downloading the pinned archive first when <paramref name="prepare"/> is set. Executes nothing.</summary>
+    internal Task<LanguageServerTerms> ReadTermsAsync(LanguageServer server, string workspace, bool prepare, CancellationToken token) =>
+        (server.Spec.TermsAsync ?? throw new InvalidOperationException("This server has no terms."))(new Installation(this, server, workspace, ""), prepare, token);
+
     /// <summary>The grant a host with no window holds for a server's pinned terms, or null; the desktop never sets it.</summary>
     internal Func<LanguageServer, LanguageConsent.Grant?>? Consent { get; set; }
 

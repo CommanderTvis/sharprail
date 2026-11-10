@@ -35,7 +35,8 @@ for (var index = 0; index < args.Length; index++)
 if (command is not ("mcp" or "warm" or "check-config" or "languages")) return Fail($"Unknown command: {command}");
 
 // Language servers whose runtimes are all pinned downloads; the others need a toolchain this host cannot fetch (HeadlessLanguages.cs).
-var roster = HeadlessLanguages.Roster(BuiltinPlugins.Headless, ManagedArtifacts.Platform());
+// The IntelliJ server exists only when the environment asks for it (SHARPRAIL_PREFETCH or SHARPRAIL_ACCEPT_TERMS naming it).
+var roster = HeadlessLanguages.Roster(BuiltinPlugins.Headless, ManagedArtifacts.Platform(), HeadlessLanguages.OptedIn(Environment.GetEnvironmentVariable));
 var servers = HeadlessLanguages.Servers(roster);
 if (command == "languages")
 {
@@ -74,13 +75,26 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
 }
 
 // Consent to the terms of servers that have them (Java and Kotlin by IntelliJ): nothing is accepted unless the user says so (LanguageConsent.cs).
-var consent = state.EnableLanguageConsent(Environment.GetEnvironmentVariable);
+var consent = state.EnableLanguageConsent(Environment.GetEnvironmentVariable, workspace);
 var client = new ClientChannel();
 var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = roster, Kind = HostKind.Headless });
 await plugins.Start();
 if (command == "warm") return await WarmAsync();
 foreach (var warning in consent.EnvironmentWarnings()) Console.Error.WriteLine("sharprail-headless: " + warning);
+// SHARPRAIL_PREFETCH: download the named servers now, in the background. A download executes nothing; with consent already given (SHARPRAIL_ACCEPT_TERMS) the server then starts.
+var (prefetch, prefetchWarnings) = consent.PrefetchRequests();
+foreach (var warning in prefetchWarnings) Console.Error.WriteLine("sharprail-headless: " + warning);
 var consentTools = new LanguageConsentTools(consent, client, (server, token) => state.Languages.ExecuteAsync(new(workspace, Operation: "retry", Server: server.Id), token).AsTask());
+foreach (var server in prefetch)
+{
+    var chosen = server;
+    Console.Error.WriteLine($"sharprail-headless: downloading {chosen.Id} in the background ({LanguageConsent.PrefetchVariable})");
+    _ = consent.StartPrefetch(chosen).ContinueWith(_ =>
+    {
+        Console.Error.WriteLine($"sharprail-headless: {chosen.Id} download: {consent.Prefetched(chosen).State}");
+        if (consent.Prefetched(chosen).State == LanguageConsent.PrefetchState.Ready && consent.GrantFor(chosen) is not null) consentTools.StartInBackground(chosen);
+    }, TaskScheduler.Default);
+}
 // A language tool that needs a server whose terms are not accepted answers with the terms; accept_terms is offered only when some server has terms.
 var language = LanguageMcpTools.Create(state, workspace).Select(consentTools.Guard).Concat(consent.Gated.Count > 0 ? [consentTools.AcceptTool()] : []).ToArray();
 // One workspace per process: a tool's optional "workspace" argument cannot name another, so it is dropped.
@@ -131,7 +145,11 @@ async Task<int> WarmAsync()
         foreach (var id in warmServers)
         {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            if (consent.Find(id) is { } gated && consent.GrantFor(gated) is null) return Fail(consent.Refusal(gated));
+            if (consent.Find(id) is { } gated && consent.GrantFor(gated) is null)
+            {
+                await consent.StartPrefetch(gated);
+                return Fail(consent.Refusal(gated));
+            }
             if (!await state.WarmLanguageServerAsync(id, workspace, cancel.Token)) return Fail($"No language server named {id}.");
             Console.Error.WriteLine($"sharprail-headless: {id} ready in {System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds:0} s");
         }

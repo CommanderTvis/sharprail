@@ -18,7 +18,8 @@ public sealed partial class HostStateStore
     internal LanguageConsent? LanguageConsent { get; private set; }
 
     /// <summary>Turns on headless consent: Java and Kotlin use the server with terms once it has a grant, and a grant lets its provisioning install the pinned archive.</summary>
-    internal LanguageConsent EnableLanguageConsent(Func<string, string?> environment) => LanguageConsent = new(LanguageDirectory, () => LanguageCatalog, environment);
+    internal LanguageConsent EnableLanguageConsent(Func<string, string?> environment, string workspace) =>
+        LanguageConsent = new(LanguageDirectory, () => LanguageCatalog, environment, (server, prepare, token) => Languages.ReadTermsAsync(server, workspace, prepare, token));
 
     internal LanguageService Languages
     {

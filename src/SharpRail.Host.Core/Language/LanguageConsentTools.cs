@@ -22,6 +22,9 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
 {
     internal const string ToolName = "accept_terms";
 
+    /// <summary>How long a call waits for a download before it answers "call again"; settable for checks.</summary>
+    internal static TimeSpan PrefetchWait { get; set; } = TimeSpan.FromSeconds(20);
+
     private readonly ConcurrentDictionary<string, SemaphoreSlim> asking = new();
     private readonly ConcurrentDictionary<string, bool> declined = new();
 
@@ -36,6 +39,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
                 ["server"] = new JsonObject { ["type"] = "string", ["enum"] = ids, ["description"] = "The language server whose terms these are." },
                 ["hash"] = new JsonObject { ["type"] = "string", ["description"] = "The terms hash from the text a refused call returned. Leave it out to only read the terms." },
                 ["version"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: the server version the text named." },
+                ["page"] = new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["description"] = "With only server: the page of the terms text to read (long texts come in pages)." },
                 ["answers"] = new JsonObject { ["type"] = "object", ["additionalProperties"] = new JsonObject { ["type"] = "string" }, ["description"] = "The user's own answers to the questions in the text, by question name." }
             },
             ["required"] = new JsonArray("server"),
@@ -44,7 +48,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
         return new(ToolName, "accept terms",
             "Records that the USER accepted the terms of a language server that has them (the text comes with a refused Java or Kotlin call). " +
             "Call it ONLY after the user explicitly said yes in this chat to these terms, and send the user's own answers. Never call it on your own, never to try a server out, never with a guessed answer. " +
-            "The hash must be the current terms hash from that text. With only server it shows the terms and whether they are accepted. Acceptance lasts as long as the host's state directory.",
+            "The hash must be the current terms hash from that text, and it only works once the server was downloaded and its full terms were shown. With only server it downloads (if needed), shows the full terms text, page by page, and whether they are accepted. Acceptance lasts as long as the host's state directory.",
             schema, CallAsync);
     }
 
@@ -55,7 +59,11 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
         if (gated.FirstOrDefault(server => server.Id == id) is not { } server)
             return ($"Name the server: one of {(gated.Count == 0 ? "none (no server here has terms)" : string.Join(", ", gated.Select(item => item.Id)))}.", true);
         var hash = arguments["hash"] is JsonValue hashed && hashed.TryGetValue<string>(out var h) ? h : "";
-        if (hash.Length == 0) return (consent.Review(server), false);
+        if (hash.Length == 0)
+        {
+            await WaitForAsync(server, token);
+            return (consent.Review(server, arguments["page"] is JsonValue paged && paged.TryGetValue<int>(out var page) ? page : 1), false);
+        }
         var answers = new Dictionary<string, string>();
         if (arguments["answers"] is JsonObject given)
             foreach (var pair in given)
@@ -65,6 +73,19 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
         if (!accepted) return (message, true);
         if (start is not null) _ = StartQuietlyAsync(server);
         return (message + $" {LanguageConsent.Name(server)} is downloaded (about 380 MB) and started by the next Java or Kotlin call, which answers initializing until it is ready; call again then.", false);
+    }
+
+    /// <summary>Starts the download if there is none and waits a little for it, so a cached server shows its terms at once; a long download answers "call again".</summary>
+    private async Task WaitForAsync(LanguageServer server, CancellationToken token)
+    {
+        var fetch = consent.StartPrefetch(server);
+        await Task.WhenAny(fetch, Task.Delay(PrefetchWait, token));
+    }
+
+    /// <summary>Starts the server in the background when the host has a way to start one.</summary>
+    internal void StartInBackground(LanguageServer server)
+    {
+        if (start is not null) _ = StartQuietlyAsync(server);
     }
 
     private async Task StartQuietlyAsync(LanguageServer server)
@@ -96,6 +117,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
         {
             if (consent.NeededBy(arguments) is { } needed)
             {
+                await WaitForAsync(needed, token);
                 if (await AskAsync(needed, token)) return await tool.Call(arguments, token);
                 return (consent.Refusal(needed, declined.ContainsKey(needed.Id)), true);
             }
@@ -127,7 +149,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
     /// <summary>Asks the user through the client, once per server and process. True only when the user explicitly accepted and consent was recorded.</summary>
     private async Task<bool> AskAsync(LanguageServer server, CancellationToken token)
     {
-        if (prompt is not { Supported: true } || declined.ContainsKey(server.Id)) return false;
+        if (prompt is not { Supported: true } || declined.ContainsKey(server.Id) || consent.Prefetched(server).State != LanguageConsent.PrefetchState.Ready) return false;
         var gate = asking.GetOrAdd(server.Id, _ => new(1, 1));
         await gate.WaitAsync(token);
         try
@@ -143,7 +165,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
                 return false;
             }
             if (LanguageConsent.ElicitationAnswers(server, reply) is not { } answers) return false;
-            var (accepted, message) = await consent.AcceptAsync(server, server.Spec.TermsSha256, server.Spec.Version, answers, "prompt", token);
+            var (accepted, message) = await consent.AcceptAsync(server, consent.PinnedHash(server), server.Spec.Version, answers, "prompt", token);
             if (!accepted) { Console.Error.WriteLine("sharprail-headless: " + message); return false; }
             declined.TryRemove(server.Id, out _);
             return true;

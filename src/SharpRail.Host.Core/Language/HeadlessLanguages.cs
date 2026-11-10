@@ -36,9 +36,25 @@ internal static class HeadlessLanguages
         return null;
     }
 
-    /// <summary>The declared headless roster without the servers that have no pinned download for this platform.</summary>
-    internal static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Roster(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> declared, string platform) =>
-        [.. declared.Where(plugin => plugin.Host is not LanguageServerPlugin language || Refusal(language.Spec, platform) is null)];
+    /// <summary>
+    /// Plugins that are headless-capable but part of the roster only when the environment asks for them, with the server ids that ask for them in
+    /// <c>SHARPRAIL_PREFETCH</c> or <c>SHARPRAIL_ACCEPT_TERMS</c>. Without that the server does not exist in a headless host: no language, no tool, no text, no download.
+    /// </summary>
+    private static readonly Dictionary<string, string> OptInServers = new(StringComparer.Ordinal) { ["lsp-intellij"] = "intellij" };
+
+    /// <summary>The opt-in plugin ids the environment asks for.</summary>
+    internal static IReadOnlySet<string> OptedIn(Func<string, string?> environment)
+    {
+        var named = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in new[] { "SHARPRAIL_PREFETCH", "SHARPRAIL_ACCEPT_TERMS" })
+            foreach (var entry in (environment(name) ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                named.Add(entry.Contains(':') ? entry[..entry.IndexOf(':')] : entry);
+        return OptInServers.Where(pair => named.Contains(pair.Value)).Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>The declared headless roster without the servers that have no pinned download for this platform and without opt-in plugins nobody asked for.</summary>
+    internal static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Roster(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> declared, string platform, IReadOnlySet<string>? optIn = null) =>
+        [.. declared.Where(plugin => (!OptInServers.ContainsKey(plugin.Manifest.Id) || optIn?.Contains(plugin.Manifest.Id) == true) && (plugin.Host is not LanguageServerPlugin language || Refusal(language.Spec, platform) is null))];
 
     /// <summary>The servers of a roster, in roster order.</summary>
     internal static IReadOnlyList<LanguageServerSpec> Servers(IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> roster) =>

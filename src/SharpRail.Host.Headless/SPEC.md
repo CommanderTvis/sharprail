@@ -38,15 +38,18 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
   from a pinned, checksummed source on the pinned .NET SDK or Bun, or as a self-contained archive. Go, Rust, Scala, Ruby, R, PowerShell, Swift and Dart need a toolchain without a pinned
   download, declare `No` and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*`, `spec_*` and
   `blueprint_check`, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
-- Terms. A server with terms (IntelliJ) is never started, downloaded or accepted by default. A call that needs it answers with plain text: what it is, its
-  terms and their hash and version, the questions the vendor asks (region, usage statistics) and the exact next step, which is to ask the user in chat. The tool
-  `accept_terms` records the user's yes when it gets the current hash and every answer; with only the server it shows the terms. If the client supports
-  elicitation the host asks the user directly with Accept and Decline, and a Decline, a failed prompt or a missing answer falls back to the text, asking at
-  most once per run. The environment variable `SHARPRAIL_ACCEPT_TERMS` (`intellij`, or `intellij:<hash>` to match only the current text; comma list) accepts
-  at start, with the answers in the vendor's own variables, and writes nothing. Consent names the pinned terms text, so it comes before any download; once
-  the pinned archive is installed the host checks that the text inside is that text, then writes the same acceptance record the desktop writes. Until then
-  Kotlin stays with the Kotlin server and Java has none. Consent is the agent's word for the user's: nothing technical stops an agent from calling the tool,
-  so the tool says plainly it needs the user's yes, and the image holds no acceptance. Records live in the state directory, so they last as long as it does.
+- Opt-in server. The IntelliJ server is headless-capable but not in the default roster: it exists only when `SHARPRAIL_PREFETCH` or `SHARPRAIL_ACCEPT_TERMS` names it.
+  Without that it is absent everywhere (languages, initialize text, server list, tool list, no `accept_terms`), `.java` has no server, `.kt` goes to the Kotlin
+  server, and nothing is downloaded or written. The desktop is unaffected.
+- Terms. `SHARPRAIL_PREFETCH` (also the first Java call) downloads the pinned archive in the background and checks its SHA-256; nothing in it runs before consent.
+  Once downloaded, the full terms text from the archive, its hash and version are shown (a Java call, or `accept_terms` with only the server, in pages); before that only a
+  summary and a "call again" text. The tool `accept_terms` records the user's yes when it gets the current hash and every answer, and not before the download has
+  finished and its terms file matched the pinned hash. If the client supports elicitation the host asks directly with Accept and Decline (full text, else the first pages
+  and a pointer to the tool); Decline, a failed prompt or a missing answer falls back to the text, asking at most once per run. `SHARPRAIL_ACCEPT_TERMS` (`intellij`, or
+  `intellij:<hash>`) accepts at start with the answers in the vendor's own variables and writes nothing; with `SHARPRAIL_PREFETCH` too the server downloads and then
+  starts. The acceptance record is written only after the archive is installed and its terms file matches the pinned hash. Kotlin stays with the Kotlin server and Java has
+  none until then. Consent is the agent's word for the user's: nothing technical stops an agent from calling the tool, so the tool says plainly it needs the user's yes, and the
+  image holds no acceptance. Records live in the state directory, so they last as long as it does.
 - Supersession. The IntelliJ server takes over Java and Kotlin from the other servers (the Kotlin server, and the Java server where one is available) only while it works:
   its terms are accepted, it started, and it is licensed. When any of these fails, the previous server keeps serving, nothing regresses, and the answer's hint or
   message says why IntelliJ is not in use; `retry` for it tries again, and a reason is kept for five minutes so the servers do not flap. There is no setting to keep
