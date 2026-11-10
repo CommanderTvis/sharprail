@@ -928,7 +928,7 @@ the `chat-*`, `composer-*`, `history-*`, `message-actions`, `model-picker`, `tem
 | --- | --- |
 | `tool-rails.spec.ts`, `rail-layout-regressions.spec.ts`, `project-home-chrome.spec.ts` | Pending translations, recorded in the checks contract's "Not yet ported". `RailRetentionChecks` is separate regression coverage. |
 | `close-quit-shortcuts.spec.ts` | Partial: the quit and close cases are covered by `QuitConfirmationChecks` and `AppCommandChecks`, which are SharpRail checks rather than 1:1 translations; the Settings chord cases are listed above. |
-| `settled-shelf.spec.ts`, `topbar-location.spec.ts` | Covered in spirit by `SettledWorkspacesE2E` and `ShellChecks`/`TopbarChromeE2E`; no per-case mapping is recorded, so the cases are not claimed as ported. |
+| `topbar-location.spec.ts` | Covered in spirit by `ShellChecks`/`TopbarChromeE2E`; no per-case mapping is recorded, so the cases are not claimed as ported. |
 | `changes-review.spec.ts`, `changes-review-drafts.spec.ts`, `changes-review-turn.spec.ts`, `review.spec.ts`, `phone-review.spec.ts` | Continuous Changes review is covered by `ChangesReviewChecks`; review authoring, drafts, turn scopes and phone review are not implemented (R01–R10). |
 | `typography.spec.ts` | Replaced by the `--design` guards; no 1:1 translation. |
 | `editor-save.spec.ts`, `new-project.spec.ts`, `terminal-links.spec.ts`, `tab-switch-latency.spec.ts`, `visualize.spec.ts` | Related checks exist (`FileSavingChecks`, `CreateProjectChecks`, the `terminal-links` case, `SwitchLatencyChecks`, `VisualizeE2E`); the first four are not mapped per case. |
@@ -967,7 +967,6 @@ comparison provenance.
 | H11 | Spec traversal and authoring exclude the five assistant/mockup scratch folders. |
 | P13 | Terminal companions start with the fork's 45% share. |
 | L01–L05, L09 | Persistent edge rails, compatible tool/terminal panes, placement/drop rules and independent Project Home visibility. The bottom zone remains retired. |
-| W01–W07, W09 | Host activity, settling overrides/settings, client partition/latch, shelf/paging/notice and differentiated creation/activity ordering. |
 | U02, U07, G01 | Semantic typography, quiet scrollbars/curtains and the calm 40px location strip. Minimal palettes are included under the narrowed U01 entry. |
 | V08 | Browser Settings renderer ownership is already fixed; normal-bundle and physical-browser acceptance remains V07. |
 | W13 | Intentional divergence: workspaces start empty and terminals launch explicitly. Initial-terminal provisioning is no longer a product requirement. |
@@ -1085,7 +1084,6 @@ Authorities: upstream [workspaces](https://github.com/JetBrains/thinkrail/blob/b
 
 | ID | Status | Gap |
 | --- | --- | --- |
-| W08 | Decision | Automatic settling on merged/closed PR and authoritative host review snapshot. Existing PR lookup does not provide this lifecycle. |
 | W10 | Partial | Active workspace's parent project is revealed on initial mount/ownership change while a later manual collapse stays respected. SharpRail primarily restores its collapsed set. |
 | W11 | Missing | Prefetch a selected non-default base off the creation critical path. Default-base prefetch and create-time fetch already exist. |
 | W12 | Missing | Retry rejected workspace creation inside the same dialog. SharpRail closes it before the operation and reports failure separately. |
@@ -1218,7 +1216,7 @@ These are priorities inferred from the comparison, not accepted feature designs.
 
 1. Close the remaining normal-bundle, real-platform input and notification acceptance gates; browser Settings renderer ownership is implemented.
 2. Finish retained-chrome, per-project frame, placement-picker and visual-fidelity gaps; rails, compatible panes, Home visibility and density/location typography are implemented.
-3. Extend implemented activity/settling with the remaining workspace attention/read and PR-driven semantics.
+3. Extend workspace attention/read semantics.
 4. Build review records/anchors and terminal send/resolve, then evaluate CLI run-boundary receipts for Last turn changes.
 5. Close CLI configuration, MCP configuration and skills/design workflow gaps through the provider plugins and shared shipped skills.
 6. Close resource parity: HTML/PDF diffs, renderer capabilities, view state, rich anchors and font/syntax consistency.

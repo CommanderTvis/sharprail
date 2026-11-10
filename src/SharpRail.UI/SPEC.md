@@ -262,9 +262,9 @@ host state: it shows what the window already knows and calls the same methods as
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
   Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
   project the segment reads `SharpRail`.
-- The workspace has no cell here: the Projects rail names the active workspace, switches, creates and settles, and its
+- The workspace has no cell here: the Projects rail names the active workspace, switches and creates, and its
   rows carry the workspace actions (Copy absolute path, Copy link for the active one, Open in, Copy name, Reveal in file
-  manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
+  manager, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail).
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
   untracked files will be permanently lost. Cancel has focus; only an explicit Delete anyway action
@@ -568,7 +568,6 @@ workspace frame's left side.
 
 - Showing Project Home's Projects pane restores focus to the pane header, not yet to the last tree
   control, active row or first tree control inside it.
-- Upstream merged/closed pull-request chips and host review-snapshot arbitration are not included in the Settled shelf.
 - Away notifications off macOS, reading the system's permission state (a denied permission drops
   notifications silently; Settings only points at the system's settings), and the fork's chooser when
   several terminals ask at once.

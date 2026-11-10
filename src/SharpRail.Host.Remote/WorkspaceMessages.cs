@@ -13,9 +13,6 @@ internal static class WorkspaceMessages
         Path = workspace.Path,
         Branch = workspace.Branch,
         BaseBranch = workspace.BaseBranch,
-        InitialTerminalPending = workspace.InitialTerminalPending,
-        LastActiveAt = workspace.LastActiveAt ?? 0,
-        SettledOverride = workspace.SettledOverride ?? "",
-        SettledAt = workspace.SettledAt ?? 0
+        InitialTerminalPending = workspace.InitialTerminalPending
     };
 }

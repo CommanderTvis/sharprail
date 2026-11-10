@@ -3549,7 +3549,6 @@ internal static class RpcCodec
         if (value.CustomHighlighting is { } field11) writer.String(11, field11);
         if (value.VerticalCenterTabs is { } field12) writer.Bool(12, field12);
         if (value.VerticalTabsInProjects is { } field13) writer.Bool(13, field13);
-        writer.Int32(14, value.SettleIdleDays);
         if (value.FileTypeIconsDisabled) writer.Bool(15, value.FileTypeIconsDisabled);
         if (!value.LspEnabled) writer.Bool(16, value.LspEnabled);
         if (value.LanguageServers is { } field17) writer.String(17, field17);
@@ -3591,7 +3590,6 @@ internal static class RpcCodec
                 case 11: value.CustomHighlighting = reader.String(); break;
                 case 12: value.VerticalCenterTabs = reader.Bool(); break;
                 case 13: value.VerticalTabsInProjects = reader.Bool(); break;
-                case 14: value.SettleIdleDays = reader.Int32(); break;
                 case 15: value.FileTypeIconsDisabled = reader.Bool(); break;
                 case 16: value.LspEnabled = reader.Bool(); break;
                 case 17: value.LanguageServers = reader.String(); break;
@@ -4874,9 +4872,6 @@ internal static class RpcCodec
         if (value.Branch is { } field5) writer.String(5, field5);
         if (value.BaseBranch is { } field6) writer.String(6, field6);
         if (value.InitialTerminalPending) writer.Bool(7, value.InitialTerminalPending);
-        if (value.LastActiveAt != 0) writer.Int64(8, value.LastActiveAt);
-        if (value.SettledOverride is { } field9) writer.String(9, field9);
-        if (value.SettledAt != 0) writer.Int64(10, value.SettledAt);
     }
 
     private static WorkspaceRecordMessage ReadWorkspaceRecordMessage(ref ProtoReader reader, WorkspaceRecordMessage? value)
@@ -4893,9 +4888,6 @@ internal static class RpcCodec
                 case 5: value.Branch = reader.String(); break;
                 case 6: value.BaseBranch = reader.String(); break;
                 case 7: value.InitialTerminalPending = reader.Bool(); break;
-                case 8: value.LastActiveAt = reader.Int64(); break;
-                case 9: value.SettledOverride = reader.String(); break;
-                case 10: value.SettledAt = reader.Int64(); break;
                 default: reader.Skip(); break;
             }
         }

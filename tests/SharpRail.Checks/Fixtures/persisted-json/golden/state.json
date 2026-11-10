@@ -28,11 +28,11 @@
     "VerticalCenterTabs": true,
     "VerticalTabsInProjects": false,
     "WindowDecorations": "client",
-    "SettleIdleDays": 14,
     "ActiveKeymap": "Mine",
     "EditorTabWidth": 0,
     "EditorLineNumbers": true,
     "Accent": "",
+    "SettleIdleDays": 14,
     "FutureSetting": {
       "nested": [
         1,
@@ -113,10 +113,7 @@
       "Path": "$ROOT/project",
       "Branch": "main",
       "BaseBranch": "main",
-      "InitialTerminalPending": false,
-      "LastActiveAt": 1780000000500,
-      "SettledOverride": null,
-      "SettledAt": null
+      "InitialTerminalPending": false
     },
     {
       "Id": "w-feature",
@@ -125,10 +122,7 @@
       "Path": "$ROOT/project-ws",
       "Branch": "feature/\u00FC",
       "BaseBranch": "main",
-      "InitialTerminalPending": true,
-      "LastActiveAt": 1780000000600,
-      "SettledOverride": "active",
-      "SettledAt": 1780000000700
+      "InitialTerminalPending": true
     }
   ],
   "PluginSettings": {

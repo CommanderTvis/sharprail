@@ -130,7 +130,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireNavigation();
         WireEditorLifetime();
         WireHostSync();
-        WireSettling();
+        WireProjectReveal();
         WireTerminalCatalog();
         WireUndoClose();
         WirePlugins();

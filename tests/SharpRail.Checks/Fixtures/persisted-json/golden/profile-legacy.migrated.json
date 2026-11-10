@@ -207,8 +207,5 @@
   "PluginPreferences": {
     "local|plugin:claude-code:mode": "plan"
   },
-  "StateMigrated": true,
-  "SettledShelfNotices": [
-    "local"
-  ]
+  "StateMigrated": true
 }

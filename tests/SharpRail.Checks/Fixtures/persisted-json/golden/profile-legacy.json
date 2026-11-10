@@ -254,9 +254,6 @@
     "local|plugin:claude-code:mode": "plan"
   },
   "StateMigrated": false,
-  "SettledShelfNotices": [
-    "local"
-  ],
   "Projects": [
     "$ROOT/project"
   ],

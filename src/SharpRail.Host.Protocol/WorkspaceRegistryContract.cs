@@ -10,11 +10,7 @@ public sealed class WorkspaceRecordMessage
     [ProtoMember(5)] public string Branch { get; set; } = "";
     [ProtoMember(6)] public string BaseBranch { get; set; } = "";
     [ProtoMember(7)] public bool InitialTerminalPending { get; set; }
-    /// <summary>Unix milliseconds; zero when the host has no stamp or predates settling.</summary>
-    [ProtoMember(8)] public long LastActiveAt { get; set; }
-    /// <summary>Empty, <c>settled</c> or <c>active</c>.</summary>
-    [ProtoMember(9)] public string SettledOverride { get; set; } = "";
-    [ProtoMember(10)] public long SettledAt { get; set; }
+    // Members 8 to 10 carried the activity stamp and settled override until settled workspaces were removed; the numbers are retired.
 }
 
 [ProtoContract]

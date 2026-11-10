@@ -55,8 +55,7 @@ public sealed class SettingsMessage
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }
     [ProtoMember(13)] public bool? VerticalTabsInProjects { get; set; }
-    /// <summary>Always written; zero means never settle. A host that predates settling leaves the default.</summary>
-    [ProtoMember(14, IsRequired = true)] public int SettleIdleDays { get; set; } = 7;
+    // Member 14 carried the idle-day setting of settled workspaces until they were removed; the number is retired.
     /// <summary>The active keymap preset's name; empty, from a host that predates keymaps, is the built-in IntelliJ.</summary>
     [ProtoMember(30)] public string ActiveKeymap { get; set; } = "";
     /// <summary>Zero, from a host that predates the setting, is the default width.</summary>

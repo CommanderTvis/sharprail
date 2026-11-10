@@ -85,7 +85,6 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             CustomHighlighting = state.Settings.CustomHighlighting,
             VerticalCenterTabs = state.Settings.VerticalCenterTabs,
             VerticalTabsInProjects = state.Settings.VerticalTabsInProjects,
-            SettleIdleDays = state.Settings.SettleIdleDays ?? 0,
             WindowDecorations = state.Settings.WindowDecorations,
             ActiveKeymap = state.Settings.ActiveKeymap,
             EditorTabWidth = state.Settings.EditorTabWidth,

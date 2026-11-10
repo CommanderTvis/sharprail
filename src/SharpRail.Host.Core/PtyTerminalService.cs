@@ -265,7 +265,6 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             var known = terminal;
             hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay)
             {
-                InputAccepted = () => InputAccepted?.Invoke(directory),
                 SessionId = request.SessionId,
                 Signaled = signals.Publish,
                 TitleChanged = known is null ? null : title => Retitled(request.SessionId, known, title),
@@ -407,12 +406,6 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             .Select(entry => entry.Key).Distinct().ToArray();
         foreach (var id in ids) await CloseAsync(id);
     }
-
-    /// <summary>
-    /// Raised with the workspace root of a shell that accepted a client's input. A watcher's ignored write, output and
-    /// merely attaching are not input.
-    /// </summary>
-    public event Action<string>? InputAccepted;
 
     /// <summary>Raised with a tab's terminal and the title its program set with OSC 0/2 (null when cleared), coalesced.</summary>
     public event Action<TerminalRef, string?>? TitleChanged;

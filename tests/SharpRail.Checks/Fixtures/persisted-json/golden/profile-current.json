@@ -93,7 +93,7 @@
         "DefaultProjectPanes": null,
         "ProjectPanes": {},
         "Center": {
-          "GroupId": "df7fa864f7fd4b9c994430aec8b5d36e",
+          "GroupId": "1df5b64caf314b6f8be6a605df04b5d2",
           "Axis": "horizontal",
           "Ratio": 0.5,
           "First": null,
@@ -102,14 +102,14 @@
         },
         "Groups": [
           {
-            "Id": "df7fa864f7fd4b9c994430aec8b5d36e",
+            "Id": "1df5b64caf314b6f8be6a605df04b5d2",
             "Region": "center",
             "Tools": [],
             "Folded": false,
             "Weight": 1
           },
           {
-            "Id": "a467cfb3574846968715050ba6d12f11",
+            "Id": "a717c4d31379478d85094a0310f1c4b4",
             "Region": "left",
             "Tools": [
               {
@@ -127,7 +127,7 @@
             "Weight": 1
           },
           {
-            "Id": "6491b9cc01ca4bfe90950c7aa6162bbc",
+            "Id": "e6a7a2ec889b4a329dc63f2dcde9fb86",
             "Region": "right",
             "Tools": [
               {
@@ -155,7 +155,7 @@
             "Weight": 1.25
           },
           {
-            "Id": "b755d9bf9fce4ff4b18cd04e9a58104e",
+            "Id": "8355b3375d9c4c9880f8f348df6cdf34",
             "Region": "right",
             "Tools": [
               {
@@ -200,6 +200,5 @@
   "PluginPreferences": {
     "remote:host|plugin:pi:model": "\u00E9"
   },
-  "StateMigrated": true,
-  "SettledShelfNotices": []
+  "StateMigrated": true
 }

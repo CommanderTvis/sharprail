@@ -235,10 +235,6 @@ could not save this change: …” inline and re-renders from host state.
 - Appearance, on Linux only, adds "Window decorations": Automatic (recommended), Integrated header or System title bar over the host's
   shared `window-decorations`, following the broadcast. An active `SHARPRAIL_WINDOW_DECORATIONS` environment override is named under the
   choices, since it wins. Open windows switch at once; the copy tells a user whose window manager keeps the old frame to open a new window.
-- Workspaces, listed only for a host that serves settling, is one card group "Settle idle workspaces after":
-  1 / 3 / 7 (default) / 14 days / Never over the host's shared `settle-idle-days`, following the broadcast;
-  a host-configured value between the presets selects no card. Its copy names what counts as activity and
-  what never settles.
 - Notifications is the fork's `NotificationsSettings`: one "Enable notifications" switch over the host's
   shared `notifications` setting (default on), following the broadcast rather than the click. Turning it
   on also asks the system for notification permission, while the user is present. The line below says the

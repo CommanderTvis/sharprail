@@ -28,7 +28,6 @@
     "VerticalCenterTabs": true,
     "VerticalTabsInProjects": true,
     "WindowDecorations": "",
-    "SettleIdleDays": 7,
     "ActiveKeymap": "",
     "EditorTabWidth": 0,
     "EditorLineNumbers": true,
@@ -50,16 +49,16 @@
   ],
   "ProjectRecords": [
     {
-      "Id": "2a22155f-55c6-498c-9359-63bdb13c85bd",
+      "Id": "04f5e9a3-778a-4b67-be8e-0845b9982713",
       "Path": "$ROOT/project",
       "Slug": "project",
-      "LastOpened": 1793919309658
+      "LastOpened": 1794304130304
     },
     {
-      "Id": "902e6ac5-9211-4856-97c0-85e9d1bcc5bf",
+      "Id": "6abf887e-5653-4caf-a652-e64a13d8732b",
       "Path": "$ROOT/older",
       "Slug": "older",
-      "LastOpened": 1793919309658
+      "LastOpened": 1794304130304
     }
   ],
   "SharprailExcludeDeclined": [],

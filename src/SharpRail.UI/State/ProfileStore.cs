@@ -104,8 +104,6 @@ public sealed class Profile
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
-    /// <summary>Hosts, by endpoint, whose first automatic move to the Settled shelf has been announced.</summary>
-    public HashSet<string> SettledShelfNotices { get; set; } = [];
 
     // Fields of older profiles, read for migration and cleared once migrated.
     [JsonPropertyName("Layout"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public DockState? LegacyLayout { get; set; }
@@ -196,7 +194,6 @@ public sealed class ProfileStore
                     entry.Value.Expanded = [.. (entry.Value.Expanded ?? []).Where(path => !string.IsNullOrEmpty(path) && !path.Contains('\0'))];
                     entry.Value.ChangedCollapsed = [.. (entry.Value.ChangedCollapsed ?? []).Where(path => !string.IsNullOrEmpty(path) && !path.Contains('\0'))];
                 }
-            Data.SettledShelfNotices ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
                 if (!ValidPath(entry.Key) || entry.Value is null)

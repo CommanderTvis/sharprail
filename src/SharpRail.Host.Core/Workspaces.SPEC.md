@@ -254,29 +254,6 @@ forgetting removes its row while leaving the checkout in place. The Default work
 - A missing restored workspace falls back to its Project Home, a missing project to the Welcome, and a
   workspace removed elsewhere returns a window showing it to Project Home with a notice.
 
-## Settled lifecycle
-
-- Each record carries host-owned facts only: `LastActiveAt` (the newest real activity, Unix ms),
-  `SettledOverride` (`settled` parks it, `active` keeps it live) and `SettledAt`. Which rows are live and
-  which sit on the Settled shelf is a client derivation; the host never stores that verdict.
-- Real activity is a shell accepting a client's input (`PtyTerminalService.InputAccepted`, raised after the
-  driving attachment's write; a watcher's ignored write, output and attaching are not input) and an
-  observed HEAD change. `HostStateStore.ObserveWorkspaceHead` reads HEAD from the Git directory without
-  starting Git whenever a workspace's file watch starts and after a batch carrying Git-directory changes;
-  the first observation in a host lifetime seeds the baseline, which is kept across watcher restarts, so a
-  commit made while no watcher ran still counts. Selecting a workspace, reading files or viewing output
-  never count.
-- `RecordWorkspaceActivity` stamps the record and clears any override. A stamp within one minute of the
-  stored one is skipped unless it clears an override: only the idle window, measured in days, can change
-  the partition otherwise.
-- `settle` / `unsettle` workspace actions set the override and its stamp, save and publish the updated
-  record without touching the worktree, and refuse the Default workspace. Removal stays the only teardown.
-- A record first persisted without a stamp (created, attached, the Default ensured, or adopted on a first
-  listing) is stamped as it is written: a linked worktree's `.git` gitfile time, else now. Loading a
-  registry that predates the stamps backfills them the same way once and saves; one unreadable record
-  degrades to now rather than failing the list. An override on the Default workspace, or an unknown one,
-  is dropped on load. Settling by merged or closed pull request is not ported.
-
 ## Not yet ported
 
 - Renaming an already named managed workspace branch; later label renames stay independent of Git.

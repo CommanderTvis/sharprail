@@ -117,24 +117,6 @@ After each (re)connect the subscription asks the host for its handshake in the b
 the version is cleared when the connection drops, and an answer from a superseded connection is discarded.
 A window that sees a protocol version other than its own logs it and shows a non-blocking notice.
 
-## Workspace partition
-
-`WorkspaceSettling.Partition` is the one pure derivation of a project's rows into live rows and the Settled
-shelf, used by the Projects rail so it
-never disagrees with itself. The caller supplies the clock, the host's `SettleIdleDays` and the active-selection latch.
-Rules in order: Default is live; `SettledOverride` `settled` settles (reason by you) and `active` keeps live,
-both beating the latch; the latched active workspace is live; a row idle longer than the window settles
-(reason idle); otherwise live. `Created` order (the rail) is newest created first; `Recent` order (the
-switcher) is newest activity first with newest created breaking ties; Default leads either way.
-
-A window re-evaluates on a 30-second clock. The latch is decided when the window lands on a different
-workspace: live then means it stays live while you are in it, however long it idles; settled then means it
-stays on the shelf. Landing again on the same workspace keeps the decision, and a broadcast that advances
-the active row's `LastActiveAt` re-arms the latch. `SharedState.SettlingSupported` keeps the last answered
-handshake's verdict through a dropped connection, so the shelf does not flatten while reconnecting; below
-`HostProtocol.WorkspaceSettle` the partition returns the host's flat list and ignores stale fields. Shelf
-disclosure and paging are per-window and not persisted.
-
 ## Profile persistence
 
 Loading is defensive: unreadable files yield a fresh profile with the error kept in `LastError`; missing

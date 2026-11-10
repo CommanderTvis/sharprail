@@ -151,9 +151,7 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   range is clamped. Zero is a real value, so the wire always carries the field and a host that predates
   it reads as the default. `terminal-keep-after-exit` (`true`/`false`, default false) keeps an exited
   shell's tab with its exit notice instead of closing it like Ghostty; a host that predates it reads as
-  closing. `settle-idle-days` is the Settled shelf's idle window: whole days 1–365, or
-  `never` (null); it defaults to 7, a loaded value is clamped, and the wire carries zero for never with a
-  host that predates it reading as the default. `window-decorations` (`auto`, `client` or `system`; stored as empty, `client` or `system`, default automatic) is how Linux
+  closing. `window-decorations` (`auto`, `client` or `system`; stored as empty, `client` or `system`, default automatic) is how Linux
   clients frame their window; other clients ignore it, an unknown loaded value reads as automatic and a host that predates it reads as
   automatic. `notifications` (`true`/`false`, default on) is the master toggle for clients'
   away notifications; the wire carries its negation, so a host that predates it reads as on.
@@ -213,9 +211,6 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
 
 ## Not yet ported
 
-- The host-wide settled-workspace idle window: default seven days, a positive integer clamped to
-  1–365, or null to disable idle settling. Validate mutations as known settings; malformed nonnumeric
-  persisted values restore the default rather than silently disabling the lifecycle.
 - A `NotGit` refusal of a non-repository. SharpRail opens a plain folder as a workspace on purpose (the
   startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
   needs the product decision upstream made; inspection already gives a client the classification, and the

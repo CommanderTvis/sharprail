@@ -34,7 +34,7 @@ internal static class ProjectsE2E
             // A collapse made after the reveal is respected through later rail updates.
             app.Click(app.Find<Button>("ProjectExpand"));
             ExpectExpansion(app, false);
-            app.Window.RefreshSettling(force: true);
+            app.Window.UpdateRailSelection();
             ExpectExpansion(app, false);
         }
         Console.WriteLine("PASS upstream projects.spec.ts: rail expansion is per-browser view state that survives a reload, with the active workspace's project revealed over it");

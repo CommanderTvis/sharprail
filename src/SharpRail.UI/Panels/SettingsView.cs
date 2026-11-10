@@ -84,11 +84,9 @@ public sealed partial class SettingsView : UserControl
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", ""), ("Code Intelligence", "code"), ("Editor", ""), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", ""), ("Code Intelligence", "code"), ("Editor", ""), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, item.Item2.Length == 0 ? IndentedLabel(item.Item1) : Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
-        // Listed only for a host that settles workspaces; an older one has no idle window to set.
-        navigation["Workspaces"].IsVisible = state.SettlingSupported;
         navigation["Code Intelligence"].IsVisible = LanguageSupport.Available;
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
 #if !ANDROID && !BROWSER
@@ -241,7 +239,6 @@ public sealed partial class SettingsView : UserControl
         ["Layout"] = "Presets, panes, file previews",
         ["Keymap"] = "Shortcuts and keymap presets",
         ["Projects"] = "Recent projects",
-        ["Workspaces"] = "When idle workspaces settle",
         ["Terminal"] = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? "Replayed output" : "Renderer, replayed output",
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
@@ -296,7 +293,6 @@ public sealed partial class SettingsView : UserControl
             "Keymap" => KeymapSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
-            "Workspaces" => WorkspaceSettings(),
             "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
             "About" => new AboutFields { Margin = new(24) },
@@ -354,7 +350,7 @@ public sealed partial class SettingsView : UserControl
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
         else if (section == "Keymap") { EndKeymapRecording(); RefreshSection(); }
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
-            section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit ||
+            section == "Projects" || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit ||
                 previous.Settings.TerminalUndoCloseSeconds != next.Settings.TerminalUndoCloseSeconds ||
                 previous.Settings.ShellIntegrationEnabled != next.Settings.ShellIntegrationEnabled)) RefreshSection();
         else if (section is "Notifications" or "Terminal") foreach (var refresh in refreshers) refresh();
@@ -1124,28 +1120,6 @@ public sealed partial class SettingsView : UserControl
         };
         protect.LostFocus += (_, _) => Commit();
         refreshers.Add(() => { if (!protect.IsFocused) protect.Text = Names(); });
-    }
-
-    private Control WorkspaceSettings()
-    {
-        var panel = Page("WorkspacesPage");
-        // Host state: the selection follows the host's broadcast. A host-configured value between the presets selects none.
-        var choices = PageControl<StackPanel>(panel, "SettleIdleChoices");
-        var current = state.Current.Settings.SettleIdleDays;
-        foreach (var (days, label, description) in new (int?, string, string)[]
-        {
-            (1, "1 day", "Only today's work stays live"),
-            (3, "3 days", "A few days"),
-            (HostSettings.DefaultSettleIdleDays, "7 days", "A week, so paused work survives a weekend (default)"),
-            (14, "14 days", "Two weeks"),
-            (null, "Never", "Only workspaces you settle move to the shelf")
-        })
-            choices.Children.Add(Choice("SettleIdle_" + (days?.ToString(CultureInfo.InvariantCulture) ?? "Never"), label, description, current == days, () =>
-            {
-                if (state.Current.Settings.SettleIdleDays != days)
-                    Share(HostStateChange.Setting("settle-idle-days", days?.ToString(CultureInfo.InvariantCulture) ?? "never"));
-            }));
-        return panel;
     }
 
     private Control NotificationSettings()

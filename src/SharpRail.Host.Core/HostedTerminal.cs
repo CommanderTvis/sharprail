@@ -30,9 +30,6 @@ internal sealed class HostedTerminal
     /// than the shell held the terminal then.</summary>
     internal Action<TerminalShellStatus, bool>? PromptChanged { get; init; }
 
-    /// <summary>Raised after the shell accepted input from the attachment that drives it.</summary>
-    internal Action? InputAccepted { get; init; }
-
     /// <summary>Receives, on the read pump, each progress, bell and notification in live output; never replays.</summary>
     internal Action<TerminalSignal>? Signaled { get; init; }
     internal string SessionId { get; init; } = "";
@@ -245,7 +242,6 @@ internal sealed class HostedTerminal
     {
         if (!Drives(attachment)) return;
         await Process.WriteAsync(data, cancellationToken);
-        InputAccepted?.Invoke();
     }
 
     internal void Resize(Attachment attachment, int columns, int rows)

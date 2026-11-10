@@ -67,7 +67,7 @@ public sealed partial class HostStateStore : IHostStateService
     /// <summary>Which agent sessions this host and every other SharpRail process on the machine have open.</summary>
     public SharpRail.Host.Core.Plugins.AgentSessionOwnership AgentSessions { get; init; } = new();
 
-    /// <summary>The host's terminals, ended when their project closes; input they accept is activity in their workspace.</summary>
+    /// <summary>The host's terminals, ended when their project closes.</summary>
     public PtyTerminalService? Terminals
     {
         get => terminals;
@@ -76,7 +76,6 @@ public sealed partial class HostStateStore : IHostStateService
             if (ReferenceEquals(terminals, value)) return;
             if (terminals is not null)
             {
-                terminals.InputAccepted -= TerminalInput;
                 terminals.TitleChanged -= ProgramTitle;
                 terminals.Owned.Changed -= PublishOwnedProcesses;
                 terminals.PrepareRevival = null;
@@ -84,7 +83,6 @@ public sealed partial class HostStateStore : IHostStateService
             terminals = value;
             if (value is not null)
             {
-                value.InputAccepted += TerminalInput;
                 value.TitleChanged += ProgramTitle;
                 value.Owned.Changed += PublishOwnedProcesses;
                 value.PrepareRevival = async (workspace, token) =>
@@ -104,8 +102,6 @@ public sealed partial class HostStateStore : IHostStateService
         lock (gate)
             if (!state.OwnedProcesses.SequenceEqual(owned)) Publish(state with { OwnedProcesses = owned }, persist: false);
     }
-
-    private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
 
     private void ProgramTitle(TerminalRef terminal, string? title) => SetTerminalTitle(terminal, title, TerminalTitleSource.Program);
 
@@ -227,7 +223,7 @@ public sealed partial class HostStateStore : IHostStateService
             try { AirContextMigration.Migrate(directory, [.. (legacyContextWorkspaces ?? []).Where(ValidPath).Distinct().Order(StringComparer.Ordinal)]); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
         }
-        state = BackfillActivity(Normalize(migrated), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) with { WorkspaceCreators = CreatorEntries() };
+        state = Normalize(migrated) with { WorkspaceCreators = CreatorEntries() };
         state = state with
         {
             Settings = state.Settings with
@@ -630,7 +626,6 @@ public sealed partial class HostStateStore : IHostStateService
                 TerminalUndoCloseSeconds = Math.Clamp(value.Settings.TerminalUndoCloseSeconds, 0, HostSettings.MaxTerminalUndoCloseSeconds),
                 CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
                 WindowDecorations = value.Settings.WindowDecorations is "client" or "system" ? value.Settings.WindowDecorations : "",
-                SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null,
                 ActiveKeymap = value.KeymapPresets.Any(preset => preset is not null && preset.Name == value.Settings.ActiveKeymap) ? value.Settings.ActiveKeymap : ""
             },
             Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
@@ -655,8 +650,7 @@ public sealed partial class HostStateStore : IHostStateService
             TerminalTitles = value.TerminalTitles.Where(title => title?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
                 !string.IsNullOrWhiteSpace(title.Title)).DistinctBy(title => title.Terminal).ToArray(),
             Platform = OperatingSystem.IsMacOS() ? HostPlatform.MacOS : OperatingSystem.IsWindows() ? HostPlatform.Windows : HostPlatform.Linux,
-            Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path)
-                .Select(NormalizeSettling).ToArray()
+            Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray(),
         };
         var records = (value.ProjectRecords ?? []).Where(record => record is not null && ValidPath(record.Path ?? "") &&
             ValidText(record.Id ?? "") && ValidText(record.Slug ?? "")).DistinctBy(record => record.Path).DistinctBy(record => record.Id).DistinctBy(record => record.Slug);
@@ -684,12 +678,6 @@ public sealed partial class HostStateStore : IHostStateService
         while (taken.Any(record => record.Slug == $"{name}-{suffix}")) suffix++;
         return $"{name}-{suffix}";
     }
-
-    // An override the host does not know, or one on the Default workspace, is dropped rather than shelving the row.
-    private static WorkspaceRecord NormalizeSettling(WorkspaceRecord workspace) =>
-        workspace.SettledOverride is SettledOverrides.Settled or SettledOverrides.Active && workspace.Kind != WorkspaceKinds.Default
-            ? workspace
-            : workspace.SettledOverride is null && workspace.SettledAt is null ? workspace : workspace with { SettledOverride = null, SettledAt = null };
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();
 
@@ -779,9 +767,6 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-memory" => settings with { TerminalMemory = value.Length == 0 ? "" : TerminalMemoryLimits.Parse(value).Serialize() },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
-                    "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },
-                    "settle-idle-days" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var days) && days is >= 1 and <= HostSettings.MaxSettleIdleDays
-                        => settings with { SettleIdleDays = days },
                     "window-decorations" when value is "auto" or "" => settings with { WindowDecorations = "" },
                     "window-decorations" when value is "client" or "system" => settings with { WindowDecorations = value },
                     "keymap" when value.Length == 0 || Keymaps.IsBuiltin(value) => settings with { ActiveKeymap = "" },

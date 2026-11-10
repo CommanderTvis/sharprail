@@ -78,29 +78,16 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   workspace (the project folder itself) is pinned first with a home icon, an attached external worktree has
   an open-folder icon and a managed one the branch glyph. The active workspace's icon and name use the accent.
   Until the host has listed the shown project, its folder alone stands in as the Default row.
-- On a host that serves settling (`HostProtocol.WorkspaceSettle`) an expanded project lists its live rows
-  after Default newest created first (the registry reversed, never re-sorted by activity, so rows stay put
-  while you work), then a `Settled · N` disclosure, collapsed by default and held per window, whose open body
-  lists settled rows ten at a time with a Show 25 more row. A settled row is slim: name only, with a reason
-  chip (`by you` in the warning tone, `idle 8d` / `idle 2w` / `idle 3mo` in the hint tone) whose tooltip has
-  the long form. The partition comes from `WorkspaceSettling.Partition` (see `State/SPEC.md`) and is
-  re-derived on the window's 30-second clock, redrawing only when it changed. Live rows offer Settle and
-  settled ones Keep active, as a hover/focus check or back-arrow button beside the kebab and in the shared
-  workspace menu (`AddWorkspaceActions`); Default offers neither. Settling never touches disk. An older host
-  keeps its flat registry order with no shelf, chips or settle actions.
+- An expanded project lists its rows with Default first, then the others newest created first (the registry reversed, never
+  re-sorted by activity, so rows stay put while you work).
 - The per-app preference "Group workspaces under the terminal or chat that created them" (Settings > Projects, off by
   default) lists a live workspace made by `workspace_create` indented, with a guide line, directly below the tab row
   that created it in the creator's workspace, whether that list is the open workspace's live one or a closed
   workspace's preview (a chat is recorded by its chat id, matched against its plugin tab's path after the scheme).
   The nested rows are not tabs: reordering, drops and arrow keys count only tabs. A creator tab that is closed, or a
-  creator that is unknown, in another project or on the Settled shelf, leaves the workspace in its flat place, or
+  creator that is unknown or in another project, leaves the workspace in its flat place, or
   under its creator's workspace when only the tab row is unavailable; nesting is one level per creation link. The rail redraws when the preference, a creator
   or the creator's tab changes.
-- Opening a settled workspace leaves it on the shelf, expands the shelf and pages it far enough to show the
-  row, once per selection. The first automatic move (idle rows only, never ones settled by hand) is announced
-  once per host endpoint after the count has held still for two seconds: an info toast "Moved N quiet
-  workspaces to Settled" that names the rules and offers Show, which expands those projects and shelves; the
-  profile remembers it (`SettledShelfNotices`).
 - Landing on a workspace of another project, or mounting the first one, shows that project expanded on top
   of the persisted collapsed set, which it leaves untouched; collapsing it ends the reveal, and it is not
   forced open again until the window lands in another project. Project Home reveals nothing.
@@ -166,7 +153,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   The workspace menu (rail row and header) offers Mark as unread or Mark as read for the current mark; see
   HostState.SPEC.md "Unread workspaces".
 - The unread dot sits in its own right-hand column of the workspace row, centred on the whole row and clear of the
-  settle and actions buttons. Tab rows' status dots (agent status, failed mark) end on the same column: workspace and tab rows
+  actions button. Tab rows' status dots (agent status, failed mark) end on the same column: workspace and tab rows
   share one trailing inset (`RailDotInset`), so their dots have equal right edges and each is centred on its own row. A failure names its agents: the row tooltip reads "Claude Code in “Orchestrator” hit an
   error" (up to three agent/tab pairs, then "and N more"; "An agent hit an error" when only the host mark is known),
   and each failing agent terminal's own tab row (Projects tab list and tab strip) carries a danger dot in the tab's
@@ -656,10 +643,6 @@ disappearance shows.
 
 ## Not yet ported
 
-- Settled-shelf guards for a row whose agent is working or has an unread result: agent state is plugin-owned,
-  so such a row settles by the idle rule like any other, and its Settle action stays enabled.
-- Settled-shelf acceptance across two windows or clients: Settle and Keep active converge through the
-  broadcast, but no check drives two windows at once.
 - Scroll-offset restoration across file/diff renderer detach and attach for delayed content. An
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
   switching away first saves that pending offset rather than the temporary clamped value. The rendered

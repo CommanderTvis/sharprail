@@ -208,7 +208,6 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 | --- | --- | --- | --- |
 | Appearance: `Theme`, `ThemeMode`, `SystemLight`, `SystemDark`, `FileTypeIcons*`, line widths, `WindowDecorations`, `ActiveKeymap` | `state.json` `HostSettings` | host (shared by clients) | XML comments in `Host.Abstractions/HostState.cs`, Settings UI |
 | Terminal: `TerminalReplayKb`, `TerminalKeepAfterExit`, `TerminalUndoCloseSeconds`, `ShellIntegrationEnabled`, bell, notification flags, `TerminalOptionAsAlt` | `state.json` | host | same |
-| `SettleIdleDays` | `state.json` | host | same |
 | `LspEnabled` | `state.json` | host | XML comment; `Language/SPEC.md` |
 | `JavaKotlinProvider` | `state.json` | host | `Language/SPEC.md` |
 | `LanguageServers` (per-server launcher: `command`, `arguments`, `allowPath`), JSON string | `state.json` | host | `Language/SPEC.md`, `LanguageServerOptions` comment |
@@ -590,7 +589,7 @@ allow_path = false           # overridden to false when [language].allow_path is
 roster = "research"          # "research" (default headless), "all", or an explicit list in plugins = [...]
 ```
 
-`[ui]` keys (theme, line widths, terminal, bell, keymap, settle days and the other `HostSettings` UI members) are accepted
+`[ui]` keys (theme, line widths, terminal, bell, keymap and the other `HostSettings` UI members) are accepted
 and ignored headless. They are listed in the schema with `scope = "ui"` so that the same file configures the desktop
 later. Their key names follow snake_case of the property.
 

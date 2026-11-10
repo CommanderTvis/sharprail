@@ -62,8 +62,6 @@ public sealed record HostSettings
     /// window manager's. Other platforms ignore it.
     /// </summary>
     public string WindowDecorations { get; set; } = "";
-    /// <summary>Days without activity after which a workspace settles onto its project's shelf; null never settles.</summary>
-    public int? SettleIdleDays { get; set; } = DefaultSettleIdleDays;
     /// <summary>The active keymap preset's name; empty is the built-in <see cref="Keymaps.BuiltinName"/>, and so is a name that no longer exists.</summary>
     public string ActiveKeymap { get; set; } = "";
 
@@ -75,7 +73,6 @@ public sealed record HostSettings
     public string Accent { get; set; } = "";
 
     public const int DefaultEditorTabWidth = 4, MinEditorTabWidth = 1, MaxEditorTabWidth = 8;
-    public const int DefaultSettleIdleDays = 7;
     public const string DefaultBellFeatures = "attention,title";
     public static readonly IReadOnlyList<string> BellFeatureNames = ["system", "attention", "title"];
 
@@ -90,7 +87,6 @@ public sealed record HostSettings
 
     /// <summary>Whether this bell feature is on.</summary>
     public bool Bell(string feature) => BellFeatures.Split(',').Contains(feature);
-    public const int MaxSettleIdleDays = 365;
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;
     public const int DefaultTerminalUndoCloseSeconds = 5;
