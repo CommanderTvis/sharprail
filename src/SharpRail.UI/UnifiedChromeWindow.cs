@@ -79,12 +79,15 @@ public sealed partial class WorkbenchWindow
         // Every block is one pattern: a caption over a value row with the same insets, icon column and height. The value pill fills the
         // rail's width, and the branch's sync state sits at the right end of its own row.
         foreach (var pill in new[] { "ScopeProject", "ScopeBranch" }) this.FindControl<Button>(pill)!.HorizontalAlignment = HorizontalAlignment.Stretch;
-        var remote = this.FindControl<StackPanel>("RemoteRow")!;
-        if (remote.Parent is Grid branchLine)
-        {
-            branchLine.ColumnDefinitions = new ColumnDefinitions("*,Auto");
-            remote.HorizontalAlignment = HorizontalAlignment.Right;
-        }
+        // The branch and remote blocks are equal columns with the usual 8 gap; without a remote status the remote block is gone and
+        // the branch block takes the whole row.
+        var columns = this.FindControl<Grid>("BranchColumns")!;
+        var remoteBlock = this.FindControl<Grid>("RemoteBlock")!;
+        remoteBlock.Margin = default;
+        Grid.SetColumn(remoteBlock, 2);
+        void Split() => columns.ColumnDefinitions = new ColumnDefinitions(remoteBlock.IsVisible ? "*,8,*" : "*");
+        Split();
+        remoteBlock.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Split(); };
         header.Children.Add(branch);
         header.Children.Add(pullRequest);
 

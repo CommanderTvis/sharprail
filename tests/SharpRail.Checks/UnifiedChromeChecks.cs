@@ -105,13 +105,23 @@ internal static class UnifiedChromeChecks
         Require(Math.Abs(Left(initial) - Left(icon)) < 0.5 && Math.Abs(Left(project) - Left(branch)) < 0.5 &&
             Math.Abs(Left(app.Find<TextBlock>("ProjectLabel")) - Left(app.Find<TextBlock>("BranchLabel"))) < 0.5,
             "The project and branch values share one icon column and one text column.");
-        var remote = app.Find<StackPanel>("RemoteRow");
-        var row = (Control)remote.Parent!;
-        // The value row ends one segment inset (8) before the rail's edge; its last cell ends exactly there.
-        var rowEnd = Right(row);
+        var columns = app.Find<Grid>("BranchColumns");
+        var remoteBlock = app.Find<Grid>("RemoteBlock");
+        // The value row ends one segment inset (8) before the rail's edge.
+        var rowEnd = Right(columns);
         Require(Math.Abs(header.Bounds.Width - 8 - rowEnd) <= 1, $"The branch row ends one inset before the rail's edge ({rowEnd}, {header.Bounds.Width}).");
-        var lastEnd = remote.IsVisible && remote.Bounds.Width > 0 ? Right(remote) : Right(branch);
-        Require(Math.Abs(lastEnd - rowEnd) <= 1, $"The sync state (or the branch pill without one) sits flush at the right end of the branch row ({lastEnd}, {rowEnd}).");
+        var branchBlock = (Control)branch.Parent!;
+        if (remoteBlock.IsVisible)
+        {
+            // With a remote status the row is two equal columns an 8 gap apart: Branch, then Remote with its own caption.
+            Require(Math.Abs(Right(remoteBlock) - rowEnd) <= 1, $"The Remote block sits flush at the right end of the branch row ({Right(remoteBlock)}, {rowEnd}).");
+            Require(Math.Abs(branchBlock.Bounds.Width - remoteBlock.Bounds.Width) <= 1 && Math.Abs(Left(remoteBlock) - Right(branchBlock) - 8) <= 1,
+                $"The Branch and Remote blocks are equal columns with an 8 gap ({branchBlock.Bounds.Width}, {remoteBlock.Bounds.Width}).");
+            var caption = remoteBlock.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("location-caption"));
+            Require(caption.Text == "Remote" && Math.Abs(Left(caption) - Left(app.Find<ContentControl>("RemoteIcon"))) <= 1, "The Remote block has its caption, and its content starts at the caption's left edge.");
+            Require(app.Find<Avalonia.Controls.DockPanel>("RemoteRow").GetLogicalChildren().OfType<Control>().All(part => Right(part) <= Right(remoteBlock) + 0.5), "The Remote content never overflows its block.");
+        }
+        else Require(Math.Abs(Right(branch) - rowEnd) <= 1, $"Without a remote status the branch block takes the full row ({Right(branch)}, {rowEnd}).");
         Require(!OperatingSystem.IsMacOS() || Math.Abs(Right(project) - rowEnd) <= 1 && project.Bounds.Width > header.Bounds.Width / 2, "The project value fills the rail's width.");
         var credits = app.Window.GetLogicalDescendants().OfType<Border>().FirstOrDefault(border => border.Name == "CreditsSegment");
         if (credits is { IsVisible: true })
@@ -165,7 +175,7 @@ internal static class UnifiedChromeChecks
             var header = app.Find<StackPanel>("RailHeader");
             bool InHeader(Control control) => header.IsLogicalAncestorOf(control);
             Require(InHeader(app.Find<Button>("AppMenuButton")) && InHeader(app.Find<Button>("ScopeProject")) && InHeader(app.Find<Button>("ScopeBranch")) &&
-                InHeader(app.Find<StackPanel>("RemoteRow")), "The rail header holds the overflow menu, the project switcher and the branch block with its sync state.");
+                InHeader(app.Find<Avalonia.Controls.DockPanel>("RemoteRow")), "The rail header holds the overflow menu, the project switcher and the branch block with its sync state.");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "left") == 1 && app.Window.Layout.State.LeftVisible,
                 "The left column is the Projects rail alone.");
             var all = app.Window.GetLogicalDescendants().OfType<Control>().ToArray();

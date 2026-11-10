@@ -238,7 +238,7 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
 - A header tops the rail. On macOS its first row is the title region the traffic lights sit over, at the native 40pt height, draggable
   and double-click zoomed by the system, with the add-project button and the three-dots overflow button at its right (the list has no caption row); in the browser there is no such row and the buttons
   share the project's row. The overflow button opens the View menu, which a right-click on the header opens too. Below it come the
-  Project switcher, the Branch block (the branch card, with the sync state and its one action at the right end of the row), the repo hosting
+  Project switcher, the Branch block (the branch card, and beside it the Remote block with the sync state and its one action), the repo hosting
   provider's Pull request item, the plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
   Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
 - The right tool bar ends with Settings alone, which keeps its chord, tooltip and automation name; About is in the overflow menu, the application menu and Settings.
@@ -278,7 +278,7 @@ host state: it shows what the window already knows and calls the same methods as
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
   transient notice confirms), and Compare to, which is the Changes panel's own picker
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
-- The branch's sync state (ThinkRail #771, `BranchShip.cs`) sits beside the branch pill, inside the Branch segment, whenever the host reports a
+- The branch's sync state (ThinkRail #771, `BranchShip.cs`) is the Remote block beside the Branch block, inside the Branch segment, with its own Remote caption; in the rail the two are equal columns, and the Branch block takes the whole row when there is no status. It shows whenever the host reports a
   branch status. PULL REQUEST (ThinkRail #776) is not core: it is the location item of the repo hosting provider that
   owns the remote (Plugin API W28; today [GitHub](../SharpRail.Plugins.GitHub/SPEC.md)), absent without one, and the two
   together turn the status into the branch's next step through one rule (`ShipActions`: the sync step first, the

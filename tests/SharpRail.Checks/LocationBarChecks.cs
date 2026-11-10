@@ -122,8 +122,8 @@ internal static class LocationBarChecks
         app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
         // Upstream #771: Remote is present for a branch even without an origin; the provider's Pull request item hides itself on a plain remote (W28).
-        Until(() => app.Find<StackPanel>("RemoteRow").Children.Count > 0);
-        Require(app.Find<StackPanel>("RemoteRow").GetVisualAncestors().Contains(app.Find<Border>("BranchSegment")), "The sync state lives in the Branch segment.");
+        Until(() => app.Find<Avalonia.Controls.DockPanel>("RemoteRow").Children.Count > 0);
+        Require(app.Find<Avalonia.Controls.DockPanel>("RemoteRow").GetVisualAncestors().Contains(app.Find<Border>("BranchSegment")), "The sync state lives in the Branch segment.");
         Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && !app.Find<Border>("PullRequestSegment").IsVisible &&
             !Buttons(app).Any(button => button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
             "Without an origin the header says so and offers no push.");
