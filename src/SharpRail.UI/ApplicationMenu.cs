@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
 
 using SharpRail.UI.Editor;
@@ -43,8 +45,56 @@ public static class ApplicationMenu
     [
         Item("About " + AboutInfo.Name, Key.None, KeyModifiers.None, about),
         new NativeMenuItemSeparator(),
-        Follow(Item("Settings…", WindowShortcuts.Settings.Gesture, settings), WindowShortcuts.Settings, null),
+        Follow(WithIcon(Item("Settings…", WindowShortcuts.Settings.Gesture, settings), SettingsIcon), WindowShortcuts.Settings, null),
     ];
+
+    private static readonly Lazy<Bitmap> SettingsGlyph = new(() => Gear(16, 2));
+
+    /// <summary>The gear beside Settings, made once; macOS only, as the native menu is.</summary>
+    private static Bitmap? SettingsIcon => OperatingSystem.IsMacOS() ? SettingsGlyph.Value : null;
+
+    private static NativeMenuItem WithIcon(NativeMenuItem item, Bitmap? icon)
+    {
+        item.Icon = icon;
+        return item;
+    }
+
+    /// <summary>
+    /// A gear in black with alpha at <paramref name="points"/> points and <paramref name="scale"/> pixels per point (16 at 2 is the native 16 pt menu icon
+    /// at 2x). Black on transparent is what macOS tints as a template image, so it follows the light or dark menu and the selection highlight.
+    /// </summary>
+    public static Bitmap Gear(int points, int scale)
+    {
+        var size = points * scale;
+        var bitmap = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96 * scale, 96 * scale));
+        var middle = points / 2.0;
+        var outer = points * 0.47;
+        var root = points * 0.37;
+        const int teeth = 8;
+        var body = new StreamGeometry();
+        using (var context = body.Open())
+        {
+            context.SetFillRule(FillRule.EvenOdd);
+            for (var i = 0; i < teeth * 4; i++)
+            {
+                // Each tooth is a flat top and a flat root, 45 degrees apart over the circle, 11 degrees of flat per side.
+                var step = Math.PI * 2 / (teeth * 4);
+                var angle = (i - 0.5) * step - Math.PI / 2;
+                var radius = (i / 2) % 2 == 0 ? outer : root;
+                var point = new Point(middle + Math.Cos(angle) * radius, middle + Math.Sin(angle) * radius);
+                if (i == 0) context.BeginFigure(point, true); else context.LineTo(point);
+            }
+            context.EndFigure(true);
+            var hole = points * 0.16;
+            context.BeginFigure(new Point(middle + hole, middle), true);
+            context.ArcTo(new Point(middle - hole, middle), new Size(hole, hole), 0, false, SweepDirection.Clockwise);
+            context.ArcTo(new Point(middle + hole, middle), new Size(hole, hole), 0, false, SweepDirection.Clockwise);
+            context.EndFigure(true);
+        }
+        using var drawing = bitmap.CreateDrawingContext();
+        drawing.DrawGeometry(Brushes.Black, null, body);
+        return bitmap;
+    }
 
     private static Window? ActiveWindow() =>
         Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop

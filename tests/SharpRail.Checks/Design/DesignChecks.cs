@@ -86,7 +86,7 @@ internal static partial class DesignChecks
     // Accents derives the accent roles of a chosen colour and paints its swatches.
     // A QR code is dark on white under every theme, or a camera does not read it.
     // Quiet scroll curtains are an opacity mask: alpha only, never a painted colour.
-    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Rendering/Accents.cs", "Panels/QrCodeView.cs", "Rendering/QuietScroll.cs"];
+    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Rendering/Accents.cs", "Panels/QrCodeView.cs", "Rendering/QuietScroll.cs", "ApplicationMenu.cs"];
 
     private static void ColorUsage(DesignSources.Colors colors, List<SourceFile> sources, List<string> failures)
     {

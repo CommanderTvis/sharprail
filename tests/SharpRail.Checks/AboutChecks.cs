@@ -63,6 +63,10 @@ internal static class AboutChecks
         Require(headers.SequenceEqual(["About SharpRail", "Settings…"]) && menu.Items[1] is NativeMenuItemSeparator, "The application menu must hold About SharpRail, then Settings.");
         var preferences = menu.Items.OfType<NativeMenuItem>().Single(item => item.Header == "Settings…");
         Require(preferences.Gesture is { } chord && chord.Equals(WindowShortcuts.Settings.Gesture), "Settings shows the window's Settings chord.");
+        var gear = ApplicationMenu.Gear(16, 2);
+        Require(gear.PixelSize == new Avalonia.PixelSize(32, 32) && gear.Size == new Avalonia.Size(16, 16), "The gear is 16 pt at 2x.");
+        Require(OperatingSystem.IsMacOS() ? preferences.Icon is { Size: { Width: 16, Height: 16 } } : preferences.Icon is null, "Settings carries the gear on macOS only.");
+        Require(menu.Items.OfType<NativeMenuItem>().Where(item => item != preferences).All(item => item.Icon is null), "Only Settings has an icon.");
         ((INativeMenuItemExporterEventsImplBridge)preferences).RaiseClicked();
         Require(settings == 1, "Settings runs its command.");
         Require(!headers.Any(header => header.Contains("Avalonia", StringComparison.OrdinalIgnoreCase)), "The application menu must not offer About Avalonia.");
