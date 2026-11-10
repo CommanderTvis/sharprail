@@ -5,10 +5,6 @@
           HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
     <Grid RowDefinitions="*,Auto">
       <ContentControl x:Name="Icon" HorizontalAlignment="Left" VerticalAlignment="Top" />
-      <Border x:Name="Badge" CornerRadius="12" Padding="8,2" BorderThickness="1"
-              HorizontalAlignment="Right" VerticalAlignment="Top">
-        <TextBlock x:Name="BadgeText" Text="new" FontSize="12" />
-      </Border>
       <StackPanel Grid.Row="1" Spacing="2">
         <TextBlock x:Name="Title" Text="Draft a blueprint" FontSize="16" />
         <TextBlock x:Name="Description" FontSize="12" TextWrapping="Wrap"
