@@ -538,8 +538,8 @@ public sealed partial class WorkbenchWindow
         void FailedChanged(string session) { if (workbench.Signals.FailedTabs(worktree.Path).Count > 0) ShowUnread(); }
         unreadDot.AttachedToVisualTree += (_, _) => workbench.Signals.Changed += FailedChanged;
         unreadDot.DetachedFromVisualTree += (_, _) => workbench.Signals.Changed -= FailedChanged;
-        var added = Ui.Text("", Ui.Success, 12);
-        var removed = Ui.Text("", Ui.Danger, 12);
+        var added = Ui.Text("", Ui.Success, RailTitleBudget.SecondFontSize); added.LineHeight = RailTitleBudget.SecondLineHeight; added.VerticalAlignment = VerticalAlignment.Center;
+        var removed = Ui.Text("", Ui.Danger, RailTitleBudget.SecondFontSize); removed.LineHeight = RailTitleBudget.SecondLineHeight; removed.VerticalAlignment = VerticalAlignment.Center;
         var totals = new StackPanel { Name = "WorkspaceDiffStats", Orientation = Orientation.Horizontal, Spacing = 4, Children = { added, removed } };
         void ShowTotals()
         {
@@ -549,7 +549,7 @@ public sealed partial class WorkbenchWindow
         }
         ShowTotals();
         railStats.Add(ShowTotals);
-        var branch = Ui.Text("", Ui.Hint, 12); branch.LineHeight = 15; branch.Name = "WorkspaceBranch";
+        var branch = Ui.Text("", Ui.Hint, RailTitleBudget.SecondFontSize); branch.LineHeight = RailTitleBudget.SecondLineHeight; branch.VerticalAlignment = VerticalAlignment.Center; branch.Name = "WorkspaceBranch";
         branch.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
         // The totals sit right of the branch, or alone under the name when the row has none.
         var second = new DockPanel { Children = { totals } };

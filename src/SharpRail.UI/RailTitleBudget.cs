@@ -10,6 +10,8 @@ internal static class RailTitleBudget
     internal const double TitleLineHeight = 17.5;
     /// <summary>Line height of the branch line under the title.</summary>
     internal const double SecondLineHeight = 15;
+    /// <summary>Font size of everything on the second line: the branch and the change numbers.</summary>
+    internal const double SecondFontSize = 12;
     /// <summary>Vertical padding of the row button (4 above and below).</summary>
     private const double RowPadding = 8;
     /// <summary>Gap between rows in a project's list.</summary>
