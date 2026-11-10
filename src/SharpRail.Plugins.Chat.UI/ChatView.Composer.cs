@@ -217,6 +217,7 @@ internal sealed partial class ChatView
         leftGroup.Children.Add(pie);
         chips.VerticalAlignment = VerticalAlignment.Top;
         chips.HorizontalAlignment = HorizontalAlignment.Right;
+        chips.Background = Ui.Terminal; // the strip behind the chips is the terminal's colour, so the elevated chips stand out from it
         var footer = new Grid { Name = "ChatFooter", Margin = new Thickness(Space.Inset, 0), ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = Space.Gap };
         Grid.SetColumn(hint, 1);
         Grid.SetColumn(chips, 2);

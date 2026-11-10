@@ -425,37 +425,37 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private Button? gear;
 
     /// <summary>
-    /// Gives a fact chip the pickers' look: no box, the same padding, text size and weight. The chips set these as local values, so a style
+    /// Gives a fact chip the pickers' look: the same elevated fill (set against the terminal-coloured strip), padding, text size and weight. The chips set these as local values, so a style
     /// cannot; rows that fill in later (the environment chips) are followed as their children arrive.
     /// </summary>
-    private static void Flatten(Control control)
+    private static void Flatten(Control control, bool chip = true)
     {
         switch (control)
         {
             case Border { OpacityMask: not null }: break; // an icon: its fill is the glyph
             case Border border:
-                border.Background = Brushes.Transparent;
+                border.Background = chip ? Ui.Elevated : Brushes.Transparent; // only the chip itself is filled, not the borders nested inside it
                 border.Padding = new Thickness(4, 2);
                 border.MaxWidth = double.PositiveInfinity;
                 border.Margin = new Thickness(0);
-                if (border.Child is { } inner) Flatten(inner);
+                if (border.Child is { } inner) Flatten(inner, false);
                 break;
             case TextBlock text:
                 text.FontSize = 12;
                 text.FontWeight = Ui.InterfaceWeight;
                 break;
             case Panel panel:
-                foreach (var child in panel.Children) Flatten(child);
-                panel.Children.CollectionChanged += (_, e) => { foreach (var added in e.NewItems?.OfType<Control>() ?? []) Flatten(added); };
+                foreach (var child in panel.Children) Flatten(child, chip);
+                panel.Children.CollectionChanged += (_, e) => { foreach (var added in e.NewItems?.OfType<Control>() ?? []) Flatten(added, chip); };
                 break;
             case Button { Content: Control content } button:
                 button.Padding = new Thickness(4, 2); // the chip's own local padding would beat the footer's "plain" style; fact chips and buttons share the buttons' padding so the footer stays one line at 520px
                 content.Margin = new Thickness(0);
-                Flatten(content);
+                Flatten(content, false);
                 break;
             case ContentControl { Content: Control content }:
                 content.Margin = new Thickness(0); // a plugin's mounted row carries margins of its own
-                Flatten(content);
+                Flatten(content, chip);
                 break;
         }
     }
@@ -472,7 +472,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         // The pickers sit last, nearest Send; the facts come before them, in the same plain look.
         var pickers = new List<Control>();
         void AddPicker(Control chip) => pickers.Add(chip);
-        void AddFactButton(Button button) { button.Classes.Add("plain"); button.Background = Brushes.Transparent; Add(button); }
+        void AddFactButton(Button button) { button.Classes.Add("plain"); button.Background = Ui.Elevated; Add(button); }
         // Until the agent has reported, a chip holds a one-word muted placeholder rather than a value it does not know.
         var waiting = header.Status == ChatStatus.Starting;
         var modelLabel = header.Model is null ? "model" : ModelLabel(header.Model, header);
@@ -512,7 +512,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         if (ChipShown("attach")) AddFactButton(attach);
         foreach (var picker in pickers) Add(picker);
         gear ??= TerminalFacts.ChipButton("ChatChipSettings", Ui.Icon("settings", Ui.Muted, 14), "Configure chips", ShowChipSettings);
-        if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Brushes.Transparent; Add(gear); }
+        if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Ui.Elevated; Add(gear); }
         // The "+" wears a warning dot when an MCP server is down.
         var down = header.McpServers.Count(server => server.Status is not ("connected" or "ok"));
         plusBadge.IsVisible = down > 0;
