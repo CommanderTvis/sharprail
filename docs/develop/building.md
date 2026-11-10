@@ -18,6 +18,14 @@ scripts/mise run package:macos
 open artifacts/SharpRail.app
 ```
 
+## Run the optimised local build
+
+```sh
+scripts/mise run native
+```
+
+Publishes the desktop app as NativeAOT with `IlcInstructionSet=native` and `OptimizationPreference=Speed` into `artifacts/native` and runs it (`--no-run` publishes only, `--print` shows the commands). The binary is tied to this machine's CPU and may not start on another one. The publish is slow compared with `mise run dev` and uses several GB of memory, and it does not go through `queue-heavy`; use it only for profiling or for daily use of an optimised build. Agents never run it.
+
 ## Memory
 
 A build target that runs a file-based script from a project directory must use `dotnet run --file <script>`. `dotnet run <script>` in a directory with a `.csproj` passes the script to the project as an argument, so it builds and runs that project, whose build runs the same target again: a chain of nested `dotnet` processes that grows until memory is gone. The Browser project's asset staging, bundle compression and preserved-assembly check use `--file` for this reason.

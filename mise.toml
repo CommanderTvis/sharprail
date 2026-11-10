@@ -176,6 +176,10 @@ run = "dotnet run --file scripts/generate-rpc.cs"
 description = "Build the desktop app from source and run it in Release (SHARPRAIL_CONFIGURATION=Debug to debug; SHARPRAIL_PROFILE, SHARPRAIL_ROOT)"
 run = "dotnet run --file scripts/tasks/dev.cs --"
 
+[tasks.native]
+description = "Publish the desktop app as NativeAOT tuned to this machine's CPU (IlcInstructionSet=native) into artifacts/native and run it (--no-run to only publish, --print to show the commands); not queued, uses several GB"
+run = "dotnet run --file scripts/tasks/native.cs --"
+
 [tasks.host]
 description = "Run only the remote host and print its connection QR code (SHARPRAIL_CONNECT_HOST)"
 run = "dotnet run --file scripts/tasks/host.cs --"
