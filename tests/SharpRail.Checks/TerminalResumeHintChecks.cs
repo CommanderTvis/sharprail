@@ -171,7 +171,7 @@ internal static class TerminalResumeHintChecks
         var one = SharpRail.UI.Plugins.CompanionStrip.Create("CheckStrip", SharpRail.Plugins.UI.Kit.Ui.Icon("close"), "Drawing", "visualization", ["Drawing"], false, () => presses++, null);
         view.CompanionStrips.Children.Add(one); Settle();
         Require(one.TranslatePoint(new Point(0, 0), view) is { } corner && Math.Abs(corner.X) < 0.5 && Math.Abs(corner.Y) < 0.5 && Math.Abs(one.Bounds.Width - view.Bounds.Width) < 0.5 &&
-            Math.Abs(one.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow) < 0.5 && one.BorderThickness.Bottom == 1 && Math.Abs(body.Bounds.Top - one.Bounds.Height) < 0.5,
+            Math.Abs(one.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && one.BorderThickness.Bottom == 1 && Math.Abs(body.Bounds.Top - one.Bounds.Height) < 0.5,
             $"The strip sits at the very top, full width, one slim row high with a divider; the surface starts below it: {one.Bounds}, surface at {body.Bounds.Top}.");
         Require(one.GetLogicalDescendants().OfType<TextBlock>().Last().Text == "· 1 visualization" && !one.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CheckStripItems"), "One item reads as a singular count without a list.");
         one.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CheckStripToggle").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

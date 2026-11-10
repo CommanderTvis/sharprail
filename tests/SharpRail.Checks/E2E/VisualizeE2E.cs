@@ -136,9 +136,14 @@ internal static class VisualizeE2E
         var stripTop = strip.TranslatePoint(new Point(0, 0), terminal);
         var surface = terminal.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody");
         Require(stripTop is { } origin && Math.Abs(origin.X) < 0.5 && Math.Abs(origin.Y) < 0.5 && Math.Abs(strip.Bounds.Width - terminal.Bounds.Width) < 0.5 &&
-            Math.Abs(strip.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow) < 0.5 && strip.BorderThickness.Bottom == 1 && Equals(strip.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) &&
+            Math.Abs(strip.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && strip.BorderThickness.Bottom == 1 && Equals(strip.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) &&
             Math.Abs(surface.Bounds.Top - strip.Bounds.Height) < 0.5,
             $"The strip is the tab's top row, full width, one slim row high with a divider below: {stripTop}, {strip.Bounds}, surface at {surface.Bounds.Top}.");
+        var filesGroup = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
+        var paneHeader = app.Find<Border>("TabStrip_" + filesGroup);
+        double BottomOf(Control control) => control.TranslatePoint(new Point(0, control.Bounds.Height), app.Window)!.Value.Y;
+        Require(Math.Abs(strip.Bounds.Height - paneHeader.Bounds.Height) < 0.01 && Math.Abs(BottomOf(strip) - BottomOf(paneHeader)) < 0.01,
+            $"The strip ends on the Files pane header's bottom line: strip {BottomOf(strip)} (height {strip.Bounds.Height}), header {BottomOf(paneHeader)} (height {paneHeader.Bounds.Height}).");
         Require(!strip.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == StripName + "Items"), "One visualization has no list to choose from.");
 
         // The diagram is navigable in place.

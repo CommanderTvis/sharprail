@@ -199,7 +199,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
 - Companions (W6) open beside a terminal tab in an embedded split inside the terminal's body, never as a tab of
   their own; the open companion per terminal is window view state. The pane has a top-right close
   button that clears that selection, leaving its terminal and its strip available to reopen it.
-  A companion shows as a slim strip at the very top of the tab body, full width, above the transcript or terminal: its icon, the
+  A companion shows as a slim strip at the very top of the tab body, full width (a pane header strip tall, so its divider meets the neighbouring pane header's), above the transcript or terminal: its icon, the
   drawing's title and "· N visualizations", in muted text on the tab's own background with a divider below. Pressing the strip
   opens or closes the pane; with several items a chevron lists them and choosing one shows it in the pane. The strip exists only
   while the tab has something to show (no strip, no gap), and is the same on terminals and chat tabs; there is no chip.

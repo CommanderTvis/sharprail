@@ -14,7 +14,7 @@ namespace SharpRail.UI.Plugins;
 /// </summary>
 internal static class CompanionStrip
 {
-    public const double Height = LayoutRoles.PanelHeaderRow;
+    public const double Height = LayoutRoles.PaneHeaderStrip;
 
     public static Border Create(string name, Control icon, string title, string noun, IReadOnlyList<string> items, bool open, Action toggle, Action<int>? select)
     {
