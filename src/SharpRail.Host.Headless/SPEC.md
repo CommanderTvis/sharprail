@@ -31,13 +31,25 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - Commands: `sharprail-headless mcp|check-config [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
 - State (settings, language server installs and sessions) lives in `SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`. A store with no
   directory would turn language services off, so there is always one. Two processes on one directory are last-writer-wins.
-- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and eight language servers, enabled by default
+- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and nine language servers, enabled by default
   (`HeadlessEnabledByDefault` turns the first two on). Every builtin states `Yes` or `No`, a check fails on `Undeclared`, and the host runs as
   `HostKind.Headless`, so a plugin without `Yes` is refused there and so is a dependent of a refused plugin. The decision per plugin is in
-  [headless-design.md](../../docs/develop/headless-design.md). The language servers that declare `Yes` are those whose installation and launch need nothing preinstalled: C#, TypeScript and JavaScript, Python, CSS, shell, PHP, C and C++ (not on linux/arm64, which has no clangd build) and Kotlin, each downloaded on first use
-  from a pinned, checksummed source on the pinned .NET SDK or Bun. Java, Go, Rust, Scala, Ruby, R, PowerShell, Swift and Dart need a toolchain without a pinned
+  [headless-design.md](../../docs/develop/headless-design.md). The language servers that declare `Yes` are those whose installation and launch need nothing preinstalled: C#, TypeScript and JavaScript, Python, CSS, shell, PHP, C and C++ (not on linux/arm64, which has no clangd build), Kotlin and Java / Kotlin by IntelliJ, each downloaded on first use
+  from a pinned, checksummed source on the pinned .NET SDK or Bun, or as a self-contained archive. Go, Rust, Scala, Ruby, R, PowerShell, Swift and Dart need a toolchain without a pinned
   download, declare `No` and stay desktop-only until one is pinned; `languages` prints what a build serves and `initialize` names it. Tools are `lsp_*`, `spec_*` and
   `blueprint_check`, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
+- Terms. A server with terms (IntelliJ) is never started, downloaded or accepted by default. A call that needs it answers with plain text: what it is, its
+  terms and their hash and version, the questions the vendor asks (region, usage statistics) and the exact next step, which is to ask the user in chat. The tool
+  `accept_terms` records the user's yes when it gets the current hash and every answer; with only the server it shows the terms. If the client supports
+  elicitation the host asks the user directly with Accept and Decline, and a Decline, a failed prompt or a missing answer falls back to the text, asking at
+  most once per run. The environment variable `SHARPRAIL_ACCEPT_TERMS` (`intellij`, or `intellij:<hash>` to match only the current text; comma list) accepts
+  at start, with the answers in the vendor's own variables, and writes nothing. Consent names the pinned terms text, so it comes before any download; once
+  the pinned archive is installed the host checks that the text inside is that text, then writes the same acceptance record the desktop writes. Until then
+  Kotlin stays with the Kotlin server and Java has none. Consent is the agent's word for the user's: nothing technical stops an agent from calling the tool,
+  so the tool says plainly it needs the user's yes, and the image holds no acceptance. Records live in the state directory, so they last as long as it does.
+- The free trial of the IntelliJ server starts on the first run, because no window can show its button (`SHARPRAIL_INTELLIJ_AUTO_TRIAL=0` turns it off).
+  A licence the user owns is given with the vendor's variables `INTELLIJ_SERVER_LICENSE`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`.
+  Signing in to a JetBrains Account is not possible without a window.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.
 - Protocol: one JSON-RPC 2.0 object per line on stdin, one per line on stdout. `initialize` carries headless instructions.
@@ -47,7 +59,7 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - stdout holds frames only. At start `Console.Out` is redirected to stderr, so a stray print cannot corrupt the stream. Logs go to stderr.
 - End of input, SIGINT or SIGTERM: running calls get 5 s to finish, then are cancelled; plugins stop, then language servers; exit 0.
   A closed stdout counts as a stop.
-- `languages` prints one line per served language server (id, name, file extensions) and exits 0.
+- `languages` prints one line per served language server (id, name, file extensions, and a note when the server needs the user's agreement to its terms) and exits 0.
 - `warm [server ...]` installs the pinned .NET SDK and the named language servers (default `csharp`) into the state directory, without a session.
   It needs network, prints nothing on stdout, exits 0 when every server is installed and 2 for an unknown server or a failed install.
   A second `warm` on a filled cache does nothing and returns at once.

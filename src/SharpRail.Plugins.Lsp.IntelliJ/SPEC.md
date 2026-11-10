@@ -54,6 +54,8 @@ disable the activation code, or remove the license server). A license set by `IN
 The Code Intelligence workspace settings show the state, trial days, the notice and the actions, and open the sign-in page
 in the browser of the machine running the UI.
 
+Without a window (headless) the host asks for the same agreement with a tool, a prompt or an environment variable, before anything is downloaded; the plugin pins the SHA-256 of the terms file of its archives for that, and starts the free anonymous trial itself on the first run when no licence is set.
+
 First-start consent: the terms review asks the region (`europe`, `africa`, `americas`, `apac`, `china`, `middle_east`,
 `oceania`) and data sharing (`full`, `anonymous`, `none`), unanswered until chosen. The launch passes them as
 `INTELLIJ_REGION` and `INTELLIJ_DATA_SHARING` next to `--eula <hash prefix>`, and refuses to start without recorded answers.

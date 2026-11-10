@@ -104,6 +104,7 @@ Headless serves the language servers whose runtime is a pinned, checksummed down
 | PHP | Intelephense, on the pinned Bun | github.com (Bun), registry.npmjs.org |
 | C, C++ | clangd, a self-contained archive (linux/amd64, macOS and Windows; no linux/arm64 archive is pinned: the official one is the 1.8 GB LLVM toolchain in tar.xz) | github.com |
 | Kotlin | JetBrains Kotlin LS, a self-contained archive | download.jetbrains.com |
+| Java, Kotlin | IntelliJ server by JetBrains, a self-contained archive with its own Java runtime (about 380 MB; needs the user's agreement to terms first, see below) | download.jetbrains.com |
 
 The first call of a language answers `initializing` while it downloads: the network must reach the hosts above (github.com, release-assets.githubusercontent.com, registry.npmjs.org and the others in the row). Later runs on the same cache need no network. The image size is unchanged.
 
@@ -111,7 +112,7 @@ Not headless, because the server needs a toolchain that has no pinned download h
 
 | Language | Why |
 | --- | --- |
-| Java | needs a JDK 21 or newer; no JDK is pinned |
+| Java (Eclipse JDT) | needs a JDK 21 or newer; no JDK is pinned. Java files are served by the IntelliJ server once the user agreed to its terms |
 | Go | gopls is built with the Go toolchain; Go is not pinned |
 | Rust | rust-analyzer needs cargo and rustc to load a project; no Rust toolchain is pinned |
 | Scala | Metals is installed with Coursier, which is not pinned |
@@ -120,9 +121,21 @@ Not headless, because the server needs a toolchain that has no pinned download h
 | PowerShell | needs PowerShell 7; not pinned |
 | Swift, Dart | no managed installation: they run the machine's own SDK |
 
-They stay desktop-only until a runtime with a checksum is pinned for them. The IntelliJ server and Air Context are not headless either. Kotlin analyses a single file without a JDK; importing a Gradle or Maven project needs a JDK on the machine (not verified in a container).
+They stay desktop-only until a runtime with a checksum is pinned for them. Air Context is not headless. Kotlin analyses a single file without a JDK; importing a Gradle or Maven project needs a JDK on the machine (not verified in a container).
 
 With `SHARPRAIL_TOOLCHAINS=managed` (the image sets it) the servers use only the pinned runtimes. Outside the image the default is the machine's PATH for .NET, so set it to `managed` there too. The JavaScript-based servers need no Node or npm: they use a pinned Bun, downloaded from GitHub releases into the cache and checked against its SHA-256, and install their packages from registry.npmjs.org.
+
+## Terms and the IntelliJ server
+
+The IntelliJ server serves Java and, once you agreed, Kotlin. It is a JetBrains product with its own terms (the JetBrains User Agreement, version 2.0) and its own licence: every build has a free 30-day trial, then it needs an IntelliJ IDEA Ultimate subscription, an activation code or a licence server. SharpRail downloads it only after you agreed, and never accepts for you. The image holds no acceptance.
+
+Nothing needs to be set up before the first use. The first Java call answers with the terms, their hash and version, and what to do. The agent asks you in chat; after your yes it calls the tool `accept_terms` with that hash and your answers to two questions JetBrains asks: your region, and whether usage statistics go to JetBrains. Nothing technical stops an agent from calling the tool without asking you, so read what it reports. Until you agree, Kotlin keeps using the Kotlin server and nothing is downloaded.
+
+- If your MCP client supports elicitation, the host asks you directly and shows the terms with Accept and Decline. A Decline, a failure or a client without elicitation falls back to the text above, and a declined prompt is not repeated in the same run.
+- To accept at start, set `SHARPRAIL_ACCEPT_TERMS=intellij` (a comma list for several servers) and your answers: `INTELLIJ_REGION` (`europe`, `africa`, `americas`, `apac`, `china`, `middle_east`, `oceania`) and `INTELLIJ_DATA_SHARING` (`full`, `anonymous`, `none`). `intellij:<hash>` accepts only the exact terms text that hash names; use it in a shared config. This writes nothing; remove the variable and the next start asks again. A missing or unknown answer means no acceptance, and stderr says why.
+- A yes given to `accept_terms` or a prompt is stored in the state directory, so it lasts only as long as the state: with the cache volume mounted it survives restarts, without a volume it lasts until the container is gone.
+- The licence: the host starts JetBrains' free anonymous trial on the first run, because no window can show its button (`SHARPRAIL_INTELLIJ_AUTO_TRIAL=0` turns that off). To use a licence you own, start the container with `-e INTELLIJ_SERVER_LICENSE=...`, `INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER`. Signing in to a JetBrains Account needs a browser and is not possible here. Not verified against a real server: that the anonymous trial starts and that Java analysis finds a JDK; give the server a JDK with `lsp_status` operation `configure` and the `projectJdk` setting if the project needs one that is not in the image.
+- `warm intellij` installs the server after consent through the variable; without it, it prints the terms and exits 2.
 
 ## Tool switches and the call log
 

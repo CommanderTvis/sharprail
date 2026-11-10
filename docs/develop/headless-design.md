@@ -178,7 +178,7 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 | `blueprint` | yes, on by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
 | `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-kotlin` (8) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Each installs into the cache from a pinned, checksummed download on a pinned runtime (.NET SDK, Bun) or as a self-contained archive. `lsp-clangd` is left out on linux/arm64, which has no pinned archive (the official one is the 1.8 GB LLVM toolchain, a `tar.xz`). |
 | `lsp-java`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-ruby`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (9) | no | Their servers need a toolchain with no pinned download (JDK, Go, Rust, Coursier, Ruby, R, PowerShell, Swift, Dart); each flips to yes when that runtime is pinned with a checksum. |
-| `lsp-intellij` | no | It needs a JetBrains license and an agreement accepted in the UI, and it replaces the Java and Kotlin servers. See the decisions. |
+| `lsp-intellij` | yes | Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `SHARPRAIL_ACCEPT_TERMS`. See [headless.md](../headless.md#terms-and-the-intellij-server). |
 | `claude-code`, `codex`, `omp`, `pi`, `acp` | no | They launch an agent in a terminal or chat pane. Headless is the tool server an agent calls. |
 | `air-gateway` | no | It starts Codex and Claude Code through Air Gateway per launch. |
 | `air-context` | no | Sign-in and consent are user-only and the indexing is cloud processing. |
@@ -194,7 +194,7 @@ headless host, which keeps the spec graph and Blueprint on there while a desktop
 
 ### Decisions needed
 
-- `lsp-intellij` is `no`. Flipping it needs a way to accept the JetBrains agreement without a UI, for example a prepared settings file, and a decision that the headless Java and Kotlin servers are IntelliJ.
+- `lsp-intellij` is `yes`. Java is served by it only after the user agreed; Kotlin keeps the Kotlin server until then, and moves to IntelliJ after.
 - `processes` is `no`. Flipping it adds `owned_process_report` and `owned_process_release`, which makes 13 tools, and needs a terminal owner that headless does not have.
 - The `env*` plugins are `no`. Flipping them would make language servers see `JAVA_HOME`, the venv or `mise` tools of the workspace. That needs the language server launch to read the merged environment, which it does not do today.
 - `air-context` is `no`. Flipping it needs a prepared JetBrains login and accepted consent mounted into the container.
@@ -383,7 +383,7 @@ What the code does today (verified by reading `LanguageServers*.cs`, `ManagedArt
 | C# (Roslyn 5.13.0-1.26507.4) | .NET SDK. `dotnet tool install` at install time, and the server needs an SDK to load MSBuild projects | `Dependencies = dotnet`, `HomeVariable DOTNET_ROOT`; `ConfigureLaunch` sets `DOTNET_ROOT` and prepends it to `PATH` from `FindDotnet()` |
 | TypeScript, Python (Pyright 1.1.414), PHP, CSS, Shell | Node.js 18+ and npm (`npm ci --ignore-scripts` from an embedded lockfile, then `node <package>/<file>`) | `RequireTool("node")`, `RequireTool("npm")` through `ProbeTool` |
 | Java (JDT LS 1.61.0) | JDK 21+ to run the server and for the project's Maven/Gradle import | `RequireTool("java")`, `HomeVariable JAVA_HOME`; `ProjectJava.cs` also reads `JAVA_HOME` and SDKMAN |
-| Kotlin LSP 263.6379.0, IntelliJ server 263.7084.0 | not read: whether they bundle a JRE (assumed yes, since both are JetBrains archives with no `java` dependency declared) | `Pinning.Archive` / `None` with the provider's own launcher |
+| Kotlin LSP 263.6379.0, IntelliJ server 263.7084.0 | IntelliJ server: bundles JBR 25 (`jbr/` in the archive; read for linux-x86_64, linux-aarch64 and macOS). Kotlin LSP: not read | `Pinning.Archive` / `None` with the provider's own launcher |
 | clangd, rust-analyzer | none | pinned archive |
 | Go, Ruby, R, PowerShell, Scala, Swift, Dart | the language's own tool (`go`, `gem`, `Rscript`, `pwsh`, `cs`, SDK) | `RequireTool` |
 | Python itself | not needed to start Pyright. Needed for import resolution of the project's packages (`python.pythonPath` setting) | the user's setting or PATH |
@@ -652,7 +652,7 @@ Settings of agent-launcher plugins make no sense headless. They are in the schem
   UI-only members are accepted but ignored.
 - Language: every `language.toml` key (unchanged). Not reachable from files today, and kept host-only on purpose:
   `installationPath`, `projectJdk`, `useForJavaAndKotlin`, launcher command overrides in `language.toml` (they stay in
-  `host.toml`), terms consent. IntelliJ's terms are never settable from config.
+  `host.toml`), terms consent. IntelliJ's terms are never settable from a project file; they come from the user (tool, prompt) or the host's own environment.
 - Plugins: the table above, all of them.
 - Run control: `mcp.toml` and the env/flags layer.
 
