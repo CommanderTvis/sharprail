@@ -49,6 +49,16 @@ internal sealed partial class ChatView
     internal TextBlock ShellMark => shellMark;
 
     /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
+    internal static int LocalChatStates => Drafts.Count + DraftSyncs.Count + Histories.Count + ShellHistories.Count + Navigators.Count + ShellNavigators.Count;
+
+    /// <summary>Drops what the client keeps for a chat whose tab is closed for good; a tab merely hidden or left behind by a workspace switch keeps its draft and history.</summary>
+    internal static void ForgetChat(string workspaceId, string chatId)
+    {
+        var key = (workspaceId, chatId);
+        Drafts.Remove(key); DraftSyncs.Remove(key); Histories.Remove(key); ShellHistories.Remove(key); Navigators.Remove(key); ShellNavigators.Remove(key);
+        ChatLaunches.Forget(workspaceId, chatId);
+    }
+
     internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); Navigators.Clear(); ShellNavigators.Clear(); }
     internal string? DraftNote => pasteNote.IsVisible ? pasteNote.Text : null;
     internal TextBox Input => input;

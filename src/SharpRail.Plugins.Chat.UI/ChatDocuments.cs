@@ -21,7 +21,7 @@ internal static class ChatDocuments
             // A chat tab hosts the same embedded companion panes as a terminal (the visualize view, for one).
             HostsCompanions = true,
             // Closing the tab ends the child process; the transcript stays on disk and reopening the chat resumes it.
-            Closed = props => _ = CloseAsync(context, client, props),
+            Closed = props => { ChatView.ForgetChat(props.WorkspaceId, props.Id); _ = CloseAsync(context, client, props); },
             Rename = (props, title) => _ = RenameAsync(context, client, props, title)
         });
         return watch;

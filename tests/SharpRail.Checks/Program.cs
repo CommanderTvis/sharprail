@@ -1048,6 +1048,7 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             ClaudeChatUiChecks.ClosedViewsCollectable();
             ClaudeChatUiChecks.ClosedRunningViewHasNoTimer();
+            ClaudeChatUiChecks.ClosedChatForgetsLocalState();
             Console.WriteLine("PASS closed chat views are collectable");
             return;
         }

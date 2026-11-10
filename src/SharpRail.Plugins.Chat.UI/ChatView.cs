@@ -86,6 +86,11 @@ internal static class ChatLaunches
         lock (pending) pending[(open.WorkspaceId, open.ChatId)] = new Start(open, prompt, images);
     }
 
+    public static void Forget(string workspaceId, string chatId)
+    {
+        lock (pending) pending.Remove((workspaceId, chatId));
+    }
+
     public static Start Take(string workspaceId, string chatId)
     {
         lock (pending)

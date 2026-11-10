@@ -261,6 +261,7 @@ internal static class ClaudeChatUiChecks
         Bounded();
         ClosedViewsCollectable();
         ClosedRunningViewHasNoTimer();
+        ClosedChatForgetsLocalState();
         StreamingStable();
         Composer();
         PageZoomSteps();
@@ -1907,6 +1908,23 @@ internal static class ClaudeChatUiChecks
         Require(view.WorkingTimerRunning, "A chat shown again while still running must tick again.");
         again.Content = null; again.Close(); Dispatcher.UIThread.RunJobs();
         Require(!view.WorkingTimerRunning, "A chat closed a second time left its working timer ticking.");
+    }
+
+    // A hidden or switched-away chat keeps its draft and input history; one closed for good must not leave them in the static tables.
+    internal static void ClosedChatForgetsLocalState()
+    {
+        ChatView.ForgetLocalDrafts();
+        var chat = new FakeChat();
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show(); Frame(window);
+        view.Input.Text = "half-written message"; Frame(window);
+        ChatView.Histories[(Workspace, Chat)] = ["an earlier prompt"];
+        Require(ChatView.LocalChatStates > 0, "Typing keeps a client-local draft.");
+        window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs();
+        Require(ChatView.LocalChatStates > 0 && ChatView.Histories.ContainsKey((Workspace, Chat)), "A hidden chat keeps its draft and history.");
+        ChatView.ForgetChat(Workspace, Chat);
+        Require(ChatView.LocalChatStates == 0 && !ChatView.Histories.ContainsKey((Workspace, Chat)), "A chat closed for good left its draft or history behind.");
     }
 
     private static void Bounded()
