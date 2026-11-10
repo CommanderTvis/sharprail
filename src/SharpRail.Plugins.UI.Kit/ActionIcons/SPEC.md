@@ -52,6 +52,7 @@ show its own variant of "Delete".
 | Settings | `settings` (the gear) | Browser unified-chrome overflow menu: Settings… |
 | Pin | `pushpin` | Project menu: Pin; the mark on a pinned project row |
 | Unpin | `pushpinFill` | Project menu: Unpin |
+| OpenWorktree | `folderTab` | Project menu: Open existing worktree… |
 
 ## Enforcement
 

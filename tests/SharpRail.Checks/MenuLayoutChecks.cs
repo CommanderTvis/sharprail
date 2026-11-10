@@ -231,7 +231,7 @@ internal static class MenuLayoutChecks
     // Every menu the app builds, by the shape its builder gives it. A new menu is added here, and a menu that leaves the window fails the sweep.
     private static (string Name, Func<ContextMenu> Build)[] SweptMenus() =>
     [
-        ("project row", () => Menu(("Copy absolute path", ActionIcon.CopyAbsolutePath), ("Start work", ActionIcon.Add), ("Open existing worktree", ActionIcon.Branch), ("Rename", ActionIcon.EnterPath), ("Close project", ActionIcon.Close))),
+        ("project row", () => Menu(("Copy absolute path", ActionIcon.CopyAbsolutePath), ("Start work", ActionIcon.Add), ("Open existing worktree", ActionIcon.OpenWorktree), ("Rename", ActionIcon.EnterPath), ("Close project", ActionIcon.Close))),
         ("workspace row", () => Menu(("Rename", ActionIcon.EnterPath), ("Copy path", ActionIcon.CopyPath), ("Delete workspace", ActionIcon.Delete))),
         ("tab", () => { var menu = Menu(("Close", ActionIcon.Close), ("Copy path", ActionIcon.CopyPath), ("Copy absolute path", ActionIcon.CopyAbsolutePath)); menu.Items.Add(Ui.Menu("Close group", () => { })); var split = new MenuItem { Header = "Split" }; split.Items.Add(Ui.Menu("Right", () => { })); menu.Items.Add(split); return menu; }),
         ("tab with Group with", () => { var menu = Menu(("Close", ActionIcon.Close)); DockSurface.AddGroupWith(menu, [new("GroupWith_a", "A", () => { }), new("GroupWith_b", "B", () => { })]); return menu; }),

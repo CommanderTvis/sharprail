@@ -632,6 +632,7 @@ SharpRail.Plugins.UI.Kit.ActionIcon.CopyAbsolutePath = 14 -> SharpRail.Plugins.U
 SharpRail.Plugins.UI.Kit.ActionIcon.Settings = 15 -> SharpRail.Plugins.UI.Kit.ActionIcon
 SharpRail.Plugins.UI.Kit.ActionIcon.Pin = 16 -> SharpRail.Plugins.UI.Kit.ActionIcon
 SharpRail.Plugins.UI.Kit.ActionIcon.Unpin = 17 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.OpenWorktree = 18 -> SharpRail.Plugins.UI.Kit.ActionIcon
 static SharpRail.Plugins.UI.Kit.TabNames.Quote(string? title) -> string!
 SharpRail.Plugins.UI.Kit.TabNames
 SharpRail.Plugins.UI.Kit.IDialogOwner.Present(Avalonia.Controls.Control! card, System.Action! dismiss, double width, double height, bool sheet) -> System.Action?

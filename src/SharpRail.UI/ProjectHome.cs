@@ -275,7 +275,7 @@ public sealed partial class WorkbenchWindow
         copy.Name = "ProjectMenuCopyPath";
         var close = Ui.IconMenu("Close project", () => _ = CloseProjectAsync(project), ActionIcon.Close);
         close.Name = "ProjectMenuClose";
-        var existing = Ui.Menu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project));
+        var existing = Ui.IconMenu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project), ActionIcon.OpenWorktree);
         existing.Name = "ProjectMenuOpenExisting";
         menu.Items.Add(copy);
         menu.Items.Add(create);
