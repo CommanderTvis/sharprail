@@ -466,7 +466,7 @@ internal sealed class ChatList : ScrollViewer
     private void DrawHover(DrawingContext context, ChatHit hit)
     {
         HoverPaints++;
-        if (hit.Kind is not (ChatHitKind.Toggle or ChatHitKind.CopyCode)) context.DrawLine(new Pen(Ui.Accent, 1), new Point(hit.Bounds.Left, hit.Bounds.Bottom), new Point(hit.Bounds.Right, hit.Bounds.Bottom));
+        if (hit.Kind is not (ChatHitKind.Toggle or ChatHitKind.CopyCode or ChatHitKind.Tip)) context.DrawLine(new Pen(Ui.Accent, 1), new Point(hit.Bounds.Left, hit.Bounds.Bottom), new Point(hit.Bounds.Right, hit.Bounds.Bottom));
     }
 
     private void TrackHover(Point point, int index)
@@ -482,8 +482,8 @@ internal sealed class ChatList : ScrollViewer
             else if (row.Item is ChatToolItem or ChatThinkingItem or ChatActivityItem && local.Y < 24) next = (row.Id, new ChatHit(new Rect(0, 0, width, 22), ChatHitKind.Toggle));
         }
         var overText = next is null && index >= 0 && point.Y <= tops[^1] && OverText(index, point);
-        ToolTip.SetTip(surface, next?.Item2.Kind == ChatHitKind.CopyCode ? (copiedCode == next?.Item2.Arg ? "Copied" : "Copy code") : null);
-        surface.Cursor = next is not null ? Hand : selecting || overText ? TextCursor : null;
+        ToolTip.SetTip(surface, next?.Item2.Kind switch { ChatHitKind.CopyCode => copiedCode == next?.Item2.Arg ? "Copied" : "Copy code", ChatHitKind.Tip => next?.Item2.Arg, _ => null });
+        surface.Cursor = next is not null && next.Value.Item2.Kind != ChatHitKind.Tip ? Hand : selecting || overText ? TextCursor : null;
         if (next?.Item1 == hoverHit?.RowId && next?.Item2 == hoverHit?.Hit) return;
         hoverHit = next;
         surface.Redraw();
@@ -514,7 +514,7 @@ internal sealed class ChatList : ScrollViewer
         var local = new Point(point.X, point.Y - tops[index]);
         var hovering = hovered == index;
         pendingLink = null;
-        if (layout.HitAt(local) is { } hit && !(hit.Kind is ChatHitKind.Rewind or ChatHitKind.Fork && !hovering))
+        if (layout.HitAt(local) is { } hit && hit.Kind != ChatHitKind.Tip && !(hit.Kind is ChatHitKind.Rewind or ChatHitKind.Fork && !hovering))
         {
             if (hit.Kind == ChatHitKind.Link) pendingLink = (row, hit.Arg);
             else

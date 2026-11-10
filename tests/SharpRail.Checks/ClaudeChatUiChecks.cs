@@ -249,6 +249,7 @@ internal static class ClaudeChatUiChecks
         GlyphAlignment();
         ToolTitleWidth();
         ItemKinds();
+        ImageMarkers();
         Requests();
         Pickers();
         PopupFamily();
@@ -2567,6 +2568,49 @@ internal static class ClaudeChatUiChecks
         var held = new ChatUserItem("held", 8, "later") { Queued = true, Uuid = "u2" };
         Height(held, false, out var heldHits);
         Require(!heldHits.Any(hit => hit.Kind is ChatHitKind.Fork or ChatHitKind.Rewind), "A held prompt has no actions.");
+    }
+
+    // The CLI's image marker is shown as the file's name with the path in a tooltip; the item keeps the raw text for copy, Rewind and history.
+    private static void ImageMarkers()
+    {
+        const string path = "/private/tmp/claude-501/-Users-x/abc/images/3.png";
+        static string Shown(ChatUserItem item, out IReadOnlyList<ChatHit> hits, out double height)
+        {
+            using var layout = ChatRowLayout.Build(new ChatRow(item, 0, 1, false, null), 500, true);
+            hits = [.. layout.OwnHits];
+            height = layout.Height;
+            return string.Join("|", layout.Parts().Select(part => part.Text));
+        }
+        var alone = new ChatUserItem("m1", 1, $"[Image: source: {path}]");
+        var text = Shown(alone, out var hits, out var aloneHeight);
+        Require(text == "3.png" && !text.Contains("tmp", StringComparison.Ordinal) && hits.Any(hit => hit.Kind == ChatHitKind.Tip && hit.Arg == path), $"A bubble of only a marker shows the file name as a chip and the path as its tooltip ('{text}').");
+        Require(aloneHeight < Height(new ChatUserItem("m0", 1, "x"), false, out _) + 20 && ChatList.CopyText(alone) == alone.Text, "A marker-only bubble has no empty text line and copies the raw text.");
+        text = Shown(new ChatUserItem("m2", 2, $"look at this [Image: source: {path}] please"), out hits, out _);
+        Require(text == "look at this please|3.png" && !text.Contains("Image", StringComparison.Ordinal), $"A marker inside text leaves the text and joins the chips ('{text}').");
+        text = Shown(new ChatUserItem("m3", 3, $"[Image: source: {path}]\n[Image: source: /tmp/b/4.jpg]\ntwo") { Attachments = [new ChatAttachment("pasted-1.png", "")] }, out hits, out _);
+        Require(text == "two|pasted-1.png, |3.png, |4.jpg" && hits.Count(hit => hit.Kind == ChatHitKind.Tip) == 2, $"Two markers and an attachment make one chip row ('{text}').");
+        text = Shown(new ChatUserItem("m4", 4, "see [Image #2] there"), out hits, out _);
+        Require(text == "see there|Image #2" && hits.Count == 0, $"An [Image #N] reference is a chip without a path ('{text}').");
+        Require(Shown(new ChatUserItem("m5", 5, "an [Image of a cat] is fine"), out _, out _) == "an [Image of a cat] is fine", "Other bracketed text is left alone.");
+
+        text = Shown(new ChatUserItem("m6", 6, $"```\n[Image: source: {path}]\n```\nafter"), out hits, out _);
+        Require(text.Contains(path, StringComparison.Ordinal) && !hits.Any(hit => hit.Kind == ChatHitKind.Tip), "A marker inside a fenced code block stays as written.");
+        text = Shown(new ChatUserItem("m7", 7, $"intro\n\n[Image: source: {path}]\n\n**bold** tail"), out _, out _);
+        Require(!text.Contains("tmp", StringComparison.Ordinal) && text.EndsWith("3.png", StringComparison.Ordinal), $"A marker on a line of its own leaves Markdown paragraphs intact and draws no path ('{text}').");
+
+        // The replay of a stored transcript gives the raw marker text in the item; the bubble then shows the chip.
+        var directory = Path.Combine(Path.GetTempPath(), "sharprail-chat-marker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var file = Path.Combine(directory, "s.jsonl");
+            File.WriteAllLines(file, [JsonSerializer.Serialize(new { type = "user", uuid = "r-u", message = new { role = "user", content = $"fix it [Image: source: {path}]" } })]);
+            var folder = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatFolder();
+            SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(folder, file, null, CancellationToken.None);
+            var replayed = folder.Items.OfType<ChatUserItem>().Single();
+            Require(replayed.Text == $"fix it [Image: source: {path}]" && Shown(replayed, out _, out _) == "fix it|3.png", "A replayed prompt keeps its marker in the item and shows it as a chip.");
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     private static void PressKey(Control target, Key key) => target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });

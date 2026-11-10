@@ -17,7 +17,7 @@ internal static class ChatRowEstimates
         var columns = Math.Max(20, (width - 2 * ChatRowLayout.Pad - row.Depth * ChatRowLayout.Indent) / 7.5);
         double height = row.Item switch
         {
-            ChatUserItem user => ChatRowLayout.IsEmpty(user) ? 0 : 2 * ChatRowLayout.BubblePad + Lines(user.Text, columns - 6, row.Expanded ? int.MaxValue : 3) * ProseLine + (user.Queued ? 16 : 0) + (user.Attachments is { Count: > 0 } ? 18 : 0),
+            ChatUserItem user => ChatRowLayout.IsEmpty(user) ? 0 : UserHeight(user, columns, row.Expanded),
             ChatAssistantItem assistant => Markdown(assistant.Text, columns),
             ChatThinkingItem thinking => row.Expanded ? 24 + Lines(thinking.Text, columns, int.MaxValue) * 17 : 26,
             ChatToolItem tool => 28 + (row.Expanded ? 8 + Lines(tool.Output ?? "", columns, 40) * CodeLine + (tool.WorkflowAgents is { } agents ? agents.Count * 17 + (tool.WorkflowPhases?.Count ?? 0) * 15 : 0) : 0),
@@ -27,6 +27,14 @@ internal static class ChatRowEstimates
             _ => 30
         };
         return Math.Clamp(Math.Ceiling(height), Min, Max);
+    }
+
+    private static double UserHeight(ChatUserItem user, double columns, bool expanded)
+    {
+        var (text, images) = ChatImageMarkers.Split(user.Text);
+        var chips = (user.Attachments?.Count ?? 0) + images.Count;
+        var lines = text.Length == 0 && chips > 0 ? 0 : Lines(text, columns - 6, expanded ? int.MaxValue : 3);
+        return 2 * ChatRowLayout.BubblePad + lines * ProseLine + (user.Queued ? 16 : 0) + (chips > 0 ? 18 : 0);
     }
 
     private static int Lines(string text, double columns, int cap)

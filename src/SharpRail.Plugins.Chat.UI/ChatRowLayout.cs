@@ -10,7 +10,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Chat.UI;
 
-internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell, CopyCode }
+internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell, CopyCode, Tip }
 
 internal readonly record struct ChatHit(Rect Bounds, ChatHitKind Kind, string? Arg = null);
 
@@ -463,9 +463,12 @@ internal sealed class ChatRowLayout : IDisposable
         inset = BubblePad;
         var start = y + BubblePad;
         y = start;
-        var pieces = Blocks(user.Text, false);
+        // An image marker the CLI wrote into the prompt is shown as a name with the path in its tooltip, never given to the renderer; the item's own text keeps it.
+        var (shownText, images) = ChatImageMarkers.Split(user.Text);
+        var chips = (user.Attachments ?? []).Select(item => (item.Name, Path: "")).Concat(images).ToList();
+        var pieces = shownText.Length == 0 && chips.Count > 0 ? [] : Blocks(shownText, false);
         var contentHeight = pieces.Count == 0 ? 0 : y - start - TrailingGap(pieces[^1]);
-        if (pieces.Count == 0)
+        if (pieces.Count == 0 && chips.Count == 0)
         {
             using var blank = Make(" ", Ui.TextBrush, Ui.FontSize, textWidth);
             contentHeight = blank.Height;
@@ -477,13 +480,21 @@ internal sealed class ChatRowLayout : IDisposable
             plansClip = new Rect(left, start, inner, shown);
             Fade(new Rect(left + 1, start + shown - 11, inner - 2, 11));
         }
-        var extra = (user.Attachments is { Count: > 0 } ? 18 : 0) + (user.Queued ? 16 : 0) + (large ? 20 : 0);
+        var extra = (chips.Count > 0 ? 18 : 0) + (user.Queued ? 16 : 0) + (large ? 20 : 0);
         var box = new Rect(left, boxTop, inner, shown + 2 * BubblePad + extra);
         fills.Add(new(box, Ui.Elevated, 8, new Pen(Ui.BorderBrush)));
         var cursor = start + shown;
-        if (user.Attachments is { Count: > 0 } attachments)
+        if (chips.Count > 0)
         {
-            Place(Make(string.Join(", ", attachments.Select(item => item.Name)), Ui.Muted, 12, textWidth, maxLines: 1), left + BubblePad, cursor + 2);
+            var x = left + BubblePad;
+            for (var index = 0; index < chips.Count; index++)
+            {
+                var (name, path) = chips[index];
+                var piece = Make(index < chips.Count - 1 ? name + ", " : name, Ui.Muted, 12, Math.Max(1, left + BubblePad + textWidth - x), maxLines: 1);
+                var bounds = Place(piece, x, cursor + 2);
+                if (path.Length > 0) hits.Add(new(bounds, ChatHitKind.Tip, path));
+                x += piece.WidthIncludingTrailingWhitespace;
+            }
             cursor += 18;
         }
         if (user.Queued) { Place(Make("queued", Ui.Warning, 11, textWidth, maxLines: 1), left + BubblePad, cursor + 2, selectable: false); cursor += 16; }
