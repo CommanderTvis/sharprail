@@ -1,5 +1,5 @@
 // Prints the ManagedRuntimes pin entries for .NET SDK versions, after checking the publisher's SHA-512.
-// Run from the checkout root: dotnet run scripts/pin-dotnet-sdk.cs -- 10.0.401 10.0.403 [--rids linux-x64 linux-arm64 osx-arm64 osx-x64 win-x64]
+// Run from the checkout root: dotnet run --file scripts/pin-dotnet-sdk.cs -- 10.0.401 10.0.403 [--rids linux-x64 linux-arm64 osx-arm64 osx-x64 win-x64]
 //
 // For each SDK version and platform it reads the official release metadata, downloads the archive, requires the
 // publisher's SHA-512 to match, and prints a C# entry with our own SHA-256 (the value the host verifies before
@@ -22,7 +22,7 @@ foreach (var argument in args)
     if (argument == "--rids") { current = rids; rids.Clear(); }
     else current.Add(argument);
 }
-if (versions.Count == 0) { Console.Error.WriteLine("usage: dotnet run scripts/pin-dotnet-sdk.cs -- <sdk version>... [--rids <rid>...]"); return 2; }
+if (versions.Count == 0) { Console.Error.WriteLine("usage: dotnet run --file scripts/pin-dotnet-sdk.cs -- <sdk version>... [--rids <rid>...]"); return 2; }
 if (rids.Count == 0) rids.AddRange(platform.Keys);
 
 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(600) };

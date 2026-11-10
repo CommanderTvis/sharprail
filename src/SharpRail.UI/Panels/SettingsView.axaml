@@ -209,7 +209,7 @@
           <TextBlock Text="The colour of primary buttons, selections, focus and links. Every theme keeps it legible, so a light theme may show a deeper shade than its swatch. Shared by every client of this host." Classes="settings-description" />
           <WrapPanel x:Name="AccentChoices" Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" AutomationProperties.Name="Accent colour" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBox x:Name="AccentCustom" Width="150" Watermark="#rrggbb" AutomationProperties.Name="Custom accent colour, hex" />
+            <TextBox x:Name="AccentCustom" Width="150" PlaceholderText="#rrggbb" AutomationProperties.Name="Custom accent colour, hex" />
             <Button x:Name="AccentCustomApply" Content="Use custom colour" />
           </StackPanel>
           <TextBlock x:Name="AccentCustomMessage" Classes="theme-fallback" IsVisible="False" />

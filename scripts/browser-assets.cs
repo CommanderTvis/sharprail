@@ -1,7 +1,7 @@
 // Stages the browser client's vendored assets (renderer, fonts, licences, the tab's Pi agent and CSS language server) into
 // src/SharpRail.Browser/wwwroot/vendor. Run by the browser project's StageBrowserAssets target (under the browser mise
 // environment, so node, pnpm and the PDFium pin are on PATH); from anywhere inside the checkout:
-//   MISE_ENV=browser scripts/mise x -- dotnet run scripts/browser-assets.cs
+//   MISE_ENV=browser scripts/mise x -- dotnet run --file scripts/browser-assets.cs
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;

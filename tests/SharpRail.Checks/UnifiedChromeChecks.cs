@@ -78,7 +78,7 @@ internal static class UnifiedChromeChecks
         Until(() => add.ContextMenu!.IsOpen);
         var menu = add.ContextMenu!;
         Until(() => menu.Bounds.Width > 0 && menu.Bounds.Height > 0);
-        (double X, double Y, double W, double H) Screen(Control control)
+        static (double X, double Y, double W, double H) Screen(Control control)
         {
             var top = TopLevel.GetTopLevel(control)!;
             var origin = top.PointToScreen(control.TranslatePoint(default, top)!.Value);

@@ -1,5 +1,5 @@
 // Generates typed WebSocket clients, direct dispatch and the protobuf payload codec from the host contracts.
-// Run from the checkout root: dotnet run scripts/generate-rpc.cs
+// Run from the checkout root: dotnet run --file scripts/generate-rpc.cs
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;

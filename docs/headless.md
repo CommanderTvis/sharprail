@@ -57,7 +57,7 @@ Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are ha
 - A new package on ghcr.io is private. The owner makes it public in the package settings on GitHub. A workflow cannot do that. Until then run `docker login ghcr.io` with a token that can read packages.
 - The workflow needs write access for workflows in the package settings, or the push is refused.
 
-To run it by hand: `gh workflow run container.yml -f tag=nightly`. To try the script on a local image: `scripts/mise x -- dotnet run scripts/container-smoke.cs -- <image>`.
+To run it by hand: `gh workflow run container.yml -f tag=nightly`. To try the script on a local image: `scripts/mise x -- dotnet run --file scripts/container-smoke.cs -- <image>`.
 
 ## Run it from a build
 

@@ -23,7 +23,7 @@ return Guard(() =>
         ["ZIG_GLOBAL_CACHE_DIR"] = Path.Combine(work, "gc"),
         ["ZIG_DEPS_NO_RESTORE"] = "1",
     });
-    Check(Dotnet, ["run", "scripts/zig-deps-pack.cs", "--", Path.Combine(work, "out"), Path.Combine(work, "gc"),
+    Check(Dotnet, ["run", "--file", "scripts/zig-deps-pack.cs", "--", Path.Combine(work, "out"), Path.Combine(work, "gc"),
         Path.Combine(work, "cache", "ghostty-avalonia", "view-source"), Path.Combine(work, "cache", "ghostty-avalonia", "vt-source")]);
     File.Copy(Path.Combine(work, "out", "zig-deps.lock"), "scripts/zig-deps.lock", true);
     string Field(string key) => File.ReadLines("scripts/zig-deps.lock")

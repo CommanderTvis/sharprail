@@ -2,7 +2,7 @@
 // Runs a command in a GitHub Actions step and, when it fails, says why on the run page: an annotation with the first
 // error lines and the step summary with the log's tail. The output is also kept in $RUNNER_TEMP/sharprail-ci/ for the
 // job's diagnostics artifact. Outside GitHub Actions it just runs the command.
-// Usage: scripts/mise x -- dotnet run scripts/ci-run.cs -- "<step title>" <command> [arguments...]
+// Usage: scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "<step title>" <command> [arguments...]
 // (a leading `--` before the command is dropped). The pinned SDK is needed to run this file, so the workflows start it through mise.
 #:include lib/Tasks.cs
 using System.Diagnostics;

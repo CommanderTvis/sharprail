@@ -1,5 +1,5 @@
 // Runs one Ghostty benchmark (three trials, one for attribution) under AC power and records the trials.
-// Run from the checkout root: dotnet run benchmarks/ghostty/run.cs -- presentation|memory|attribution native|texture .bench/NEW_DIRECTORY
+// Run from the checkout root: dotnet run --file benchmarks/ghostty/run.cs -- presentation|memory|attribution native|texture .bench/NEW_DIRECTORY
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 var executables = new Dictionary<string, string> { ["presentation"] = "GhosttyRendererBench", ["memory"] = "GhosttyMemoryBench", ["attribution"] = "GhosttyAttribution" };
 if (args.Length < 3 || !executables.ContainsKey(args[0]) || args[1] is not ("native" or "texture"))
 {
-    Console.Error.WriteLine("Usage: dotnet run benchmarks/ghostty/run.cs -- presentation|memory|attribution native|texture .bench/NEW_DIRECTORY");
+    Console.Error.WriteLine("Usage: dotnet run --file benchmarks/ghostty/run.cs -- presentation|memory|attribution native|texture .bench/NEW_DIRECTORY");
     return 1;
 }
 var (kind, mode) = (args[0], args[1]);

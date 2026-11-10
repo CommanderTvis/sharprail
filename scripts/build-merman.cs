@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 // Links Merman's static xcframework (pinned and checksummed in mise.toml; `scripts/tool merman` prints where it is) into the dylib the UI loads (macOS only).
-// Usage: dotnet run scripts/build-merman.cs -- <output dylib>
+// Usage: dotnet run --file scripts/build-merman.cs -- <output dylib>
 #:include lib/Tasks.cs
 using System.Runtime.InteropServices;
 using static Tasks;

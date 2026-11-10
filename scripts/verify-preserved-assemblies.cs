@@ -1,8 +1,8 @@
 // Fails unless every managed assembly in the browser build's manifest was published byte for byte.
-// Run: dotnet run scripts/verify-preserved-assemblies.cs -- <manifest> (lines "original|published")
+// Run: dotnet run --file scripts/verify-preserved-assemblies.cs -- <manifest> (lines "original|published")
 using System.Security.Cryptography;
 
-if (args.Length < 1) { Console.Error.WriteLine("usage: dotnet run scripts/verify-preserved-assemblies.cs -- <manifest>"); return 2; }
+if (args.Length < 1) { Console.Error.WriteLine("usage: dotnet run --file scripts/verify-preserved-assemblies.cs -- <manifest>"); return 2; }
 var entries = File.ReadAllText(args[0]).Trim().Split(["\r\n", "\n"], StringSplitOptions.None).Where(line => line.Length > 0).ToArray();
 if (entries.Length == 0) return Fail("The browser copy-only publication must preserve managed assemblies.");
 foreach (var entry in entries)

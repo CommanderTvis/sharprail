@@ -7,7 +7,7 @@ using static Tasks;
 
 return Guard(() =>
 {
-    if (args.Length < 2) throw new TaskFailure("Usage: dotnet run scripts/tasks/workload.cs -- <workload> <pack directory> [dotnet options]");
+    if (args.Length < 2) throw new TaskFailure("Usage: dotnet run --file scripts/tasks/workload.cs -- <workload> <pack directory> [dotnet options]");
     EnsureWorkload(args[0], args[1], args[2..]);
     return 0;
 });

@@ -823,6 +823,11 @@ internal static class Program
             LockScriptChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--run-file"]))
+        {
+            RunFileChecks.Run();
+            return;
+        }
         if (args is ["--android-package", ..] && args.Length <= 2)
         {
             AndroidPackageChecks.Run(args.ElementAtOrDefault(1));
@@ -1432,6 +1437,7 @@ internal static class Program
         Gate.Case("action-icons", ActionIconChecks.Run);
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());
         Gate.Case("lock-script", () => LockScriptChecks.Run());
+        Gate.Case("run-file", RunFileChecks.Run);
         Gate.Case("check-root", CheckRootChecks.Run);
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);

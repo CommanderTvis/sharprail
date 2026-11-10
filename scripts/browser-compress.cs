@@ -1,10 +1,10 @@
 // Writes Brotli (.br) and gzip (.gz) sidecars beside the browser bundle's compressible files, reusing compressed bytes
-// from a content-addressed cache. Run: dotnet run scripts/browser-compress.cs -- <bundle-dir> [cache-dir]
+// from a content-addressed cache. Run: dotnet run --file scripts/browser-compress.cs -- <bundle-dir> [cache-dir]
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 
-if (args.Length < 1) { Console.Error.WriteLine("usage: dotnet run scripts/browser-compress.cs -- <bundle-dir> [cache-dir]"); return 2; }
+if (args.Length < 1) { Console.Error.WriteLine("usage: dotnet run --file scripts/browser-compress.cs -- <bundle-dir> [cache-dir]"); return 2; }
 var bundle = Path.GetFullPath(args[0]);
 var cache = Path.GetFullPath(args.Length > 1 ? args[1] : CacheDir("browser-compression"));
 Directory.CreateDirectory(cache);

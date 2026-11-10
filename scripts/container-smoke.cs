@@ -1,7 +1,7 @@
 #!/usr/bin/env dotnet
 // Smoke test of the headless image: starts it on a small fixture workspace, sends initialize, notifications/initialized and
 // tools/list as JSON lines on stdin, and checks that stdout holds exactly the two replies, as valid JSON-RPC, with the expected tools.
-// Needs docker. Usage: dotnet run scripts/container-smoke.cs -- <image>
+// Needs docker. Usage: dotnet run --file scripts/container-smoke.cs -- <image>
 #:include lib/Tasks.cs
 using System.Diagnostics;
 using System.Text;

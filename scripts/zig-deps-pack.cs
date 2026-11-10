@@ -1,6 +1,6 @@
 // Builds the Zig dependency mirror archive and scripts/zig-deps.lock from measured Zig global caches.
 //
-// Usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>...
+// Usage: dotnet run --file scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>...
 // <cache> is the global cache of the native builds (Zig keeps each package as p/<hash>.tar.gz), <zon-root> a directory
 // searched for build.zig.zon files to learn each package's URL.
 // Every package hosted outside github.com and deps.files.ghostty.org (the hosts that are fetched upstream by design) goes into the archive. Run by scripts/mise run zig-deps:mirror.
@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-if (args.Length < 2) { Console.Error.WriteLine("usage: dotnet run scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>..."); return 2; }
+if (args.Length < 2) { Console.Error.WriteLine("usage: dotnet run --file scripts/zig-deps-pack.cs -- <out-dir> <cache> <zon-root>..."); return 2; }
 var (outDirectory, cache) = (args[0], args[1]);
 var urls = new Dictionary<string, string>();
 foreach (var root in args.Skip(2)) Walk(root);

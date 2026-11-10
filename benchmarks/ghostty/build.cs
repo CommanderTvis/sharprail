@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 // Builds the Ghostty benchmarks: the macOS-only native probes (AppKit, Metal, ScreenCaptureKit) and the three benchmark programs.
-// Run from anywhere: dotnet run benchmarks/ghostty/build.cs
+// Run from anywhere: dotnet run --file benchmarks/ghostty/build.cs
 #:include ../../scripts/lib/Tasks.cs
 using static Tasks;
 

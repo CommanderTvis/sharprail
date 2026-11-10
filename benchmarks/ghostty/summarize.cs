@@ -1,10 +1,10 @@
 // Summarizes a batch written by run.cs into summary.json (footprints, CPU and display latency).
-// Run: dotnet run benchmarks/ghostty/summarize.cs -- .bench/BATCH_DIRECTORY
+// Run: dotnet run --file benchmarks/ghostty/summarize.cs -- .bench/BATCH_DIRECTORY
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-if (args.Length < 1) { Console.Error.WriteLine("Usage: dotnet run benchmarks/ghostty/summarize.cs -- .bench/BATCH_DIRECTORY"); return 1; }
+if (args.Length < 1) { Console.Error.WriteLine("Usage: dotnet run --file benchmarks/ghostty/summarize.cs -- .bench/BATCH_DIRECTORY"); return 1; }
 var batch = Path.GetFullPath(args[0]);
 var metadata = JsonNode.Parse(File.ReadAllText(Path.Combine(batch, "metadata.json")))!;
 var trials = metadata["trials"]!.AsArray().Select(trial => trial!).ToList();

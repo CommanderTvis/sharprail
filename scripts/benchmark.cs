@@ -1,5 +1,5 @@
 // Measures published app startup (first window, workspace layout, host readiness) and process-tree RSS on macOS.
-// Run from the checkout root: dotnet run scripts/benchmark.cs -- [embedded|remote] [rounds] [workspace]
+// Run from the checkout root: dotnet run --file scripts/benchmark.cs -- [embedded|remote] [rounds] [workspace]
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -14,7 +14,7 @@ var rounds = args.Length > 1 && int.TryParse(args[1], out var parsedRounds) ? pa
 var root = Path.GetFullPath(args.Length > 2 ? args[2] : ".");
 if (mode is not ("embedded" or "remote") || rounds < 1)
 {
-    Console.Error.WriteLine("Usage: dotnet run scripts/benchmark.cs -- [embedded|remote] [rounds] [workspace]");
+    Console.Error.WriteLine("Usage: dotnet run --file scripts/benchmark.cs -- [embedded|remote] [rounds] [workspace]");
     return 1;
 }
 Directory.CreateDirectory(".bench");

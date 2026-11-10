@@ -68,18 +68,18 @@ jobs:
             echo "sha=$sha"
             echo "local=sharprail-headless:${{ matrix.arch }}"
           } >> "$GITHUB_OUTPUT"
-      - run: sh scripts/mise x -- dotnet run scripts/ci-run.cs -- "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
       # The image has no .NET runtime and no external plugins: fail unless the publish is one NativeAOT binary.
-      - run: sh scripts/mise x -- dotnet run scripts/ci-run.cs -- "Require NativeAOT headless ${{ matrix.rid }}" env SHARPRAIL_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/SharpRail.Checks -c Release -- --case packaged-binaries
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Require NativeAOT headless ${{ matrix.rid }}" env SHARPRAIL_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/SharpRail.Checks -c Release -- --case packaged-binaries
       - run: >
-          sh scripts/mise x -- dotnet run scripts/ci-run.cs -- "Build image ${{ matrix.arch }}" docker build
+          sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Build image ${{ matrix.arch }}" docker build
           -f docker/headless/Dockerfile
           --build-arg PUBLISH_DIR=artifacts/headless/${{ matrix.rid }}
           --build-arg REVISION="$GITHUB_SHA"
           --build-arg CREATED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           -t "${{ steps.names.outputs.local }}" .
       # Nothing is pushed unless the image answers MCP on stdio.
-      - run: sh scripts/mise x -- dotnet run scripts/ci-run.cs -- "Smoke test ${{ matrix.arch }}" sh scripts/mise x -- dotnet run scripts/container-smoke.cs -- "${{ steps.names.outputs.local }}"
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Smoke test ${{ matrix.arch }}" sh scripts/mise x -- dotnet run --file scripts/container-smoke.cs -- "${{ steps.names.outputs.local }}"
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io

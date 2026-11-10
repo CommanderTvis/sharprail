@@ -25,7 +25,7 @@ pale accents, flattens gradients and removes definitions. All 1,251 generated fo
 byte-identical. Generated assets belong in ignored `src/SharpRail.Plugins.UI.Kit/obj/file-icons` and are
 embedded by the kit build, rather than copied into a plugin directory. The Unix and PowerShell
 build wrappers serialize generation and cache its source fingerprint. Run
-`dotnet run scripts/generate-file-icons.cs -- --check` to verify the table and assets.
+`dotnet run --file scripts/generate-file-icons.cs -- --check` to verify the table and assets.
 
 Three styles share one classification. Plain is the single-colour set above. Colored tints the same artwork by file kind
 (code, markup, data, script, media) with the design roles `FileIconCode`, `FileIconMarkup`, `FileIconData`, `FileIconScript` and

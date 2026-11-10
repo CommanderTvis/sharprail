@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 // Builds the macOS User Notifications bridge the app posts desktop notifications through (nothing elsewhere).
-// Usage: dotnet run scripts/build-notifications.cs -- <output dylib>. The UI project's BuildNotifications target decides when it runs.
+// Usage: dotnet run --file scripts/build-notifications.cs -- <output dylib>. The UI project's BuildNotifications target decides when it runs.
 #:include lib/Tasks.cs
 using System.Runtime.InteropServices;
 using static Tasks;
