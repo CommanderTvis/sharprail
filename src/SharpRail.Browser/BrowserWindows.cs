@@ -11,6 +11,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Surfaces;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace SharpRail.UI.Browser;
 
@@ -107,9 +108,31 @@ internal sealed class BrowserWindow : IWindowImpl
                 var wanted = window.DesiredSize.Height;
                 if (wanted > 0 && Math.Abs(wanted - requested.Height) > 1) Resize(new Size(requested.Width, wanted), WindowResizeReason.Layout);
             };
+        if (window is WorkbenchWindow) CutNativeUnderPopups(window);
         BrowserInterop.SetWorkbench(id, window is WorkbenchWindow);
         BrowserInterop.PlaceWindow(id, requested.Width, requested.Height, dialog, shown);
         QueueWorkbenchSize();
+    }
+    /// <summary>
+    /// A native terminal is a page element above the canvas, which also holds the popups (menus, flyouts); the page is told
+    /// where the open ones are so it clips the terminal around them.
+    /// </summary>
+    private void CutNativeUnderPopups(Window window)
+    {
+        var last = "";
+        Panel? layer = null;
+        window.LayoutUpdated += (_, _) =>
+        {
+            // The layer type is internal to Avalonia.
+            layer ??= window.GetVisualDescendants().OfType<Panel>().FirstOrDefault(panel => panel.GetType().Name == "PopupOverlayLayer");
+            if (layer is null) return;
+            var rects = string.Join(';', layer.Children.OfType<Avalonia.Controls.Primitives.OverlayPopupHost>()
+                .Where(host => host.IsVisible && host.Bounds.Width > 0 && host.Bounds.Height > 0)
+                .Select(host => FormattableString.Invariant($"{host.Bounds.X:0.##},{host.Bounds.Y:0.##},{host.Bounds.Width:0.##},{host.Bounds.Height:0.##}")));
+            if (rects == last) return;
+            last = rects;
+            BrowserInterop.CutNative(id, rects);
+        };
     }
     public double DesktopScaling => surface.DesktopScaling;
     public IPlatformHandle? Handle => surface.Handle;

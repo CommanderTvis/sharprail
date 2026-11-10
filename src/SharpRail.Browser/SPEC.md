@@ -181,6 +181,11 @@ coordinates. The shared terminal drop flow uploads browser-local bytes before in
 agent accessory. Restty's own input handlers do not process these drops. Forwarding listeners are
 removed with the surface.
 
+The restty DOM surface sits above the canvas that draws popups (menus, flyouts). The window tells the page where
+its open popups are (`cutNative`), and the page clips each terminal around them, so a popup over a terminal shows and
+takes the click. A modal dims the terminal instead (`dimNative`). `restty.mjs --hover` checks a click on a menu item
+over the terminal.
+
 ## Recorded rendering evidence
 
 Dated Chromium samples (GPU memory return after Restty open/close cycles, about 60 GPU draws per second against a higher output rate) are

@@ -109,6 +109,23 @@ export function isVisible() { return !document.hidden; }
 export function enableWindow(id, enabled) { document.getElementById(id).inert = !enabled; }
 export function setTitle(_id, title) { document.title = title; }
 
+// Popups are drawn on the canvas, under a native terminal element. The terminal is clipped around each open popup, so the
+// popup shows and takes the clicks (a clip also removes the clipped area from hit testing).
+export function cutNative(id, rects) {
+  const host = document.getElementById(id);
+  if (!host) return;
+  const holes = rects ? rects.split(';').map(rect => rect.split(',').map(Number)) : [];
+  const origin = host.getBoundingClientRect();
+  for (const element of host.querySelectorAll('.sharprail-restty')) {
+    const box = element.getBoundingClientRect();
+    const parts = holes.map(([x, y, width, height]) => {
+      const left = origin.left + x - box.left, top = origin.top + y - box.top;
+      return `M${left} ${top}h${width}v${height}h${-width}z`;
+    });
+    element.style.clipPath = parts.length ? `path(evenodd,'M0 0h${box.width}v${box.height}h${-box.width}z${parts.join('')}')` : '';
+  }
+}
+
 export function dimNative(id, red, green, blue, alpha) {
   const style = document.getElementById(id)?.style;
   style?.setProperty('--sharprail-native-scrim', `rgba(${red},${green},${blue},${alpha})`);

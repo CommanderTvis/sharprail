@@ -195,6 +195,20 @@ try {
     await until(pointer, value => value.Projects, 'Projects hover did not resume on return');
     assert.deepEqual(errors, []);
     console.log('PASS terminal hover, managed pane focus, input, selection release/click-clear/outside capture and return to Projects');
+    // A popup drawn over the terminal shows above the terminal's page element and takes the click.
+    const popup = await page.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.OpenPopupOverTerminal());
+    });
+    assert(popup.Open, 'The check menu did not open');
+    const terminalBox = await term.boundingBox();
+    assert(popup.X > terminalBox.x && popup.X < terminalBox.x + terminalBox.width && popup.Y > terminalBox.y && popup.Y < terminalBox.y + terminalBox.height, 'The check menu item must lie over the terminal');
+    const over = await page.evaluate(({ X, Y }) => document.elementFromPoint(X, Y)?.closest('.sharprail-restty') !== null, popup);
+    assert(!over, 'The terminal element must not cover an open popup');
+    await page.mouse.click(popup.X, popup.Y);
+    await until(() => page.evaluate(async () => (await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll')).SharpRail.Browser.Checks.BrowserChecks.PopupClicked()), value => value, 'A click on a menu item over the terminal did not reach the item');
+    await until(() => page.evaluate(() => document.querySelector('.sharprail-restty').style.clipPath), value => value === '', 'The terminal clip stayed after the popup closed');
+    console.log('PASS popup over the terminal shows above it and takes the click');
   } else if (process.argv.includes('--wheel')) {
     console.log('Wheel client mounted');
     const snapshot = client => client.evaluate(async () => {

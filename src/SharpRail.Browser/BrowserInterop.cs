@@ -32,6 +32,8 @@ internal static partial class BrowserInterop
     internal static partial void ActivateWindow(string id);
     [JSImport("enableWindow", "sharprail")]
     internal static partial void EnableWindow(string id, bool enabled);
+    [JSImport("cutNative", "sharprail")]
+    internal static partial void CutNative(string id, string rects);
     [JSImport("dimNative", "sharprail")]
     internal static partial void DimNative(string id, int red, int green, int blue, double alpha);
     [JSImport("setTitle", "sharprail")]
