@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
@@ -192,7 +193,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             {
                 state.Kept.Remove(removedPath); state.Keys.Remove(removedPath);
             }
-            summary.Text = $"{files.Count} files · +{files.Values.Sum(file => file.Added)} −{files.Values.Sum(file => file.Removed)}";
+            summary.Text = $"{Units.Count(files.Count, "file")} · +{files.Values.Sum(file => file.Added)} −{files.Values.Sum(file => file.Removed)}";
             if (!snapshot.IsRepository) { ClearSections(); ShowNotice("This project is not a git repository."); return; }
             if (files.Count == 0) { ClearSections(); ShowNotice("No changes in this scope."); UpdateProgress(); return; }
             if (state.ActivePath is null || !files.ContainsKey(state.ActivePath)) state.ActivePath = files.Keys.First();
@@ -256,7 +257,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         }
         else
         {
-            var end = new Border { Name = "ReviewEnd", Classes = { "review-end" }, Child = Ui.Text($"End of changes · {files.Count} files", Ui.Hint, 12) };
+            var end = new Border { Name = "ReviewEnd", Classes = { "review-end" }, Child = Ui.Text($"End of changes · {Units.Count(files.Count, "file")}", Ui.Hint, 12) };
             rows.Children.Add(end);
             scroll = new ScrollViewer { Name = "ReviewScroll", Content = rows };
             scroll.AddHandler(PointerWheelChangedEvent, (_, e) =>

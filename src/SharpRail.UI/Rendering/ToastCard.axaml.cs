@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;
@@ -87,7 +88,7 @@ internal sealed partial class ToastCard : Border
     {
         var message = this.FindControl<TextBlock>("ToastMessage")!;
         var ends = DateTime.UtcNow + lifetime;
-        void Show() => message.Text = $"{toast.Message} ({Math.Max(0, (int)Math.Ceiling((ends - DateTime.UtcNow).TotalSeconds))} s)";
+        void Show() => message.Text = $"{toast.Message} ({Units.Seconds(Math.Max(0, (int)Math.Ceiling((ends - DateTime.UtcNow).TotalSeconds)))})";
         var timer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         timer.Tick += (_, _) => Show();
         AttachedToVisualTree += (_, _) => { Show(); timer.Start(); };

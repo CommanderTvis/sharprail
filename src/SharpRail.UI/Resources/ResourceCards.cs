@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 
 using SharpRail.Host.Client;
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Resources;
@@ -22,16 +23,9 @@ internal static partial class ResourceCards
     internal static LfsPointer? ParseLfs(string text) => LfsPattern().Match(text) is { Success: true } match
         ? new(match.Groups[1].Value, long.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)) : null;
 
-    internal static string FormatSize(long bytes)
-    {
-        if (bytes < 1024) return bytes.ToString(CultureInfo.InvariantCulture) + " B";
-        string[] units = ["KB", "MB", "GB", "TB"];
-        var value = bytes / 1024.0; var unit = 0;
-        while (value >= 1024 && unit < units.Length - 1) { value /= 1024; unit++; }
-        return (value >= 10 ? Math.Round(value).ToString(CultureInfo.InvariantCulture) : value.ToString("0.0", CultureInfo.InvariantCulture)) + " " + units[unit];
-    }
+    internal static string FormatSize(long bytes) => Units.Size(bytes);
 
-    internal static string Bytes(long count) => count.ToString("N0", CultureInfo.InvariantCulture) + " bytes";
+    internal static string Bytes(long count) => Units.Pair(count.ToString("N0", CultureInfo.InvariantCulture), "bytes");
 
     internal static Border Card(string name, params Control[] rows)
     {

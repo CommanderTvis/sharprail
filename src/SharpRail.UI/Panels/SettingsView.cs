@@ -14,6 +14,7 @@ using Avalonia.Styling;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Plugins;
 using SharpRail.UI.Rendering;
@@ -1083,7 +1084,7 @@ public sealed partial class SettingsView : UserControl
         {
             var box = PageControl<ComboBox>(panel, name);
             var sizes = new[] { 0 }.Concat(gigabytes.Select(gb => gb * 1024)).ToArray();
-            box.ItemsSource = new[] { automatic }.Concat(gigabytes.Select(gb => gb + " GB")).ToArray();
+            box.ItemsSource = new[] { automatic }.Concat(gigabytes.Select(gb => Units.Pair(gb, "GB"))).ToArray();
             AutomationProperties.SetName(box, name);
             var syncing = false;
             void Show()

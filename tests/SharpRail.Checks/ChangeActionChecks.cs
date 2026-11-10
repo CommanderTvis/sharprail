@@ -1,9 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.ChangesFixture;
@@ -17,6 +20,7 @@ internal static class ChangeActionChecks
     internal static void Run(string root)
     {
         Queue();
+        UnitText();
         using var git = new IsolatedGit(Path.Combine(root, "git"));
         var previous = Environment.GetEnvironmentVariable("SHARPRAIL_TRASH_DIR");
         Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", Path.Combine(root, "trash"));
@@ -56,6 +60,18 @@ internal static class ChangeActionChecks
             new Toast(1, ToastVariant.Error, "x", Duration: TimeSpan.FromSeconds(8)).Lifetime == TimeSpan.FromSeconds(8),
             "Errors stay until dismissed unless a toast carries its own duration.");
         Console.WriteLine("PASS toast queue coalesces identical notifications, caps actionless ones at five and keeps receipts");
+    }
+
+    private static void UnitText()
+    {
+        const char n = '\u00A0';
+        Require(Units.Seconds(1) == $"1{n}s" && Units.Count(1, "file") == $"1{n}file" && Units.Count(3, "file") == $"3{n}files" && Units.Count(2, "day") == $"2{n}days",
+            "A number and its unit or noun are joined by a no-break space, plural from two.");
+        Require(Units.Duration(45) == $"45{n}s" && Units.Duration(303) == $"5{n}min 3{n}s" && Units.Duration(300) == $"5{n}min" && Units.Duration(3900) == $"1{n}h 5{n}min" && Units.Duration(7200) == $"2{n}h" && Units.Duration(-4) == $"0{n}s",
+            "A duration keeps each number with its unit and breaks only between the pairs.");
+        Require(Units.Size(512) == $"512{n}B" && Units.Size(12345) == $"12{n}KB" && Units.Size(1_572_864) == $"1.5{n}MB",
+            "A size keeps its number with its unit.");
+        Console.WriteLine("PASS unit text joins numbers and units with a no-break space");
     }
 
     private static Border[] Cards(E2eWorkspace app) =>
@@ -99,7 +115,39 @@ internal static class ChangeActionChecks
         Require(Messages(app).SequenceEqual(["n2", "n3", "n4", "n5", "n6"]), "Past the cap the oldest actionless toasts leave and the newest stay, oldest first.");
         foreach (var item in toasts.Items.ToArray()) toasts.Dismiss(item.Id);
         Until(() => Cards(app).Length == 0);
+        CountdownKeepsUnit(app);
         Console.WriteLine("PASS toasts render stacked cards with their own duration, one or two actions, the cap and dismissal");
+    }
+
+    // The tab-close toast ends in "(30 s)". At a width that fits the text up to the number and no further, the number and its unit must still share a line.
+    private static void CountdownKeepsUnit(E2eWorkspace app)
+    {
+        var toasts = app.Window.Toasts;
+        toasts.Push(ToastVariant.Success, "Closed \u201CTerminal 2\u201D", duration: TimeSpan.FromSeconds(30), action: new("Undo", () => { }), countdown: true);
+        Until(() => Cards(app).Length == 1 && Part<TextBlock>(Cards(app)[0], "ToastMessage").Text!.EndsWith("s)", StringComparison.Ordinal));
+        var message = Part<TextBlock>(Cards(app)[0], "ToastMessage");
+        var text = message.Text!;
+        var number = text.IndexOf('\u00A0', StringComparison.Ordinal);
+        Require(number > 0 && !text.Contains(" s)", StringComparison.Ordinal), "The countdown must join its number and unit with a no-break space.");
+        TextLayout Layout(string value, double width) => new(value, new Typeface(message.FontFamily, message.FontStyle, message.FontWeight), message.FontSize, null, textWrapping: TextWrapping.Wrap, maxWidth: width);
+        var upToNumber = Layout(text[..number], double.PositiveInfinity).WidthIncludingTrailingWhitespace;
+        var width = Math.Ceiling(upToNumber) + 2;
+        Require(Layout(text, double.PositiveInfinity).WidthIncludingTrailingWhitespace > width + 4, "The probe width must be narrower than the whole message.");
+        var broken = Layout(text.Replace('\u00A0', ' '), width);
+        Require(broken.TextLines.Any(line => text[Math.Min(line.FirstTextSourceIndex, text.Length)..Math.Min(line.FirstTextSourceIndex + line.Length, text.Length)].TrimEnd().EndsWith(text[..number][^2..], StringComparison.Ordinal)),
+            "With an ordinary space the probe width must split the number from its unit; otherwise it measures nothing.");
+        message.MaxWidth = width;
+        Until(() => message.TextLayout.TextLines.Count > 1 && message.TextLayout.TextLines.Sum(line => line.Length) >= message.Text!.Length);
+        foreach (var line in message.TextLayout.TextLines)
+        {
+            var current = message.Text ?? "";
+            var shown = current[Math.Min(line.FirstTextSourceIndex, current.Length)..Math.Min(line.FirstTextSourceIndex + line.Length, current.Length)].Trim();
+            Require(!shown.EndsWith(text[..number][^2..], StringComparison.Ordinal) && !shown.StartsWith("s)", StringComparison.Ordinal),
+                $"The countdown number and its unit must share a line, got \"{shown}\" of \"{message.Text}\" in {message.TextLayout.TextLines.Count} lines at {width}.");
+        }
+        foreach (var item in toasts.Items.ToArray()) toasts.Dismiss(item.Id);
+        Until(() => Cards(app).Length == 0);
+        Console.WriteLine("PASS the tab-close countdown keeps its number and unit on one line at the width that would split them");
     }
 
     private static void DialogFailures(string directory)

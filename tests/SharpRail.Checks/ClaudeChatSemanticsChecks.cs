@@ -115,7 +115,7 @@ internal static class ClaudeChatSemanticsChecks
         live.Apply(Frame(Progress([Phase(0, "Discover"), Phase(1, "Audit"), AgentEntry(0, "find-routes", "Discover", "done"), AgentEntry(1, "audit-a", "Audit", "error"), AgentEntry(2, "audit-b", "Audit", "progress")])));
         shown = (ChatToolItem)live.Items.Single();
         Require(live.Items.Count == 1 && shown.WorkflowAgents is [_, { State: ChatAgentState.Failed, Error: "Timed out" }, { State: ChatAgentState.Running }]
-            && ToolCards.WorkflowProgress(shown) == "1 of 3 agents done, 1 failed \u00B7 running: audit-b" && ToolCards.AgentRow(shown.WorkflowAgents![1], true) == ("\u2717", "audit-a: Timed out (3 s)"), "Updates replace the agents in place and a failed agent shows its error.");
+            && ToolCards.WorkflowProgress(shown) == "1 of 3 agents done, 1 failed \u00B7 running: audit-b" && ToolCards.AgentRow(shown.WorkflowAgents![1], true) == ("\u2717", "audit-a: Timed out (3\u00A0s)"), "Updates replace the agents in place and a failed agent shows its error.");
         live.Apply(Frame(User("wn", Text("<task-notification><task-id>wf1</task-id><tool-use-id>toolu_wf</tool-use-id><status>completed</status><summary>Done</summary></task-notification>"), new { kind = "task-notification" })));
         shown = (ChatToolItem)live.Items.Single();
         Require(shown.WorkflowAgents!.Count == 3 && ToolCards.Secondary(shown) == "Completed \u00B7 1 of 3 agents done, 1 failed \u00B7 task wf1", "Completion keeps the components and leads with the outcome.");

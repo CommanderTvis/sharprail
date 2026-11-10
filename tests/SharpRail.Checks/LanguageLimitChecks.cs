@@ -259,7 +259,7 @@ internal static class LanguageLimitChecks
                 var rows = running.GetVisualDescendants().OfType<StackPanel>().Single(panel => panel.Name == "RunningServers");
                 E2E.E2eWorkspace.Until(() => rows.Children.Count == 2);
                 var text = string.Join(" ", rows.Children.OfType<TextBlock>().Concat(rows.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<TextBlock>())).Select(block => block.Text));
-                Require(text.Contains("ui", StringComparison.Ordinal) && text.Contains("300 MiB", StringComparison.Ordinal), "The running rows lack their workspace or memory: " + text);
+                Require(text.Contains("ui", StringComparison.Ordinal) && text.Contains("300\u00A0MiB", StringComparison.Ordinal), "The running rows lack their workspace or memory: " + text);
                 Require(running.GetVisualDescendants().OfType<Button>().Any(button => button.Content as string is { } label && label.Contains("1 running", StringComparison.Ordinal)), "The Running summary lacks the count.");
                 Require(view.FindControl<TextBlock>("LimitsSummary")!.Text!.Contains("budget", StringComparison.Ordinal), "The summary lacks the budget.");
                 Require(view.FindControl<TextBox>("LimitsCSharp")!.Text == "4" && view.FindControl<TextBox>("LimitsIdle")!.Text == "10", "The defaults are not shown.");

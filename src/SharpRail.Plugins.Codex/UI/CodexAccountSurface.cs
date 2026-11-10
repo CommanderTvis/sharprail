@@ -15,7 +15,7 @@ namespace SharpRail.Plugins.Codex.UI;
 public static class CodexAccountSurface
 {
     private static string Duration(double minutes) =>
-        minutes % 1440 == 0 ? $"{minutes / 1440:0} day" : minutes % 60 == 0 ? $"{minutes / 60:0} hr" : $"{minutes:0} min";
+        minutes % 1440 == 0 ? Units.Pair($"{minutes / 1440:0}", "day") : minutes % 60 == 0 ? Units.Pair($"{minutes / 60:0}", "hr") : Units.Pair($"{minutes:0}", "min");
 
     private static TextBlock Line(string name, string text, IBrush brush)
     {

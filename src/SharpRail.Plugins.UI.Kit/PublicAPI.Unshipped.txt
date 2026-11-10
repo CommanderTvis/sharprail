@@ -658,3 +658,11 @@ SharpRail.Plugins.UI.Kit.MasterDetail.SetRows(System.Collections.Generic.IReadOn
 static SharpRail.Plugins.UI.Kit.MasterDetail.Row(string! id, Avalonia.Controls.Control? icon, string! name, string? subtitle, string? problem) -> Avalonia.Controls.Control!
 SharpRail.Plugins.UI.Kit.MasterDetail.Footer.get -> Avalonia.Controls.StackPanel!
 SharpRail.Plugins.UI.Kit.MasterDetail.Header.get -> Avalonia.Controls.StackPanel!
+const SharpRail.Plugins.UI.Kit.Units.NoBreak = ' ' -> char
+SharpRail.Plugins.UI.Kit.Units
+static SharpRail.Plugins.UI.Kit.Units.Count(long count, string! singular, string? plural = null) -> string!
+static SharpRail.Plugins.UI.Kit.Units.Duration(long seconds) -> string!
+static SharpRail.Plugins.UI.Kit.Units.Pair(long number, string! unit) -> string!
+static SharpRail.Plugins.UI.Kit.Units.Pair(string! number, string! unit) -> string!
+static SharpRail.Plugins.UI.Kit.Units.Seconds(long seconds) -> string!
+static SharpRail.Plugins.UI.Kit.Units.Size(long bytes) -> string!

@@ -100,7 +100,7 @@ internal static partial class ResourceChecks
             "Content keeps text, retrievable bytes and an absent side distinct.");
         Require(ResourceCards.ParseLfs(Pointer) is { Size: 12345, Oid.Length: 64 } && ResourceCards.ParseLfs(Pointer + "extra\n") is null && ResourceCards.ParseLfs("not a pointer") is null,
             "An LFS pointer parses to its object id and size, and nothing else does.");
-        Require(ResourceCards.FormatSize(512) == "512 B" && ResourceCards.FormatSize(12345) == "12 KB" && ResourceCards.FormatSize(1_572_864) == "1.5 MB", "LFS sizes read like a file manager.");
+        Require(ResourceCards.FormatSize(512) == "512\u00A0B" && ResourceCards.FormatSize(12345) == "12\u00A0KB" && ResourceCards.FormatSize(1_572_864) == "1.5\u00A0MB", "LFS sizes read like a file manager.");
     }
 
     private sealed class StateBody(string name, object? state) : TextBlock, IResourceBody
@@ -347,12 +347,12 @@ internal static partial class ResourceChecks
 
         app.Open("blob.bin");
         var card = Await<Border>(app, "BinaryResource");
-        Require(Text(card).Contains("4 bytes", StringComparison.Ordinal) && Text(card).Contains("SHA-256", StringComparison.Ordinal) && !Text(card).Contains('�'),
+        Require(Text(card).Contains("4\u00A0bytes", StringComparison.Ordinal) && Text(card).Contains("SHA-256", StringComparison.Ordinal) && !Text(card).Contains('�'),
             "A byte-only file opens as a card with its identity, not as text: " + Text(card));
         Require(Shown<Button>(app, "BinarySave") is not null && Shown<Border>(app, "ResourceViewToggle") is null, "The byte card offers a copy and no view toggle.");
 
         app.Open("model.bin");
-        Require(Text(Await<Border>(app, "LfsPointer")).Contains("12 KB", StringComparison.Ordinal), "An LFS pointer opens as a card with the object's size.");
+        Require(Text(Await<Border>(app, "LfsPointer")).Contains("12\u00A0KB", StringComparison.Ordinal), "An LFS pointer opens as a card with the object's size.");
         app.Click(Await<ToggleButton>(app, "ViewToggle_code"));
         if (OperatingSystem.IsMacOS())
             Until(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible && editor.Text == Pointer));
@@ -497,6 +497,6 @@ internal static partial class ResourceChecks
 
         ClickRow(app, "model.bin", twice: true);
         var lfs = Await<Grid>(app, "LfsDiff");
-        Require(Text(lfs).Contains("12 KB", StringComparison.Ordinal) && Text(lfs).Contains("2.0 KB", StringComparison.Ordinal), "An LFS pointer diff shows both objects' sizes: " + Text(lfs));
+        Require(Text(lfs).Contains("12\u00A0KB", StringComparison.Ordinal) && Text(lfs).Contains("2.0\u00A0KB", StringComparison.Ordinal), "An LFS pointer diff shows both objects' sizes: " + Text(lfs));
     }
 }

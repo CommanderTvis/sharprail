@@ -350,9 +350,9 @@ internal static class ClaudeChatUiChecks
         Is(Tool("Write", new { file_path = "/a/y.cs", content = "1\n2\n" }, ChatToolState.Running), "Write", "y.cs", "2 lines");
         Is(Tool("Write", new { file_path = "/a/y.cs", content = "1" }), "Write", "y.cs", "Write succeeded");
         Is(Tool("Write", new { file_path = "/a/y.cs", content = "1" }, ChatToolState.Failed), "Write", "y.cs", "Write failed");
-        Is(Tool("Glob", new { pattern = "**/*.cs" }, output: "a.cs\nb.cs"), "Glob", "pattern: \"**/*.cs\"", "2 lines of output");
+        Is(Tool("Glob", new { pattern = "**/*.cs" }, output: "a.cs\nb.cs"), "Glob", "pattern: \"**/*.cs\"", "2\u00A0lines of output");
         Is(Tool("Grep", new { pattern = "foo", path = "src", glob = "*.cs", type = "cs" }, output: ""), "Grep", "\"foo\" (in src, glob: *.cs, type: cs)", "No matches found");
-        Is(Tool("Grep", new { pattern = "foo" }, output: "one hit"), "Grep", "\"foo\"", "1 line of output");
+        Is(Tool("Grep", new { pattern = "foo" }, output: "one hit"), "Grep", "\"foo\"", "1\u00A0line of output");
         Is(Tool("Search", new { pattern = "foo" }, ChatToolState.Running), "Search", "pattern: \"foo\"");
         Is(Tool("Skill", new { skill = "/review" }), "review skill", "");
         Is(Tool("TodoWrite", new { todos = Array.Empty<object>() }), "Update Todos", "");

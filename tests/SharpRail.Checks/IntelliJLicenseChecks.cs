@@ -207,7 +207,7 @@ internal static class IntelliJLicenseChecks
         {
             T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(view, name)!;
             Require(Find<Avalonia.Controls.StackPanel>("LicensePanel").IsVisible, "The license block was hidden for a licensed IntelliJ.");
-            Require(Find<Avalonia.Controls.TextBlock>("LicenseState").Text!.Contains("3 days left (valid through 2026-11-05)", StringComparison.Ordinal), "Trial days left were not shown: " + Find<Avalonia.Controls.TextBlock>("LicenseState").Text);
+            Require(Find<Avalonia.Controls.TextBlock>("LicenseState").Text!.Contains("3\u00A0days left (valid through 2026-11-05)", StringComparison.Ordinal), "Trial days left were not shown: " + Find<Avalonia.Controls.TextBlock>("LicenseState").Text);
             Require(Find<Avalonia.Controls.TextBlock>("LicenseNotice") is { IsVisible: true } notice && notice.Text!.Contains("3 days", StringComparison.Ordinal), "A trial ending soon showed no notice.");
             view.Update(new("intellij", "", "actionRequired", "No active license.", "263.7084.0") { PluginState = Licensing(new JsonObject { ["featuresDeclined"] = true }) });
             Require(Find<Avalonia.Controls.TextBlock>("LicenseState").Text!.Contains("No active license", StringComparison.Ordinal) && Find<Avalonia.Controls.TextBlock>("LicenseNotice").IsVisible, "An unlicensed server did not say so.");

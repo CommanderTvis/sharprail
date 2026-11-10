@@ -84,7 +84,7 @@ public sealed class ProcessesHost : PluginHostModule
         {
             if (processes.TerminalMemory(terminal) is not { } memory) return null;
             static string Gb(long bytes) => (bytes / (double)(1L << 30)).ToString(bytes >= 10L << 30 ? "0" : "0.#", System.Globalization.CultureInfo.InvariantCulture);
-            return $"memory {Gb(memory.Bytes)} of {Gb(memory.Limit)} GB" + (memory.State == "Ok" ? "" : " (" + memory.State.ToLowerInvariant() + ")");
+            return $"memory {Gb(memory.Bytes)} of {Gb(memory.Limit)}\u00A0GB" + (memory.State == "Ok" ? "" : " (" + memory.State.ToLowerInvariant() + ")");
         }
 
         public (TimeSpan Cpu, long MemoryBytes)? Usage(int pid) => processes.Usage(pid);

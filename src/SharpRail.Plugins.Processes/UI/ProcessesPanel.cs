@@ -374,8 +374,8 @@ internal sealed class ProcessesPanel : UserControl
 
     internal static string Memory(long bytes) => bytes switch
     {
-        >= 1L << 30 => (bytes / (double)(1L << 30)).ToString("0.0", CultureInfo.InvariantCulture) + " GB",
-        >= 1L << 20 => (bytes / (double)(1L << 20)).ToString("0", CultureInfo.InvariantCulture) + " MB",
-        _ => (bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture) + " KB"
+        >= 1L << 30 => Units.Pair((bytes / (double)(1L << 30)).ToString("0.0", CultureInfo.InvariantCulture), "GB"),
+        >= 1L << 20 => Units.Pair((bytes / (double)(1L << 20)).ToString("0", CultureInfo.InvariantCulture), "MB"),
+        _ => Units.Pair((bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture), "KB")
     };
 }

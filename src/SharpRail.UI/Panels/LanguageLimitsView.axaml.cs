@@ -54,7 +54,7 @@ internal sealed partial class LanguageLimitsView : UserControl
 
     private T Control<T>(string name) where T : Control => this.FindControl<T>(name)!;
 
-    private static string Mib(long bytes) => (bytes / (1024 * 1024)).ToString("N0", CultureInfo.InvariantCulture) + " MiB";
+    private static string Mib(long bytes) => (bytes / (1024 * 1024)).ToString("N0", CultureInfo.InvariantCulture) + Units.NoBreak + "MiB";
 
     private void Show(LanguageResult result)
     {

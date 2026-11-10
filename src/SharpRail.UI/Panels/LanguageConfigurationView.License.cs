@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.UI.Panels;
 
@@ -48,7 +49,7 @@ internal sealed partial class LanguageConfigurationView
         var details = new List<string> { state["message"]!.ToString() };
         if (state["holder"]?.ToString() is { Length: > 0 } holder && kind is "licensed" or "session-expired" or "grace") details.Add("Licensed to " + holder + ".");
         if (state["daysLeft"] is JsonValue days && days.TryGetValue<int>(out var left) && kind == "licensed")
-            details.Add(left == 1 ? "1 day left" + Through(state) + "." : left + " days left" + Through(state) + ".");
+            details.Add(Units.Count(left, "day") + " left" + Through(state) + ".");
         if (state["account"]?["displayName"]?.ToString() is { Length: > 0 } account) details.Add("Signed in as " + account + ".");
         if (state["serverAddress"]?.ToString() is { Length: > 0 } address) details.Add("License server: " + address + ".");
         Find<TextBlock>("LicenseState").Text = string.Join(' ', details);

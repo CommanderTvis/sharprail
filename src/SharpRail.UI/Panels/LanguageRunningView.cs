@@ -43,7 +43,7 @@ internal sealed class LanguageRunningView : UserControl
 
     private bool IsOpen => open ?? count <= ExpandedRows;
 
-    private static string Mib(long bytes) => (bytes / (1024 * 1024)).ToString("N0", CultureInfo.InvariantCulture) + " MiB";
+    private static string Mib(long bytes) => (bytes / (1024 * 1024)).ToString("N0", CultureInfo.InvariantCulture) + Units.NoBreak + "MiB";
 
     private async Task PollAsync(CancellationToken token)
     {
@@ -100,7 +100,7 @@ internal sealed class LanguageRunningView : UserControl
         AutomationProperties.SetName(stop, $"Stop {id} in {root}");
         stop.Click += (_, _) => _ = StopAsync(root, id);
         Ui.Place(row, stop, 0, 2);
-        var idle = server.IdleSeconds < 60 ? "used just now" : $"idle {server.IdleSeconds / 60} min";
+        var idle = server.IdleSeconds < 60 ? "used just now" : $"idle {Units.Pair(server.IdleSeconds / 60, "min")}";
         var detail = new TextBlock { Text = $"{server.Detail} · {idle}", FontSize = 12, Foreground = Ui.Muted, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis };
         ToolTip.SetTip(detail, server.Detail);
         Grid.SetRow(detail, 1); Grid.SetColumnSpan(detail, 2);

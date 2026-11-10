@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using SharpRail.Plugins.UI.Kit;
+
 namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
@@ -234,7 +236,7 @@ internal static class ToolCards
             ChatAgentState.Queued => "waiting",
             _ => agent.Activity
         };
-        var time = agent.DurationMs is { } ms ? " (" + (ms < 1000 ? ms + " ms" : ms < 60_000 ? (ms / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " s" : $"{ms / 60_000} min {ms / 1000 % 60} s") + ")" : "";
+        var time = agent.DurationMs is { } ms ? " (" + (ms < 1000 ? Units.Pair(ms, "ms") : ms < 60_000 ? Units.Pair((ms / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), "s") : $"{Units.Pair(ms / 60_000, "min")} {Units.Pair(ms / 1000 % 60, "s")}") + ")" : "";
         return (mark, Cut(Words(agent.Label), 60) + (detail is { Length: > 0 } ? ": " + Cut(Words(detail), 120) : "") + time);
     }
 
@@ -275,7 +277,7 @@ internal static class ToolCards
                 {
                     if (tool.State != ChatToolState.Done) return null;
                     var count = (tool.Output ?? "").Split('\n').Count(line => line.Trim() is { Length: > 0 } text && text is not ("No matches found" or "No files found"));
-                    return count == 0 ? "No matches found" : count == 1 ? "1 line of output" : $"{count} lines of output";
+                    return count == 0 ? "No matches found" : count == 1 ? $"{Units.Count(1, "line")} of output" : $"{Units.Count(count, "line")} of output";
                 }
             case "Workflow" or "Monitor" when tool.State != ChatToolState.Failed && tool.State != ChatToolState.Denied:
                 {

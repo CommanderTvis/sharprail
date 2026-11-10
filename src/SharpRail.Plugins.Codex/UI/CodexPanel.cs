@@ -44,7 +44,7 @@ public static class CodexPanel
     ];
 
     private static string FormatSize(long bytes) =>
-        bytes < 1024 ? $"{bytes} B" : Math.Round(bytes / 1024.0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture) + " KB";
+        bytes < 1024 ? Units.Pair(bytes, "B") : Units.Pair(Math.Round(bytes / 1024.0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture), "KB");
 
     // Each pane's way to move to another workspace, found from the control the host hands back to Retarget.
     private static readonly ConditionalWeakTable<Control, Func<string, bool>> Retargets = new();
