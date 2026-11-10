@@ -23,7 +23,7 @@ internal static class WorkspaceActionsE2E
         Rename(Path.Combine(root, "actions-rename"));
         DefaultMenu(Path.Combine(root, "actions-default"));
         RightClick(Path.Combine(root, "actions-right-click"));
-        HoverKebab(Path.Combine(root, "actions-hover"));
+        KeyboardMenu(Path.Combine(root, "actions-keyboard"));
     }
 
     private static void OpenIn(string directory)
@@ -147,30 +147,26 @@ internal static class WorkspaceActionsE2E
         var menu = row.ContextMenu!;
         Until(() => menu.IsOpen);
         Settle(100);
-        var kebab = Item(app, app.Root).GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceMenu");
-        var menuCorner = menu.PointToScreen(new Point(menu.Bounds.Width, 0));
-        var kebabCorner = kebab.PointToScreen(new Point(kebab.Bounds.Width, kebab.Bounds.Height));
-        Require(Math.Abs(menuCorner.X - Math.Max(kebabCorner.X, menu.Bounds.Width)) < 8 && Math.Abs(menuCorner.Y - kebabCorner.Y) < 12,
-            $"The right-click menu must anchor below the row's kebab (menu {menuCorner}, kebab {kebabCorner}, width {menu.Bounds.Width}).");
         Require(MenuEntry(menu, "WorkspaceCopyPath") is not null && MenuEntry(menu, "WorkspaceRename") is null && MenuEntry(menu, "WorkspaceRemove") is null,
             "The Default workspace menu must offer only non-mutating actions.");
         Require(Active(app, workspace) && !Active(app, app.Root), "Right-click must not activate the workspace.");
         CloseMenu(menu);
-        Console.WriteLine("PASS upstream workspace-actions.spec.ts: right-click opens the workspace's kebab menu without activating it");
+        Console.WriteLine("PASS upstream workspace-actions.spec.ts: right-click opens the workspace menu without activating it");
     }
 
-    private static void HoverKebab(string directory)
+    private static void KeyboardMenu(string directory)
     {
         using var app = OpenFixtureProject(directory);
         var workspace = CreateWorkspaceViaDialog(app);
-        var item = Item(app, workspace);
-        var kebab = item.GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceMenu");
-        app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
-        Settle(100);
-        Require(kebab.Opacity == 0, "The kebab must stay quiet at rest on a pointer device.");
-        app.Window.MouseMove(item.TranslatePoint(new Point(8, item.Bounds.Height / 2), app.Window)!.Value);
-        Settle(100);
-        Require(kebab.Opacity == 1, "Hovering the row must reveal its kebab.");
-        Console.WriteLine("PASS upstream workspace-actions.spec.ts: the kebab is hover-only ONLY on devices that actually have hover — never invisible by default");
+        var row = Select(app, workspace);
+        var menu = row.ContextMenu!;
+        Require(!Item(app, workspace).GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "WorkspaceMenu"), "A workspace row has no three-dots button.");
+        row.Focus();
+        Until(() => row.IsFocused);
+        app.Window.KeyPress(Key.F10, RawInputModifiers.Shift, PhysicalKey.F10, null);
+        Until(() => menu.IsOpen);
+        Require(MenuEntry(menu, "WorkspaceRename") is not null && MenuEntry(menu, "WorkspaceRemove") is not null && MenuEntry(menu, "WorkspaceCopyPath") is not null, "Shift+F10 on the focused row opens the full workspace menu.");
+        CloseMenu(menu);
+        Console.WriteLine("PASS workspace actions: the row has no three-dots button; Shift+F10 on the focused row opens its menu");
     }
 }

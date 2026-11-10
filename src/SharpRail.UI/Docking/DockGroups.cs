@@ -158,16 +158,11 @@ public sealed partial class DockSurface
                 Height = nested && ExplicitProjectTabOpen ? 48 : vertical ? subtitle is null ? 36 : 44 : group.Folded ? 26 : 31,
                 Margin = new Thickness(0, 0, tab.IsTool ? 0 : 4, 0)
             };
-            var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto,Auto") };
+            var label = new MarkedRow();
             var foreground = tab.Id == selected?.Id ? Ui.TextBrush : Ui.Muted;
             var icon = TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14);
-            Ui.Place(label, icon);
-            if (TabAdornment?.Invoke(tab) is { } adornment)
-            {
-                adornment.Margin = new Thickness(4, 0, 0, 0);
-                adornment.VerticalAlignment = VerticalAlignment.Center;
-                Ui.Place(label, adornment, 0, 4);
-            }
+            label.Add(icon, RowRole.Leading);
+            var adornment = TabAdornment?.Invoke(tab);
             var title = Ui.Text(Session.ToolTitle(tab), foreground, 14);
             title.LineHeight = 20;
             title.Classes.Add("dock-tab-title");
@@ -176,28 +171,27 @@ public sealed partial class DockSurface
                 title.FontStyle = FontStyle.Italic;
                 title.Padding = new Thickness(0, 0, 3, 0);
             }
-            if (subtitle is null) Ui.Place(label, title, 0, 2);
-            else
+            label.Add(title, RowRole.Title);
+            if (subtitle is not null)
             {
                 // A basename shared by two open tabs gets a second, dimmed line naming its folder.
                 var folder = Ui.Text(subtitle, Ui.Hint, 12);
                 folder.Name = "TabSubtitle";
                 folder.TextTrimming = TextTrimming.CharacterEllipsis;
-                var lines = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { title, folder } };
-                Ui.Place(label, lines, 0, 2);
+                label.Add(folder, RowRole.Below);
             }
             Button? close = null;
             Border? modifiedDot = null;
             if (!tab.IsTool)
             {
                 var deleted = Ui.Text("deleted", Ui.Danger, 11);
-                deleted.Name = "DeletedTab"; deleted.Margin = new Thickness(4, 0, 0, 0);
+                deleted.Name = "DeletedTab";
                 deleted.VerticalAlignment = VerticalAlignment.Center;
                 ToolTip.SetTip(deleted, "Deleted on disk");
                 void ShowDeleted() => deleted.IsVisible = IsDeleted?.Invoke(tab) == true;
                 ShowDeleted();
                 modifiedUpdates.Add(ShowDeleted);
-                Ui.Place(label, deleted, 0, 3);
+                label.Add(deleted, RowRole.Mark);
                 modifiedDot = new Border
                 {
                     Name = "ModifiedTab",
@@ -216,6 +210,11 @@ public sealed partial class DockSurface
                 ((Border)close.Content!).Width = ((Border)close.Content).Height = 14;
                 close.Opacity = 0; close.IsTabStop = false;
                 Ui.Place(contents, close, 0, 1);
+            }
+            if (adornment is not null)
+            {
+                adornment.VerticalAlignment = VerticalAlignment.Center;
+                label.Add(adornment, RowRole.Mark);
             }
             var chrome = new Grid
             {

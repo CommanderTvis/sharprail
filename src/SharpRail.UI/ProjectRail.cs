@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -107,6 +108,15 @@ public sealed partial class WorkbenchWindow
             var nested = nesting.Values.SelectMany(children => children).Select(child => child.Path).ToHashSet();
             foreach (var worktree in ordered.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree, 0, rows, -1);
             ReconcileRailChildren(entry.Workspaces, rows);
+            // One budget for the whole list, nested rows included, so every title in it wraps to the same limit.
+            var lines = showWorkspaces ? RailTitleBudget.Lines(trees.Count) : RailTitleBudget.MostLines;
+            foreach (var pair in entry.Rows)
+            {
+                if (pair.Value.Row is not Grid row || row.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(text => text.Name == "WorkspaceName") is not { } title) continue;
+                title.MaxLines = lines;
+                if (row.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "WorkspaceSelect") is { } select)
+                    ToolTip.SetTip(select, RailTitleBudget.Tip(title.Text ?? "", pair.Key, lines));
+            }
         }
         var active = Layout.State.ActiveWorkspace;
         if (active.Length > 0 && !active.StartsWith("home:", StringComparison.Ordinal) &&
@@ -464,7 +474,7 @@ public sealed partial class WorkbenchWindow
             : [new("", project, WorkspaceKinds.Default, project, git.Worktrees.FirstOrDefault(tree => tree.IsMain)?.Branch ?? "", ""), .. known];
     }
 
-    /// <summary>Distance from the rail row's right edge to the right edge of its status dot, shared by workspace and tab rows; it clears the actions button.</summary>
+    /// <summary>Space a rail row keeps free at its right edge; indicators follow the title inside the rest.</summary>
     internal const double RailDotInset = 36;
 
     private Control WorkspaceItem(WorkspaceRecord worktree)
@@ -474,14 +484,13 @@ public sealed partial class WorkbenchWindow
         var name = WorkspaceName(worktree.Path);
         var active = !atHome && worktree.Path == workspaceRoot;
         var color = active ? Ui.Accent : Ui.Muted;
-        var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
+        var contents = new MarkedRow();
         var icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, color, 14);
-        Ui.Place(contents, icon);
-        var labels = new StackPanel();
+        contents.Add(icon, RowRole.Leading);
         var label = Ui.Text(name, color); label.LineHeight = 17.5; label.Name = "WorkspaceName";
         label.Classes.Add("workspace-description");
-        var unreadDot = new Border { Name = "WorkspaceUnread", Width = 8, Height = 8, CornerRadius = new(4), Margin = new(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
-        labels.Children.Add(label);
+        var unreadDot = new Border { Name = "WorkspaceUnread", Width = 8, Height = 8, CornerRadius = new(4), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
+        contents.Add(label, RowRole.Title);
         void ShowUnread()
         {
             var reason = state.Current.UnreadWorkspaces.GetValueOrDefault(worktree.Path);
@@ -511,7 +520,7 @@ public sealed partial class WorkbenchWindow
         branch.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
         // The totals sit right of the branch, or alone under the name when the row has none.
         var second = new DockPanel { Children = { totals } };
-        labels.Children.Add(second);
+        contents.Add(second, RowRole.Below);
         // A branch that moves under its checkout is redrawn in place: the row keeps its focus and pointer target.
         void ShowBranch()
         {
@@ -527,9 +536,8 @@ public sealed partial class WorkbenchWindow
             icon.Margin = twoLines ? new(0, 2, 0, 0) : default;
         }
         ShowBranch();
-        Ui.Place(contents, labels, 0, 2);
-        // The dot sits in its own column, centred on the whole row and clear of the kebab's padding.
-        Ui.Place(contents, unreadDot, 0, 3);
+        // The dot follows the name, centred on the whole row; the button's padding keeps it clear of the settle button.
+        contents.Add(unreadDot, RowRole.Mark);
         var button = new Button
         {
             Name = "WorkspaceSelect",
@@ -548,6 +556,7 @@ public sealed partial class WorkbenchWindow
             var selected = !atHome && worktree.Path == workspaceRoot;
             label.Text = WorkspaceName(worktree.Path);
             AutomationProperties.SetName(button, label.Text);
+            ToolTip.SetTip(button, RailTitleBudget.Tip(label.Text, worktree.Path, label.MaxLines));
             button.Background = selected ? Ui.Selected : Avalonia.Media.Brushes.Transparent;
             ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
             // A workspace being removed neither opens nor offers its actions; its second line says why.
@@ -559,38 +568,23 @@ public sealed partial class WorkbenchWindow
         AutomationProperties.SetName(button, name);
         ToolTip.SetTip(button, worktree.Path);
         button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, worktree.ProjectRoot != projectRoot);
-        var kebab = new Button
-        {
-            Name = "WorkspaceMenu",
-            Content = Ui.Icon("moreHorizontal", null, 14),
-            Width = 24,
-            Height = 24,
-            Padding = new(0),
-            Margin = new(0, 0, 4, 0),
-            Opacity = 0,
-            Background = Avalonia.Media.Brushes.Transparent,
-            BorderThickness = new(0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        AutomationProperties.SetName(kebab, "Workspace actions");
-        ToolTip.SetTip(kebab, "Workspace actions");
         var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         // The line tying a grouped workspace to the creator above it; shown only while it is grouped.
         item.Children.Add(new Border { Name = "WorkspaceNestGuide", Width = 1, Margin = new Thickness(-8, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Ui.BorderBrush, IsHitTestVisible = false, IsVisible = false });
-        var menu = WorkspaceActions(worktree, kebab);
+        var menu = WorkspaceActions(worktree, button);
         button.ContextMenu = menu;
-        kebab.Click += (_, _) => { if (button.IsEnabled) MenuFill.Open(menu, button); };
-        void Reveal() => kebab.Opacity = ProjectsHoverEnabled && button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
-        item.PointerEntered += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
-        item.PointerExited += (_, _) => Reveal();
-        item.GotFocus += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
-        item.LostFocus += (_, _) => Reveal();
-        menu.Opened += (_, _) => Reveal();
-        menu.Closed += (_, _) => Reveal();
+        // The menu key and Shift+F10 open the actions from the focused row, since the row has no actions button.
+        button.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Apps && !(e.Key == Key.F10 && e.KeyModifiers == KeyModifiers.Shift) || !button.IsEnabled) return;
+            MenuFill.Open(menu, button);
+            e.Handled = true;
+        };
+        item.PointerEntered += (_, _) => { if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
+        item.GotFocus += (_, _) => { if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
         var main = renaming == worktree.Path ? RenameBox(new Thickness(4, 0, 32, 0), 28) : button;
         Ui.Place(item, main);
         Grid.SetColumnSpan(main, 2);
-        Ui.Place(item, kebab, 0, 1);
         return item;
     }
 

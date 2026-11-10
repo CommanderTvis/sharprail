@@ -54,8 +54,8 @@ internal static class ProjectsE2E
         app.Window.MouseMove(point); Settle();
         var presenter = row.GetVisualDescendants().OfType<ContentPresenter>().Single(control => control.Name == "PART_ContentPresenter");
         Require(Equals(presenter.Background, row.Background), "Android workspace hover must preserve its normal selected color.");
-        Require(!ToolTip.GetServiceEnabled(panel) && !ToolTip.GetServiceEnabled(row) && app.Window.GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "WorkspaceMenu").All(button => !button.IsVisible),
-            "Android Projects must expose neither hover tooltips nor workspace menu targets.");
+        Require(!ToolTip.GetServiceEnabled(panel) && !ToolTip.GetServiceEnabled(row),
+            "Android Projects must expose no hover tooltips.");
         var workspace = app.Window.WorkspaceRoot;
         var finger = app.Window.TouchBegin(point, RawInputModifiers.None);
         app.Window.TouchMove(finger, point + new Vector(0, 30), RawInputModifiers.None);

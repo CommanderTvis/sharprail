@@ -277,30 +277,29 @@ public sealed partial class WorkbenchWindow
     private Control PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed, string? subtitle = null)
     {
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto"), Margin = new Thickness(0, 0, 4, 0) };
-        Ui.Place(row, TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14));
+        var marked = new MarkedRow();
+        var row = new Grid { Margin = new Thickness(0, 0, 4, 0), Children = { marked } };
+        marked.Add(TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14), RowRole.Leading);
         var external = tab.Kind == "file" && ExternalSource(tab.Path, workspace);
         var title = Ui.Text(tab.Title, foreground, 14);
         title.LineHeight = 20;
         title.FontStyle = tab.Preview ? Avalonia.Media.FontStyle.Italic : Avalonia.Media.FontStyle.Normal;
         title.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-        if (subtitle is null) Ui.Place(row, title, 0, 2);
-        else
+        marked.Add(title, RowRole.Title);
+        if (subtitle is not null)
         {
             var folder = Ui.Text(subtitle, Ui.Hint, 12);
             folder.Name = "TabSubtitle";
             folder.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-            Ui.Place(row, new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { title, folder } }, 0, 2);
+            marked.Add(folder, RowRole.Below);
         }
         if (TabAdornment(tab, workspace) is { } adornment)
         {
-            adornment.Margin = new Thickness(4, 0, 0, 0);
             adornment.VerticalAlignment = VerticalAlignment.Center;
-            Ui.Place(row, adornment, 0, 3);
+            marked.Add(adornment, RowRole.Mark);
         }
         if (workbench.Signals.Strip(workspace, tab) is { } strip)
         {
-            Grid.SetColumnSpan(strip, 4);
             strip.Margin = new Thickness(0, 0, 0, -4);
             row.Children.Add(strip);
         }

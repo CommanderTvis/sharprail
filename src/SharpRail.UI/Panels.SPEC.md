@@ -78,6 +78,11 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   workspace (the project folder itself) is pinned first with a home icon, an attached external worktree has
   an open-folder icon and a managed one the branch glyph. The active workspace's icon and name use the accent.
   Until the host has listed the shown project, its folder alone stands in as the Default row.
+  A name wraps between words and takes up to three lines in a short list; the more workspaces a project has,
+  the fewer lines every name in that list may take (two, then one), so the list fits without scrolling. A
+  shortened name is kept whole in the row's tooltip, above the path. A status indicator (unread dot, busy
+  spinner, bell) sits right after the name, a small gap away, and stays visible after a trimmed name's ellipsis;
+  only the diff numbers sit at the row's end.
 - An expanded project lists its rows with Default first, then the others newest created first (the registry reversed, never
   re-sorted by activity, so rows stay put while you work).
 - The per-app preference "Group workspaces under the terminal or chat that created them" (Settings > Projects, off by
@@ -102,7 +107,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   stops at the rail, so a switch never scrolls the rail out and back.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
-- A hover- and focus-revealed kebab and right-click open the same workspace menu: Copy absolute path (first, with the CopyAbsolutePath icon), Copy link (enabled for the active workspace only), “Open in” (editors from
+- Right-click, or the menu key or Shift+F10 on the focused row, opens the workspace menu (rows have no three-dots button): Copy absolute path (first, with the CopyAbsolutePath icon), Copy link (enabled for the active workspace only), “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
   found” rows), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
   managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from SharpRail, whose

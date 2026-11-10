@@ -98,15 +98,12 @@ internal static class WorkspaceFixture
     internal static ContextMenu OpenWorkspaceMenu(E2eWorkspace app, string path)
     {
         Until(() => Item(app, path).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceBranch"));
-        // Park the pointer first so a tooltip left open by the previous step cannot cover the kebab.
+        // Park the pointer first so a tooltip left open by the previous step cannot cover the row.
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
         Settle(550);
-        var item = Item(app, path);
-        var kebab = item.GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceMenu");
-        app.Window.MouseMove(item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), app.Window)!.Value);
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        var menu = item.GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceSelect").ContextMenu!;
-        app.Click(kebab, freshGesture: false);
+        var select = Item(app, path).GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceSelect");
+        var menu = select.ContextMenu!;
+        app.Click(select, mouseButton: MouseButton.Right);
         Until(() => menu.IsOpen);
         return menu;
     }

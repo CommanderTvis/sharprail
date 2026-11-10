@@ -92,7 +92,7 @@ internal static class WorkspaceTabsE2E
     internal static void Switch(E2eWorkspace app, string path, string? branch = null)
     {
         Button? Target() => app.Window.GetLogicalDescendants().OfType<Button>()
-            .FirstOrDefault(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path))
+            .FirstOrDefault(button => button.ContextMenu is not null && button.Name == "WorkspaceSelect" && Equals(button.Tag, path))
             ?? app.Window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "ProjectName" && Equals(button.Tag, path));
         Until(() => Target() is not null);
         app.Click(Target()!);

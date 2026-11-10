@@ -543,19 +543,17 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(new IOException("Couldn't reveal the workspace. " + error.Message)); }
     }
 
-    private ContextMenu WorkspaceActions(WorkspaceRecord worktree, Button kebab)
+    private ContextMenu WorkspaceActions(WorkspaceRecord worktree, Control row)
     {
         var menu = new ContextMenu
         {
             Name = "WorkspaceActions",
-            Placement = PlacementMode.BottomEdgeAlignedRight,
-            PlacementTarget = kebab,
-            // A menu wider than the room left of the kebab slides along the screen edge instead of flipping over the row.
+            // A menu wider than the room beside the pointer slides along the screen edge instead of flipping over the row.
             PlacementConstraintAdjustment = Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.SlideX | Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.FlipY
         };
         var openIn = AddWorkspaceActions(menu, worktree);
         // The Open in submenu lists the host's editors; the menu opens once they are read.
-        MenuFill.FillBeforeOpening(menu, kebab, async token => editors ?? await host.ListEditorsAsync(token), found =>
+        MenuFill.FillBeforeOpening(menu, row, async token => editors ?? await host.ListEditorsAsync(token), found =>
         {
             editors = found;
             FillEditors(openIn, worktree.Path);

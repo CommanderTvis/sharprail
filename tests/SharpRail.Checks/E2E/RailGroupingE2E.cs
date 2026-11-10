@@ -1,8 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 
 using SharpRail.Host.Core;
 using SharpRail.Plugins.Api;
+using SharpRail.UI;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -65,10 +68,60 @@ internal static class RailGroupingE2E
         Until(() => LiveSequence().SequenceEqual([creatorWorkspace, "tab:terminal", child, "tab:chat", chatChild]));
         Console.WriteLine("PASS rail grouping: on nests under the creator and falls back to flat when the creator is gone");
 
+        TitleBudget(app, project, [project, orphan, creatorWorkspace, child, chatChild]);
+
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
         Require(reloaded.Data.Preferences.GroupWorkspacesUnderCreator, "The preference must be stored and restored.");
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
             "The host must restore the recorded creator after a restart.");
         Console.WriteLine("PASS rail grouping: the preference and the creators are stored and restored");
+    }
+
+    /// <summary>A project's titles share one line budget that shrinks as its list grows, and they wrap between words.</summary>
+    private static void TitleBudget(E2eWorkspace app, string project, string[] paths)
+    {
+        Require(RailTitleBudget.Lines(1) == 3 && RailTitleBudget.Lines(4) == 3 && RailTitleBudget.Lines(5) == 2 && RailTitleBudget.Lines(8) == 1 && RailTitleBudget.Lines(40) == 1,
+            "Titles take 3 lines in a short list, 2 in a longer one and 1 in a long one.");
+        for (var rows = 1; rows < 40; rows++) Require(RailTitleBudget.Lines(rows + 1) <= RailTitleBudget.Lines(rows), "A longer list never gets more title lines: " + rows);
+        var titles = paths.Select(path => Item(app, path).GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "WorkspaceName")).ToArray();
+        var expected = RailTitleBudget.Lines(paths.Length);
+        Require(titles.All(title => title.MaxLines == expected), "Every title in one list has the same budget of " + expected + ": " + string.Join(", ", titles.Select(title => title.MaxLines)));
+        var select = Item(app, paths[1]).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceSelect");
+        Require(ToolTip.GetTip(select) is string tip && tip.EndsWith(paths[1]) && tip.StartsWith(titles[1].Text ?? "?"), "A shortened title keeps its full text and the path in the tooltip.");
+
+        // Wrapping at each budget: normal words break only between words, and the lines never pass the budget.
+        const string words = "Review the environment check before the shell script location moves";
+        foreach (var lines in new[] { 3, 2, 1 })
+        {
+            var text = new TextBlock { Text = words, FontSize = 14, LineHeight = RailTitleBudget.TitleLineHeight, TextWrapping = TextWrapping.Wrap, MaxLines = lines, TextTrimming = TextTrimming.CharacterEllipsis };
+            text.Measure(new Size(150, double.PositiveInfinity));
+            var layout = text.TextLayout.TextLines;
+            Require(layout.Count == lines, $"A long title fills its budget of {lines} lines: {layout.Count}");
+            Require(Math.Abs(text.DesiredSize.Height - lines * RailTitleBudget.TitleLineHeight) <= 1, $"{lines} title lines are {lines} line heights tall: {text.DesiredSize.Height}");
+            foreach (var line in layout.Skip(1))
+                Require(char.IsWhiteSpace(words[line.FirstTextSourceIndex - 1]), $"A title breaks between words, not inside one ({lines} lines, at {line.FirstTextSourceIndex}).");
+        }
+
+        // An indicator presses against the title's end: after a short title, and after the ellipsis of a trimmed one, inside the row.
+        foreach (var name in new[] { "Short", "A very long workspace title that cannot fit the row at all" })
+        {
+            var title = new TextBlock { Text = name, FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis };
+            var dot = new Border { Width = 8, Height = 8 };
+            var row = new MarkedRow { Width = 200, Height = 36 };
+            row.Add(new Border { Width = 14, Height = 14 }, RowRole.Leading);
+            row.Add(title, RowRole.Title);
+            row.Add(dot, RowRole.Mark);
+            row.Measure(new Size(200, 36)); row.Arrange(new Rect(0, 0, 200, 36));
+            Require(Math.Abs(dot.Bounds.Left - (title.Bounds.Right + MarkedRow.Gap)) < 0.01, $"The indicator sits one gap after the title: dot {dot.Bounds}, title {title.Bounds}");
+            Require(dot.Bounds.Right <= row.Bounds.Width + 0.01 && dot.Bounds.Left >= title.Bounds.Right, "The indicator stays inside the row, after the title.");
+            Require(Math.Abs(dot.Bounds.Center.Y - row.Bounds.Height / 2) < 0.01, "The indicator is centred on the row.");
+            if (name.Length > 10)
+            {
+                var whole = new TextBlock { Text = name, FontSize = 14 };
+                whole.Measure(Size.Infinity);
+                Require(title.Bounds.Width < whole.DesiredSize.Width && dot.Bounds.Right > row.Bounds.Width - 24, $"A trimmed title leaves the indicator at the row's end, right after the ellipsis: dot {dot.Bounds}, title {title.Bounds}, row {row.Bounds}");
+            }
+        }
+        Console.WriteLine("PASS rail titles: one shared line budget per list, wrapped between words, full title in the tooltip");
     }
 }

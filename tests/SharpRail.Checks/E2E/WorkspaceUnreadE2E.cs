@@ -97,21 +97,22 @@ internal static class WorkspaceUnreadE2E
         var rowBounds = new Rect(row.TranslatePoint(default, app.Window) ?? default, row.Bounds.Size);
         Rect Within(Control control) => new(control.TranslatePoint(default, app.Window) ?? default, control.Bounds.Size);
         Require(rowBounds.Contains(Within(Dot(app, other))), "The workspace dot must sit inside its row.");
-        Require(!Within(Dot(app, other)).Intersects(Within(row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceMenu"))), "The workspace dot must not overlap the actions menu.");
         var nameBox = row.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "WorkspaceName");
         Require(!Within(Dot(app, other)).Intersects(Within(nameBox)), "The workspace dot must have its own column, clear of the name: dot " + Within(Dot(app, other)) + ", name " + Within(nameBox));
         var tabRow = app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, failedTab));
         var tabDot = tabRow.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "TerminalFailedMark");
         Require(tabDot.IsVisible && (ToolTip.GetTip(tabDot) as string ?? "").Contains("Claude Code"), "The failed agent's tab row must carry a named dot.");
         Require(Within(tabRow).Contains(Within(tabDot)), "The tab dot must sit inside its tab row.");
-        Require(Math.Abs(Within(Dot(app, other)).Right - Within(tabDot).Right) < 0.5, "The workspace dot and the tab dot must share a right edge: workspace " + Within(Dot(app, other)) + ", tab " + Within(tabDot));
-        Require(Math.Abs(Within(Dot(app, other)).Center.X - Within(tabDot).Center.X) < 0.5, "The workspace dot and the tab dot must share a centre x.");
-        // The active workspace's own tab rows end their trailing column on the same x as the workspace dot.
-        // The shown workspace has no tabs of its own yet: give it one so its nested rows exist.
+        // Each indicator sits right after its row's title, a small constant gap away, not at the row's far edge.
+        var nameRight = Within(nameBox).Right;
+        Require(Math.Abs(Within(Dot(app, other)).Left - (nameRight + SharpRail.UI.MarkedRow.Gap)) < 0.5, "The workspace dot must follow the name by the row gap: dot " + Within(Dot(app, other)) + ", name " + Within(nameBox));
+        var tabTitle = tabRow.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text is { Length: > 0 } && text.Name != "TabSubtitle");
+        var tabMark = tabDot.GetLogicalAncestors().OfType<Control>().Prepend(tabDot).First(control => control.Parent is SharpRail.UI.MarkedRow);
+        Require(Math.Abs(Within(tabMark).Left - (Within(tabTitle).Right + SharpRail.UI.MarkedRow.Gap)) < 0.5, "A tab's indicator must follow its title by the row gap: mark " + Within(tabMark) + ", title " + Within(tabTitle));
+        // The row's own title and the trailing controls keep their places.
+        Require(Within(Dot(app, other)).Right <= rowBounds.Right - SharpRail.UI.WorkbenchWindow.RailDotInset + 0.5, "The workspace dot must stay clear of the row's trailing area.");
         app.Window.Layout.NewTerminal(app.Center, "nested-row");
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")));
-        var nestedRow = app.Window.GetLogicalDescendants().OfType<Button>().First(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")).Content as Control;
-        Require(nestedRow is not null && Math.Abs(Within(nestedRow).Right - Within(Dot(app, other)).Right) < 0.5, "A nested tab row's trailing column must end where the workspace dot does: tab " + (nestedRow is null ? "none" : Within(nestedRow).ToString()) + ", workspace " + Within(Dot(app, other)));
         // The row moved when the nested tab row was added: measure it again.
         rowBounds = new Rect(row.TranslatePoint(default, app.Window) ?? default, row.Bounds.Size);
         Require(Math.Abs(Within(tabDot).Center.Y - Within(tabRow).Center.Y) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - rowBounds.Center.Y) < 1, "Each dot must be vertically centred on its own row.");

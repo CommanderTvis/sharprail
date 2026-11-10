@@ -82,9 +82,6 @@
     <Style Selector="Grid.touch-projects :is(Control)">
       <Setter Property="ToolTip.ServiceEnabled" Value="False" />
     </Style>
-    <Style Selector="Grid.touch-projects Button#WorkspaceMenu">
-      <Setter Property="IsVisible" Value="False" />
-    </Style>
     <Style Selector="Button.change-actions">
       <Setter Property="Opacity" Value="0" />
     </Style>
