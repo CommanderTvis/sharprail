@@ -28,6 +28,8 @@ public sealed partial class LanguageService : IAsyncDisposable
     private readonly Func<string, string, string> configuration;
     private readonly Action<string, string, string>? saveConfiguration;
     private int disposed;
+    /// <summary>Workspaces of closed projects: no server starts in them until the project reopens.</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> closedWorkspaces = new();
     private readonly ConcurrentDictionary<Entry, byte> stopping = new();
     private readonly ConcurrentDictionary<Task, byte> closing = new();
     private readonly LanguageExitStore exits;
@@ -393,6 +395,11 @@ public sealed partial class LanguageService : IAsyncDisposable
             {
                 candidate.Stop.Dispose();
                 return new("disabled", "Language services are disabled on this host.", Version: request.Version);
+            }
+            if (closedWorkspaces.ContainsKey(workspace))
+            {
+                candidate.Stop.Dispose();
+                return new("stopped", "The workspace's project is closed; reopen it to start language servers.", server.Id, request.Version) { Freshness = "unavailable" };
             }
             entry = entries.GetOrAdd(key, candidate);
         }

@@ -210,11 +210,20 @@ public sealed partial class LanguageService
         return new("stopped", "Stopped; the next request in that workspace starts it again.", server);
     }
 
+    /// <summary>Lets a workspace of a reopened project start servers again after <see cref="StopWorkspaceAsync"/> refused them.</summary>
+    internal void ReopenWorkspace(string workspace)
+    {
+        lock (startGate) closedWorkspaces.TryRemove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)), out _);
+    }
+
     /// <summary>Stops a workspace's servers now, keeping its settings, drafts and exit records; used when its project closes.</summary>
     internal async Task StopWorkspaceAsync(string workspace, string reason)
     {
         workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace));
-        foreach (var (key, entry) in entries.ToArray())
+        KeyValuePair<string, Entry>[] snapshot;
+        // Marked under the start gate: a request racing this close either created its entry before (and is stopped below) or is refused.
+        lock (startGate) { closedWorkspaces[workspace] = 0; snapshot = entries.ToArray(); }
+        foreach (var (key, entry) in snapshot)
             if (key.StartsWith(workspace + "\0", StringComparison.Ordinal) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
             {
                 try { await PreserveDraftsAsync(key, entry, CancellationToken.None); }

@@ -322,7 +322,12 @@ public sealed partial class HostStateStore : IHostStateService
             if (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider && languages is { } jvmLanguages)
                 await jvmLanguages.SwitchProviderAsync(CancellationToken.None);
             // A project opened for the first time starts the language servers its shared configuration marks autoStart in its Default workspace.
-            foreach (var project in next.Projects.Except(previous.Projects)) StartWorkspaceLanguages(project);
+            foreach (var project in next.Projects.Except(previous.Projects))
+            {
+                if (languages is { } reopened)
+                    foreach (var workspace in next.WorkspacesOf(project).Select(workspace => workspace.Path).Append(project)) reopened.ReopenWorkspace(workspace);
+                StartWorkspaceLanguages(project);
+            }
             return next;
         }
         finally { changesGate.Release(); }

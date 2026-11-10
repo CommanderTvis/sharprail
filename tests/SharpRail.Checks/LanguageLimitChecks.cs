@@ -171,6 +171,27 @@ internal static class LanguageLimitChecks
             await state.ChangeAsync([HostStateChange.CloseProject(project)]);
             Require(!Runs(project), "Closing a project left its language server running.");
             Console.WriteLine("PASS language limits: closing a project stops its servers");
+
+            // Closing one of two projects leaves the other running, frees its slot, cancels a start in flight and refuses late requests.
+            var keep = Workspace(root, "keep");
+            var closed = Workspace(root, "closed");
+            await state.ChangeAsync([HostStateChange.OpenProject(keep), HostStateChange.OpenProject(closed)]);
+            await Ready(keep);
+            await Status(closed);
+            await state.ChangeAsync([HostStateChange.CloseProject(closed)]);
+            Require(!Runs(closed), "Closing a project left its server (started or starting) running.");
+            Require(Runs(keep), "Closing a project stopped another project's server.");
+            var late = await Status(closed);
+            Require(late.State == "stopped", "A late request for a closed project was answered with " + late.State);
+            await Task.Delay(500);
+            Require(!Runs(closed), "A late request restarted a closed project's server.");
+            var extra = Workspace(root, "extra");
+            await state.ChangeAsync([HostStateChange.OpenProject(extra)]);
+            await Ready(extra);
+            Require(Runs(extra) && !Runs(closed), "The closed project's slot was not released for the typescript cap.");
+            await state.ChangeAsync([HostStateChange.OpenProject(closed)]);
+            await Ready(closed);
+            Console.WriteLine("PASS language limits: closing a project spares other projects, cancels starts, refuses late requests and frees its slot; reopening starts again");
         }
         finally
         {

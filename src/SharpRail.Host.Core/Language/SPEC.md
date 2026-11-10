@@ -280,7 +280,8 @@ A language server runs while its workspace uses it, within the limits below. It 
 stops it, the limits stop it (it then restarts on its next request), its workspace is removed (exit
 reason "workspace removed") or its project is closed ("its project was closed"), its configuration
 changes and the user restarts it, the host shuts down or language services are turned off, or it
-crashes (an unexpected exit record). Stopping a listener does not stop an embedded host's language
+crashes (an unexpected exit record). Closing a project cancels starts in flight, frees the servers' limit slots, and refuses
+new starts in its workspaces until the project reopens; other projects' servers are untouched. Stopping a listener does not stop an embedded host's language
 sessions.
 
 ### Server limits
