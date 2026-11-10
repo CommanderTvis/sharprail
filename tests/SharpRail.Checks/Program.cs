@@ -1256,6 +1256,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             DrawnRenderingChecks.MarkdownChunks();
+            DrawnRenderingChecks.MarkdownTableSpacing();
             return;
         }
         if (args.SequenceEqual(["--markdown-find"]))

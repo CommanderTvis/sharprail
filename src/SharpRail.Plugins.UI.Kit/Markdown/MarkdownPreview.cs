@@ -232,7 +232,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 foreach (var row in ListRows(list)) items.Children.Add(row());
                 return items;
             case Table table:
-                var grid = new Grid { Margin = new Thickness(0, 12) };
+                var grid = new Grid();
                 var rows = table.OfType<TableRow>().ToArray();
                 var columns = rows.Select(row => row.Count).DefaultIfEmpty(0).Max();
                 for (var column = 0; column < columns; column++) grid.ColumnDefinitions.Add(new(GridLength.Auto));
@@ -245,7 +245,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 {
                     Content = grid,
                     HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled
+                    VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                    Margin = new Thickness(0, 12)
                 };
             case AlertBlock alert:
                 var kind = alert.Kind.ToString().ToLowerInvariant();

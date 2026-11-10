@@ -192,7 +192,8 @@ single large block. Table chunks share fixed column widths estimated from cell t
 the header row stays in the first chunk; list numbering continues across chunks; a code block keeps
 one Copy, on its first chunk, that copies the whole block, and every chunk is as wide as the longest
 line. Chunks of one table or code block share their horizontal offset; only the last shows the
-horizontal scroll bar. Nested blocks never split.
+horizontal scroll bar. Nested blocks never split. A table carries the same 12 px block margin as a paragraph on
+its own outermost control, so it keeps the paragraph gap above and below and the paragraph column.
 
 A preview constructed with `progressive: true` builds its top-level blocks in 8 ms dispatcher slices at
 background priority instead of all at once: the first slice is built in the constructor and the rest are

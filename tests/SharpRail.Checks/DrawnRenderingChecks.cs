@@ -19,6 +19,7 @@ internal static class DrawnRenderingChecks
     {
         Markdown();
         MarkdownChunks();
+        MarkdownTableSpacing();
         MarkdownSelectionChecks.Run();
         Trees();
         CaretGap();
@@ -130,6 +131,29 @@ internal static class DrawnRenderingChecks
         }
         finally { window.Close(); }
         Console.WriteLine("PASS virtual Markdown preview/diff: bounded mounted blocks, offscreen selection, source spans, links, find and anchors");
+    }
+
+    // A table between a list and a paragraph gets the same gaps as two paragraphs and the paragraphs' left edge.
+    internal static void MarkdownTableSpacing()
+    {
+        var context = new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
+        using var preview = new MarkdownPreview("Intro.\n\nSecond.\n\n- item\n\n| Name | Value |\n| --- | --- |\n| a | b |\n\n**Verified:** done\n", "README.md", context);
+        var window = new Window { Width = 800, Height = 600, Content = preview, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window);
+            Rect Bounds(Control control) => control.TranslatePoint(default, preview) is { } origin ? new Rect(origin, control.Bounds.Size) : throw new InvalidOperationException("Block is not in the preview.");
+            var blocks = (preview.Content as StackPanel ?? throw new InvalidOperationException("Expected a plain block stack.")).Children.Select(Bounds).ToArray();
+            Require(blocks.Length == 5, $"Two paragraphs, a list, a table and a paragraph: {blocks.Length} blocks.");
+            var gap = blocks[1].Top - blocks[0].Bottom;
+            Require(gap > 0, "Paragraphs have a block gap.");
+            Require(Math.Abs(blocks[3].Top - blocks[2].Bottom - gap) < 0.5, $"Gap above a table matches the block gap: {blocks[3].Top - blocks[2].Bottom} vs {gap}.");
+            Require(Math.Abs(blocks[4].Top - blocks[3].Bottom - gap) < 0.5, $"Gap below a table matches the block gap: {blocks[4].Top - blocks[3].Bottom} vs {gap}.");
+            Require(Math.Abs(blocks[3].Left - blocks[0].Left) < 0.5 && blocks[3].Right <= blocks[0].Right + 0.5, "A table aligns to the paragraph column.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS Markdown table spacing: a table has the block gap above and below and the paragraph column");
     }
 
     // A large table, list and code block split into chunks the block list virtualizes, read as whole blocks.
