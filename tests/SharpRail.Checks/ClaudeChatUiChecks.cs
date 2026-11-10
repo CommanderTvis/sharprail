@@ -207,6 +207,7 @@ internal static class ClaudeChatUiChecks
     {
         Placeholders();
         GlyphAlignment();
+        ToolTitleWidth();
         ItemKinds();
         Requests();
         Pickers();
@@ -2331,6 +2332,35 @@ internal static class ClaudeChatUiChecks
                 $"{name}: chevron {chevron}, dot {dotY} and first line {text} share one vertical centre.");
         }
     }
+
+    // A tool title is shown whole while the row has room and trimmed only when it does not fit; it uses the width after the chevron and the dot to within 1px.
+    private static void ToolTitleWidth()
+    {
+        var input = JsonSerializer.SerializeToElement(new { query = "x" });
+        var tools = new[]
+        {
+            new ChatToolItem("tt1", 1, "mcp__plugin_acme_extremely_long_server_name__a_rather_long_tool_name", input, ChatToolState.Done),
+            new ChatToolItem("tt2", 2, "Agent", JsonSerializer.SerializeToElement(new { description = "d" }), ChatToolState.Failed)
+        };
+        foreach (var tool in tools)
+            foreach (var open in new[] { false, true })
+            {
+                using (var wide = ChatRowLayout.Build(new ChatRow(tool, 0, 1, open, null), 900, true))
+                {
+                    var title = wide.ToolTitle();
+                    Require(title is { } t && t.Full <= t.Room && Math.Abs(t.Drawn - t.Full) <= 1, $"{tool.Name} open={open}: at 900px the title is drawn whole ({title}).");
+                }
+                foreach (var width in new[] { 160d, 220d, 300d })
+                {
+                    using var narrow = ChatRowLayout.Build(new ChatRow(tool, 0, 1, open, null), width, true);
+                    var title = narrow.ToolTitle();
+                    Require(title is { } t && t.Drawn <= t.Room + 1 && (t.Full <= t.Room ? Math.Abs(t.Drawn - t.Full) <= 1 : t.Drawn >= t.Room - 24) && TextRight(narrow) <= width,
+                        $"{tool.Name} open={open}: at {width}px the title is whole or trimmed to the room, and the row fits ({title}).");
+                }
+            }
+    }
+
+    private static double TextRight(ChatRowLayout layout) => layout.TextBounds().Max(rect => rect.Right);
 
     private static double Height(ChatItem item, bool expanded, out IReadOnlyList<ChatHit> hits)
     {

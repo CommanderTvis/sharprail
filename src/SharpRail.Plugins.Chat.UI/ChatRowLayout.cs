@@ -342,6 +342,12 @@ internal sealed class ChatRowLayout : IDisposable
         texts.Clear(); fills.Clear(); overlays.Clear(); hits.Clear(); copies.Clear(); geometries.Clear();
     }
 
+    private (string Text, double Room, double Full)? toolTitle;
+
+    /// <summary>For checks: the tool title, the width it was given and the width it needs untrimmed; null where the row has no tool header. Its drawn width is the first text's.</summary>
+    internal (string Text, double Room, double Full, double Drawn)? ToolTitle() =>
+        toolTitle is { } title && texts.Count > 0 ? (title.Text, title.Room, title.Full, texts[0].Text.Width) : null;
+
     private static int live, liveTexts, built;
 
     /// <summary>Layouts built since start; streaming and scrolling are bounded by how few of these they cost.</summary>
@@ -358,8 +364,8 @@ internal sealed class ChatRowLayout : IDisposable
     private static readonly Typeface Mono = new(Ui.CodeFont);
 
     private TextLayout Make(string text, IBrush brush, double size, double width, bool mono = false, bool bold = false, bool italic = false,
-        int maxLines = 0, IReadOnlyList<ValueSpan<TextRunProperties>>? spans = null) =>
-        Sourced(text, new(text, mono ? Mono : Face(bold, italic), size, brush, textWrapping: TextWrapping.Wrap, maxWidth: Math.Max(1, width),
+        int maxLines = 0, IReadOnlyList<ValueSpan<TextRunProperties>>? spans = null, bool noWrap = false) =>
+        Sourced(text, new(text, mono ? Mono : Face(bold, italic), size, brush, textWrapping: noWrap ? TextWrapping.NoWrap : TextWrapping.Wrap, maxWidth: Math.Max(1, width),
             maxLines: maxLines, textTrimming: maxLines > 0 ? TextTrimming.CharacterEllipsis : null, textStyleOverrides: spans));
 
     private static TextLayout Sourced(string text, TextLayout layout)
@@ -782,22 +788,28 @@ internal sealed class ChatRowLayout : IDisposable
             _ => Ui.Accent
         };
         var head = ToolCards.Header(tool);
-        var name = Make(head.Name, Ui.TextBrush, 12, 220, bold: true, maxLines: 1);
+        // The title takes the row's width after the chevron, the dot and the subagent link; the summary gets what it leaves.
+        var thread = tool.Name is "Task" or "Agent" ? Make("Open thread", Ui.Accent, 11, 100, maxLines: 1) : null;
+        var nameRoom = inner - 30 - (thread is null ? 0 : thread.Width + 12);
+        var name = Make(head.Name, Ui.TextBrush, 12, nameRoom, bold: true, maxLines: 1, noWrap: true);
+        toolTitle = (head.Name, nameRoom, Make(head.Name, Ui.TextBrush, 12, 100000, bold: true, maxLines: 1, noWrap: true).Width);
         var centre = LineCentre(name, y + 3);
         Chevron(centre, open);
         fills.Add(new(new Rect(left + 14, centre - 3.5, 7, 7), dot, 3.5, null));
         var nameBox = Place(name, left + 28, y + 3);
         var right = left + inner - 2;
         // A subagent's thread opens in its own dialog, live.
-        if (tool.Name is "Task" or "Agent")
+        if (thread is not null)
         {
-            var thread = Make("Open thread", Ui.Accent, 11, 100, maxLines: 1);
             var threadBox = Place(thread, right - thread.Width, y + 4);
             hits.Add(new(threadBox.Inflate(3), ChatHitKind.OpenThread, tool.Id));
             right = threadBox.Left - 12;
         }
-        var summary = Make(review?.Summary ?? head.Secondary, Ui.Muted, 12, Math.Max(20, right - nameBox.Right - 8), mono: true, maxLines: 1);
-        Place(summary, nameBox.Right + 8, y + 3);
+        if (right - nameBox.Right - 8 >= 20)
+        {
+            var summary = Make(review?.Summary ?? head.Secondary, Ui.Muted, 12, right - nameBox.Right - 8, mono: true, maxLines: 1);
+            Place(summary, nameBox.Right + 8, y + 3);
+        }
         hits.Add(new(new Rect(left, y, inner, 22), ChatHitKind.Toggle));
         y += 24;
         if (ToolCards.Secondary(tool) is { Length: > 0 } line)
