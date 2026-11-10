@@ -158,6 +158,44 @@ internal static class MenuLayoutChecks
         ShortcutsFit();
         PopupsStayInWindow();
         RecentProjectRows();
+        ActionIconChecks.InkInsideViewBox();
+        AuditCatchesBrokenIcons();
+    }
+
+    // The audit must fail on a menu that breaks the rule: an icon bigger than its slot, one pushed past it by a margin, and one off-centre.
+    private static void AuditCatchesBrokenIcons()
+    {
+        var broken = new (string Name, Action<MenuItem> Break)[]
+        {
+            ("an icon pushed past the slot by a margin", item => ((Control)item.Icon!).Margin = new Thickness(9, 0, 0, 0)),
+            ("an icon moved out of the slot by a transform", item => ((Control)item.Icon!).RenderTransform = new Avalonia.Media.TranslateTransform(7, 0)),
+            ("an icon cut by a clipping ancestor", item => item.Icon = new Border { ClipToBounds = true, Width = 10, Height = 14, Child = Ui.Icon("add", size: 14), HorizontalAlignment = HorizontalAlignment.Center }),
+        };
+        MenuIconAudit.Probing = true;
+        try
+        {
+            foreach (var (name, apply) in broken)
+            {
+                var anchor = new Button { Content = "x", Width = 80, Height = 24 };
+                var window = new Window { Width = 400, Height = 300, Content = anchor };
+                window.Show();
+                var menu = Menu(("Add", ActionIcon.Add), ("Close", ActionIcon.Close));
+                anchor.ContextMenu = menu;
+                menu.Open(anchor);
+                Settle();
+                MenuIconAudit.Audit("good menu", menu);
+                apply(menu.Items.OfType<MenuItem>().First());
+                Settle();
+                var failed = false;
+                try { MenuIconAudit.Audit(name, menu); }
+                catch (InvalidOperationException) { failed = true; }
+                Require(failed, $"The menu icon audit passed a menu with {name}.");
+                menu.Close();
+                window.Close();
+            }
+        }
+        finally { MenuIconAudit.Probing = false; }
+        Console.WriteLine($"PASS menu layout: icons sit in one {LayoutRoles.MenuIconSlot}px slot, centred and unclipped, in every audited menu ({MenuIconAudit.Audited} audited); the audit fails on broken icons");
     }
 
     // The add-project menu's recent paths read as folder name plus a muted parent, cut in the middle, and never widen the menu past its bound.
@@ -258,6 +296,7 @@ internal static class MenuLayoutChecks
                     var popup = ScreenBounds(menu);
                     var area = ScreenBounds(window);
                     Require(Inside(popup, area), $"{label}: the popup spans {popup} but the window is {area}.");
+                    MenuIconAudit.Audit(label, menu);
                     foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null))
                     {
                         var icon = ScreenBounds(item.GetVisualDescendants().OfType<ContentControl>().First(part => part.Name == "PART_IconPresenter"));
@@ -408,6 +447,7 @@ internal static class MenuLayoutChecks
             var text = item.GetVisualDescendants().OfType<TextBlock>().First(part => part.Text == (string)item.Header!).TranslatePoint(default, menu)!.Value.X;
             Require(left >= 0 && right <= menu.Bounds.Width && right <= text + 0.5, $"{name}: the icon of '{item.Header}' spans x={left:0.#}..{right:0.#}, outside the menu (0..{menu.Bounds.Width:0.#}).");
         }
+        MenuIconAudit.Audit(name, menu);
     }
 
     internal static void RealFileMenu(string root)

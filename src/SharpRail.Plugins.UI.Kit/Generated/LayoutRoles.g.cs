@@ -21,6 +21,8 @@ public static class LayoutRoles
     public const double PanelInset = 8;
     /// <summary>The leading icon column of every header location field, so each caption and its first value element share one left edge.</summary>
     public const double LocationIconSlot = 16;
+    /// <summary>The box every menu item icon is centred in, whatever its glyph size, so no menu icon is cropped or off-centre and rows without an icon reserve the same column.</summary>
+    public const double MenuIconSlot = 16;
     /// <summary>One tree nesting level.</summary>
     public const double TreeIndent = 8;
     /// <summary>The content padding of a list row, equal on its left and right so the leading icon and the trailing counts sit the same distance from the pane edges.</summary>

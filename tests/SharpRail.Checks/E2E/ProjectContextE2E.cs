@@ -74,6 +74,7 @@ internal static class ProjectContextE2E
             parts[2] is MenuItem { Header: "Open existing worktree…", Icon: null } && parts[3] is MenuItem { Header: "Pin", Icon: not null } && parts[4] is Separator &&
             parts[5] is MenuItem { Header: "Rename…", Icon: null } && parts[6] is MenuItem { Header: "Close project", Icon: not null },
             "Project actions stay compact: Copy absolute path, Start work, Open existing worktree, Pin, separator, Rename, Close project.");
+        MenuIconAudit.Audit("project row menu", Menu(fixture));
         Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCopyPath").IsFocused);
         Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);

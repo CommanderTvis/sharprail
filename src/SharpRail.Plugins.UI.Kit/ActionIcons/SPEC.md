@@ -60,6 +60,11 @@ every meaning has exactly one registry entry, that assets are distinct and shipp
 menu items: an `Icon =` assignment from `Ui.Icon(` or a string literal fails. Plugin and registry assignments pass. The scan
 sees assignments in files that mention `MenuItem` or `Ui.Menu(`; it does not follow an icon passed through a helper.
 
+## Icon slot
+
+Every menu icon sits in one `LayoutRoles.MenuIconSlot` box (16 px, set once in `App.Initialize`), centred both ways and never clipped, whatever its glyph size; rows without an icon reserve the same column.
+The check `MenuIconAudit` runs on every context menu any headless check opens and fails unless each icon lies inside its slot and every clipping ancestor, is centred within 0.5 px, and the rows' text starts on one edge.
+
 ## Mixed menus
 
 Fluent shares the icon, shortcut and chevron columns across a menu's rows, but the shared widths only settle after the first

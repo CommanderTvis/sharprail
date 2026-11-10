@@ -489,6 +489,7 @@ const SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip = 32 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelRow = 22 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.TopbarRow = 40 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot = 16 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.TreeIndent = 8 -> double
 override SharpRail.Plugins.UI.Kit.TextRole.Equals(object? obj) -> bool
 override SharpRail.Plugins.UI.Kit.TextRole.GetHashCode() -> int

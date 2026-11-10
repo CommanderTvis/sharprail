@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
@@ -48,11 +50,16 @@ public sealed partial class App : Application
         {
             ReserveIconColumn(item);
             // Fluent's icon-to-text margin is wider than the row's left inset; one gap on both sides keeps the icon centred between edge and text.
-            if (e.NameScope.Find<Control>("PART_IconPresenter") is { } icon) icon.Margin = new Thickness(0, 0, IconGap, 0);
+            if (e.NameScope.Find<Control>("PART_IconPresenter") is { } icon) FitIconSlot(icon);
             if (e.NameScope.Find<Avalonia.Controls.Primitives.Popup>("PART_Popup") is { } popup)
                 item.SubmenuOpened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() => SnapSubmenu(item, popup), Avalonia.Threading.DispatcherPriority.Loaded);
         });
-        MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
+        MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, change) =>
+        {
+            ReserveIconColumn(item);
+            // Whatever control a menu hands over is centred in the slot and never clips itself.
+            if (change.NewValue is Control icon) { icon.HorizontalAlignment = HorizontalAlignment.Center; icon.VerticalAlignment = VerticalAlignment.Center; icon.ClipToBounds = false; }
+        });
         // No popup leaves its window: the positioner slides and flips against the screen, which lets a menu opened near the window's
         // edge hang outside it, so every opened popup (menu, submenu, flyout, dropdown, autocomplete; not tooltips) is kept inside.
         Avalonia.Controls.Primitives.Popup.IsOpenProperty.Changed.AddClassHandler<Avalonia.Controls.Primitives.Popup>((popup, change) =>
@@ -204,11 +211,23 @@ public sealed partial class App : Application
         return Math.Abs(shift) < 1 ? 0 : shift;
     }
 
-    // The icon presenter is 16 wide plus the icon gap: the room a row's icon needs in the icon column from the first pass.
+    // Every menu icon sits in one MenuIconSlot box, centred both ways and unclipped: Fluent's presenter aligns its content to the start, which
+    // leaves a glyph narrower than the slot off-centre, so the content alignment is set once here for every menu.
+    private static void FitIconSlot(Control slot)
+    {
+        slot.Margin = new Thickness(0, 0, IconGap, 0);
+        slot.Width = SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
+        slot.Height = SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
+        slot.ClipToBounds = false;
+        if (slot is ContentControl content) { content.HorizontalContentAlignment = HorizontalAlignment.Center; content.VerticalContentAlignment = VerticalAlignment.Center; }
+        else if (slot is ContentPresenter presenter) { presenter.HorizontalContentAlignment = HorizontalAlignment.Center; presenter.VerticalContentAlignment = VerticalAlignment.Center; }
+    }
+
+    // The icon presenter is MenuIconSlot wide plus the icon gap: the room a row's icon needs in the icon column from the first pass.
     private static void ReserveIconColumn(MenuItem item)
     {
         var column = item.GetVisualDescendants().OfType<Grid>().SelectMany(grid => grid.ColumnDefinitions).FirstOrDefault(definition => definition.SharedSizeGroup == "MenuItemIcon");
-        if (column is not null) column.MinWidth = item.Icon is null ? 0 : 16 + IconGap;
+        if (column is not null) column.MinWidth = item.Icon is null ? 0 : SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot + IconGap;
     }
 
 #if !ANDROID && !BROWSER

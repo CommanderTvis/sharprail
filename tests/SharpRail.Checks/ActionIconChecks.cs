@@ -40,6 +40,20 @@ internal static partial class ActionIconChecks
         Console.WriteLine("PASS action icons: one distinct shipped icon per semantic, and no menu source assigns a raw icon name");
     }
 
+    /// <summary>A glyph whose ink leaves the 24x24 view box would be trimmed by the icon mask, so every registry glyph stays inside it. Needs the rendering platform.</summary>
+    internal static void InkInsideViewBox()
+    {
+        if (BoundaryChecks.Checkout() is not { } checkout) return;
+        var assets = ActionIcons.All.Select(entry => entry.Asset).ToArray();
+        foreach (var asset in assets)
+            foreach (var path in System.Xml.Linq.XDocument.Load(Path.Combine(checkout, "src/SharpRail.Plugins.UI.Kit/Assets/Icons", asset + ".svg")).Root!.Elements().Where(element => element.Name.LocalName == "path"))
+            {
+                var ink = Avalonia.Media.Geometry.Parse("F1 " + path.Attribute("d")!.Value).Bounds;
+                Require(ink.X >= 0 && ink.Y >= 0 && ink.Right <= 24 && ink.Bottom <= 24, $"Action icon asset '{asset}' draws outside its 24x24 view box ({ink}), so the menu would trim it.");
+            }
+        Console.WriteLine("PASS action icons: every registry glyph lies inside its 24x24 view box");
+    }
+
     /// <summary>
     /// An agent launcher menu: Continue and Resume carry the registry icons, the named other entries carry none, and the labels
     /// of every visible entry start on one edge whether or not the row has an icon or a model mark.
