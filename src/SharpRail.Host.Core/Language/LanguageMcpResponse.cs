@@ -61,19 +61,24 @@ internal static class LanguageMcpResponse
         {
             response["freshness"] = result.Freshness;
             response["coverage"] = result.Coverage;
+            var shown = result.Diagnostics.Select(item => LanguageService.SeverityName(item.Kind)).ToArray();
             response["summary"] = new JsonObject
             {
                 ["files"] = result.Files.Count,
                 ["checked"] = result.Files.Count(file => file.State == "checked"),
                 ["pending"] = result.Files.Count(file => file.State == "pending"),
                 ["skipped"] = result.Files.Count(file => file.State == "skipped"),
-                ["errors"] = result.Files.Count(file => file.State == "error"),
-                ["diagnostics"] = result.Diagnostics.Count
+                ["failedFiles"] = result.Files.Count(file => file.State == "error"),
+                ["diagnostics"] = result.Diagnostics.Count,
+                ["errors"] = shown.Count(name => name == "error"),
+                ["warnings"] = shown.Count(name => name == "warning"),
+                ["information"] = shown.Count(name => name == "information"),
+                ["hints"] = shown.Count(name => name == "hint")
             };
             if (result.Files.Select(file => file.Method).Where(method => method.Length > 0).Distinct().Order(StringComparer.Ordinal).ToArray() is { Length: > 0 } methods)
                 response["methods"] = new JsonArray(methods.Select(method => (JsonNode?)JsonValue.Create(method)).ToArray());
             var diagnostics = result.Diagnostics.OrderBy(item => int.TryParse(item.Kind, out var rank) ? rank : 5).ThenBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Line).ThenBy(item => item.Column).ThenBy(item => item.Text, StringComparer.Ordinal).ToArray();
-            Page("diagnostics", diagnostics.Skip(offset).Take(limit).Select(Item), diagnostics.Length);
+            Page("diagnostics", diagnostics.Skip(offset).Take(limit).Select(item => { var node = Item(item); node["severity"] = LanguageService.SeverityName(item.Kind); if (item.Raw.Length > 0 && JsonNode.Parse(item.Raw)?["code"] is { } code) node["code"] = code.ToString(); return node; }), diagnostics.Length);
             var files = result.Files.OrderBy(file => file.Path, StringComparer.Ordinal).ToArray();
             Page("files", files.Skip(offset).Take(limit).Select(file => new JsonObject
             {

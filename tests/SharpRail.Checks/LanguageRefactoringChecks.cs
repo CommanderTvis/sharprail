@@ -119,6 +119,14 @@ internal static class LanguageRefactoringChecks
         Require(globbed["methods"]![0]!.ToString() == "textDocument/diagnostic", "The method used is not reported: " + globbed.ToJsonString());
         var errors = await rig.Call("lsp_diagnostics", new { paths = new[] { "w*.ts" }, minSeverity = "error" });
         Require(errors["diagnostics"]!.AsArray().Count == 1 && errors["detail"]!.ToString().Contains("below minSeverity", StringComparison.Ordinal), "minSeverity: " + errors.ToJsonString());
+        // A server error (CS1061, severity 1) and one without a severity count as errors; the summary counts what is shown by severity, apart from files that failed.
+        rig.Write("r1.ts", "roslyn");
+        var roslyn = await rig.Call("lsp_diagnostics", new { paths = new[] { "r1.ts" } });
+        var summary = roslyn["summary"]!;
+        Require(roslyn["diagnostics"]![0]!["severity"]!.ToString() == "error" && roslyn["diagnostics"]![0]!["code"]!.ToString() == "CS1061" && roslyn["diagnostics"]![1]!["severity"]!.ToString() == "error"
+            && summary["errors"]!.GetValue<int>() == 2 && summary["hints"]!.GetValue<int>() == 1 && summary["failedFiles"]!.GetValue<int>() == 0, "Roslyn-shaped severities: " + roslyn.ToJsonString());
+        var roslynErrors = await rig.Call("lsp_diagnostics", new { paths = new[] { "r1.ts" }, minSeverity = "error" });
+        Require(roslynErrors["diagnostics"]!.AsArray().Count == 2 && roslynErrors["summary"]!["errors"]!.GetValue<int>() == 2 && roslynErrors["detail"]!.ToString().Contains("1 hint", StringComparison.Ordinal), "minSeverity keeps Roslyn's errors and names the hidden hint: " + roslynErrors.ToJsonString());
         var nothing = await rig.Call("lsp_diagnostics", new { paths = new[] { "zzz*.ts" } });
         Require(nothing["detail"]!.ToString().Contains("matched no source file", StringComparison.Ordinal), "An empty glob: " + nothing.ToJsonString());
     }

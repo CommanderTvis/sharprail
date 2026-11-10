@@ -1613,8 +1613,11 @@ internal static class LanguageChecks
             {
                 kind = "full",
                 items = documents[uri].Text.Contains("broken", StringComparison.Ordinal)
-                ? new[] { new { range, message = "broken", severity = 1, source = "fixture" } }
-                : documents[uri].Text.Contains("warned", StringComparison.Ordinal) ? [new { range, message = "warned", severity = 2, source = "fixture" }] : []
+                ? (object[])[new { range, message = "broken", severity = 1, source = "fixture" }]
+                : documents[uri].Text.Contains("warned", StringComparison.Ordinal) ? [new { range, message = "warned", severity = 2, source = "fixture" }]
+                // Shaped like Roslyn's: the code and its description beside the severity; one entry omits the severity, as the protocol permits.
+                : documents[uri].Text.Contains("roslyn", StringComparison.Ordinal) ? [new { range, message = "'List<int>' does not contain a definition for 'Missing'", severity = (int?)1, code = "CS1061", source = "csharp" }, new { range, message = "unset", severity = (int?)null, code = "CS0103", source = "csharp" }, new { range, message = "Use primary constructor", severity = (int?)4, code = "IDE0290", source = "csharp" }]
+                : []
             };
             else if (method == "workspace/diagnostic") result = new
             {

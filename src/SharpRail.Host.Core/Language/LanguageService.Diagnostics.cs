@@ -21,6 +21,9 @@ public sealed partial class LanguageService
         _ => throw new ArgumentException("minSeverity is error, warning, information or hint.")
     };
 
+    /// <summary>The LSP severity number (1 error to 4 hint) as the word agents read; a value outside that range is shown as is.</summary>
+    internal static string SeverityName(string kind) => kind switch { "1" => "error", "2" => "warning", "3" => "information", "4" => "hint", _ => kind };
+
     private async Task<LanguageResult> DiagnoseFilesAsync(LanguageRequest request, CancellationToken token)
     {
         var scope = request.Scope.Length == 0 ? "files" : request.Scope;
@@ -136,8 +139,10 @@ public sealed partial class LanguageService
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception error) { files.Add(new(path, "error", "unavailable", error.Message)); }
         }
-        var hidden = diagnostics.RemoveAll(item => int.TryParse(item.Kind, out var rank) && rank > minimum);
-        if (hidden > 0) notes.Add($"{hidden} diagnostic{(hidden == 1 ? "" : "s")} below minSeverity {request.MinSeverity} hidden.");
+        var removed = diagnostics.Where(item => int.TryParse(item.Kind, out var rank) && rank > minimum).ToArray();
+        diagnostics.RemoveAll(item => int.TryParse(item.Kind, out var rank) && rank > minimum);
+        if (removed.Length > 0)
+            notes.Add($"{removed.Length} diagnostic{(removed.Length == 1 ? "" : "s")} below minSeverity {request.MinSeverity} hidden ({string.Join(", ", removed.GroupBy(item => SeverityName(item.Kind)).OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => $"{group.Count()} {group.Key}"))}).");
         var checkedCount = files.Count(file => file.State == "checked");
         return new(files.Any(file => file.State == "error") ? "error" : starts.Values.Any(start => start.State is "installing" or "initializing") || loading.Count > 0 ? "initializing" : "ready",
             $"Checked {checkedCount} of {files.Count} selected files; servers that were not running were started on demand." + (notes.Count > 0 ? " " + string.Join(" ", notes) : ""))
