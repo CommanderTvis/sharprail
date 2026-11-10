@@ -65,6 +65,13 @@ internal static class AboutChecks
         Require(preferences.Gesture is { } chord && chord.Equals(WindowShortcuts.Settings.Gesture), "Settings shows the window's Settings chord.");
         var gear = ApplicationMenu.Gear(16, 2);
         Require(gear.PixelSize == new Avalonia.PixelSize(32, 32) && gear.Size == new Avalonia.Size(16, 16), "The gear is 16 pt at 2x.");
+        var ring = new byte[32 * 32 * 4];
+        var buffer = System.Runtime.InteropServices.Marshal.AllocHGlobal(ring.Length);
+        try { gear.CopyPixels(new Avalonia.PixelRect(0, 0, 32, 32), buffer, ring.Length, 32 * 4); System.Runtime.InteropServices.Marshal.Copy(buffer, ring, 0, ring.Length); }
+        finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(buffer); }
+        byte Alpha(int x, int y) => ring[(y * 32 + x) * 4 + 3];
+        Require(Alpha(16, 16 - 8) == 0 && Alpha(16 + 8, 16) == 0, "The gear is an outline: the band between the hub ring and the teeth' roots is empty, not filled.");
+        Require(Enumerable.Range(0, 32).Any(x => Alpha(x, 16) > 128), "The gear outline draws opaque strokes.");
         Require(OperatingSystem.IsMacOS() ? preferences.Icon is { Size: { Width: 16, Height: 16 } } : preferences.Icon is null, "Settings carries the gear on macOS only.");
         Require(menu.Items.OfType<NativeMenuItem>().Where(item => item != preferences).All(item => item.Icon is null), "Only Settings has an icon.");
         ((INativeMenuItemExporterEventsImplBridge)preferences).RaiseClicked();

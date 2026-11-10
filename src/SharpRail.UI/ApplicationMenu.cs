@@ -60,7 +60,7 @@ public static class ApplicationMenu
     }
 
     /// <summary>
-    /// A gear in black with alpha at <paramref name="points"/> points and <paramref name="scale"/> pixels per point (16 at 2 is the native 16 pt menu icon
+    /// A thin outlined gear (the weight of SF Symbols gearshape: a 1.1 pt stroke, eight teeth, a ring in the middle) in black with alpha at <paramref name="points"/> points and <paramref name="scale"/> pixels per point (16 at 2 is the native 16 pt menu icon
     /// at 2x). Black on transparent is what macOS tints as a template image, so it follows the light or dark menu and the selection highlight.
     /// </summary>
     public static Bitmap Gear(int points, int scale)
@@ -68,13 +68,12 @@ public static class ApplicationMenu
         var size = points * scale;
         var bitmap = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96 * scale, 96 * scale));
         var middle = points / 2.0;
-        var outer = points * 0.47;
-        var root = points * 0.37;
+        var outer = points * 0.43;
+        var root = points * 0.34;
         const int teeth = 8;
         var body = new StreamGeometry();
         using (var context = body.Open())
         {
-            context.SetFillRule(FillRule.EvenOdd);
             for (var i = 0; i < teeth * 4; i++)
             {
                 // Each tooth is a flat top and a flat root, 45 degrees apart over the circle, 11 degrees of flat per side.
@@ -85,14 +84,14 @@ public static class ApplicationMenu
                 if (i == 0) context.BeginFigure(point, true); else context.LineTo(point);
             }
             context.EndFigure(true);
-            var hole = points * 0.16;
+            var hole = points * 0.17;
             context.BeginFigure(new Point(middle + hole, middle), true);
             context.ArcTo(new Point(middle - hole, middle), new Size(hole, hole), 0, false, SweepDirection.Clockwise);
             context.ArcTo(new Point(middle + hole, middle), new Size(hole, hole), 0, false, SweepDirection.Clockwise);
             context.EndFigure(true);
         }
         using var drawing = bitmap.CreateDrawingContext();
-        drawing.DrawGeometry(Brushes.Black, null, body);
+        drawing.DrawGeometry(null, new Pen(Brushes.Black, 1.1, lineJoin: PenLineJoin.Round), body);
         return bitmap;
     }
 

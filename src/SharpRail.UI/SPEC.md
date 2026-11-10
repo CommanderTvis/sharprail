@@ -242,7 +242,7 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
   provider's Pull request item, the plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
   A 1 px line in the border colour closes the header block, and the project list starts right below it.
   Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
-- The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About SharpRail; the right tool bar holds only the tools.
+- The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About SharpRail; the right tool bar holds only the tools. The Mac menu's Settings gear is a thin outline drawn as a black-on-transparent template image, never a solid fill.
 
 Everything else about those controls is as described in Location bar; the moved controls keep their names.
 
