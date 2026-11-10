@@ -422,7 +422,8 @@ internal sealed class ChatList : ScrollViewer
             visible.Add((row, i));
             using (context.PushTransform(Matrix.CreateTranslation(0, tops[i])))
             {
-                layout.Draw(context, hovered == i || focusStop is { Kind: ChatHitKind.CopyCode } && row.Id == selectedId, from - tops[i], to - tops[i], MarksFor(i, layout), hoverHit is { } washed && washed.RowId == row.Id ? washed.Hit.Bounds.Inflate(2) : null, copiedCode);
+                // A folded row's whole line is its Toggle target; once the row wears the selection ring that line is not washed as well, so a selected row is the ring alone.
+                layout.Draw(context, hovered == i || focusStop is { Kind: ChatHitKind.CopyCode } && row.Id == selectedId, from - tops[i], to - tops[i], MarksFor(i, layout), hoverHit is { } washed && washed.RowId == row.Id && !(washed.Hit.Kind == ChatHitKind.Toggle && row.Id == selectedId && surface.IsFocused) ? washed.Hit.Bounds.Inflate(2) : null, copiedCode);
                 if (hoverHit is { } over && over.RowId == row.Id) DrawHover(context, over.Hit);
                 if (focusStop is { } stop && row.Id == selectedId && surface.IsFocused)
                     context.DrawRectangle(null, new Pen(Ui.Accent, 1.5), stop.Bounds.Inflate(2), 3, 3);

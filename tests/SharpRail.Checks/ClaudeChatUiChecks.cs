@@ -229,6 +229,7 @@ internal static class ClaudeChatUiChecks
         HoverAffordance();
         UserMarkdown();
         UserBubbleDrawsText();
+        SelectedThoughtRow();
         AttachmentChipsContained();
         PasteImages();
         WrappedHistory();
@@ -1091,6 +1092,62 @@ internal static class ClaudeChatUiChecks
             Require(list.FocusedStop is { Kind: ChatHitKind.Fork }, "Tab reaches Fork next.");
             window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null); Frame(window);
             Require(list.FocusedStop is null, "Tab past the last target leaves the row.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
+    private static uint PixelAt(Window window, Point point)
+    {
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using var frame = window.CaptureRenderedFrame()!;
+        using var buffer = frame.Lock();
+        return (uint)System.Runtime.InteropServices.Marshal.ReadInt32(buffer.Address + (int)point.Y * buffer.RowBytes + (int)point.X * 4);
+    }
+
+    // A selected Thought row wears the shared selection ring (same inset and radius as a selected tool row) and no fill, even with the pointer on its header; an unselected one has neither.
+    private static void SelectedThoughtRow()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(Item(new ChatThinkingItem("t1", 1, "pondering the question at length") { DurationMs = 4600 }));
+        chat.Snapshot.Add(Item(new ChatAssistantItem("a1", 2, "Between the thoughts.")));
+        chat.Snapshot.Add(Item(new ChatThinkingItem("t2", 3, "pondering more") { DurationMs = 4600 }));
+        chat.Snapshot.Add(Item(new ChatAssistantItem("a2", 4, "And after.")));
+        chat.Snapshot.Add(Item(new ChatToolItem("tool", 5, "Bash", JsonSerializer.SerializeToElement(new { command = "echo hello world" }), ChatToolState.Done) { Summary = "echo hello world" }));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var list = view.List;
+            var origin = list.TranslatePoint(new Point(0, 0), window)!.Value;
+            double Height(string id) => list.VisibleRows().First(row => row.Row.Id == id).Height;
+            Point At(string id, double x, double y) => new(origin.X + x, origin.Y + list.RowTop(id) + y);
+            var far = list.Bounds.Width - 80;
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            var plain = (Ring: PixelAt(window, At("t2", 1, 12)), Body: PixelAt(window, At("t2", far, 10)));
+            Require(plain.Ring == plain.Body, "An unselected Thought row has no ring and no fill.");
+
+            window.MouseDown(At("tool", 30, 10), MouseButton.Left); window.MouseUp(At("tool", 30, 10), MouseButton.Left); Frame(window);
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            var toolRing = PixelAt(window, At("tool", 1, 12));
+            Require(toolRing != plain.Body, "A selected tool row wears the accent ring.");
+            var toolCorner = PixelAt(window, At("tool", 2, 2)) == PixelAt(window, At("tool", 12, 12));
+
+            foreach (var expanded in new[] { true, false })
+            {
+                window.MouseDown(At("t1", 30, 10), MouseButton.Left); window.MouseUp(At("t1", 30, 10), MouseButton.Left); Frame(window);
+                // The pointer stays on the header: its hover wash must not stack on the ring.
+                window.MouseMove(At("t1", 40, 11)); Frame(window);
+                var ring = PixelAt(window, At("t1", 1, 12));
+                var body = PixelAt(window, At("t1", far, 10));
+                Require(ring == toolRing, $"A selected Thought row ({(expanded ? "opened" : "folded")}) draws the same ring as a selected tool row: {ring:X8} against {toolRing:X8}.");
+                Require(body == plain.Body, $"A selected Thought row ({(expanded ? "opened" : "folded")}) has no fill besides the ring: {body:X8} against {plain.Body:X8}.");
+                Require(PixelAt(window, At("t1", 2, 2)) == PixelAt(window, At("t1", 12, 12)) == toolCorner, "The ring's rounded corner matches the tool row's.");
+                Require(Height("t1") > 0, "The Thought row is still laid out.");
+            }
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
