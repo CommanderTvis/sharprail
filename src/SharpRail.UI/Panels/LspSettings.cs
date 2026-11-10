@@ -129,7 +129,8 @@ public sealed partial class SettingsView
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
             catch (Exception failure) { if (!lifetime.IsCancellationRequested && selector.SelectedItem is LspServerItem { Id: var selected } && selected == id) message.Text = "Provider links unavailable: " + failure.Message; }
         }
-        async Task LoadResolution(string id)
+        // justAccepted: the dialog recorded the acceptance a moment ago, so a server still missing is not "not accepted": Install now follows.
+        async Task LoadResolution(string id, bool justAccepted = false)
         {
             resolved.Text = "Resolving the executable…"; resolved.Foreground = Ui.Muted; pathWarning.IsVisible = false;
             try
@@ -148,7 +149,8 @@ public sealed partial class SettingsView
                 if (termsSection.IsVisible)
                 {
                     installed = result.State == "ready" && path.Length > 0;
-                    if (!installed) { TermsAcceptanceCache.Forget(id); termsConfirmed = false; ShowStatus(TermsKnowledge.NotInstalled); }
+                    if (!installed && justAccepted) UpdateTerms();
+                    else if (!installed) { TermsAcceptanceCache.Forget(id); termsConfirmed = false; ShowStatus(TermsKnowledge.NotInstalled); }
                     else _ = LoadTerms(id);
                 }
                 pathWarning.Foreground = Ui.Danger; pathWarning.Text = warning; pathWarning.IsVisible = warning.Length > 0;
@@ -202,7 +204,7 @@ public sealed partial class SettingsView
             dialog.Closed += (_, _) =>
             {
                 TermsWindow = null;
-                if (dialog.Result is { } outcome && selector.SelectedItem is LspServerItem { Id: var current } && current == id) { installed = true; ShowTerms(outcome); _ = LoadResolution(id); }
+                if (dialog.Result is { } outcome && selector.SelectedItem is LspServerItem { Id: var current } && current == id) { installed = true; ShowTerms(outcome); _ = LoadResolution(id, outcome.Accepted); }
             };
             dialog.Show(owner);
         };
