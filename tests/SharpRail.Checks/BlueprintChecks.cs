@@ -238,6 +238,8 @@ internal static class BlueprintChecks
             var check = runtime.McpTools(null, project).Single(tool => tool.Name == "blueprint_check");
             var report = await check.Call(new System.Text.Json.Nodes.JsonObject(), CancellationToken.None);
             Require(!report.Error && report.Text.Contains("2 controls, 0 notes", StringComparison.Ordinal), "The Blueprint tool reports the rendered controls.");
+            var reference = await check.Call(new System.Text.Json.Nodes.JsonObject { ["reference"] = true }, CancellationToken.None);
+            Require(!reference.Error && reference.Text == File.ReadAllText(formatPath), "blueprint_check reference=true returns the format file's text, one source.");
             terminals.Lifecycle!(new TerminalAgentChanged(new(project, "author"), new("claude", "claude") { SessionId = "conversation-1" }));
             await frames.Next(frame => frame.State?.Author is BlueprintTerminalAuthor { AgentSessionId: "conversation-1" });
             state.SetTerminalAgent(new(project, "author"), new("claude", "claude") { SessionId = "conversation-1" });

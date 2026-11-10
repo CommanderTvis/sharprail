@@ -58,6 +58,13 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
   unlicensed message says so plainly and the previous server answers.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.
+- The language tools accept a path inside the root either absolute or relative to it. A relative path that does not exist
+  but exists under exactly one child directory is refused with that path as a suggestion, and a path outside the root is
+  refused plainly. The root is stated in the initialize text and in the status answer, because an agent often cannot tell
+  where the server was started.
+- A host with the Blueprint tool serves its format to an agent that has no copy of the plugin's file: the tool description
+  names the format in brief, a file with no controls is answered with a minimal valid example and the pointer, and asking
+  for the reference returns the same text the plugin writes for desktop sessions.
 - Protocol: one JSON-RPC 2.0 object per line on stdin, one per line on stdout. `initialize` carries headless instructions.
   Notifications get no reply. A line that is not JSON gets a `-32700` error with a null id. Replies to requests the server never sent are ignored.
 - Requests run concurrently and answer in any order. Each reply is one line written under a lock and flushed.

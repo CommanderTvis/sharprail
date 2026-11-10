@@ -108,10 +108,10 @@ public sealed class BlueprintHost : PluginHostModule
                 ? new RevivePrefill(Submit: true) : null;
         });
         context.Tool(new PluginTool<BlueprintCheckParams>("blueprint_check", "Check Blueprint", BlueprintCheck.Description,
-            async (_, toolContext, ct) =>
+            async (parameters, toolContext, ct) =>
             {
-                var outcome = await Task.Run(() => BlueprintCheck.Run(toolContext.Cwd), ct);
-                if (outcome.IsError || toolContext.WorkspaceId is not { } workspaceId) return outcome;
+                var outcome = await Task.Run(() => BlueprintCheck.Run(toolContext.Cwd, parameters.Reference), ct);
+                if (parameters.Reference || outcome.IsError || toolContext.WorkspaceId is not { } workspaceId) return outcome;
                 try
                 {
                     var graph = await context.Dependency(SpecDialectContract.Contract).RequestAsync(SpecDialectContract.Graph, new(workspaceId), ct);

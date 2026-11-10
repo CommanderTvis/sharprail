@@ -106,6 +106,16 @@ The Spec plugin (the `spec_*` tools) and the Blueprint plugin (`blueprint_check`
 }
 ```
 
+### The workspace root and paths
+
+The server serves one directory, its root: `--workspace`, else `SHARPRAIL_ROOT`, else the directory it was started in. If your project is a child of that directory (a cloud session starts in `/home/user`, the project is in `/home/user/demo`), either set `--workspace` or `SHARPRAIL_ROOT` to the project, or use paths from the root. The `initialize` text and the `lsp_status` answer (`workspaceRoot`) state the root.
+
+The `lsp_*` tools take a path relative to the root (`demo/Shapes.cs`) or an absolute path inside it. A relative path that does not exist, but exists under exactly one child directory of the root, is refused with the answer `Did you mean demo/Shapes.cs?`. A path outside the root is refused. Globs and dependency URIs are passed on as they are.
+
+### The Blueprint format
+
+An agent in a headless session has no copy of the plugin's format file. `blueprint_check` has the format in brief in its description and returns the full format reference when called with `reference: true`. A `BLUEPRINT.md` with no controls is answered with a minimal valid example and the same pointer. The reference is the text the Blueprint plugin writes to `blueprint-format.md` on the desktop, from one source. It is a tool argument and not an MCP resource or a fifteenth tool, because agents list tools more reliably than resources and the tool table stays at its fixed set.
+
 ## Languages
 
 Headless serves the language servers whose runtime is a pinned, checksummed download, so nothing is baked into the image and nothing must be installed on the machine. Each server and its runtime are downloaded on the first `lsp_*` call (or by `warm`) into the cache, and verified against a pinned SHA-256. `sharprail-headless languages` prints the list of the build you run.

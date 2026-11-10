@@ -43,6 +43,7 @@ internal static partial class HeadlessChecks
 
         await Conversation(workspace, state);
         await ColdStart(workspace, state);
+        await Ergonomics(workspace, state);
         await Terminate(workspace, state);
         await Configuration(root, workspace, state);
         await using (var listing = Host.Start(["languages"], state))
@@ -240,6 +241,51 @@ internal static partial class HeadlessChecks
         Require(Offered(config).Length == 6 && Offered(config).All(name => name.StartsWith("lsp_", StringComparison.Ordinal)), "check-config must list the six language tools on a cold start: " + config.ToJsonString());
         await using var bad = Host.Start(["check-config", "--workspace", workspace], state, new() { ["SHARPRAIL_TOOLS_ENABLE"] = "specs" });
         Require(await bad.ExitAsync(TimeSpan.FromSeconds(30)) == 2 && bad.Errors.Contains("SHARPRAIL_TOOLS_ENABLE: unknown group \"specs\"", StringComparison.Ordinal), "An unknown group must exit 2: " + bad.Errors);
+    }
+
+    /// <summary>What an agent sees when the server starts above its project: the root is stated, paths work absolute and relative, a path under the one child that has it is suggested,
+    /// a real format preview is shown, and a Blueprint file with no controls is answered with the syntax.</summary>
+    private static async Task Ergonomics(string workspace, string state)
+    {
+        var demo = Path.Combine(workspace, "demo");
+        Directory.CreateDirectory(demo);
+        await File.WriteAllTextAsync(Path.Combine(demo, "shapes.ts"), "  messy");
+        await File.WriteAllTextAsync(Path.Combine(workspace, "BLUEPRINT.md"), "# Plan\n\nControl: database = sqlite\n");
+        await using var host = Host.Start(["mcp", "--workspace", workspace], state, new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint" });
+        host.Send("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}""");
+        host.Send("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""");
+        host.Send("""{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lsp_status","arguments":{}}}""");
+        host.Send(new JsonObject { ["jsonrpc"] = "2.0", ["id"] = 4, ["method"] = "tools/call", ["params"] = new JsonObject { ["name"] = "lsp_diagnostics", ["arguments"] = new JsonObject { ["paths"] = new JsonArray(Path.Combine(workspace, "code.ts")) } } }.ToJsonString());
+        host.Send("""{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lsp_diagnostics","arguments":{"paths":["shapes.ts"]}}}""");
+        host.Send("""{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"lsp_format","arguments":{"path":"demo/shapes.ts"}}}""");
+        host.Send("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"blueprint_check","arguments":{}}}""");
+        host.Send("""{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"blueprint_check","arguments":{"reference":true}}}""");
+        host.Send("""{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"lsp_diagnostics","arguments":{"paths":["/etc/hostname"]}}}""");
+        var replies = await host.ReplyAsync([1, 2, 3, 4, 5, 6, 7, 8, 9], TimeSpan.FromSeconds(90));
+        string Text(int id) => replies[id]["result"]!["content"]![0]!["text"]!.GetValue<string>();
+        bool Failed(int id) => replies[id]["result"]!["isError"]?.GetValue<bool>() ?? false;
+
+        Require(replies[1]["result"]!["instructions"]!.GetValue<string>().Contains("workspace root: " + workspace, StringComparison.Ordinal), "The initialize text does not state the workspace root.");
+        Require(!Failed(3) && JsonNode.Parse(Text(3))!["workspaceRoot"]?.GetValue<string>() == workspace, "lsp_status does not state the workspace root: " + Text(3));
+        Require(!Failed(4) && Text(4).Contains("code.ts", StringComparison.Ordinal), "An absolute path inside the root was not accepted: " + Text(4));
+        Require(Failed(5) && Text(5).Contains("Did you mean demo/shapes.ts?", StringComparison.Ordinal), "A path under one child directory was not suggested: " + Text(5));
+        Require(Failed(9) && Text(9).Contains("outside the workspace root", StringComparison.Ordinal), "A path outside the root was not refused plainly: " + Text(9));
+        Require(!Failed(6) && !Text(6).Contains("already formatted", StringComparison.Ordinal) && Text(6).Contains("\"state\":\"ready\"", StringComparison.Ordinal) && File.ReadAllText(Path.Combine(demo, "shapes.ts")) == "  messy",
+            "A format preview of a mis-indented file was not a ready, unwritten plan: " + Text(6));
+
+        var description = replies[2]["result"]!["tools"]!.AsArray().Single(tool => tool!["name"]!.GetValue<string>() == "blueprint_check")!["description"]!.GetValue<string>();
+        Require(description.Contains("!control select", StringComparison.Ordinal) && description.Contains("reference=true", StringComparison.Ordinal), "The blueprint_check description does not name the format and the reference: " + description);
+        Require(!Failed(7) && Text(7).Contains("0 controls", StringComparison.Ordinal) && Text(7).Contains("reference=true", StringComparison.Ordinal),
+            "A file with no controls is not answered with the pointer: " + Text(7));
+        var shown = Regex.Match(Text(7), "```markdown\n(.*?)\n```", RegexOptions.Singleline);
+        var example = Plugins.Blueprint.BlueprintFormat.Read(shown.Groups[1].Value);
+        Require(shown.Success && Plugins.Blueprint.BlueprintFormat.Controls(example.Doc).Count == 1 && example.Notes.Count == 0, "The example shown for a file with no controls is missing or not valid: " + Text(7));
+        var formatFile = Directory.GetFiles(state, "blueprint-format.md", SearchOption.AllDirectories).Single();
+        Require(Text(8) == File.ReadAllText(formatFile), "blueprint_check reference=true is not the format file the Blueprint plugin writes.");
+        host.CloseInput();
+        Require(await host.ExitAsync(TimeSpan.FromSeconds(30)) == 0, "The ergonomics run did not exit 0. stderr:\n" + host.Errors);
+        File.Delete(Path.Combine(workspace, "BLUEPRINT.md"));
+        Directory.Delete(demo, true);
     }
 
     private static async Task Terminate(string workspace, string state)

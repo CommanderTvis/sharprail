@@ -54,7 +54,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    }
    ```
 
-   Also commit `.sharprail/mcp.toml` if you want arms or the call log (see [headless.md](headless.md#tool-switches-and-the-call-log)). The server runs in the repo directory, so no `--workspace` is needed. If both the script and the file register `sharprail`, Claude Code warns about the same name in two scopes. Keep one of them.
+   Also commit `.sharprail/mcp.toml` if you want arms or the call log (see [headless.md](headless.md#tool-switches-and-the-call-log)). The server runs in the repo directory, so no `--workspace` is needed. In a session without a repository it runs in `/home/user`; a project below it is reached with paths such as `demo/Shapes.cs`, or serve it directly with `SHARPRAIL_ROOT=/home/user/demo` (or `--workspace`) in the server's environment. The server states its root in `initialize` and `lsp_status`. If both the script and the file register `sharprail`, Claude Code warns about the same name in two scopes. Keep one of them.
 5. Add **Environment variables** if you need them: `SHARPRAIL_ARM=nolsp`, `SHARPRAIL_LOG=1`, `SHARPRAIL_LOG_LEVEL=args`. Anyone who can use the environment can read them, so no secrets.
 6. Start a session in a repository with this environment, run `/mcp` and look for `sharprail` with its tool count. A project server from `.mcp.json` may ask for approval first.
 

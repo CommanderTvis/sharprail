@@ -101,7 +101,7 @@ var language = LanguageMcpTools.Create(state, workspace).Select(consentTools.Gua
 // Plugin tools are read per request, so a plugin turned off stops serving its tools at once.
 ToolSwitches switches = new(config, null);
 IReadOnlyList<McpServer.McpTool> Tools() =>
-    switches.Apply([.. plugins.McpTools(null, workspace).Concat(language).Select(tool => tool with { Call = (arguments, token) => { arguments.Remove("workspace"); return tool.Call(arguments, token); } })]);
+    switches.Apply([.. plugins.McpTools(null, workspace).Concat(language).Select(tool => WorkspacePaths.Apply(tool with { Call = (arguments, token) => { arguments.Remove("workspace"); return tool.Call(arguments, token); } }, workspace))]);
 // The tool switches and the opt-in call log (McpConfig.cs, ToolSwitches.cs, CallLog.cs). The log needs the offered names, so the switches exist first.
 CallLog? callLog = null;
 try
@@ -124,7 +124,7 @@ using var stop = new CancellationTokenSource();
 using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, context => { context.Cancel = true; stop.Cancel(); });
 using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; stop.Cancel(); });
 Console.Error.WriteLine($"sharprail-headless: serving {workspace}, state in {stateDirectory}");
-var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers), string.Join(' ', consent.Gated.Select(server => $"{LanguageConsent.Name(server)} needs the user's agreement to its terms before first use: a call for its files returns the terms and the steps. Call accept_terms only after the user said yes in chat, never on your own.")), config.Groups);
+var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers), string.Join(' ', consent.Gated.Select(server => $"{LanguageConsent.Name(server)} needs the user's agreement to its terms before first use: a call for its files returns the terms and the steps. Call accept_terms only after the user said yes in chat, never on your own.")), config.Groups, workspace);
 await new StdioMcp(Console.OpenStandardInput(), frames, Tools, Instructions, Console.Error, client).RunAsync(stop);
 Console.Error.WriteLine("sharprail-headless: stopping");
 if (callLog is not null) await callLog.DisposeAsync();
