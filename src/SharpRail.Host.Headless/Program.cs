@@ -12,7 +12,7 @@ Console.SetOut(Console.Error);
 
 const string Usage = "Usage: sharprail-headless mcp|check-config [--workspace <dir>] [--arm <name>] [--disable-tools <a,b>]\n" +
     "       sharprail-headless warm [server ...] [--workspace <dir>]   (installs the pinned runtimes and servers, default csharp; needs network)\n" +
-    "       sharprail-headless languages   (prints the language servers this build serves, one per line: id, name, extensions)\n" +
+    "       sharprail-headless languages   (prints the language servers this build serves, one per line: id, name, extensions, and a note when its terms need the user's agreement)\n" +
     "check-config prints the effective .sharprail/mcp.toml configuration as JSON and exits 0, or 2 when it is invalid.\n" +
     "Serves MCP over stdio for one workspace: --workspace, else SHARPRAIL_ROOT, else the current directory.\n" +
     "State (settings, language server installs and sessions) lives in SHARPRAIL_STATE_DIR, else ~/.sharprail/headless.";
@@ -40,7 +40,9 @@ var servers = HeadlessLanguages.Servers(roster);
 if (command == "languages")
 {
     using var output = new StreamWriter(frames) { AutoFlush = true };
-    foreach (var spec in servers) output.WriteLine($"{spec.Id}\t{spec.Name}\t{string.Join(' ', spec.Extensions)}");
+    // The fourth column is empty, or says the server needs the user's agreement to its terms before first use.
+    foreach (var spec in servers)
+        output.WriteLine($"{spec.Id}\t{spec.Name}\t{string.Join(' ', spec.Extensions)}\t{(spec.TermsAsync is null ? "" : $"needs the user's agreement to its terms first ({spec.TermsTitle}); a call returns the terms, then the tool accept_terms records the user's yes. See docs/headless.md")}");
     return 0;
 }
 
@@ -71,10 +73,18 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
     return Fail($"The state directory {stateDirectory} cannot be used: {error.Message}");
 }
 
+// Consent to the terms of servers that have them (Java and Kotlin by IntelliJ): nothing is accepted unless the user says so (LanguageConsent.cs).
+// No window can show the trial button, so the host starts JetBrains' free anonymous trial itself once the terms were accepted (the user can set it to 0).
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SHARPRAIL_INTELLIJ_AUTO_TRIAL"))) Environment.SetEnvironmentVariable("SHARPRAIL_INTELLIJ_AUTO_TRIAL", "1");
+var consent = state.EnableLanguageConsent(Environment.GetEnvironmentVariable);
+var client = new ClientChannel();
 var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = roster, Kind = HostKind.Headless });
 await plugins.Start();
 if (command == "warm") return await WarmAsync();
-var language = LanguageMcpTools.Create(state, workspace);
+foreach (var warning in consent.EnvironmentWarnings()) Console.Error.WriteLine("sharprail-headless: " + warning);
+var consentTools = new LanguageConsentTools(consent, client, (server, token) => state.Languages.ExecuteAsync(new(workspace, Operation: "retry", Server: server.Id), token).AsTask());
+// A language tool that needs a server whose terms are not accepted answers with the terms; accept_terms is offered only when some server has terms.
+var language = LanguageMcpTools.Create(state, workspace).Select(consentTools.Guard).Concat(consent.Gated.Count > 0 ? [consentTools.AcceptTool()] : []).ToArray();
 // One workspace per process: a tool's optional "workspace" argument cannot name another, so it is dropped.
 // Plugin tools are read per request, so a plugin turned off stops serving its tools at once.
 ToolSwitches switches = new(config, null);
@@ -102,8 +112,8 @@ using var stop = new CancellationTokenSource();
 using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, context => { context.Cancel = true; stop.Cancel(); });
 using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; stop.Cancel(); });
 Console.Error.WriteLine($"sharprail-headless: serving {workspace}, state in {stateDirectory}");
-var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers));
-await new StdioMcp(Console.OpenStandardInput(), frames, Tools, Instructions, Console.Error).RunAsync(stop);
+var Instructions = ToolSwitches.Instructions(Tools(), HeadlessLanguages.Summary(servers), string.Join(' ', consent.Gated.Select(server => $"{LanguageConsent.Name(server)} needs the user's agreement to its terms before first use: a call for its files returns the terms and the steps. Call accept_terms only after the user said yes in chat, never on your own.")));
+await new StdioMcp(Console.OpenStandardInput(), frames, Tools, Instructions, Console.Error, client).RunAsync(stop);
 Console.Error.WriteLine("sharprail-headless: stopping");
 if (callLog is not null) await callLog.DisposeAsync();
 // Plugins stop first, then the language servers they use.
@@ -123,6 +133,7 @@ async Task<int> WarmAsync()
         foreach (var id in warmServers)
         {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (consent.Find(id) is { } gated && consent.GrantFor(gated) is null) return Fail(consent.Refusal(gated));
             if (!await state.WarmLanguageServerAsync(id, workspace, cancel.Token)) return Fail($"No language server named {id}.");
             Console.Error.WriteLine($"sharprail-headless: {id} ready in {System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds:0} s");
         }

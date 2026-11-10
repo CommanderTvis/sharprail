@@ -56,7 +56,7 @@ if [ "${SHARPRAIL_WARM:-0}" = 1 ]; then "$bin/sharprail-headless" warm csharp ||
 # The block between the marker lines is replaced on every run. SHARPRAIL_CLAUDE_MD=0 leaves the file alone (for an arm without these tools).
 if [ "${SHARPRAIL_CLAUDE_MD:-1}" = 1 ]; then
   # id, name and extensions of every language the binary serves, one per line; a binary without the command serves C# only.
-  languages=$("$bin/sharprail-headless" languages 2> /dev/null | awk -F'\t' '{ printf "- %s (%s): %s\n", $2, $1, $3 }') || languages=
+  languages=$("$bin/sharprail-headless" languages 2> /dev/null | awk -F'\t' '{ printf "- %s (%s): %s%s\n", $2, $1, $3, ($4 == "" ? "" : "  [" $4 "]") }') || languages=
   [ -n "$languages" ] || languages='- C# (Roslyn) (csharp): .cs'
   notes=$HOME/.claude/CLAUDE.md
   begin='<!-- sharprail-headless:begin -->'
@@ -78,7 +78,8 @@ grep answers code questions wrongly: it misses implementations, overloads, parti
 - The \`lsp_*\` tools start the language server a file needs, then may report \`initializing\`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. The first start of a language downloads its runtime and server (the .NET SDK for C# is the largest) and can take a minute or more.
 - Only these languages have a language server here (name, server id, file extensions); each downloads on first use:
 $languages
-- For every other file type (Java, Go, Rust and others need a toolchain this host cannot download) use grep and Read and say so in your report.
+- A language marked with a note in brackets needs the user's agreement to terms before its first use: the first call returns the terms and the steps. Ask the user in chat; call \`accept_terms\` only after they said yes, never on your own.
+- For every other file type (Go, Rust and others need a toolchain this host cannot download) use grep and Read and say so in your report.
 - Name the symbol, no position needed: \`{"operation": "references", "query": "TypeName"}\` (also \`definition\`, \`implementation\`, \`hover\`); \`Type/Member\` narrows a shared name. \`symbols\` with a \`path\` outlines a file, \`symbolBody\` with a \`path\` and \`query\` reads one member. Explicit \`line\` and \`column\` are zero-based. \`lsp_status\` shows the server state.
 - For semantic changes use \`lsp_code_actions\` (list, then preview or apply by id), \`lsp_rename\` (preview, then apply) and \`lsp_format\` instead of hand-editing; a missing capability is reported as unsupported. \`lsp_rename\` with \`path\` and \`newPath\` moves a file and updates its imports; \`lsp_navigate\` also has \`incomingCalls\` and \`outgoingCalls\`; \`lsp_diagnostics\` takes globs and \`minSeverity\`.
 - Subagents do NOT receive this text. When you brief one for code work, put these rules in the brief and say that its final report MUST state how many \`lsp_navigate\` and \`lsp_diagnostics\` calls it made.

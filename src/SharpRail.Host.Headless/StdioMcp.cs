@@ -9,7 +9,7 @@ namespace SharpRail.Host.Headless;
 
 /// <summary>MCP over stdio: one JSON-RPC message per line in, one per line out. Requests run concurrently, so responses may
 /// arrive in any order, and each is written as a single line under a lock. Diagnostics go to <paramref name="log"/>, never to the output.</summary>
-internal sealed class StdioMcp(Stream input, Stream output, Func<IReadOnlyList<McpServer.McpTool>> tools, string instructions, TextWriter log)
+internal sealed class StdioMcp(Stream input, Stream output, Func<IReadOnlyList<McpServer.McpTool>> tools, string instructions, TextWriter log, ClientChannel? client = null)
 {
     private static readonly TimeSpan Grace = TimeSpan.FromSeconds(5);
     private readonly SemaphoreSlim writing = new(1, 1);
@@ -19,6 +19,7 @@ internal sealed class StdioMcp(Stream input, Stream output, Func<IReadOnlyList<M
     public async Task RunAsync(CancellationTokenSource stop)
     {
         using var drain = new CancellationTokenSource();
+        client?.Attach(body => WriteAsync(body, stop));
         var running = new ConcurrentDictionary<Task, byte>();
         using var reader = new StreamReader(input, new UTF8Encoding(false));
         while (!stop.IsCancellationRequested)
@@ -59,8 +60,14 @@ internal sealed class StdioMcp(Stream input, Stream output, Func<IReadOnlyList<M
             }
             if (message is JsonObject frame)
             {
-                // A reply to a request this server never sent.
-                if (!frame.ContainsKey("method") && (frame.ContainsKey("result") || frame.ContainsKey("error"))) return;
+                // A reply to a request this server sent (a question to the user), else to one it never sent.
+                if (!frame.ContainsKey("method") && (frame.ContainsKey("result") || frame.ContainsKey("error")))
+                {
+                    client?.TryComplete(frame);
+                    return;
+                }
+                if (client is not null && frame["method"] is JsonValue init && init.TryGetValue<string>(out var initName) && initName == "initialize" && frame["params"] is JsonObject initParameters)
+                    client.Initialized(initParameters, ClientChannel.Negotiated(initParameters));
                 if (frame["method"] is JsonValue { } method && method.TryGetValue<string>(out var name) && name == "notifications/cancelled")
                 {
                     if (frame["params"]?["requestId"] is { } target && pending.TryGetValue(target.ToJsonString(), out var victim)) await victim.CancelAsync();

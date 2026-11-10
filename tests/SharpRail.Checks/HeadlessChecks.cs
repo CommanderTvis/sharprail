@@ -27,6 +27,7 @@ internal static partial class HeadlessChecks
     {
         Dependencies();
         Languages();
+        await Consent(fixture);
         var root = Path.Combine(fixture, "headless");
         var workspace = Path.Combine(root, "workspace");
         var state = Path.Combine(root, "state");
@@ -45,7 +46,7 @@ internal static partial class HeadlessChecks
         await Configuration(root, workspace, state);
         await using (var listing = Host.Start(["languages"], state))
         {
-            Require(await listing.ExitAsync(TimeSpan.FromSeconds(30)) == 0 && listing.Lines.Any(line => line.StartsWith("typescript\tJavaScript / TypeScript", StringComparison.Ordinal)) && listing.Lines.All(line => line.Split('\t').Length == 3), "The languages command did not list the served servers: " + string.Join('|', listing.Lines));
+            Require(await listing.ExitAsync(TimeSpan.FromSeconds(30)) == 0 && listing.Lines.Any(line => line.StartsWith("typescript\tJavaScript / TypeScript", StringComparison.Ordinal)) && listing.Lines.All(line => line.Split('\t').Length == 4), "The languages command did not list the served servers: " + string.Join('|', listing.Lines));
         }
         Require(!Directory.Exists(Path.Combine(workspace, ".sharprail")), "A default run must create nothing in .sharprail.");
         await Switches(root, state);
@@ -72,10 +73,10 @@ internal static partial class HeadlessChecks
     {
         var declared = BuiltinPlugins.Headless;
         string Served(string platform) => string.Join(' ', HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform)).Select(spec => spec.Id).Order());
-        Require(Served("linux-x86_64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
-        Require(Served("macos-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
+        Require(Served("linux-x86_64") == "clangd csharp css intellij kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
+        Require(Served("macos-aarch64") == "clangd csharp css intellij kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
         // clangd publishes no linux-arm64 build, so the arm64 image leaves it out instead of failing at the first call.
-        Require(Served("linux-aarch64") == "csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
+        Require(Served("linux-aarch64") == "csharp css intellij kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
 
         // The manifests are the source of truth: the only server a platform drops from the declared set is clangd on linux-aarch64.
         Require(HeadlessLanguages.Left(declared, "linux-x86_64").Count == 0 && HeadlessLanguages.Left(declared, "macos-aarch64").Count == 0, "A manifest declares a language Headless = Yes that the pins cannot provision.");
@@ -92,6 +93,14 @@ internal static partial class HeadlessChecks
             {
                 var name = $"{spec.Id} on {platform}";
                 Require(System.Text.RegularExpressions.Regex.IsMatch(spec.Version, @"^\d+(\.\d+)+"), $"{name} has no exact version: {spec.Version}");
+                // A server with terms is installed by its provider from pinned archives, and its terms text is pinned too, so consent can come before the download.
+                if (spec.TermsAsync is not null)
+                {
+                    var bundle = spec.Artifacts.SingleOrDefault(item => item.Platform == platform);
+                    Require(bundle is not null && bundle.Url.StartsWith("https://download.jetbrains.com/", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.IsMatch(bundle.Sha256, "^[0-9a-f]{64}$")
+                        && System.Text.RegularExpressions.Regex.IsMatch(spec.TermsSha256, "^[0-9a-f]{64}$") && spec.TermsTitle.Length > 0 && spec.TermsSummary.Length > 0 && spec.TermsQuestions.Count > 0, $"{name} does not pin its archive and its terms.");
+                    continue;
+                }
                 switch (spec.Pinning)
                 {
                     case LanguageServerPinning.Archive:
@@ -160,8 +169,8 @@ internal static partial class HeadlessChecks
 
         var tools = replies[3]["result"]!["tools"]!.AsArray().ToDictionary(tool => tool!["name"]!.GetValue<string>(), tool => tool!);
         string[] required = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
-        Require(required.All(tools.ContainsKey) && tools.Keys.All(name => name.StartsWith("lsp_", StringComparison.Ordinal) || name.StartsWith("spec_", StringComparison.Ordinal) || name == "blueprint_check"),
-            "The headless tool table is not exactly the language, spec and Blueprint tools: " + string.Join(", ", tools.Keys));
+        Require(required.All(tools.ContainsKey) && tools.Keys.All(name => name.StartsWith("lsp_", StringComparison.Ordinal) || name.StartsWith("spec_", StringComparison.Ordinal) || name is "blueprint_check" or "accept_terms"),
+            "The headless tool table is not exactly the language, spec and Blueprint tools and accept_terms: " + string.Join(", ", tools.Keys));
         var desktop = LanguageMcpTools.Create(new HostStateStore(Path.Combine(Path.GetDirectoryName(state)!, "desktop-state")), workspace);
         Require(desktop.Count == 6 && desktop.All(tool => tools[tool.Name]["inputSchema"]!.ToJsonString() == tool.InputSchema.ToJsonString()), "A language tool's schema differs from the desktop's.");
         Require(replies[9]["error"]?["code"]?.GetValue<int>() == -32602, "A terminal-only tool must not exist headless.");
@@ -412,6 +421,7 @@ internal static partial class HeadlessChecks
             // The checks switch language services off for themselves; the host under test must run them.
             start.Environment.Remove("SHARPRAIL_LSP_DISABLE");
             start.Environment.Remove("SHARPRAIL_ROOT");
+            foreach (var name in new[] { "SHARPRAIL_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING", "SHARPRAIL_INTELLIJ_AUTO_TRIAL" }) start.Environment.Remove(name);
             start.Environment["SHARPRAIL_STATE_DIR"] = state;
             foreach (var name in start.Environment.Keys.Where(name => name is "SHARPRAIL_ARM" or "SHARPRAIL_LOG" or "SHARPRAIL_LOG_LEVEL" or "SHARPRAIL_RUNS_DIR" || name.StartsWith("SHARPRAIL_TOOLS_", StringComparison.Ordinal)).ToArray()) start.Environment.Remove(name);
             foreach (var (name, value) in environment ?? new Dictionary<string, string>()) start.Environment[name] = value;
@@ -430,7 +440,7 @@ internal static partial class HeadlessChecks
             var deadline = DateTime.UtcNow + timeout;
             while (true)
             {
-                var found = Lines.Select(line => JsonNode.Parse(line)!).Where(node => node["id"] is not null).ToDictionary(node => node["id"]!.GetValue<int>());
+                var found = Lines.Select(line => JsonNode.Parse(line)!).Where(node => node["method"] is null && node["id"] is JsonValue { } id && id.TryGetValue<int>(out _)).ToDictionary(node => node["id"]!.GetValue<int>());
                 if (ids.All(found.ContainsKey)) return found;
                 if (process.HasExited && DateTime.UtcNow > deadline - timeout + TimeSpan.FromSeconds(5)) throw new InvalidOperationException("The headless host exited early. stderr:\n" + Errors);
                 if (DateTime.UtcNow > deadline) throw new InvalidOperationException($"No answer for ids {string.Join(',', ids.Where(id => !found.ContainsKey(id)))}. stderr:\n{Errors}");
