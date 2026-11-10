@@ -46,7 +46,7 @@ its own children. The plugin model applies a switch without a restart, so enabli
 function and a `ProcessHistory`. Three top groups, in this order, always present:
 
 - Language servers: one row per running server of the host language service (workspace root, server id, pid), ordered by workspace then id, labelled with the server's display name (the one the Code Intelligence pane shows, the id when it has none).
-- Settings › Processes has "Stop what an agent started along with it" (`StopAgentChildren`, default on). On, stopping an agent row (or a group, or a workspace node containing one) also stops every process forked from it. Off, an agent row stops only its own process; a child row named directly still stops itself and what it forked.
+- Settings › Processes has "Stop what an agent started along with it" (`StopAgentChildren`, default on). On, stopping the row of any agent, whatever its kind and whether it runs in a terminal or as a chat, (or a group, or a workspace node containing one) also stops every process it started. Off, an agent row stops only its own process; a child row named directly still stops itself and what it forked.
 - Tooltips (`Detail`) show the command on one line, cut at 160 characters with an ellipsis; stopping still uses the full recorded command.
 - AI agents and daemons: one row per terminal that carries an agent record. The row is the shallowest descendant of the terminal's shell whose command names the agent
   (`claude`, `codex`, `omp`, looking through an interpreter in the first two tokens), else the shell. Under it hangs every process forked from the agent (agent or not, any depth),
@@ -101,7 +101,7 @@ A method not listed in the contract makes the plugin refuse to activate, so the 
 ## Checks
 
 `--processes` (also in `--plugins` and the full run) uses fake process sources: grouping and nesting of language servers, an agent with two spawned children and a reported process, workspace rows, group sums
-and the total, the 30-sample trend cap, no sampling before a request and one sample per interval, the 50 percent CPU arithmetic, stop through the language service versus the process path, and ids the snapshot
+and the total, the 30-sample trend cap, no sampling before a request and one sample per interval, the 50 percent CPU arithmetic, stop through the language service versus the process path, the stop-the-tree setting for every agent kind in a terminal and in a chat with a plain terminal unaffected, and ids the snapshot
 does not hold, and the project scope (filter, sums, toggle in place, scoped stop targets, empty project). A real runtime with a real terminal service covers the switch: default on, tools and prompt present, a reported process kept running after disabling, no registration while off, no quit sweep, and
 re-enabling restoring management. `--owned-processes` keeps covering the registry itself.
 

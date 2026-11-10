@@ -21,7 +21,7 @@
   <CheckBox x:Name="ProcessesStopAgentChildren" AutomationProperties.Name="Stop what an agent started along with it">
     <StackPanel Spacing="2">
       <TextBlock Text="Stop what an agent started along with it" />
-      <TextBlock Classes="detail" Text="Stopping a Claude Code or Codex row also stops every process forked from it. Off stops only the agent's own process; stop a child by selecting its row." />
+      <TextBlock Classes="detail" Text="Stopping an agent's row also stops every process it started. Off stops only the agent's own process; stop a child by selecting its row." />
     </StackPanel>
   </CheckBox>
 </StackPanel>

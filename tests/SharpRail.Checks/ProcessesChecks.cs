@@ -10,9 +10,13 @@ using Avalonia.VisualTree;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Acp;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.ClaudeCode;
+using SharpRail.Plugins.Codex;
+using SharpRail.Plugins.Omp;
+using SharpRail.Plugins.Pi;
 using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.Host;
 using SharpRail.Plugins.Processes.UI;
@@ -72,6 +76,7 @@ internal static class ProcessesChecks
         Workers();
         Sampling();
         await Stopping();
+        StopAnyAgent();
         if (OperatingSystem.IsWindows()) { Console.WriteLine("SKIP processes plugin switch: the checks start sleep and a POSIX shell"); return; }
         await PluginSwitch(Path.Combine(root, "processes-switch"));
         Console.WriteLine("PASS processes: the tree groups language servers, agents and spawned agents with nesting and sums, the trend is capped, sampling happens only when asked, stops take the right path, and disabling the plugin removes owned-process management while enabling keeps it");
@@ -168,6 +173,42 @@ internal static class ProcessesChecks
         source.Inputs = source.Inputs with { Owned = [] };
         now += 2;
         Require(TryFind(sampler.Sample().Groups, "owned:14") is null && sampler.Samples == 42, "A process that left the registry leaves the tree on the next sample.");
+    }
+
+    // The stop-the-tree setting follows the agent kind of a row, whatever it is: every kind a plugin registers, as a terminal tab and as a chat session,
+    // gets its own process only with the setting off and everything forked from it with it on; a plain terminal's process is unaffected either way.
+    private static void StopAnyAgent()
+    {
+        string[] kinds = [ClaudeCodeContract.Id, CodexManifest.Id, OmpManifest.Id, PiManifest.Id, AcpManifest.Id, "future-agent"];
+        var terminals = new List<TerminalInfo>();
+        List<(int, int, string, TimeSpan?)> table = [];
+        for (var index = 0; index < kinds.Length; index++)
+        {
+            var (tab, chat, plain) = (100 * (index + 1), 100 * (index + 1) + 50, 1000 + index * 10);
+            terminals.Add(new(new("/w/a", "tab" + index), tab, kinds[index], "tab"));
+            table.AddRange([(tab, 1, "-zsh", null), (tab + 1, tab, kinds[index].Split('-')[0] + " run", null), (tab + 2, tab + 1, "sleep 600", null), (tab + 3, tab + 2, "make", null)]);
+            terminals.Add(new(new("/w/a", "chat:" + index), chat + 1, kinds[index], "chat"));
+            table.AddRange([(chat + 1, 1, kinds[index].Split('-')[0] + " serve", null), (chat + 2, chat + 1, "sleep 600", null), (chat + 3, chat + 2, "make", null)]);
+            terminals.Add(new(new("/w/a", "plain" + index), plain, null, "tab"));
+            table.AddRange([(plain, 1, "-zsh", null), (plain + 1, plain, "npm run dev", TimeSpan.FromMinutes(2)), (plain + 2, plain + 1, "node vite", TimeSpan.FromMinutes(2))]);
+        }
+        var (built, stops) = ProcessModel.Build(new(terminals, table, [], []), _ => null, Path.GetFileName, new ProcessHistory(), 1);
+        int[] Pids(string id, bool agentChildren) => [.. ProcessModel.StopsUnder(built, stops, id, agentChildren).Select(item => item.Target.Pid!.Value).Order()];
+        for (var index = 0; index < kinds.Length; index++)
+        {
+            var (tab, chat, plain) = (100 * (index + 1), 100 * (index + 1) + 50, 1000 + index * 10);
+            // An agent whose executable is known roots at its own process, others at the terminal's shell.
+            var rooted = ProcessModel.ExecutableOf(kinds[index].Split('-')[0] + " run") is not null;
+            foreach (var (id, own, all) in new[] { ($"agent:/w/a\0tab{index}", rooted ? tab + 1 : tab, new[] { rooted ? tab + 1 : tab, tab + 2, tab + 3 }.Concat(rooted ? [] : [tab + 1]).Order().ToArray()), ($"agent:/w/a\0chat:{index}", chat + 1, new[] { chat + 1, chat + 2, chat + 3 }) })
+            {
+                Require(Find(built.Groups, id).Kind == "agent", $"A {kinds[index]} row is an agent row ({id}).");
+                Require(Pids(id, true).SequenceEqual(all), $"Stopping a {kinds[index]} row with the setting on stops everything it started ({id}).");
+                Require(Pids(id, false).SequenceEqual([own]), $"Stopping a {kinds[index]} row with the setting off stops only its own process ({id}).");
+            }
+            var spawn = $"spawn:{plain + 1}";
+            Require(Pids(spawn, true).SequenceEqual([plain + 1, plain + 2]) && Pids(spawn, false).SequenceEqual([plain + 1, plain + 2]), "A non-agent row stops itself and what it forked whatever the setting.");
+        }
+        Console.WriteLine("PASS processes stop any agent: every agent kind, in a terminal or a chat, stops its tree with the setting on and only itself off; plain rows are unaffected");
     }
 
     private static async Task Stopping()
