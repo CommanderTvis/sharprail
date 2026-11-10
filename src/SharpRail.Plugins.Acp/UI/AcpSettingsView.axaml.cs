@@ -11,64 +11,50 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.Acp.UI;
 
 /// <summary>
-/// Settings › ACP, laid out like Settings › Code Intelligence: a narrow list of every ACP agent (registry installs and custom ones together,
-/// under Installed, with the Browse registry and Add custom agent actions above) and, for the selected one, a pane that configures it on its own.
+/// Settings › ACP: one scrolling list. Installed agents (registry installs and custom ones) are pinned to the top by name, each with its update,
+/// configure and remove actions, and the registry agents that are not installed follow under a Registry label. A search filters both groups.
 /// </summary>
 internal sealed partial class AcpSettingsView : StackPanel
 {
     private readonly IPluginUIContext context;
-    private readonly MasterDetail master;
     private readonly TextBlock defaultNote;
-    private readonly StackPanel registryList;
+    private readonly StackPanel list;
     private readonly TextBlock status;
     private readonly TextBox search;
-    private readonly Control browser;
+    private readonly Control page;
     private AcpRegistryView? registry;
+    private string? registryError;
     private IReadOnlyList<AcpAgentEntry> configured = [];
     private IReadOnlyDictionary<string, string> problems = new Dictionary<string, string>();
     private IReadOnlyDictionary<string, string> icons = new Dictionary<string, string>();
     private IDisposable? settingsWatch;
-    // The agent to select when the next list arrives (one that was just added).
-    private string? selectNext;
-    private string? shownId;
-    // True while the registry browser is shown in place of an agent's pane.
-    private bool browsing;
-    private bool shownBrowsing;
+    // The installed agent whose settings are open under its row, and that settings pane (kept across list refreshes so typing is not interrupted).
+    private string? expandedId;
+    private Border? expanded;
 
     internal AcpSettingsView(IPluginUIContext context)
     {
         AvaloniaXamlLoader.Load(this);
         this.context = context;
         defaultNote = this.FindControl<TextBlock>("AcpDefaultNote")!;
-        master = new MasterDetail("AcpMaster");
-        this.FindControl<Border>("AcpMasterHost")!.Child = master;
-        master.Selected += id => { browsing = false; ShowDetail(id); };
-        registryList = new StackPanel { Spacing = 0 };
+        list = new StackPanel { Name = "AcpList", Spacing = 0 };
         status = new TextBlock { Name = "AcpRegistryStatus", FontSize = 12, Foreground = Ui.Muted, TextWrapping = TextWrapping.Wrap };
-        search = new TextBox { Name = "AcpSearch", PlaceholderText = "Search the registry", Width = 260, FontSize = 12 };
-        Avalonia.Automation.AutomationProperties.SetName(search, "search registry");
-        search.TextChanged += (_, _) => RenderRegistry();
-        browser = BuildBrowser();
-        var browse = new Button { Name = "AcpBrowse", Content = "Browse registry", HorizontalAlignment = HorizontalAlignment.Stretch };
-        Avalonia.Automation.AutomationProperties.SetName(browse, "browse registry");
-        browse.Click += (_, _) => { browsing = !browsing; RenderAll(false); };
-        var add = new Button { Name = "AcpAddCustom", Content = "Add custom agent…", HorizontalAlignment = HorizontalAlignment.Stretch };
-        Avalonia.Automation.AutomationProperties.SetName(add, "add custom agent");
-        add.Click += (_, _) => AddCustom();
-        master.Header.Children.Add(browse);
-        master.Header.Children.Add(add);
-        master.Header.Children.Add(new TextBlock { Name = "AcpInstalledHeading", Text = "Installed", FontSize = 12, Foreground = Ui.Muted, Margin = new Thickness(8, 8, 0, 0) });
+        search = new TextBox { Name = "AcpSearch", PlaceholderText = "Search agents", Width = 260, FontSize = 12 };
+        Avalonia.Automation.AutomationProperties.SetName(search, "search agents");
+        search.TextChanged += (_, _) => RenderList();
+        page = BuildPage();
+        this.FindControl<Border>("AcpListHost")!.Child = page;
         DetachedFromVisualTree += (_, _) => { settingsWatch?.Dispose(); settingsWatch = null; };
         AttachedToVisualTree += (_, _) =>
         {
             settingsWatch ??= context.OnSettings<AcpSettings>(_ => RenderAll(false));
-            _ = RunAsync(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask(), list => Apply(list, true), "Couldn't list the agents");
+            _ = RunAsync(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask(), agents => Apply(agents, true), "Couldn't list the agents");
             if (registry is null) LoadRegistry(false);
         };
         RenderAll(true);
     }
 
-    private async Task RunAsync<T>(Func<Task<T>> request, Action<T> apply, string failure)
+    private async Task RunAsync<T>(Func<Task<T>> request, Action<T> apply, string failure, Action<string>? failed = null)
     {
         try
         {
@@ -77,7 +63,8 @@ internal sealed partial class AcpSettingsView : StackPanel
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            context.Notify(PluginNotificationKind.Error, failure, error.Message);
+            if (failed is null) context.Notify(PluginNotificationKind.Error, failure, error.Message);
+            else await Dispatcher.UIThread.InvokeAsync(() => failed(error.Message));
         }
     }
 
@@ -106,39 +93,28 @@ internal sealed partial class AcpSettingsView : StackPanel
     private Control AcpIconFor(string id) => AcpGlyph.For(icons.GetValueOrDefault(id), 16);
 
     /// <summary>A new list from the host. <paramref name="rebuildDetail"/> is false after a field was saved, so the pane being typed in is left alone.</summary>
-    private void Apply(AcpAgentList list, bool rebuildDetail)
+    private void Apply(AcpAgentList agents, bool rebuildDetail)
     {
-        configured = list.Agents;
-        problems = list.Problems;
+        configured = agents.Agents;
+        problems = agents.Problems;
         RenderAll(rebuildDetail);
     }
 
     private void RenderAll(bool rebuildDetail)
     {
-        var current = selectNext ?? master.SelectedId;
-        selectNext = null;
         var defaultId = context.Settings<AcpSettings>().DefaultAgent;
-        var rows = new List<Control>();
-        rows.AddRange(AcpRows.Agents(configured, registry, problems, defaultId).Select(row => MasterDetail.Row(row.Entry.Id, AcpIconFor(row.Entry.Id), row.Entry.Name, row.Subtitle, row.Problem)));
-        master.SetRows(rows, current, browsing);
         defaultNote.IsVisible = AcpLauncher.DefaultIsMissing(defaultId, configured);
         defaultNote.Text = defaultNote.IsVisible ? "The agent chosen as default is no longer in the list. The New ACP chat button asks until you choose another." : "";
-        if (rebuildDetail || browsing != shownBrowsing || master.SelectedId != shownId) ShowDetail(master.SelectedId);
-        RenderRegistry();
-    }
-
-    private void ShowDetail(string? id)
-    {
-        shownId = id;
-        shownBrowsing = browsing;
-        if (browsing) { master.Detail.Content = browser; return; }
-        if (id is null) { master.Detail.Content = Text("No agents installed. Browse the registry to install one, or add a custom agent.", detail: true); return; }
-        master.Detail.Content = configured.FirstOrDefault(agent => agent.Id == id) is { } entry ? BuildDetail(entry) : null;
+        if (expandedId is not null && configured.All(agent => agent.Id != expandedId)) expandedId = null;
+        if (rebuildDetail || expanded is null || expandedId is null) expanded = null;
+        if (expanded is null && expandedId is not null && configured.FirstOrDefault(agent => agent.Id == expandedId) is { } entry)
+            expanded = new Border { Name = "AcpAgentSettings_" + entry.Id, Padding = new Thickness(46, 4, 8, 12), Child = BuildDetail(entry) };
+        RenderList();
     }
 
     /// <summary>Saves an edited agent; the list refreshes and the pane stays as typed.</summary>
     private void Save(AcpAgentEntry entry) =>
-        _ = RunAsync(() => context.RequestAsync(AcpContract.AddAgent, entry).AsTask(), list => Apply(list, false), "Couldn't save the agent");
+        _ = RunAsync(() => context.RequestAsync(AcpContract.AddAgent, entry).AsTask(), agents => Apply(agents, false), "Couldn't save the agent");
 
     private Control BuildDetail(AcpAgentEntry entry)
     {
@@ -252,7 +228,7 @@ internal sealed partial class AcpSettingsView : StackPanel
     private async Task RemoveAsync(AcpAgentEntry entry)
     {
         if (TopLevel.GetTopLevel(this) is not Window owner || !await AcpInstallConfirm.ShowRemoveAsync(owner, entry)) return;
-        await RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", entry.Id)).AsTask(), list => Apply(list, true), "Couldn't remove the agent");
+        await RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", entry.Id)).AsTask(), agents => Apply(agents, true), "Couldn't remove the agent");
     }
 
     private void Install(string agentId) =>
@@ -263,20 +239,12 @@ internal sealed partial class AcpSettingsView : StackPanel
     {
         if (TopLevel.GetTopLevel(this) is not Window owner) return;
         if (await AcpCustomForm.ShowAsync(owner, configured) is not { } entry) return;
-        selectNext = entry.Id;
-        await RunAsync(() => context.RequestAsync(AcpContract.AddAgent, entry).AsTask(), list => Apply(list, true), "Couldn't add the agent");
+        await RunAsync(() => context.RequestAsync(AcpContract.AddAgent, entry).AsTask(), agents => Apply(agents, true), "Couldn't add the agent");
     }
 
-    private Control BuildBrowser()
+    private Control BuildPage()
     {
         var panel = new StackPanel { Name = "AcpBrowser", Spacing = 8 };
-        var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        heading.Children.Add(new TextBlock { Text = "ACP registry", FontSize = 16, FontWeight = FontWeight.SemiBold, Foreground = Ui.TextBrush });
-        var close = Quiet("AcpCloseBrowser", "Close", () => { browsing = false; RenderAll(false); });
-        Grid.SetColumn(close, 1);
-        heading.Children.Add(close);
-        panel.Children.Add(heading);
-        panel.Children.Add(Text("Agents that speak the Agent Client Protocol, from the public registry.", detail: true));
         panel.Children.Add(TrustNotice("AcpBrowserTrust"));
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         controls.Children.Add(search);
@@ -284,16 +252,22 @@ internal sealed partial class AcpSettingsView : StackPanel
         Avalonia.Automation.AutomationProperties.SetName(refresh, "refresh registry");
         refresh.Click += (_, _) => LoadRegistry(true);
         controls.Children.Add(refresh);
+        var add = new Button { Name = "AcpAddCustom", Content = "Add custom agent…" };
+        Avalonia.Automation.AutomationProperties.SetName(add, "add custom agent");
+        add.Click += (_, _) => AddCustom();
+        controls.Children.Add(add);
         panel.Children.Add(controls);
         panel.Children.Add(status);
-        panel.Children.Add(registryList);
+        panel.Children.Add(list);
         return panel;
     }
 
     private void LoadRegistry(bool refresh)
     {
+        registryError = null;
         status.Text = refresh ? "Refreshing…" : "Loading the registry…";
-        _ = RunAsync(() => context.RequestAsync(AcpContract.Registry, new AcpRegistryParams(refresh)).AsTask(), view => { registry = view; RenderAll(false); LoadIcons(refresh); }, "Couldn't read the registry");
+        _ = RunAsync(() => context.RequestAsync(AcpContract.Registry, new AcpRegistryParams(refresh)).AsTask(), view => { registry = view; RenderAll(false); LoadIcons(refresh); }, "Couldn't read the registry",
+            message => { registryError = message; RenderList(); });
     }
 
     /// <summary>Asks the host for the icons after the list is on screen. Rows show the generic glyph meanwhile, and keep it when no icon comes.</summary>
@@ -306,42 +280,98 @@ internal sealed partial class AcpSettingsView : StackPanel
             await Dispatcher.UIThread.InvokeAsync(() => { icons = set.Svgs; RenderAll(false); });
         });
 
-    private void RenderRegistry()
+    private static Control Label(string name, string text) =>
+        new TextBlock { Name = name, Text = text, FontSize = 12, Foreground = Ui.Muted, Margin = new Thickness(2, 12, 0, 4) };
+
+    private void RenderList()
     {
-        registryList.Children.Clear();
-        if (registry is null) return;
-        status.Text = registry.Source switch
-        {
-            "network" => "Fetched " + registry.FetchedAt,
-            "cache" => "Saved copy from " + registry.FetchedAt,
-            _ => "Built-in list"
-        } + (registry.Note is { } note ? ". " + note : "");
-        var rows = AcpRows.Registry(registry, configured, search.Text);
-        if (rows.Count == 0) registryList.Children.Add(Text("No agent matches the search.", detail: true));
-        foreach (var model in rows)
-        {
-            var agent = model.Agent;
-            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            var name = Text(model.Title);
-            name.TextWrapping = TextWrapping.NoWrap;
-            name.TextTrimming = TextTrimming.CharacterEllipsis;
-            title.Children.Add(name);
-            if (agent.NotRecommended is { } reason)
+        // The open settings pane is moved, not rebuilt, so a field being typed in keeps its focus.
+        if (expanded?.Parent is Panel old) old.Children.Remove(expanded);
+        list.Children.Clear();
+        if (registry is not null)
+            status.Text = registry.Source switch
             {
-                var tag = new Border { Name = "AcpNotRecommended_" + agent.Id, Background = Ui.WarningWash, CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = "Not recommended", FontSize = 11, Foreground = Ui.Warning } };
-                ToolTip.SetTip(tag, reason);
-                title.Children.Add(tag);
-            }
-            var details = new StackPanel { Spacing = 2 };
-            details.Children.Add(Text(agent.Description, detail: true));
-            if (agent.NotRecommended is { } why) details.Children.Add(Text(why, detail: true));
-            details.Children.Add(Text(string.Join(", ", agent.Kinds), detail: true));
-            Control action = model.CanInstall
-                ? Quiet("AcpInstall_" + agent.Id, model.ActionLabel, () => Install(agent.Id))
-                : new TextBlock { Name = "AcpInstalled_" + agent.Id, Text = model.ActionLabel, FontSize = 12, Foreground = Ui.Muted, VerticalAlignment = VerticalAlignment.Center };
-            var mark = model.Status switch { "installed" => StatusIcon("check", Ui.Success, model.StatusText), "update" => StatusIcon("refresh", Ui.Muted, model.StatusText), "unavailable" => StatusIcon("alertWarning", Ui.Muted, model.StatusText), _ => null };
-            registryList.Children.Add(RegistryRow.Create("AcpRegistryAgent_" + agent.Id, mark, AcpIconFor(agent.Id), title, null, action, details));
+                "network" => "Fetched " + registry.FetchedAt,
+                "cache" => "Saved copy from " + registry.FetchedAt,
+                _ => "Built-in list"
+            } + (registry.Note is { } note ? ". " + note : "");
+        else if (registryError is not null) status.Text = "";
+        var defaultId = context.Settings<AcpSettings>().DefaultAgent;
+        var combined = AcpRows.Combined(configured, registry, problems, defaultId, search.Text);
+        if (registryError is not null && registry is null)
+            list.Children.Add(Text("The registry could not be read (" + registryError + "). Installed agents are listed below; press Refresh to try again.", detail: true));
+        if (combined.Installed.Count > 0) list.Children.Add(Label("AcpInstalledLabel", "Installed"));
+        foreach (var row in combined.Installed)
+        {
+            list.Children.Add(InstalledRow(row));
+            if (expanded is not null && row.Entry.Id == expandedId) list.Children.Add(expanded);
         }
+        if (combined.Installed.Count == 0 && string.IsNullOrWhiteSpace(search.Text))
+            list.Children.Add(Text("No agents installed. Install one from the registry below, or add a custom agent.", detail: true));
+        if (registry is not null)
+        {
+            list.Children.Add(Label("AcpRegistryLabel", "Registry"));
+            if (combined.Available.Count == 0) list.Children.Add(Text(string.IsNullOrWhiteSpace(search.Text) ? "Every registry agent is installed." : "No agent matches the search.", detail: true));
+            foreach (var model in combined.Available) list.Children.Add(RegistryAgentRow(model));
+        }
+        else if (registryError is null) list.Children.Add(Text("Loading the registry…", detail: true));
+    }
+
+    private static Control Pill(string name, string text, IBrush wash, IBrush color, string? tip = null)
+    {
+        var tag = new Border { Name = name, Background = wash, CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = text, FontSize = 11, Foreground = color } };
+        if (tip is not null) ToolTip.SetTip(tag, tip);
+        return tag;
+    }
+
+    private static TextBlock NameText(string text)
+    {
+        var name = Text(text);
+        name.TextWrapping = TextWrapping.NoWrap;
+        name.TextTrimming = TextTrimming.CharacterEllipsis;
+        return name;
+    }
+
+    /// <summary>A pinned row: the same columns as a registry row, with Update, Configure and Remove in the action column.</summary>
+    private Control InstalledRow(AcpAgentRowModel row)
+    {
+        var entry = row.Entry;
+        var detail = new AcpAgentDetail(entry, AcpRows.RegistryAgent(entry, registry), row.Problem);
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        title.Children.Add(NameText(entry.Origin == "registry" && entry.Version is { } version ? $"{entry.Name}  v{version}" : entry.Name));
+        if (entry.Origin != "registry") title.Children.Add(Pill("AcpCustom_" + entry.Id, "Custom", Ui.WarningWash, Ui.Muted));
+        if (detail.Registry?.NotRecommended is { } reason) title.Children.Add(Pill("AcpNotRecommended_" + entry.Id, "Not recommended", Ui.WarningWash, Ui.Warning, reason));
+        var details = new StackPanel { Spacing = 2 };
+        if (detail.Description.Length > 0) details.Children.Add(Text(detail.Description, detail: true));
+        details.Children.Add(Text(row.Subtitle, detail: true));
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        if (detail.CanUpdate) actions.Children.Add(Quiet("AcpUpdate_" + entry.Id, "Update ▷", () => Install(entry.Id)));
+        actions.Children.Add(Quiet("AcpConfigure_" + entry.Id, expandedId == entry.Id ? "Hide settings" : "Configure", () =>
+        {
+            expandedId = expandedId == entry.Id ? null : entry.Id;
+            expanded = null;
+            RenderAll(false);
+        }));
+        actions.Children.Add(Quiet("AcpRemoveRow_" + entry.Id, "Remove", () => _ = RemoveAsync(entry)));
+        var mark = row.Problem is { } problem ? StatusIcon("alertWarning", Ui.Danger, problem) : detail.CanUpdate ? StatusIcon("refresh", Ui.Muted, "Update available") : StatusIcon("check", Ui.Success, "Installed");
+        return RegistryRow.Create("AcpInstalledAgent_" + entry.Id, mark, AcpIconFor(entry.Id), title, null, actions, details);
+    }
+
+    private Control RegistryAgentRow(AcpRegistryRowModel model)
+    {
+        var agent = model.Agent;
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        title.Children.Add(NameText(model.Title));
+        if (agent.NotRecommended is { } reason) title.Children.Add(Pill("AcpNotRecommended_" + agent.Id, "Not recommended", Ui.WarningWash, Ui.Warning, reason));
+        var details = new StackPanel { Spacing = 2 };
+        details.Children.Add(Text(agent.Description, detail: true));
+        if (agent.NotRecommended is { } why) details.Children.Add(Text(why, detail: true));
+        details.Children.Add(Text(string.Join(", ", agent.Kinds), detail: true));
+        Control action = model.CanInstall
+            ? Quiet("AcpInstall_" + agent.Id, model.ActionLabel, () => Install(agent.Id))
+            : new TextBlock { Name = "AcpInstalled_" + agent.Id, Text = model.ActionLabel, FontSize = 12, Foreground = Ui.Muted, VerticalAlignment = VerticalAlignment.Center };
+        var mark = model.Status == "unavailable" ? StatusIcon("alertWarning", Ui.Muted, model.StatusText) : null;
+        return RegistryRow.Create("AcpRegistryAgent_" + agent.Id, mark, AcpIconFor(agent.Id), title, null, action, details);
     }
 
     /// <summary>Asks in the overlay over this window; the install is requested for exactly the version and distribution the dialog showed.</summary>
@@ -350,6 +380,6 @@ internal sealed partial class AcpSettingsView : StackPanel
         if (TopLevel.GetTopLevel(this) is not Window owner) return;
         if (!await AcpInstallConfirm.ShowAsync(owner, plan)) return;
         // The host refuses the request if the registry moved on since the plan was made.
-        await RunAsync(() => context.RequestAsync(AcpContract.Install, new AcpInstallRequest(plan.AgentId, plan.Kind, plan.Version, true)).AsTask(), list => Apply(list, true), "Couldn't install the agent");
+        await RunAsync(() => context.RequestAsync(AcpContract.Install, new AcpInstallRequest(plan.AgentId, plan.Kind, plan.Version, true)).AsTask(), agents => Apply(agents, true), "Couldn't install the agent");
     }
 }

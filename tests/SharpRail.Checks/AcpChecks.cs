@@ -369,6 +369,30 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
     }
 
+    // Settings > ACP shows one list: installed agents pinned on top, then the registry agents that are not installed.
+    internal static void CombinedList()
+    {
+        var view = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "darwin-aarch64");
+        var entries = new List<AcpAgentEntry>
+        {
+            new("pi-acp", "Pi", "npx") { Origin = "registry", Version = "0.0.1" },
+            new("goose", "goose", "/x/goose") { Origin = "registry", Version = "1.57.0" },
+            new("custom-zed", "Zed", "/bin/zed")
+        };
+        var none = new Dictionary<string, string>();
+        var all = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", null);
+        Require(all.Installed.Select(row => row.Entry.Id).SequenceEqual(["goose", "pi-acp", "custom-zed"]), "Installed agents come first, by name, registry installs and custom ones together.");
+        Require(all.Available.Count == 3 && all.Available.All(row => row.Agent.Id is not ("goose" or "pi-acp")), "An installed registry agent is not repeated in the registry group.");
+        Require(all.Installed.Select(row => row.Entry.Id).Concat(all.Available.Select(row => row.Agent.Id)).Distinct().Count() == all.Installed.Count + all.Available.Count, "No agent appears twice in the list.");
+        Require(all.Installed.Single(row => row.Entry.Id == "custom-zed").Tags[0] == "Custom", "A custom agent is marked Custom.");
+        var filtered = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "GOOSE");
+        Require(filtered.Installed.Select(row => row.Entry.Id).SequenceEqual(["goose"]) && filtered.Available.Count == 0, "The search filters the installed group and the registry group, without bringing an installed agent back below.");
+        var zed = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "zed");
+        Require(zed.Installed.Select(row => row.Entry.Id).SequenceEqual(["custom-zed"]), "The search matches a custom agent by name.");
+        var offline = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, null, none, "", null);
+        Require(offline.Installed.Count == 3 && offline.Available.Count == 0, "Without the registry list the installed agents still show.");
+    }
+
     // Settings > ACP is a list of every agent (registry installs and custom ones together) with a pane for the selected one.
     internal static void AgentList()
     {
@@ -578,6 +602,7 @@ internal static class AcpChecks
     {
         Manifest();
         Rows();
+        CombinedList();
         AgentList();
         CustomForm();
         Confirmation();

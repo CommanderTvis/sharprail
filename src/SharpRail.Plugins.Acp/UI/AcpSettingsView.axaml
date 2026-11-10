@@ -27,5 +27,5 @@
     <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only use agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
   </StackPanel>
   <TextBlock x:Name="AcpDefaultNote" Classes="detail" IsVisible="False" />
-  <Border x:Name="AcpMasterHost" />
+  <Border x:Name="AcpListHost" />
 </StackPanel>

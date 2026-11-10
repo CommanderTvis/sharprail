@@ -40,12 +40,30 @@ internal static class AcpRows
             return new AcpAgentRowModel(entry, tags, problems.GetValueOrDefault(entry.Id));
         })];
 
+    /// <summary>
+    /// The single settings list: installed agents first (by name, an installed registry agent appears only here), then the registry agents that are
+    /// not installed. <paramref name="query"/> filters both groups by name, description or id; blank keeps all.
+    /// </summary>
+    public static AcpCombinedList Combined(IReadOnlyList<AcpAgentEntry> entries, AcpRegistryView? view, IReadOnlyDictionary<string, string> problems, string defaultId, string? query)
+    {
+        var text = query?.Trim() ?? "";
+        bool Match(params string?[] fields) => text.Length == 0 || fields.Any(field => field?.Contains(text, StringComparison.OrdinalIgnoreCase) == true);
+        var installed = Agents(entries, view, problems, defaultId)
+            .Where(row => Match(row.Entry.Name, row.Entry.Id, row.Entry.Description, RegistryAgent(row.Entry, view)?.Description))
+            .ToList();
+        IReadOnlyList<AcpRegistryRowModel> available = view is null ? [] : Registry(view, entries, query).Where(row => entries.All(entry => entry.Origin != "registry" || entry.Id != row.Agent.Id)).ToList();
+        return new AcpCombinedList(installed, available);
+    }
+
     /// <summary>The registry's own entry for an installed registry agent, when the registry list is loaded.</summary>
     public static AcpRegistryAgent? RegistryAgent(AcpAgentEntry entry, AcpRegistryView? view) =>
         entry.Origin == "registry" ? view?.Agents.FirstOrDefault(agent => agent.Id == entry.Id) : null;
 }
 
-/// <summary>One row of the left list: an agent, its small tags and a problem when something is wrong (a status dot).</summary>
+/// <summary>The two groups of the settings list: installed agents pinned on top, then the registry agents not installed.</summary>
+internal sealed record AcpCombinedList(IReadOnlyList<AcpAgentRowModel> Installed, IReadOnlyList<AcpRegistryRowModel> Available);
+
+/// <summary>One row of the installed group: an agent, its small tags and a problem when something is wrong (a status dot).</summary>
 internal sealed record AcpAgentRowModel(AcpAgentEntry Entry, IReadOnlyList<string> Tags, string? Problem)
 {
     public string Subtitle => string.Join(" · ", Tags);

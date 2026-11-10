@@ -74,14 +74,15 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   Ids that are not plain file names are skipped. The UI asks the host (`icons`, never with urls) after the list is shown and draws the SVG with
   the theme's text colour for `currentColor` (hard-coded colours stay); until then, with no icon, for a rejected one and for custom agents it
   draws the generic ACP glyph. The New ACP chat menus read icons from disk only. The chat header keeps the plugin's own icon.
-- Settings layout: Settings > ACP is a master and detail page like Settings > Code Intelligence, built on the UI kit's `MasterDetail` (the
-  narrow list with a divider, a highlighted selected row and a red dot on a row with a problem; that page's own list is private to
-  `SharpRail.UI` and stays as it is). The list holds every configured agent, registry installs and custom ones together by name, each with its
-  icon and a line of tags (Registry or Custom, Not recommended, Update available, Off, Default), and a dot when the host knows something is
-  wrong: the program path does not exist, or the last start of a chat failed (`AcpAgentList.Problems`, kept in memory by the host). Browse
-  registry and Add custom agent are buttons above the list, which sits under an Installed heading and holds installed agents only (an empty
-  list says so). Browse registry opens the registry browser (`RegistryRow` rows, a search, Install, Update, Installed) in place of the pane and
-  deselects the list; Close or selecting an agent leaves it. The pane of the selected agent shows name, tags, description, version, source, website and repository links (https only), license,
+- Settings layout: Settings > ACP is one scrolling list (`AcpRows.Combined`) under the registry trust warning, a search, Refresh with the
+  `Fetched` time, and Add custom agent. Installed agents (registry installs and custom ones, by name; custom ones are marked Custom) are pinned
+  at the top under an Installed label, followed by the registry agents that are not installed under a Registry label. An installed registry agent
+  appears once, in the pinned group. The search filters both groups by name, description or id, and installed matches stay on top. Both groups use
+  the same `RegistryRow` columns so icons and text align. A registry row has Install (or Not on this machine). An installed row has a status mark
+  (a red alert when the host knows something is wrong: the program path does not exist, or the last start of a chat failed,
+  `AcpAgentList.Problems`; a refresh mark for Update available), its tags (Registry or Custom, Not recommended, Update available, Off, Default) and
+  the actions Update, Configure and Remove. If the registry cannot be read, installed agents still show under a plain message. Configure opens the
+  agent's settings under its row: name, tags, description, version, source, website and repository links (https only), license,
   install status and location, what was verified, the trust notice for registry agents, a switch to offer it in the launcher, a switch to make
   it the launcher's default, the executable override with a Use default arguments switch and the arguments one per line (a registry agent), or
   its command and arguments (a custom agent), environment, working directory, the command line that will run, Update to or Reinstall, and

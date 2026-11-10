@@ -101,10 +101,10 @@ discussion develops.
 Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.com) can be used in the chat view. The plugin is off by default
 (Settings › Plugins › ACP, marked Early support) and is not available in a browser tab.
 
-- Settings › ACP looks like Code Intelligence: a list of all your agents, registry installs and custom ones together, and a pane that configures
-  the selected one (links, license, status, executable, arguments, environment, working directory, update, reinstall, remove). A dot in the list
-  means the program is missing or its last start failed. Browse registry, at the top of the list, finds and installs agents. Add custom agent opens
-  a popup. Each agent shows its icon from the registry (the generic ACP mark until it arrives, and for agents you add yourself).
+- Settings › ACP is one list. Installed agents (registry installs and custom ones) are pinned at the top, with Update, Configure (links, license,
+  status, executable, arguments, environment, working directory, reinstall) and Remove, and the registry agents not yet installed follow with Install.
+  Search filters both groups. A red mark means the program is missing or its last start failed. Add custom agent opens a popup. Each agent shows its
+  icon from the registry (the generic ACP mark until it arrives, and for agents you add yourself).
 - Agents from the registry are third-party programs that run on this machine with your user's access, and even registry binaries need to be trusted.
   A checksum shows the file is the one the registry lists. It does not show the agent is safe. Installing first shows where the code comes from,
   its version, the exact command and what is verified (SHA-256 verified, no checksum from the registry, version pinned, or not pinned), and needs
