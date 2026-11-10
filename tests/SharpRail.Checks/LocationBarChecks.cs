@@ -59,7 +59,7 @@ internal static class LocationBarChecks
         Require(Label(app, "ProjectLabel") == "sample-project", "Project Home names the project.");
         var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["Project", "Branch", "Pull request"]), "Each segment carries its sentence-case caption.");
+        Require(captions.SequenceEqual(["Project", "Branch", "Remote", "Pull request"]), "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
         Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
         Require(new[] { "ProjectChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
