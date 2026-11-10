@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.Json;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -32,7 +33,7 @@ internal static partial class BrowserChecks
                 Windows = workbench.Windows.Count,
                 BarVisible = bar?.IsVisible ?? false,
                 BarHeight = bar is { IsVisible: true } ? bar.Bounds.Height : 0,
-                BarBottom = bar is { IsVisible: true } ? bar.TranslatePoint(new Avalonia.Point(0, bar.Bounds.Height), window)?.Y : null,
+                BarBottom = bar is { IsVisible: true } ? bar.TranslatePoint(new Point(0, bar.Bounds.Height), window)?.Y : null,
                 SettingsVisible = settings?.IsVisible ?? false,
                 Width = window.ClientSize.Width,
                 Height = window.ClientSize.Height,
@@ -46,6 +47,6 @@ internal static partial class BrowserChecks
 
     /// <summary>The pure breakpoint rule, for the cases a headless viewport cannot reach.</summary>
     [JSExport]
-    public static bool PhoneDecision(bool current, double width, bool coarse, double smallestScreenSide) =>
-        PhoneLayout.Decide(current, width, coarse, smallestScreenSide);
+    public static Task<bool> PhoneDecision(bool current, double width, bool coarse, double smallestScreenSide) =>
+        Task.FromResult(PhoneLayout.Decide(current, width, coarse, smallestScreenSide));
 }
