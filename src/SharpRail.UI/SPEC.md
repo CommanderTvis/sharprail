@@ -259,8 +259,8 @@ and appears on hover, keyboard focus or while open. The project's initial sits i
 one. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
 host state: it shows what the window already knows and calls the same methods as the panels.
 
-- PROJECT lists every open project with the current one checked, Project home (disabled while there) and
-  Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
+- PROJECT lists every open project with the current one checked, Project home (disabled while there). It has
+  no Add project item; the Projects rail's plus and Project Home add projects. Choosing a project opens its Project Home. With no
   project the segment reads `SharpRail`.
 - The workspace has no cell here: the Projects rail names the active workspace, switches and creates, and its
   rows carry the workspace actions (Copy absolute path, Copy link for the active one, Open in, Copy name, Reveal in file

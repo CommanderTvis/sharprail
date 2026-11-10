@@ -61,7 +61,7 @@ internal static class UnifiedChromeChecks
         {
             app.Click(app.Find<Button>("ScopeProject"), freshGesture: false);
             Until(() => projects.IsOpen);
-            Require(Entries(projects.Items).Any(item => item.Name == "ScopeProjectAdd"), "The project switcher lists its entries.");
+            Require(Entries(projects.Items).Any(item => item.Name == "ScopeProjectHome"), "The project switcher lists its entries.");
             projects.Close();
             Until(() => !projects.IsOpen);
         }

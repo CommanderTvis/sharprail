@@ -70,8 +70,8 @@ internal static class LocationBarChecks
         var projects = OpenMenu(app, "ScopeProject");
         var option = projects.Items.OfType<MenuItem>().Single(item => item.Name == "ScopeProjectOption");
         Require(option.IsChecked && Equals(option.Tag, app.Root) && MenuEntry(projects, "ScopeProjectHome") is { IsEnabled: false } &&
-            MenuEntry(projects, "ScopeProjectAdd") is { IsEnabled: true },
-            "The project switcher checks the current project, disables Project home there and offers Add project.");
+            MenuEntry(projects, "ScopeProjectAdd") is null,
+            "The project switcher checks the current project, disables Project home there and has no Add project item.");
         CloseMenu(projects);
 
         Switch(app, app.Root);

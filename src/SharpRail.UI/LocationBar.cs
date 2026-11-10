@@ -119,9 +119,6 @@ public sealed partial class WorkbenchWindow
         var home = Ui.IconMenu("Project home", () => _ = OpenProjectHomeAsync(projectRoot), ActionIcon.Home, projectRoot.Length > 0 && !atHome);
         home.Name = "ScopeProjectHome";
         menu.Items.Add(home);
-        var add = Ui.IconMenu("Add project…", () => _ = PickProjectAsync(), ActionIcon.Add);
-        add.Name = "ScopeProjectAdd";
-        menu.Items.Add(add);
     }
 
     private void SetBranch(string branch)
