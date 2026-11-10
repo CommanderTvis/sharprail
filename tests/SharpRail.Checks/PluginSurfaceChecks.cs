@@ -765,6 +765,7 @@ internal static class PluginSurfaceChecks
             Sync();
             Require(surface.Popups.Count == 1, "A popup that opens just after input shows.");
             // The popup is placed once the app has laid it out with its pixels; a hit test before that finds the empty layer.
+            hostile.PopupFrame(2);
             var popup = Popup(surface);
             var layer = (Canvas)popup.Parent!;
             Require(Grid.GetRow(layer) == 1 && Grid.GetRowSpan(layer) == 1 && layer.ClipToBounds, "The popup layer takes the cell of the surface's holder, clipped to it.");
@@ -846,6 +847,9 @@ internal static class PluginSurfaceChecks
 
         /// <summary>A frame of the surface with no tiles, which the check waits for to know what came before it applied.</summary>
         public void Frame(long sequence) => events.Writer.TryWrite(new SurfaceFrame(new(1, sequence, 10, 10, 1, 200, 200, true, [], [], sequence == 1), []));
+
+        /// <summary>A first frame of a popup, with no tiles, so the app has a (transparent) image to draw for it.</summary>
+        public void PopupFrame(int popup) => events.Writer.TryWrite(new SurfaceFrame(new(1, 1, 10, 10, 1, 10, 10, true, [], [], true, popup), []));
 
         public void Resize(double width, double height, double scale) { }
         public void Input(SurfaceInput input) { }
