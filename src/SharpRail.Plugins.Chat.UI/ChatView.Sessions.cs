@@ -127,7 +127,14 @@ internal sealed partial class ChatView
         DockPanel.SetDock(clear, Dock.Right);
         searchRow.Children.Add(clear);
         searchRow.Children.Add(search);
-        var panel = ChatPopup.Container("ChatSessionsPanel", "Past conversations", searchRow, results, note);
+        // The list and the note share one cell that is never shorter than the rows of all the sessions (up to the cap), so typing a query that matches few or none keeps the popup its size.
+        note.Margin = new Thickness(ChatPopup.RowInset, 4, 0, 0);
+        note.VerticalAlignment = VerticalAlignment.Top;
+        var body = new Grid { MinHeight = Math.Min(maxHeight, all.Count * ChatPopup.RowHeight) };
+        body.Children.Add(results);
+        body.Children.Add(note);
+        results.VerticalAlignment = VerticalAlignment.Top;
+        var panel = ChatPopup.Container("ChatSessionsPanel", "Past conversations", searchRow, body);
         panel.Width = width;
         Avalonia.Automation.AutomationProperties.SetName(panel, "Past conversations");
         Fill();

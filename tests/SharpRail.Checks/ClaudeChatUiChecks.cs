@@ -266,6 +266,7 @@ internal static class ClaudeChatUiChecks
         BottomPinned();
         QuestionStable();
         PastConversations();
+        SessionsPopupStable();
         CommandMenu();
         HoverAffordance();
         UserMarkdown();
@@ -1431,6 +1432,62 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { flyoutHost?.Close(); window.Close(); }
+    }
+
+    // The Past conversations popup keeps its width, its font sizes and its row heights while the query changes (many, none, one, cleared); only its list grows and shrinks.
+    private static void SessionsPopupStable()
+    {
+        var now = new DateTime(2026, 10, 25, 15, 0, 0, DateTimeKind.Local);
+        static string Iso(DateTime local) => DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime().ToString("o");
+        var sessions = Enumerable.Range(0, 40).Select(index => new ChatSessionInfo("s" + index, index == 7 ? "The jeep story" : "Conversation number " + index, Iso(now.AddHours(-index)))).ToList();
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { SessionId = "s-own" } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        Flyout? flyout = null;
+        try
+        {
+            Frame(window); Frame(window);
+            var (panel, list, search) = view.BuildSessions(sessions, _ => { }, now);
+            flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft, Content = new TextBlock { Text = "Loading sessions" } };
+            ChatPopup.Show(flyout, view.GetVisualDescendants().OfType<Control>().First(control => control.Name == "ChatPlus"));
+            Frame(window);
+            flyout.Content = panel;
+            ChatPopup.Bare(flyout);
+            Frame(window); Frame(window);
+            List<double> Fonts() => panel.GetVisualDescendants().OfType<TextBlock>().Where(text => text.IsVisible && !string.IsNullOrEmpty(text.Text)).Select(text => text.FontSize).Distinct().Order().ToList();
+            (double Width, double Height, double Header, double Search, double Row, List<double> Fonts) Measure()
+            {
+                Frame(window); Frame(window);
+                var host = panel.GetVisualAncestors().OfType<Control>().First(control => control is FlyoutPresenter);
+                var rows = list.GetVisualDescendants().OfType<ListBoxItem>().Where(row => row.DataContext is ChatView.SessionRow).ToList();
+                var header = panel.GetVisualDescendants().OfType<Control>().First(control => control.Name == "ChatSessionsPanelHeader");
+                return (panel.Bounds.Width, panel.Bounds.Height, header.Bounds.Height, search.Bounds.Height, rows.Count > 0 ? rows[0].Bounds.Height : 0, Fonts());
+            }
+            string Show((double Width, double Height, double Header, double Search, double Row, List<double> Fonts) m) => $"{m.Width:0.#}x{m.Height:0.#} header {m.Header:0.#} search {m.Search:0.#} row {m.Row:0.#} fonts [{string.Join(",", m.Fonts)}]";
+            var many = Measure();
+            Console.WriteLine("sessions popup many:  " + Show(many));
+            search.Text = "zzzz"; var none = Measure();
+            Console.WriteLine("sessions popup none:  " + Show(none));
+            search.Text = "jeep"; var one = Measure();
+            Console.WriteLine("sessions popup one:   " + Show(one));
+            search.Text = "z"; Measure(); search.Text = "zz"; Measure(); search.Text = "jee"; Measure();
+            search.Text = ""; var cleared = Measure();
+            Console.WriteLine("sessions popup clear: " + Show(cleared));
+            foreach (var (name, state) in new[] { ("none", none), ("one", one), ("cleared", cleared) })
+            {
+                Require(Math.Abs(state.Width - many.Width) <= 1, $"The sessions popup keeps its width with {name} results ({state.Width:0.#} against {many.Width:0.#}).");
+                Require(Math.Abs(state.Header - many.Header) <= 1 && Math.Abs(state.Search - many.Search) <= 1, $"The sessions popup keeps its header and search box heights with {name} results ({Show(state)} against {Show(many)}).");
+                Require(state.Fonts.Count == many.Fonts.Count || name == "none" || name == "one", $"The sessions popup keeps its font sizes with {name} results.");
+                Require(state.Fonts.Intersect(many.Fonts).Count() == state.Fonts.Count, $"The sessions popup uses no new font size with {name} results ({string.Join(",", state.Fonts)} against {string.Join(",", many.Fonts)}).");
+            }
+            Require(Math.Abs(cleared.Height - many.Height) <= 1 && Math.Abs(cleared.Row - many.Row) <= 1, $"Clearing the query restores the popup's height ({cleared.Height:0.#} against {many.Height:0.#}).");
+            Require(Math.Abs(none.Height - many.Height) <= 1 && Math.Abs(one.Height - many.Height) <= 1, $"The popup keeps its height with no match ({none.Height:0.#}) and one match ({one.Height:0.#}) against {many.Height:0.#}.");
+            Require(Math.Abs(one.Row - many.Row) <= 1, $"A matching row keeps its height ({one.Row:0.#} against {many.Row:0.#}).");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { flyout?.Hide(); window.Close(); }
     }
 
     // Choosing an answer repaints in place: the same panel, no row replaced or laid out again, no option moves or changes size.
