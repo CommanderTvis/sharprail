@@ -317,17 +317,23 @@ internal static partial class EnvironmentChecks
         Task<ResolvedEnvironment> Resolve() => WithEnvironment(tools, [], async () => await runtime.ResolveEnvironmentAsync(workspace, null, CancellationToken.None));
         async Task<int> Active() => (await runtime.ListAsync()).Count(entry => entry.Id.StartsWith("env-") && entry.Status == PluginStatus.Active);
         Require(await Active() == 5 && (await Resolve()).Variables.ContainsKey("MISE_FLAG"), "With Env on the five step plugins run.");
+        await composed.Disable(EnvMiseContract.Id);
         await composed.Disable(EnvContract.Id);
         var roster = await runtime.ListAsync();
         Require(roster.Where(entry => entry.Id.StartsWith("env-")).All(entry => entry.Status != PluginStatus.Active), "Switching Env off switches its dependents off.");
         var plain = await Resolve();
         Require(plain.Variables.Count == 0 && plain.Facts.Count == 0, "While Env is off no step runs and the shells get the plain environment: " + string.Join(", ", plain.Variables.Keys));
+        // The runtime reacts to the state change on its own, so wait for the roster to settle (bounded, no fixed sleep).
         await composed.State.ChangeAsync([HostStateChange.PluginEnabled(EnvContract.Id, true)]);
-        await runtime.Schedule();
-        Require(await Active() == 0 && (await runtime.ListAsync()).Single(entry => entry.Id == EnvContract.Id).Status == PluginStatus.Active, "Turning Env back on does not bring the dependents back.");
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        do await runtime.Schedule();
+        while (await Active() != 4 && DateTime.UtcNow < deadline);
+        var back = await runtime.ListAsync();
+        Require(back.Single(entry => entry.Id == EnvContract.Id).Status == PluginStatus.Active && await Active() == 4 && back.Single(entry => entry.Id == EnvMiseContract.Id).Status != PluginStatus.Active,
+            "Turning Env back on brings back the dependents it took down, and not the one switched off by hand.");
         await composed.State.ChangeAsync([HostStateChange.PluginEnabled(EnvMiseContract.Id, true)]);
         await runtime.Schedule();
-        Require((await Resolve()).Variables.ContainsKey("MISE_FLAG") && await Active() == 1, "A dependent is switched back on on its own.");
+        Require((await Resolve()).Variables.ContainsKey("MISE_FLAG") && await Active() == 5, "A dependent switched on by hand runs.");
     }
 
     // Python and JavaScript runtimes, each found from a fake home so no real installation is read.
