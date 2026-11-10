@@ -1700,6 +1700,22 @@ internal static class ClaudeCodeChecks
         Require(range.GetProperty("start").GetProperty("line").GetInt32() == 0 && range.GetProperty("start").GetProperty("character").GetInt32() == 0 &&
             range.GetProperty("end").GetProperty("line").GetInt32() == 0 && range.GetProperty("end").GetProperty("character").GetInt32() == 7 &&
             !range.GetProperty("isEmpty").GetBoolean(), "The protocol counts lines and columns from zero; the plugin's contract from one.");
+        // A selection in a plugin's own document (a Visualize drawing's file outside the workspace) is the current selection with its absolute path and lines, until a real editor takes over.
+        var drawing = Path.Combine(Path.GetDirectoryName(project)!, "state", "visualize", "abc.md");
+        async Task<JsonElement> Current(int id)
+        {
+            await Send(new { jsonrpc = "2.0", id, method = "tools/call", @params = new { name = "getCurrentSelection", arguments = new { } } });
+            return JsonSerializer.Deserialize<JsonElement>((await Receive()).GetProperty("result").GetProperty("content")[0].GetProperty("text").GetString()!);
+        }
+        await runtime.CallAsync(new("claude-code", "selectionChanged", new IdeSelectionChanged(project, drawing, "First paragraph\n", new(3, 1, 5, 1)), "claude-client"));
+        var fromDocument = await Current(30);
+        Require(fromDocument.GetProperty("filePath").GetString() == drawing && fromDocument.GetProperty("text").GetString() == "First paragraph\n" &&
+            fromDocument.GetProperty("selection").GetProperty("start").GetProperty("line").GetInt32() == 2 && fromDocument.GetProperty("selection").GetProperty("end").GetProperty("line").GetInt32() == 4,
+            "A plugin document's selection reaches getCurrentSelection with its path and zero-based lines.");
+        await runtime.CallAsync(new("claude-code", "selectionChanged", new IdeSelectionChanged(project, drawing, "", new(1, 1, 1, 1)), "claude-client"));
+        Require((await Current(31)).GetProperty("selection").GetProperty("isEmpty").GetBoolean(), "Collapsing the document's selection clears it.");
+        await runtime.CallAsync(new("claude-code", "selectionChanged", new IdeSelectionChanged(project, "CLAUDE.md", "Fixture", new(1, 1, 1, 8)), "claude-client"));
+        Require((await Current(32)).GetProperty("filePath").GetString() == Path.Combine(project, "CLAUDE.md"), "A later selection in a real editor takes over.");
         await using var owner = runtime.SubscribeAsync(new("claude-code", "ideAction", null, "claude-client"), timeout.Token).GetAsyncEnumerator(timeout.Token);
         await using var peer = runtime.SubscribeAsync(new("claude-code", "ideAction", null, "other-client"), timeout.Token).GetAsyncEnumerator(timeout.Token);
         var next = owner.MoveNextAsync().AsTask();

@@ -1077,3 +1077,7 @@ override SharpRail.Plugins.Api.UI.KeymapActionRegistration.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.KeymapActionRegistration.ToString() -> string!
 static SharpRail.Plugins.Api.UI.KeymapActionRegistration.operator !=(SharpRail.Plugins.Api.UI.KeymapActionRegistration? left, SharpRail.Plugins.Api.UI.KeymapActionRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.KeymapActionRegistration.operator ==(SharpRail.Plugins.Api.UI.KeymapActionRegistration? left, SharpRail.Plugins.Api.UI.KeymapActionRegistration? right) -> bool
+SharpRail.Plugins.Api.UI.PluginDocumentSelection
+SharpRail.Plugins.Api.UI.PluginDocumentSelection.For(string! workspaceId) -> (SharpRail.Plugins.Api.UI.EditorRef! Editor, SharpRail.Plugins.Api.UI.EditorSelection! Selection)?
+SharpRail.Plugins.Api.UI.PluginDocumentSelection.Observe(SharpRail.Plugins.Api.UI.EditorEvent! editorEvent, System.Func<SharpRail.Plugins.Api.UI.EditorRef!, bool>! isListed) -> void
+SharpRail.Plugins.Api.UI.PluginDocumentSelection.PluginDocumentSelection() -> void

@@ -13,7 +13,7 @@ internal static class ChatDocuments
     public static IDisposable Register(IPluginUIContext context, IChatClient client, ChatAgent agent, Func<string, string, Task<string>> readFile)
     {
         var selection = new SelectionSource();
-        var watch = context.Editors.OnEvent(selection.Observe);
+        var watch = context.Editors.OnEvent(change => selection.Observe(change, editor => context.Editors.List(editor.WorkspaceId).Any(listed => listed.Id == editor.Id)));
         context.Document(new PluginDocumentRegistration(agent.Scheme,
             props => new ChatView(Environment(context, client, agent, readFile, props.WorkspaceId, selection), props.WorkspaceId, props.Id))
         {
@@ -49,11 +49,17 @@ internal static class ChatDocuments
     internal sealed class SelectionSource
     {
         private readonly Dictionary<string, EditorSelection?> selections = [];
+        private readonly PluginDocumentSelection documents = new();
 
-        public void Observe(EditorEvent editorEvent)
+        public void Observe(EditorEvent editorEvent, Func<EditorRef, bool> isListed)
         {
             if (editorEvent is EditorSelectionEvent selected) selections[selected.Editor.Id] = selected.Selection;
+            documents.Observe(editorEvent, isListed);
         }
+
+        /// <summary>What a selection in a plugin's own document (not an open editor) says: its file and lines, until a real editor is selected in or activated.</summary>
+        public ChatSelection? Document(string workspaceId) =>
+            documents.For(workspaceId) is { } held ? new ChatSelection(held.Editor.Path, held.Selection.StartLine, held.Selection.EndLine, true) : null;
 
         public ChatSelection? For(EditorRef? editor, string workspaceId)
         {
@@ -78,7 +84,7 @@ internal static class ChatDocuments
         ComposerPreference = context.Preference("chat-composer"),
         ZoomPreference = context.Preference("chat-zoom"),
         WorkspaceChips = () => context.WorkspaceChips(workspaceId),
-        ActiveSelection = () => selection.For(context.Editors.Active, workspaceId),
+        ActiveSelection = () => selection.Document(workspaceId) ?? selection.For(context.Editors.Active, workspaceId),
         WatchSelection = changed => context.Editors.OnEvent(editorEvent => { if (editorEvent is EditorSelectionEvent or EditorLifecycleEvent) changed(); }),
         PickFile = async () => await context.PickFileAsync(new FilePickOptions(workspaceId)),
         PickFolder = async () => await context.PickFileAsync(new FilePickOptions(workspaceId, true)),

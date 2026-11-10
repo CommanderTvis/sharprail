@@ -256,6 +256,7 @@ internal static class ClaudeChatUiChecks
         PopupLook();
         ComposerLook();
         SelectionChip();
+        DocumentSelection();
         Grouping();
         Bounded();
         StreamingStable();
@@ -2415,6 +2416,29 @@ internal static class ClaudeChatUiChecks
     }
 
     // The composer shows what the next prompt carries from the editor: the selection with its lines, a preview's quote, or the open file; removable, live, cleared by sending.
+    private static void DocumentSelection()
+    {
+        // A selection in a plugin's own document (a Visualize drawing's file, outside the open editors) is what the chat carries, until a real editor takes over.
+        var source = new ChatDocuments.SelectionSource();
+        var drawing = new SharpRail.Plugins.Api.UI.EditorRef("visualize:w:t", "w", "/state/visualize/abc.md", SharpRail.Plugins.Api.UI.EditorKind.File, false);
+        var file = new SharpRail.Plugins.Api.UI.EditorRef("w:notes", "w", "notes.txt", SharpRail.Plugins.Api.UI.EditorKind.File, false);
+        bool Listed(SharpRail.Plugins.Api.UI.EditorRef editor) => editor.Id == file.Id;
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(3, 1, 5, 1, "First paragraph\n")), Listed);
+        Require(source.Document("w") is { Path: "/state/visualize/abc.md", StartLine: 3, EndLine: 5, HasRange: true } && source.Document("other") is null,
+            "A selection in a plugin's document is the chat's selection, with its file and lines, in its own workspace.");
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, null), Listed);
+        Require(source.Document("w") is null, "Collapsing the selection clears it.");
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(file, new(1, 1, 1, 4, "note")), Listed);
+        Require(source.Document("w") is null, "A selection in a real editor takes over.");
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorLifecycleEvent(file, SharpRail.Plugins.Api.UI.EditorLifecycle.Activated), Listed);
+        Require(source.Document("w") is null, "Activating a real editor takes over.");
+        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 1, 1, "quote") { Mapped = false }), Listed);
+        Require(source.Document("w") is null, "Text that maps to no source lines is not offered as lines.");
+        Console.WriteLine("PASS chat selection: a plugin document's selection is the chat's until a real editor takes over");
+    }
+
     private static void SelectionChip()
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };

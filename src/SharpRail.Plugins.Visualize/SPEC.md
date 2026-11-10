@@ -75,7 +75,7 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   The drawing carries the file's path and `visualize_read` names it, so the agent can read it. The pane reports a
   selection as an editor selection of that file, mapped to source lines exactly as the file preview maps it (whole
   lines of the blocks touched; text that maps to none is reported unmapped), and reports it cleared when the selection
-  collapses or the revision changes. Because the file lives on the host, a remote client reports the host's path. Diagrams,
+  collapses or the revision changes. Claude Code's IDE bridge, its chats and Codex's IDE context all take such a selection of a plugin's own document as the current one (one shared rule) until the user selects in or activates a real editor. Because the file lives on the host, a remote client reports the host's path. Diagrams,
   SVG and comparisons have no text source to quote, so they stay in memory and report only through `visualize_read`.
 - The title names the companion once: `title`, else "Diagram", "SVG", "Markdown" or "Comparison". The arguments travel verbatim as
   JSON: the UI half renders them with the kit's `VisualizationCard`.
