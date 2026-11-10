@@ -625,6 +625,19 @@ internal sealed partial class ChatView
         workingTimer.Start();
     }
 
+    internal bool WorkingTimerRunning => workingTimer is { IsEnabled: true };
+
+    // A view that is not shown ticks nothing (a running timer is rooted by the dispatcher, so it would keep a closed tab alive); the elapsed time
+    // keeps counting from when the turn began.
+    private void PauseWorking() => workingTimer?.Stop();
+
+    private void ResumeWorking()
+    {
+        if (!workingActive || workingTimer is not { IsEnabled: false } timer) return;
+        TickWorking(null, EventArgs.Empty);
+        timer.Start();
+    }
+
     private void TickWorking(object? sender, EventArgs e) => working.Text = activity is { Length: > 0 } word
         ? word.TrimEnd('.', '\u2026', ' ') + "..."
         : $"Working \u00B7 {ChatDuration.Format((long)(DateTime.UtcNow - workingSince).TotalSeconds)}";

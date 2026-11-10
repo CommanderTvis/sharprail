@@ -260,6 +260,7 @@ internal static class ClaudeChatUiChecks
         Grouping();
         Bounded();
         ClosedViewsCollectable();
+        ClosedRunningViewHasNoTimer();
         StreamingStable();
         Composer();
         PageZoomSteps();
@@ -1888,6 +1889,24 @@ internal static class ClaudeChatUiChecks
             Dispatcher.UIThread.RunJobs();
             Require(ThemeSubscribers() == before, $"Closed chat view {round + 1} is still subscribed to theme changes, so its transcript stays reachable.");
         }
+    }
+
+    // A chat closed while its turn runs must not leave a ticking timer (the dispatcher would keep the view alive); shown again, it works again.
+    internal static void ClosedRunningViewHasNoTimer()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Running) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show(); Frame(window); Frame(window);
+        Require(view.WorkingTimerRunning, "A running chat shows its working timer.");
+        window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs();
+        Require(!view.WorkingTimerRunning, "A chat closed while running left its working timer ticking.");
+        var again = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        again.Show(); Frame(again); Frame(again);
+        Require(view.WorkingTimerRunning, "A chat shown again while still running must tick again.");
+        again.Content = null; again.Close(); Dispatcher.UIThread.RunJobs();
+        Require(!view.WorkingTimerRunning, "A chat closed a second time left its working timer ticking.");
     }
 
     private static void Bounded()
