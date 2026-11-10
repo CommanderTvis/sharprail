@@ -12,8 +12,8 @@ public static class Dialogs
         var window = Create("Create project", 520);
         var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
         explanation.Text = pickFolder is null
-            ? "Create a new project folder on the computer running SharpRail, then open its Project Home."
-            : "Create a new project folder, then open its Project Home.";
+            ? "Creates a new folder inside a folder on the computer running SharpRail, then opens it as a project."
+            : "Creates a new folder inside the folder you choose, then opens it as a project.";
         explanation.IsVisible = true;
         var fields = new NewProjectFields();
         window.FindControl<StackPanel>("DialogFields")!.Children.Add(fields);
