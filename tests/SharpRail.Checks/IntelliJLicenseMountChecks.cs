@@ -106,7 +106,7 @@ internal static class IntelliJLicenseMountChecks
             IntelliJLicensing.OnMessage(view, IntelliJLicensing.StateNotification, new JsonObject { ["featuresDeclined"] = true, ["parkedReason"] = "StartedUnlicensed" });
             Require(view.Published!.Contains("mountedLicense", StringComparison.Ordinal) && view.Published.Contains("0TESTLIC00", StringComparison.Ordinal) && view.Unavailable!.Contains("0TESTLIC00", StringComparison.Ordinal),
                 "The status did not show the mounted licence: " + view.Published);
-            logs.AddRange([view.Published!, view.Unavailable!,IntelliJLicenseMount.Current!.Message]);
+            logs.AddRange([view.Published!, view.Unavailable!, IntelliJLicenseMount.Current!.Message]);
 
             // The extracted text files: the one for 2018.2 or later wins even beside the older one.
             var textMount = Fresh(scratch, "text-mount");
