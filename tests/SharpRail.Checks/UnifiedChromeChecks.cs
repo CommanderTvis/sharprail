@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
@@ -96,6 +97,9 @@ internal static class UnifiedChromeChecks
 
     private static void Layout(E2eWorkspace app, StackPanel header)
     {
+        // The sync state arrives after the window's last layout pass; measure what the user sees once the rail has settled.
+        Dispatcher.UIThread.RunJobs();
+        app.Window.UpdateLayout();
         double Left(Control control) => control.TranslatePoint(default, header)!.Value.X;
         double Right(Control control) => Left(control) + control.Bounds.Width;
         var project = app.Find<Button>("ScopeProject");
@@ -114,7 +118,7 @@ internal static class UnifiedChromeChecks
         if (remoteBlock.IsVisible)
         {
             // With a remote status the row is two equal columns an 8 gap apart: Branch, then Remote with its own caption.
-            Require(Math.Abs(Right(remoteBlock) - rowEnd) <= 1, $"The Remote block sits flush at the right end of the branch row ({Right(remoteBlock)}, {rowEnd}).");
+            Require(Math.Abs(Right(remoteBlock) - rowEnd) <= 1, $"The Remote block sits flush at the right end of the branch row ({Right(remoteBlock)}, {rowEnd}; column {Grid.GetColumn(remoteBlock)} of {columns.ColumnDefinitions.Count}; remote {Left(remoteBlock)}+{remoteBlock.Bounds.Width}, branch {Left(branchBlock)}+{branchBlock.Bounds.Width}, columns {Left(columns)}+{columns.Bounds.Width}, widths {string.Join("/", columns.ColumnDefinitions.Select(column => column.ActualWidth))}).");
             Require(Math.Abs(branchBlock.Bounds.Width - remoteBlock.Bounds.Width) <= 1 && Math.Abs(Left(remoteBlock) - Right(branchBlock) - 8) <= 1,
                 $"The Branch and Remote blocks are equal columns with an 8 gap ({branchBlock.Bounds.Width}, {remoteBlock.Bounds.Width}).");
             var caption = remoteBlock.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("location-caption"));

@@ -84,9 +84,11 @@ public sealed partial class WorkbenchWindow
         var columns = this.FindControl<Grid>("BranchColumns")!;
         var remoteBlock = this.FindControl<Grid>("RemoteBlock")!;
         remoteBlock.Margin = default;
-        Grid.SetColumn(remoteBlock, 2);
-        void Split() => columns.ColumnDefinitions = new ColumnDefinitions(remoteBlock.IsVisible ? "*,8,*" : "*");
+        // The grid always has three columns, so the remote block's column stays valid (a block placed past the last column is
+        // clamped to the first and the grid keeps drawing it there); the unused two collapse to nothing.
+        void Split() => columns.ColumnDefinitions = new ColumnDefinitions(remoteBlock.IsVisible ? "*,8,*" : "*,0,0");
         Split();
+        Grid.SetColumn(remoteBlock, 2);
         remoteBlock.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Split(); };
         header.Children.Add(branch);
         header.Children.Add(pullRequest);
