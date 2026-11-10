@@ -7,8 +7,8 @@ namespace SharpRail.Host.Core.Language;
 /// Which language servers headless SharpRail serves. The manifests decide: a server declares <c>Headless = Yes</c> only when its installation and launch
 /// need nothing the machine must already have (every runtime is a pinned managed download, or the server is a self-contained archive); one that needs
 /// a toolchain without a pinned download (a JDK, Go, Rust, Ruby, R, PowerShell, Swift, Dart, Coursier) declares <c>No</c> until that runtime is pinned.
-/// <see cref="Refusal"/> re-derives that from the pins, so a check can fail when a manifest and the pins disagree, and it is what leaves a declared server
-/// out on one platform (clangd has no linux/arm64 archive).
+/// <see cref="Refusal"/> re-derives that from the pins, so a check can fail when a manifest and the pins disagree, and it is what would leave a declared server
+/// out on a platform that has no pinned download for it.
 /// </summary>
 internal static class HeadlessLanguages
 {

@@ -16,6 +16,26 @@ COPY . .
 RUN case "$TARGETARCH" in amd64) rid=linux-x64 ;; arm64) rid=linux-arm64 ;; *) echo "unsupported architecture $TARGETARCH" >&2; exit 1 ;; esac \
     && sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r "$rid" -o /out
 
+# clangd for linux/arm64. clangd/clangd publishes no arm64 build; LLVM's release has one inside its 1.1 GB toolchain archive, too big to
+# download at run time. This stage downloads it once at build time, checks the pinned SHA-256 before unpacking, and keeps only bin/clangd and
+# the builtin headers it reads from lib/clang/<major>/include. The URL and hash are the linux-aarch64 pin in ClangdPlugin.cs (a check compares them).
+# The host copies the result into /cache/managed on first use (ArtifactInstaller.Preinstalled). On amd64 the stage is empty: the host downloads
+# the clangd/clangd zip itself.
+FROM ubuntu:24.04 AS clangd
+ARG TARGETARCH
+ARG CLANGD_ARM64_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.5/LLVM-23.1.5-Linux-ARM64.tar.zst
+ARG CLANGD_ARM64_SHA256=830ceb70edf63849ce66e97bf85310a3bf2bdd04c860a9f2fa4ef1560e290cef
+RUN mkdir -p /out \
+    && if [ "$TARGETARCH" = arm64 ]; then \
+         apt-get update && apt-get install -y --no-install-recommends ca-certificates curl zstd \
+         && curl -fsSL --retry 3 -o /tmp/llvm.tar.zst "$CLANGD_ARM64_URL" \
+         && echo "$CLANGD_ARM64_SHA256  /tmp/llvm.tar.zst" | sha256sum -c - \
+         && zstd -dc --long=30 /tmp/llvm.tar.zst | tar -x -C /out --strip-components=1 --wildcards '*/bin/clangd' '*/lib/clang/*/include' \
+         && test -x /out/bin/clangd && ls /out/lib/clang/*/include/stddef.h \
+         && printf '{"sha256":"%s","url":"%s"}' "$CLANGD_ARM64_SHA256" "$CLANGD_ARM64_URL" > /out/.sharprail-artifact.json \
+         && rm -f /tmp/llvm.tar.zst; \
+       fi
+
 # The native binary still loads libicu (globalization) and libssl (HTTPS for installs) at run time, and the .NET SDK it
 # downloads for language servers needs those and libstdc++ and zlib too. runtime-deps carries exactly that set.
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS base
@@ -27,6 +47,7 @@ RUN apt-get update \
     && mkdir -p /cache/home /cache/managed /cache/state /workspace \
     && chown -R sharprail:sharprail /cache /workspace \
     && ln -s /opt/sharprail/sharprail-headless /usr/local/bin/sharprail-headless
+COPY --from=clangd --chmod=a+rX /out/ /opt/sharprail/preinstalled/clangd/
 ENV HOME=/cache/home \
     SHARPRAIL_TOOLCHAINS=managed \
     SHARPRAIL_MANAGED_CACHE=/cache/managed \

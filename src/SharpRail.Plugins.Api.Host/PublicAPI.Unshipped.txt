@@ -364,6 +364,8 @@ SharpRail.Plugins.Api.Host.LanguageServerArtifact.Source.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerArtifact.Source.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerArtifact.Url.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerArtifact.Url.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerArtifact.Version.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerArtifact.Version.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerLaunch
 SharpRail.Plugins.Api.Host.LanguageServerLaunch.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerLaunch!
 SharpRail.Plugins.Api.Host.LanguageServerLaunch.Arguments.get -> System.Collections.Generic.IReadOnlyList<string!>!

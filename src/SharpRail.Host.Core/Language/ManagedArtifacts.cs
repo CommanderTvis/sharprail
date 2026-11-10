@@ -52,7 +52,7 @@ internal static class ManagedArtifacts
     };
 
     internal static IEnumerable<ManagedArtifact> Artifacts(LanguageServer server) => server.Spec.Artifacts.Select(item =>
-        new ManagedArtifact(server.Id, server.Version, item.Platform, item.Url, item.Sha256, item.Format, item.Source, [.. item.Hosts]) { Executable = LanguageServers.InstalledName(server) });
+        new ManagedArtifact(server.Id, item.Version.Length > 0 ? item.Version : server.Version, item.Platform, item.Url, item.Sha256, item.Format, item.Source, [.. item.Hosts]) { Executable = LanguageServers.InstalledName(server) });
 
     /// <summary>The verified packages to install on a platform, or null when no runtime pack is pinned for it.</summary>
     internal static LanguageServerNuGetPackage[]? NuGetFor(LanguageServer server, string platform) =>
@@ -99,7 +99,7 @@ internal static class ManagedArtifacts
                     if (item.Sha256.Length != 64 || !item.Sha256.All(char.IsAsciiHexDigitLower)) problems.Add($"{server.Id} {item.Platform}: missing or malformed SHA-256.");
                     if (!Uri.TryCreate(item.Url, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !item.Hosts.Contains(uri.Host)) problems.Add($"{server.Id} {item.Platform}: URL is not HTTPS on an allowed host.");
                     if (item.Source.Length == 0) problems.Add($"{server.Id} {item.Platform}: hash source not recorded.");
-                    if (!item.Url.Contains(item.Version.Split('-')[0], StringComparison.Ordinal) || item.Version != server.Version) problems.Add($"{server.Id} {item.Platform}: artifact does not match the catalog version.");
+                    if (!item.Url.Contains(item.Version.Split('-')[0], StringComparison.Ordinal) || (item.Version != server.Version && !server.Spec.Artifacts.Any(spec => spec.Platform == item.Platform && spec.Version == item.Version))) problems.Add($"{server.Id} {item.Platform}: artifact does not match the catalog version.");
                 }
                 detail = $"{items.Length} artifact(s), SHA-256 {items.Count(item => item.Sha256.Length == 64)}/{items.Length}";
             }
@@ -185,11 +185,17 @@ internal static class ArtifactInstaller
         var archive = staging + ".download";
         try
         {
-            await DownloadAsync(http, artifact.Server, new Uri(artifact.Url), artifact.Hosts, archive, token);
-            if (ManagedArtifacts.Hash(archive) != artifact.Sha256)
-                throw new IOException($"{artifact.Server} download failed verification: SHA-256 does not match the pinned value. Nothing was installed.");
             Directory.CreateDirectory(staging);
-            await ExtractAsync(archive, staging, artifact, token);
+            if (Preinstalled(artifact) is { } prebuilt) CopyPreinstalled(prebuilt, staging);
+            else
+            {
+                if (artifact.Format is not ("zip" or "tar.gz" or "gz"))
+                    throw new IOException($"{artifact.Server} for {artifact.Platform} is a {artifact.Format} the host does not unpack: it is only available preinstalled in the headless image. Allow PATH for this server or set an executable override.");
+                await DownloadAsync(http, artifact.Server, new Uri(artifact.Url), artifact.Hosts, archive, token);
+                if (ManagedArtifacts.Hash(archive) != artifact.Sha256)
+                    throw new IOException($"{artifact.Server} download failed verification: SHA-256 does not match the pinned value. Nothing was installed.");
+                await ExtractAsync(archive, staging, artifact, token);
+            }
             await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Dictionary<string, string> { ["sha256"] = artifact.Sha256, ["url"] = artifact.Url }, HostJson.Default.DictionaryStringString), token);
             token.ThrowIfCancellationRequested();
             Directory.Move(staging, root);
@@ -202,6 +208,30 @@ internal static class ArtifactInstaller
         {
             if (File.Exists(archive)) File.Delete(archive);
             if (Directory.Exists(staging)) { MakeWritable(staging); Directory.Delete(staging, true); }
+        }
+    }
+
+    /// <summary>
+    /// The directory the headless image prepared for this artifact, or null. The image extracts just the members a server needs from a pinned archive too big to
+    /// download at run time into <c>preinstalled/&lt;server&gt;</c> beside the host, with a marker holding that archive's pinned SHA-256; the marker has to match this pin.
+    /// </summary>
+    private static string? Preinstalled(ManagedArtifact artifact)
+    {
+        var directory = Path.Combine(AppContext.BaseDirectory, "preinstalled", artifact.Server);
+        var marker = Path.Combine(directory, ".sharprail-artifact.json");
+        if (!File.Exists(marker)) return null;
+        try { return JsonSerializer.Deserialize(File.ReadAllText(marker), HostJson.Default.DictionaryStringString)?.GetValueOrDefault("sha256") == artifact.Sha256 ? directory : null; }
+        catch (Exception error) when (error is IOException or JsonException) { return null; }
+    }
+
+    private static void CopyPreinstalled(string source, string destination)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            if (new FileInfo(file).LinkTarget is not null) throw new IOException("A preinstalled artifact holds a symbolic link.");
+            if (Path.GetFileName(file) != ".sharprail-artifact.json") File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
         }
     }
 

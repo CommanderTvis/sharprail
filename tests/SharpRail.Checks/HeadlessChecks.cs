@@ -97,17 +97,24 @@ internal static partial class HeadlessChecks
         string Served(string platform, bool intellij = false) => string.Join(' ', HeadlessLanguages.Servers(HeadlessLanguages.Roster(declared, platform, intellij ? OptIn : null)).Select(spec => spec.Id).Order());
         Require(Served("linux-x86_64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-x86_64 changed: " + Served("linux-x86_64"));
         Require(Served("macos-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on macos-aarch64 changed: " + Served("macos-aarch64"));
-        // clangd publishes no linux-arm64 build, so the arm64 image leaves it out instead of failing at the first call.
-        Require(Served("linux-aarch64") == "csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
+        // clangd/clangd publishes no linux-arm64 build; the image provides LLVM's (see the Dockerfile), so every platform serves the same roster.
+        Require(Served("linux-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
 
         // IntelliJ is opt-in: not in the roster unless the environment names it, then served on every platform that pins its archive.
         Require(HeadlessLanguages.OptedIn(name => null).Count == 0 && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_PREFETCH" ? "intellij" : null).SequenceEqual(["lsp-intellij"])
             && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_ACCEPT_TERMS" ? "csharp, intellij:" + new string('a', 64) : null).SequenceEqual(["lsp-intellij"]) && HeadlessLanguages.OptedIn(name => "csharp").Count == 0, "The opt-in rule for IntelliJ is wrong.");
         Require(Served("linux-x86_64", true).Contains("intellij", StringComparison.Ordinal) && Served("linux-aarch64", true).Contains("intellij", StringComparison.Ordinal) && Served("macos-aarch64", true).Contains("intellij", StringComparison.Ordinal), "IntelliJ is missing when asked for.");
 
-        // The manifests are the source of truth: the only server a platform drops from the declared set is clangd on linux-aarch64.
-        Require(HeadlessLanguages.Left(declared, "linux-x86_64").Count == 0 && HeadlessLanguages.Left(declared, "macos-aarch64").Count == 0, "A manifest declares a language Headless = Yes that the pins cannot provision.");
-        Require(HeadlessLanguages.Left(declared, "linux-aarch64").Select(item => item.Spec.Id).SequenceEqual(["clangd"]), "The platform exceptions to the declared headless languages changed.");
+        // The manifests are the source of truth: no platform drops a language from the declared set.
+        Require(HeadlessLanguages.Left(declared, "linux-x86_64").Count == 0 && HeadlessLanguages.Left(declared, "macos-aarch64").Count == 0 && HeadlessLanguages.Left(declared, "linux-aarch64").Count == 0, "A manifest declares a language Headless = Yes that the pins cannot provision.");
+        // The arm64 clangd is built into the image, which must carry exactly the pin the host verifies.
+        var arm64 = BuiltinPlugins.Headless.Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().First(plugin => plugin.Spec.Id == "clangd").Spec.Artifacts.First(item => item.Platform == "linux-aarch64");
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "SharpRail.slnx"))) repository = repository.Parent;
+        Require(repository is not null, "The checks are not running from a SharpRail checkout.");
+        var dockerfile = File.ReadAllText(Path.Combine(repository!.FullName, "docker", "headless", "Dockerfile"));
+        Require(arm64.Format == "tar.zst" && dockerfile.Contains("ARG CLANGD_ARM64_URL=" + arm64.Url + "\n", StringComparison.Ordinal) && dockerfile.Contains("ARG CLANGD_ARM64_SHA256=" + arm64.Sha256 + "\n", StringComparison.Ordinal),
+            "The Dockerfile's arm64 clangd URL or SHA-256 differs from the pin in ClangdPlugin.");
         // Every language server that declares No still needs a toolchain without a pin, so flipping it requires the pin first.
         var desktop = BuiltinPlugins.Create(null).Where(plugin => plugin.Manifest.Headless == HeadlessSupport.No).Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().Where(plugin => plugin.Spec.Id != "intellij").ToArray();
         Require(desktop.Select(plugin => plugin.Spec.Id).Order().SequenceEqual(["dart", "go", "java", "powershell", "r", "ruby", "rust", "scala", "swift"]), "The language servers declared desktop-only changed: " + string.Join(", ", desktop.Select(plugin => plugin.Spec.Id)));

@@ -158,11 +158,13 @@ Headless serves the language servers whose runtime is a pinned, checksummed down
 | CSS, SCSS, Less | VS Code CSS server, on the pinned Bun | github.com (Bun), registry.npmjs.org |
 | Shell | bash-language-server, on the pinned Bun | github.com (Bun), registry.npmjs.org |
 | PHP | Intelephense, on the pinned Bun | github.com (Bun), registry.npmjs.org |
-| C, C++ | clangd, a self-contained archive (linux/amd64, macOS and Windows; no linux/arm64 archive is pinned: the official one is the 1.8 GB LLVM toolchain in tar.xz) | github.com |
+| C, C++ | clangd, a self-contained archive. On linux/arm64 clangd/clangd publishes no build, so the image carries clangd from LLVM 23.1.5 instead (see below); the other platforms get 23.1.0 | github.com (not needed on linux/arm64) |
 | Kotlin | JetBrains Kotlin LS, a self-contained archive | download.jetbrains.com |
 | Java, Kotlin | IntelliJ server by JetBrains, only when you ask for it with `SHARPRAIL_PREFETCH=intellij` (see below): a self-contained archive with its own Java runtime, about 380 MB | download.jetbrains.com |
 
-The first call of a language answers `initializing` while it downloads: the network must reach the hosts above (github.com, release-assets.githubusercontent.com, registry.npmjs.org and the others in the row). Later runs on the same cache need no network. The image size is unchanged.
+On linux/arm64 the pinned clangd is LLVM's `LLVM-23.1.5-Linux-ARM64.tar.zst`, a 1.1 GB toolchain archive that is too big to download on first use. The image build downloads it once, checks the pinned SHA-256, and keeps only `bin/clangd` and the builtin headers (`lib/clang/23/include`), about 124 MB. The host copies that into the cache on the first C or C++ call, so no network is needed for it.
+
+The first call of a language answers `initializing` while it downloads: the network must reach the hosts above (github.com, release-assets.githubusercontent.com, registry.npmjs.org and the others in the row). Later runs on the same cache need no network. The image grows only by the arm64 clangd.
 
 Not headless, because the server needs a toolchain that has no pinned download here and the machine would have to provide it:
 

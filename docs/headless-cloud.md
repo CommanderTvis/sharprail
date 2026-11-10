@@ -21,7 +21,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    download-cdn.jetbrains.com
    ```
 
-   `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub, and the Kotlin server from JetBrains. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
+   `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub (not on linux/arm64, where the image carries it), and the Kotlin server from JetBrains. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
 3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. The commit shown contains `scripts/headless-cloud-setup.sh`; use a newer one to get later fixes.
 
    ```bash

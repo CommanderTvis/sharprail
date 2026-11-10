@@ -56,7 +56,11 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
             ("linux-x86_64", "linux", "e53b1a96196095faedb7642cf64964f7fb9ad4a0c1f00dd2c172a3d9dcbafdfd"),
             ("windows-x86_64", "windows", "23412a240756a162e7b98a282f36aa2a23a88db5ce16a0cbc4fef7253768c810")
         }.Select(item => new LanguageServerArtifact(item.Item1, $"https://github.com/clangd/clangd/releases/download/23.1.0/clangd-{item.Item2}-23.1.0.zip", item.Item3, "zip",
-            "https://api.github.com/repos/clangd/clangd/releases/tags/23.1.0 (asset digest)", GitHub))
+            "https://api.github.com/repos/clangd/clangd/releases/tags/23.1.0 (asset digest)", GitHub)),
+        // clangd/clangd publishes no linux/arm64 build. LLVM's own release has one inside the 1.1 GB toolchain archive, too big to download at run time: the
+        // headless image (docker/headless/Dockerfile) verifies this pin at build time and keeps only bin/clangd and the builtin headers (lib/clang/23/include).
+        new LanguageServerArtifact("linux-aarch64", "https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.5/LLVM-23.1.5-Linux-ARM64.tar.zst",
+            "830ceb70edf63849ce66e97bf85310a3bf2bdd04c860a9f2fa4ef1560e290cef", "tar.zst", "https://api.github.com/repos/llvm/llvm-project/releases/tags/llvmorg-23.1.5 (asset digest, recomputed)", GitHub) { Version = "23.1.5" }
         ],
         OptionGroups = LanguageServerOptionGroups.CompilerFlags,
         AdditionalManifests = AdditionalManifests,

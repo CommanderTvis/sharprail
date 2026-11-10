@@ -30,10 +30,14 @@ public enum LanguageServerPinning
 /// <param name="Platform"><c>macos-aarch64</c>, <c>macos-x86_64</c>, <c>linux-aarch64</c>, <c>linux-x86_64</c>, <c>windows-aarch64</c>, <c>windows-x86_64</c>, or <c>any</c>.</param>
 /// <param name="Url">The HTTPS download URL.</param>
 /// <param name="Sha256">The pinned lowercase hex SHA-256 of the archive.</param>
-/// <param name="Format"><c>zip</c>, <c>tar.gz</c> or <c>gz</c> (a single gzipped executable).</param>
+/// <param name="Format"><c>zip</c>, <c>tar.gz</c> or <c>gz</c> (a single gzipped executable), or <c>tar.zst</c>: an archive the host does not unpack itself and the headless image provides, see <c>preinstalled</c> in the headless SPEC.</param>
 /// <param name="Source">Where the hash was obtained.</param>
 /// <param name="Hosts">The HTTPS hosts the download and its redirects may reach.</param>
-public sealed record LanguageServerArtifact(string Platform, string Url, string Sha256, string Format, string Source, IReadOnlyList<string> Hosts);
+public sealed record LanguageServerArtifact(string Platform, string Url, string Sha256, string Format, string Source, IReadOnlyList<string> Hosts)
+{
+    /// <summary>The version of this archive when it differs from the server's (the LLVM toolchain release for clangd on linux/arm64); empty means the server's version.</summary>
+    public string Version { get; init; } = "";
+}
 
 /// <summary>One NuGet package of a managed .NET tool with its pinned SHA-512 (lowercase hex of the catalog <c>packageHash</c>).</summary>
 /// <param name="Id">The package id.</param>
