@@ -96,6 +96,11 @@ public sealed partial class WorkbenchWindow
         Split();
         Grid.SetColumn(remoteBlock, 2);
         remoteBlock.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Split(); };
+        // Where there is no branch to show (Project Home, a folder that is not a repository) the segment's room stays, empty, so the
+        // blocks below it keep their place across every project.
+        var reserve = new Border { Name = "BranchReserve", Height = 34, IsVisible = !branch.IsVisible, IsHitTestVisible = false };
+        branch.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) reserve.IsVisible = !branch.IsVisible; };
+        header.Children.Add(reserve);
         header.Children.Add(branch);
 
         // The plugins' header items (the credits) take the same captioned block under the branch.
