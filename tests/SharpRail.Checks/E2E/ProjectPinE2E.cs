@@ -1,3 +1,5 @@
+using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
@@ -57,6 +59,21 @@ internal static class ProjectPinE2E
         Choose(second);
         Until(() => Rows(app).SequenceEqual(Expected(third, second)));
         Require(Marked(app).SequenceEqual([third, second]), "Exactly the pinned projects carry the pin marker, in pin order.");
+        foreach (var project in new[] { third, second })
+        {
+            var row = Controls(app).OfType<Grid>().Single(item => item.Name == "ProjectRow" && Equals(item.Tag, project));
+            var mark = row.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == "ProjectPinMark");
+            var label = row.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == "ProjectName");
+            var projectName = label.GetLogicalDescendants().OfType<TextBlock>().Last();
+            var markBox = mark.TranslatePoint(default, row)!.Value;
+            var nameBox = projectName.TranslatePoint(default, row)!.Value;
+            var trailingCluster = row.Children.OfType<Control>().Where(item => Grid.GetColumn(item) >= 3).ToArray();
+            Require(!trailingCluster.Any(item => item.GetLogicalDescendants().Contains(mark)) && markBox.X + mark.Bounds.Width <= nameBox.X,
+                "The pin mark sits before the project name, outside the trailing count and add cluster.");
+            Require(ToolTip.GetTip(mark) as string == "Pinned" && AutomationProperties.GetName(mark) == "Pinned", "The pin mark is tooltipped and named Pinned.");
+            Require(label.Bounds.Right <= row.Bounds.Width && trailingCluster.All(item => !item.IsEffectivelyVisible || item.Bounds.Width == 0 || item.Bounds.X >= label.Bounds.Right - 0.5),
+                "The name area never overlaps the trailing cluster.");
+        }
         Require(ActionIcons.Asset(ActionIcon.Pin) != ActionIcons.Asset(ActionIcon.Unpin), "Pin and Unpin are distinct registry icons.");
         var reread = new SharpRail.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath);
         Require(reread.Data.PinnedProjects.SequenceEqual([third, second]), "The pins are saved to the user profile in pin order.");

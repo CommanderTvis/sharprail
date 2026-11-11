@@ -132,7 +132,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   rebuilds. The chevron toggles it and keeps focus on the chevron.
 - Projects can be pinned from a project row's menu (right-click, the menu key or Shift+F10): the entry reads Pin, or
   Unpin for a pinned project. Pinned projects form the top group of the rail in the order they were pinned and show
-  a small pin mark; the rest keep the host's order below them, and unpinning returns a project to its place there. Pins
+  a small pin mark before the project name (never beside the trailing workspace count, whose tooltip says what it counts); the rest keep the host's order below them, and unpinning returns a project to its place there. Pins
   are per-user profile state on the client, like rail expansion, so they survive restarts.
 - Opening a project lands on its Project Home, never auto-entering a workspace. Selecting a project row goes
   to that project's home, deselecting the active workspace.

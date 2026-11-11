@@ -49,6 +49,7 @@ internal static class ProjectContextE2E
         var trailing = (Grid)count.Parent!;
         Require(count.Text == "1" && trailing.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AddWorkspace") is { } workspaceAdd &&
             Grid.GetColumn(count) < Grid.GetColumn((Control)workspaceAdd.Parent!), "A collapsed project shows its workspace count beside Add workspace.");
+        Require(ToolTip.GetTip(count) as string == "1 workspace", "The count's tooltip says it counts workspaces.");
         app.Click(Row(fixture).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ProjectExpand"));
         Until(() => WorktreePaths(app).Contains(workspace));
 

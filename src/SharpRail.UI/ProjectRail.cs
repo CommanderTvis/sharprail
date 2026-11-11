@@ -402,17 +402,18 @@ public sealed partial class WorkbenchWindow
         select.Click += (_, _) => _ = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)
             ? OpenProjectAsync(project) : OpenProjectHomeAsync(project);
         AutomationProperties.SetName(select, state.Current.ProjectName(project));
-        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
+        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,14,4,*") };
         var folder = Ui.Icon("folderFill", Ui.Muted, 14);
         var name = Ui.Text(state.Current.ProjectName(project), Ui.Muted);
         var countText = Ui.Text("", Ui.Hint, 12);
         countText.Name = "ProjectWorkspaceCount";
         countText.VerticalAlignment = VerticalAlignment.Center;
         Ui.Place(row, countText, 0, 3);
-        Ui.Place(projectLabel, folder); Ui.Place(projectLabel, name, 0, 2);
+        Ui.Place(projectLabel, folder, 0, 1); Ui.Place(projectLabel, name, 0, 3);
         var pinMark = ActionIcons.Create(ActionIcon.Pin, Ui.Hint, 12);
-        pinMark.Name = "ProjectPinMark"; pinMark.Margin = new Thickness(4, 0, 0, 0); pinMark.VerticalAlignment = VerticalAlignment.Center;
-        Ui.Place(projectLabel, pinMark, 0, 3);
+        pinMark.Name = "ProjectPinMark"; pinMark.Margin = new Thickness(0, 0, 4, 0); pinMark.VerticalAlignment = VerticalAlignment.Center;
+        ToolTip.SetTip(pinMark, "Pinned"); AutomationProperties.SetName(pinMark, "Pinned");
+        Ui.Place(projectLabel, pinMark);
         railSelection["project:" + project] = () =>
         {
             var plain = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees);
@@ -427,6 +428,7 @@ public sealed partial class WorkbenchWindow
             var count = RailWorkspaces(project).Count(tree => tree.Kind != WorkspaceKinds.Default);
             countText.Text = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             countText.IsVisible = folded && count > 0;
+            ToolTip.SetTip(countText, count == 1 ? "1 workspace" : $"{count} workspaces");
             pinMark.IsVisible = IsPinned(project);
             ToolTip.SetTip(toggle, folded ? "Expand project" : "Collapse project");
             workspaces.IsVisible = !folded && workspaces.Children.Any(child => child.IsVisible);
