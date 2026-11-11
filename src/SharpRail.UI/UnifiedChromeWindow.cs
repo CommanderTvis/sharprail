@@ -66,8 +66,7 @@ public sealed partial class WorkbenchWindow
 
         var project = this.FindControl<Border>("ProjectSegment")!;
         var branch = this.FindControl<Border>("BranchSegment")!;
-        var pullRequest = this.FindControl<Border>("PullRequestSegment")!;
-        foreach (var segment in new[] { project, branch, pullRequest })
+        foreach (var segment in new[] { project, branch })
         {
             ((Panel)segment.Parent!).Children.Remove(segment);
             segment.MaxWidth = double.PositiveInfinity;
@@ -98,7 +97,6 @@ public sealed partial class WorkbenchWindow
         Grid.SetColumn(remoteBlock, 2);
         remoteBlock.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Split(); };
         header.Children.Add(branch);
-        header.Children.Add(pullRequest);
 
         // The plugins' header items (the credits) take the same captioned block under the branch.
         var tools = this.FindControl<StackPanel>("HeaderTools")!;

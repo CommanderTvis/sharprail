@@ -33,6 +33,8 @@ internal static class StatusRefreshChecks
             ("not published", real with { HasOrigin = true, Published = false, Ahead = 0, Behind = 0 }),
             ("no remote", real with { HasOrigin = false, Published = false, Ahead = 0, Behind = 0 })
         };
+        Require(!app.Window.GetVisualDescendants().OfType<Control>().Any(control => control.Name?.StartsWith("PullRequest", StringComparison.Ordinal) == true),
+            "The status area carries no pull request segment or item.");
         var instances = Instances(app);
         var parts = app.Window.RemoteParts.ToArray();
         var baseline = Signature(app);

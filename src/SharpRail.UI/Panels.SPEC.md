@@ -595,7 +595,7 @@ description comes from the host's draft (branch name and commit subjects).
   that branch (the host's 60-second cache allowed), so startup never waits on the provider. Window activation with
   the panel built and every submit re-read it fresh. A lookup superseded by a newer one, by a submit's answer
   or by a branch switch is dropped; a failed lookup reads as no pull request.
-- A `PR #N` chip links out to the pull request's URL through the system browser.
+- A pull request line shows the branch's request in any state (`PR #N`, `Draft #N`, `Merged #N`, `Closed #N`) with its title, a checks glyph and the review verdict, edited in place; the chip links out to its URL through the system browser. It is absent until the lookup answers and when there is none, and the section grows downward only. Ready for review, Merge PR, Reopen and Delete remote branch sit beside the primary action.
 - Without a pull request the panel offers Open PR and Open draft PR. Either fetches the draft (a failure
   toasts “Couldn't prepare the PR”) and opens the compose dialog with editable Title and Description; only
   its submit pushes. The submit reports whether the title was touched, is disabled for a blank title and

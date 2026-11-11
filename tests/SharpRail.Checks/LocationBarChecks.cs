@@ -54,12 +54,12 @@ internal static class LocationBarChecks
     private static void Switchers(string directory)
     {
         using var app = OpenFixtureProject(directory);
-        Require(Shown(app, "ProjectSegment") && !Shown(app, "BranchSegment") && !Shown(app, "PullRequestSegment"),
+        Require(Shown(app, "ProjectSegment") && !Shown(app, "BranchSegment"),
             "Project Home shows the Project segment and no Branch segment.");
         Require(Label(app, "ProjectLabel") == "sample-project", "Project Home names the project.");
         var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["Project", "Branch", "Remote", "Pull request"]), "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
+        Require(captions.SequenceEqual(["Project", "Branch", "Remote"]), "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
         Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
         Require(new[] { "ProjectChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
@@ -121,10 +121,10 @@ internal static class LocationBarChecks
         Switch(app, app.Root);
         app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
-        // Upstream #771: Remote is present for a branch even without an origin; the provider's Pull request item hides itself on a plain remote (W28).
+        // Upstream #771: Remote is present for a branch even without an origin; the status area carries no pull request segment at all.
         Until(() => app.Find<Avalonia.Controls.DockPanel>("RemoteRow").Children.Count > 0);
         Require(app.Find<Avalonia.Controls.DockPanel>("RemoteRow").GetVisualAncestors().Contains(app.Find<Border>("BranchSegment")), "The sync state lives in the Branch segment.");
-        Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && !app.Find<Border>("PullRequestSegment").IsVisible &&
+        Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && app.Window.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "PullRequestSegment") &&
             !Buttons(app).Any(button => button.IsVisible && button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
             "Without an origin the header says so and offers no push.");
         var pill = app.Find<Button>("ScopeBranch");
@@ -192,8 +192,6 @@ internal static class LocationBarChecks
             ("ProjectSegment", app.Window.GetLogicalDescendants().OfType<Border>().First(border => border.Classes.Contains("location-initial"))),
             ("BranchSegment", app.Find<ContentControl>("BranchIcon"))
         };
-        if (app.Window.GetLogicalDescendants().OfType<ContentControl>().FirstOrDefault(control => control.Name == "PullRequestIcon") is { } prIcon)
-            fields.Add(("PullRequestSegment", prIcon));
         foreach (var (segmentName, icon) in fields)
         {
             var caption = app.Find<Border>(segmentName).GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("location-caption"));

@@ -84,11 +84,9 @@ public interface IRepoHostSurface
 }
 
 /// <summary>
-/// A repo hosting provider's UI (W28): its item in the location strip, right after Remote, and its section in the Review
-/// panel. Both exist only while the plugin is enabled; each control hides itself while it has nothing to show and follows
-/// <see cref="IRepoHostSurface.Changed"/>, never doing I/O on the UI thread.
+/// A repo hosting provider's UI (W28): its pull request section in the Review panel. It exists only while the plugin is enabled,
+/// hides itself while it has nothing to show and follows <see cref="IRepoHostSurface.Changed"/>, never doing I/O on the UI thread.
+/// The branch's pull request is shown only there, never in the header's status area.
 /// </summary>
-/// <param name="LocationItem">Creates the strip item's content for a window; a new control each time. It sits under the <paramref name="Caption"/>.</param>
-/// <param name="Caption">The small caption above the location item, such as <c>Pull request</c>.</param>
 /// <param name="ReviewSection">Creates the Review panel section for a window; a new control each time.</param>
-public sealed record RepoHostUIRegistration(string Caption, Func<IRepoHostSurface, Control> LocationItem, Func<IRepoHostSurface, Control> ReviewSection);
+public sealed record RepoHostUIRegistration(Func<IRepoHostSurface, Control> ReviewSection);

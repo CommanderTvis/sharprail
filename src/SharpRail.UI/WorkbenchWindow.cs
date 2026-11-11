@@ -292,15 +292,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
         if (settings.Parent is Panel trailing) trailing.Children.Insert(0, headerItems);
-        // The repo hosting plugin's item sits in the location strip after Remote (W28), whatever the workbench size.
-        void RepoHostUiChanged(SharpRail.UI.Plugins.PluginTables tables)
-        {
-            if ((tables & (SharpRail.UI.Plugins.PluginTables.RepoHostUis | SharpRail.UI.Plugins.PluginTables.Active | SharpRail.UI.Plugins.PluginTables.Roster)) == 0) return;
-            if (Dispatcher.UIThread.CheckAccess()) SyncRepoHostUi(); else Dispatcher.UIThread.Post(SyncRepoHostUi);
-        }
-        workbench.PluginRegistry.Changed += RepoHostUiChanged;
-        Closed += (_, _) => workbench.PluginRegistry.Changed -= RepoHostUiChanged;
-        SyncRepoHostUi();
         void SyncSettingsTip()
         {
             var chord = ActiveKeymap.Chords(SharpRail.Host.Abstractions.KeymapActions.Settings) is [var first, ..] ? $"Settings ({first.Display(ActiveKeymap.Platform)})" : "Settings";

@@ -16,9 +16,9 @@ using SharpRail.UI.State;
 namespace SharpRail.UI;
 
 /// <summary>
-/// The header's Remote segment (ThinkRail #771) and the place of a repo hosting plugin's item (W28): the segment turns the
+/// The header's Remote segment (ThinkRail #771): the segment turns the
 /// host's branch status into the branch's next step. The host owns the facts and every mutation; this only derives the
-/// action and runs it, binding it to the branch and commit it showed. A provider's pull request item and Review section
+/// action and runs it, binding it to the branch and commit it showed. A provider's pull request information and Review section
 /// are the plugin's.
 /// </summary>
 public sealed partial class WorkbenchWindow
@@ -199,30 +199,6 @@ public sealed partial class WorkbenchWindow
             if (!visible) return;
             Put(block, TextBlock.TextProperty, text); Put(block, TextBlock.ForegroundProperty, brush); Put(block, ToolTip.TipProperty, text);
         }
-    }
-
-    private PluginRow<RepoHostUIRegistration>? shownRepoHostUi;
-
-    /// <summary>Mounts the active repo hosting plugin's strip item in the segment after Remote, or empties it (W28).</summary>
-    private void SyncRepoHostUi()
-    {
-        var row = workbench.PluginRegistry.ActiveRepoHostUi();
-        if (ReferenceEquals(row, shownRepoHostUi)) return;
-        shownRepoHostUi = row;
-        var segment = this.FindControl<Border>("PullRequestSegment")!;
-        var grid = (Grid)segment.Child!;
-        var caption = (TextBlock)grid.Children[0];
-        while (grid.Children.Count > 1) grid.Children.RemoveAt(1);
-        if (row is null) { segment.IsVisible = false; return; }
-        caption.Text = row.Value.Caption;
-        Control? content = null;
-        var item = Mount(row.PluginId, () => content = row.Value.LocationItem(RepoHostSurface));
-        Grid.SetRow(item, 1);
-        grid.Children.Add(item);
-        // The plugin's control hides itself while it has nothing to show; the segment follows it.
-        segment.IsVisible = content?.IsVisible ?? false;
-        if (content is not null)
-            content.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty && ReferenceEquals(shownRepoHostUi, row)) segment.IsVisible = content.IsVisible; };
     }
 
     /// <summary>The Review panel's place for the repo hosting plugin's section; it follows the registry while shown (W28).</summary>

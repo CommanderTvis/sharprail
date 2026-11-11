@@ -238,8 +238,8 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
 - A header tops the rail. On macOS its first row is the title region the traffic lights sit over, at the native 40pt height, draggable
   and double-click zoomed by the system, with the add-project button at its right (the list has no caption row; the application menu holds About and Settings); in the browser there is no such row and the add-project button and the three-dots overflow button
   share the project's row. The overflow button opens the View menu, which a right-click on the header opens too (on a Mac only the right-click). Below it come the
-  Project switcher, the Branch block (the branch card, and beside it the Remote block with the sync state and its one action), the repo hosting
-  provider's Pull request item, the plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
+  Project switcher, the Branch block (the branch card, and beside it the Remote block with the sync state and its one action), the
+  plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
   A 1 px line in the border colour closes the header block, and the project list starts right below it.
   Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
 - The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About SharpRail; the right tool bar holds only the tools. The Mac menu's Settings gear is a thin outline drawn as a black-on-transparent template image, never a solid fill.
@@ -285,8 +285,10 @@ host state: it shows what the window already knows and calls the same methods as
   together turn the status into the branch's next step through one rule (`ShipActions`: the sync step first, the
   provider's after it). The sync state reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync (the
   shell-inert `git pull --rebase origin <branch>` to copy; never a force push). Pushing a branch that is its own
-  base asks first and names it. The Pull request item shows `PR #N`, `Draft #N`, `Merged #N` or `Closed #N` (opening the
-  pull request) with a checks glyph, or No PR / — ; its next step is Open PR and Draft (the Review panel's compose
+  base asks first and names it. The branch's pull request is not in the status area, whose size depends on nothing the repo
+  hosting plugin answers; the Review panel's pull request section shows `PR #N`, `Draft #N`, `Merged #N` or `Closed #N`
+  (opening the pull request in the system browser) with its title, a checks glyph and the review verdict, and nothing while the lookup
+  has not answered or finds none; its next step is Open PR and Draft (the Review panel's compose
   dialog), Ready for review, Merge PR (a dialog offering only the repository's methods and branch deletion,
   remembered per project in the profile), Reopen, or Delete remote branch. While the branch and origin differ the
   step stays with the sync state. Merge follows the provider's mergeability, never approvals. The status is read when the branch

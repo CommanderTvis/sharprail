@@ -490,7 +490,7 @@ Gitea or anything else is another plugin, with no host change.
   removed on teardown, the cache for its branches is dropped, and workspaces re-route (another provider may now
   recognize the remote). Nothing else cascades.
 
-W28 is the UI side: a provider's UI half contributes items to the location strip and its Review panel section
+W28 is the UI side: a provider's UI half contributes its Review panel section (the header's status area carries no pull request)
 (Plugin API W28, W23, W4).
 
 ## Language server refactoring hook (planned)

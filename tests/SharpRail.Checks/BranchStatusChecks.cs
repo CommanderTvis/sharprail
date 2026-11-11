@@ -71,7 +71,7 @@ internal static class BranchStatusChecks
         BranchStatus Status(bool origin = true, bool published = true, int ahead = 0, int behind = 0, bool onBase = false, PullRequest? details = null, string provider = "github") =>
             new("feature", origin, origin ? provider : "", published, ahead, behind, 1, onBase, "main", "abc", details);
         PullRequest Pr(string state = "open", bool draft = false, string checks = "passing", string merge = "clean") => new(7, "Title", "https://github.com/o/r/pull/7", state, draft, checks, "none", merge, ["squash"], true, 0, -1);
-        (string Remote, string PullRequest) Steps(BranchStatus status) => (WorkbenchWindow.RemoteAction(status), GitHubLocationItem.NextStep(NeutralOf(status)));
+        (string Remote, string PullRequest) Steps(BranchStatus status) => (WorkbenchWindow.RemoteAction(status), GitHubPrFlow.NextStep(NeutralOf(status)));
         Require(Steps(Status(origin: false)) == ("", ""), "No origin offers nothing to push.");
         Require(Steps(Status(published: false)) == ("publish", "open"), "An unpublished branch publishes and may open a PR.");
         Require(Steps(Status(ahead: 2, details: Pr())) == ("push", ""), "Ahead of origin: Push, and the PR waits.");
@@ -163,7 +163,7 @@ internal static class BranchStatusChecks
         var status = await host.GetBranchStatusAsync(false);
         Require(status?.Review is { Number: 7, State: "open", Draft: true, Checks: "pending", SameRepository: true } details && details.MergeMethods.SequenceEqual(["squash", "rebase"]),
             "Review details: " + status);
-        Require(GitHubLocationItem.NextStep(NeutralOf(status!)) == "ready", "A draft offers Ready for review.");
+        Require(GitHubPrFlow.NextStep(NeutralOf(status!)) == "ready", "A draft offers Ready for review.");
         Require((await host.ApplyBranchActionAsync(new("ready", "feature", head))).Outcome == "done" &&
             File.ReadAllText(Path.Combine(shim, "log")).Contains("pr ready 7", StringComparison.Ordinal), "Ready must call gh pr ready.");
         await File.WriteAllTextAsync(Path.Combine(shim, "details.json"), Details("OPEN", false, """[{"state":"FAILURE"}]""", "CLEAN"));

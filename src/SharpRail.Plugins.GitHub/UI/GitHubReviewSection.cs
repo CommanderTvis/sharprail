@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
 
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
@@ -12,14 +14,63 @@ namespace SharpRail.Plugins.GitHub.UI;
 internal sealed class GitHubReviewSection : StackPanel
 {
     private readonly IRepoHostSurface surface;
+    private readonly DispatcherTimer checksPoll = new() { Interval = TimeSpan.FromSeconds(20) };
+    // The branch's pull request line, edited in place: state, title, checks, review verdict and a link for any state.
+    private readonly StackPanel info = new() { Name = "ReviewPrInfo", Orientation = Orientation.Horizontal, Spacing = 8, IsVisible = false };
+    private readonly Button infoLink = new() { Name = "ReviewPrLink", Padding = new Thickness(8, 2), BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(4), Background = Ui.PrimarySubtle, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock infoTitle = Ui.Text("", Ui.TextBrush, 12);
+    private readonly TextBlock infoChecks = Ui.Text("", Ui.Muted, 12);
+    private readonly TextBlock infoVerdict = Ui.Text("", Ui.Muted, 12);
+    private string infoUrl = "";
 
     public GitHubReviewSection(IRepoHostSurface surface)
     {
         this.surface = surface;
         Name = "ReviewPullRequest";
         Spacing = 8;
+        infoTitle.Name = "ReviewPrTitle"; infoTitle.VerticalAlignment = VerticalAlignment.Center; infoTitle.TextTrimming = TextTrimming.CharacterEllipsis;
+        infoChecks.Name = "ReviewPrChecks"; infoChecks.VerticalAlignment = VerticalAlignment.Center;
+        infoVerdict.Name = "ReviewPrVerdict"; infoVerdict.VerticalAlignment = VerticalAlignment.Center;
+        infoLink.Click += (_, _) => surface.OpenLink(infoUrl);
+        info.Children.Add(infoLink); info.Children.Add(infoTitle); info.Children.Add(infoChecks); info.Children.Add(infoVerdict);
+        // While checks run the review is re-read every 20 seconds without a fetch.
+        checksPoll.Tick += (_, _) => { if (!surface.IsBusy) surface.RefreshStatus(false); };
         AttachedToVisualTree += (_, _) => { surface.Changed += StatusChanged; GitHubPrFlow.OnChanged(surface, Render); Render(); };
-        DetachedFromVisualTree += (_, _) => { surface.Changed -= StatusChanged; GitHubPrFlow.OnChanged(surface, () => { }); };
+        DetachedFromVisualTree += (_, _) => { surface.Changed -= StatusChanged; GitHubPrFlow.OnChanged(surface, () => { }); checksPoll.Stop(); };
+    }
+
+    // The open request's link is the chip beside the actions; the line carries the link for the other states.
+    private void RenderInfo(RepoPullRequest? request, bool chipShown)
+    {
+        info.IsVisible = request is not null;
+        if (request is null) { infoUrl = ""; return; }
+        infoUrl = request.Url;
+        infoLink.IsVisible = !chipShown;
+        var label = request switch
+        {
+            { State: "merged" } => "Merged #",
+            { State: "closed" } => "Closed #",
+            { Draft: true } => "Draft #",
+            _ => "PR #"
+        } + request.Number;
+        infoLink.Content = Ui.Text(label, Ui.Accent, 12);
+        ToolTip.SetTip(infoLink, request.Url);
+        AutomationProperties.SetName(infoLink, "Open pull request #" + request.Number + " in the browser");
+        infoTitle.Text = request.Title;
+        var open = request.State == "open";
+        var (glyph, brush, tip) = !open ? ("", Ui.Muted, "") : request.Checks switch
+        {
+            "failing" => ("✗", Ui.Danger, "Checks failing"),
+            "pending" => ("●", Ui.Warning, "Checks running"),
+            "passing" => ("✓", Ui.Success, "Checks passing"),
+            _ => ("", Ui.Muted, "")
+        };
+        infoChecks.IsVisible = glyph.Length > 0;
+        infoChecks.Text = glyph; infoChecks.Foreground = brush;
+        ToolTip.SetTip(infoChecks, tip); AutomationProperties.SetName(infoChecks, tip);
+        var verdict = !open ? "" : request.Review switch { "approved" => "approved", "changes-requested" => "changes requested", "required" => "review required", _ => "" };
+        infoVerdict.IsVisible = verdict.Length > 0;
+        infoVerdict.Text = verdict;
     }
 
     private void StatusChanged()
@@ -33,7 +84,11 @@ internal sealed class GitHubReviewSection : StackPanel
         Children.Clear();
         var status = surface.Status;
         IsVisible = status is { Provider: GitHubUI.Provider };
+        var running = status?.Review is { State: "open", Checks: "pending" };
+        if (!running) checksPoll.Stop(); else if (!checksPoll.IsEnabled) checksPoll.Start();
         if (status is null || !IsVisible) return;
+        RenderInfo(status.Review, GitHubPrFlow.ReviewOf(surface) is not null);
+        Children.Add(info);
         var busy = GitHubPrFlow.IsBusy(surface);
         var review = GitHubPrFlow.ReviewOf(surface);
         var diverged = review is { Behind: > 0 };
@@ -82,6 +137,13 @@ internal sealed class GitHubReviewSection : StackPanel
             draft.Name = "ReviewOpenDraftPr"; draft.IsEnabled = !busy;
             row.Children.Add(draft);
         }
+        switch (GitHubPrFlow.NextStep(status))
+        {
+            case "ready": row.Children.Add(StepButton("ReviewPrReady", "Ready for review", () => _ = surface.ApplyAsync(new("ready", status.Branch, status.Head)))); break;
+            case "merge": row.Children.Add(StepButton("ReviewPrMerge", "Merge PR", () => _ = GitHubPrFlow.MergeAsync(surface, status))); break;
+            case "reopen": row.Children.Add(StepButton("ReviewPrReopen", "Reopen", () => _ = surface.ApplyAsync(new("reopen", status.Branch, status.Head)))); break;
+            case "delete-remote": row.Children.Add(StepButton("ReviewPrDeleteBranch", "Delete remote branch", () => _ = GitHubPrFlow.DeleteRemoteBranchAsync(surface, status))); break;
+        }
         Children.Add(row);
         if (diverged)
         {
@@ -103,6 +165,13 @@ internal sealed class GitHubReviewSection : StackPanel
             notice.Name = "ReviewPrNotice"; notice.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
             Children.Add(notice);
         }
+    }
+
+    private Button StepButton(string name, string label, Action action)
+    {
+        var button = Ui.Button(label, action);
+        button.Name = name; button.IsEnabled = !surface.IsBusy && !GitHubPrFlow.IsBusy(surface);
+        return button;
     }
 
     private static bool Inert(string branch) => System.Text.RegularExpressions.Regex.IsMatch(branch, @"^[A-Za-z0-9][A-Za-z0-9._/-]*$");

@@ -30,4 +30,4 @@ example GitHub); this plugin only gives it a place, through the plugin context's
 There is no Review tab, pane, reveal-menu entry or catalog entry, and the preset named Review seats its other tools
 only. A saved layout that names the tool restores without it and keeps its slot, so enabling the plugin again brings
 the tool back where it was. A layout saved before this plugin existed, naming the old core tool, reads as the plugin's.
-Pull request actions elsewhere (the location strip, Open PR) are untouched.
+Pull request actions elsewhere (Open PR) are untouched.

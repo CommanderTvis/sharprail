@@ -23,8 +23,8 @@ Plugin API H24 and W28). It owns everything that is GitHub and not git:
   `SHARPRAIL_GH_OFFLINE=1` makes every lookup and mutation report unavailable.
 - The mapping from GitHub's values to the provider-neutral `PullRequest` (below), including GitHub's merge state and
   status-check rollup.
-- Its UI: the Pull request segment and next-step button of the location strip, the pull request section of the
-  Review panel (compose, push updates, merge dialog, setup guidance), the compare-link fallback, and the Settings
+- Its UI: the pull request section of the
+  Review panel (state, title, checks and link of the branch's pull request, its next-step button, compose, push updates, merge dialog, setup guidance), the compare-link fallback, and the Settings
   page `GitHub` (sign-in status from `gh auth status`, Refresh). Wording stays "PR".
 
 It does not run `git`: pushes, fetches, ahead/behind and the remote branch stay in the host.
@@ -94,11 +94,10 @@ GitHub remote is simply a remote.
 ## Implementation status
 
 Implemented in strangler slices (host seam, plugin projects, UI half, wire): `GitHubProvider` runs every `gh` call through
-the host's bounded runner; the Pull request item and the Review section are one W28 registration (`RepoHostUI`, over the
+the host's bounded runner; the Review section is the W28 registration (`RepoHostUI`, over the
 window's `IRepoHostSurface`; the section is not a W23 slot because it needs the window surface); the Settings page is a W4
 section reading sign-in through the plugin's `signIn` method when shown and every 30 s; the wire is protocol 15 (neutral
-`PullRequest` in field 14, provider = plugin id). Category is Version Control. A compact (phone) workbench builds the same location
-strip, so the item shows there. Checks: `--github` (provider, cache, failures, plugin off = plain remote), `--branch-status`, `--review`,
+`PullRequest` in field 14, provider = plugin id). Category is Version Control. Checks: `--github` (provider, cache, failures, plugin off = plain remote), `--branch-status`, `--review`,
 `--settings`, `--shell`. Open: the merge dialog's remembered choice still lives in the UI profile (`MergePreferences`,
 `method|delete` or `method|keep`) behind the surface rather than in plugin state (H14); the Settings page does not follow a host
 broadcast; no `--plugins` case switches the plugin off through the registry.

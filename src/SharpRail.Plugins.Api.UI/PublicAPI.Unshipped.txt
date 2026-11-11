@@ -934,13 +934,9 @@ SharpRail.Plugins.Api.UI.RepoBranchStatus.Published.init -> void
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Review.init -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoHostUIRegistration!
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Caption.get -> string!
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Caption.init -> void
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Deconstruct(out string! Caption, out System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! LocationItem, out System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! ReviewSection) -> void
+SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Deconstruct(out System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! ReviewSection) -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Equals(SharpRail.Plugins.Api.UI.RepoHostUIRegistration? other) -> bool
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.LocationItem.get -> System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>!
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.LocationItem.init -> void
-SharpRail.Plugins.Api.UI.RepoHostUIRegistration.RepoHostUIRegistration(string! Caption, System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! LocationItem, System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! ReviewSection) -> void
+SharpRail.Plugins.Api.UI.RepoHostUIRegistration.RepoHostUIRegistration(System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! ReviewSection) -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.ReviewSection.get -> System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>!
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.ReviewSection.init -> void
 SharpRail.Plugins.Api.UI.RepoPrDraft

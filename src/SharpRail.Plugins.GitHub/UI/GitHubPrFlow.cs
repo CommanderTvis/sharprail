@@ -2,7 +2,7 @@ using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.Plugins.GitHub.UI;
 
-/// <summary>The pull request flows both the strip item and the Review section start: compose and open, merge, delete the remote branch.</summary>
+/// <summary>The pull request flows the Review section starts: compose and open, merge, delete the remote branch.</summary>
 internal static class GitHubPrFlow
 {
     /// <summary>The last composed request per surface, so Try again resubmits the edited text, never a regenerated draft.</summary>
@@ -14,6 +14,22 @@ internal static class GitHubPrFlow
         public RepoPrRequest? LastSubmit;
         public RepoPullRequest? Optimistic;
         public Action? Changed;
+    }
+
+    /// <summary>The branch's one next step from a status, as an action name; one pure rule for the Review section and checks.</summary>
+    internal static string NextStep(RepoBranchStatus status)
+    {
+        if (status.Provider != GitHubUI.Provider || status.OnBase) return "";
+        var remote = !status.Published ? "publish" : status.Behind > 0 ? "sync" : status.Ahead > 0 ? "push" : "";
+        var request = status.Review;
+        if (request is null) return "open";
+        if (request.State is not ("open" or "merged" or "closed")) return "";
+        if (request.State == "merged") return status.Published ? "delete-remote" : "";
+        if (request.State == "closed") return "reopen";
+        // While the branch and origin differ, the next step stays with Remote's Push or Sync.
+        if (remote.Length > 0) return "";
+        if (request.Draft) return "ready";
+        return request.Checks != "failing" && request.Mergeability == "clean" && request.MergeMethods.Count > 0 ? "merge" : "";
     }
 
     internal static bool IsBusy(IRepoHostSurface surface) => States.GetOrCreateValue(surface).Busy;

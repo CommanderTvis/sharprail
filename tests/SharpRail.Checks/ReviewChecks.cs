@@ -198,5 +198,40 @@ internal static class ReviewChecks
         Until(() => Toasted(app, "Command copied") || Toasted(app, "Copy failed"));
         Require(!Open(app, "PrComposeDialog") && Git(bare, "rev-parse", "refs/heads/feature") == origin, "A diverged branch must not be pushed.");
         Console.WriteLine("PASS Review treats a diverged branch as a sync conflict with a copyable integrate command");
+
+        // The pull request line (moved here from the status area) follows the answer in place: title and checks edit the same
+        // controls, a merged request keeps a link, and no answer means no line.
+        void Ask(Func<bool> done)
+        {
+            var asked = System.Diagnostics.Stopwatch.StartNew();
+            app.Window.RefreshBranchStatus();
+            Until(() =>
+            {
+                if (done()) return true;
+                if (asked.Elapsed > TimeSpan.FromSeconds(3)) { asked.Restart(); app.Window.RefreshBranchStatus(); }
+                return false;
+            });
+        }
+        bool InfoShown() => Maybe<StackPanel>(app, "ReviewPrInfo") is { IsVisible: true };
+        app.Host.Review = review => review is null ? null : review with { Title = "Feature title" };
+        Ask(() => InfoShown() && Maybe<TextBlock>(app, "ReviewPrTitle")!.Text == "Feature title");
+        var titleBlock = Maybe<TextBlock>(app, "ReviewPrTitle")!;
+        app.Host.Review = review => review is null ? null : review with { Title = "Retitled", Checks = "failing" };
+        Ask(() => titleBlock.Text == "Retitled");
+        Require(ReferenceEquals(titleBlock, Maybe<TextBlock>(app, "ReviewPrTitle")) && Maybe<TextBlock>(app, "ReviewPrChecks") is { IsVisible: true, Text: "✗" },
+            "A new title and checks result must edit the line's controls in place.");
+        Require(!Maybe<Button>(app, "ReviewPrLink")!.IsVisible, "An open request's link is the chip beside the actions, not a second one.");
+        app.Host.Review = review => review is null ? null : review with { State = "merged", Title = "Retitled" };
+        Ask(() => Maybe<Button>(app, "ReviewPrLink") is { IsVisible: true });
+        links.Clear();
+        app.Click(Maybe<Button>(app, "ReviewPrLink")!);
+        Until(() => links.Count > 0);
+        Require(Text(Maybe<Button>(app, "ReviewPrLink")!) == "Merged #7" && links.SequenceEqual(["https://github.com/o/r/pull/7"]) && !Maybe<TextBlock>(app, "ReviewPrChecks")!.IsVisible,
+            "A merged request shows its state and opens in the system browser, without checks.");
+        app.Host.Review = _ => null;
+        Ask(() => !InfoShown());
+        Require(!InfoShown(), "Without a pull request the line is absent.");
+        app.Host.Review = null;
+        Console.WriteLine("PASS Review shows the pull request's state, title and checks in place, with a link, and nothing without one");
     }
 }
