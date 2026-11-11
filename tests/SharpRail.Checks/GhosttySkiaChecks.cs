@@ -280,11 +280,17 @@ internal static class GhosttySkiaChecks
         try
         {
             const string line = "see " + url + " and " + path;
-            int[] expected = [.. Enumerable.Range(4, url.Length), .. Enumerable.Range(line.Length - path.Length, path.Length)];
+            var below = 2 * view.Size.Columns; // the two failed commands above take the first rows
+            int[] expected = [.. Enumerable.Range(below + 4, url.Length), .. Enumerable.Range(below + line.Length - path.Length, path.Length)];
             Until(() => view.Frames > 0, "first frame");
             Pump(); Pump();
+            // Two failed commands show two badges; they must stay drawn in every frame, held ones included.
+            const string failed = "\e]133;A\a$ \e]133;B\afalse\r\n\e]133;C\a\e]133;D;1\a";
+            view.Write(Encoding.UTF8.GetBytes(failed + failed));
+            Until(() => view.FailedCommandRows.Count == 2 && view.BadgesDrawn == 2, "two failed-command badges");
             var frames = view.Frames;
             view.Write(Encoding.UTF8.GetBytes("\e[?25l" + line + "\r\n")); Pump(); Pump();
+            Require(view.BadgesDrawn == 2, $"the failed-command badges vanished from a held frame ({view.BadgesDrawn} drawn).");
             Require(view.Frames == frames && view.HeldFrames > 0, $"a frame showed a new link line before its underlines resolved (frames {frames} to {view.Frames}, held {view.HeldFrames}).");
             gate.SetResult();
             Until(() => view.Frames > frames, "the link line presented once resolved");

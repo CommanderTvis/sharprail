@@ -36,6 +36,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     internal int RowsRecorded { get; private set; }
     /// <summary>Renders that kept the previous rows while new lines' underlines resolved, for checks.</summary>
     internal int HeldFrames { get; private set; }
+    /// <summary>Failed-command badges the latest render drew, for checks.</summary>
+    internal int BadgesDrawn { get; private set; }
     internal bool IsGpuBacked => framebuffer.IsGpuBacked;
     private bool stale = true, snapshotNeeded = true, cursorOn = true, disposed;
     private Frame last;
@@ -164,6 +166,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     public void SelectAll() { vt.SelectAll(); Redraw(); }
 
     private int[] failedRows = [];
+    // The failed rows of the rows last presented: a held frame shows the old rows, so it shows their badges.
+    private int[] presentedFailed = [];
 
     /// <summary>Viewport rows whose command exited non-zero (OSC 133 D), badged in the left padding.</summary>
     public IReadOnlyList<int> FailedCommandRows => failedRows;
@@ -265,6 +269,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     public override void Render(DrawingContext context)
     {
+        BadgesDrawn = 0;
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         var cells = Fonts();
         if (stale || rowLayout != (cells, colors, Bounds.Size, Padding))
@@ -280,6 +285,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
                 last = frame;
                 HeldFrames++;
                 context.Custom(new RowOperation(new Rect(Bounds.Size), rows, framebuffer, fontKey.Scale));
+                DrawFailedBadges(context, cells);
                 return;
             }
             rowLayout = (cells, colors, Bounds.Size, Padding);
@@ -304,18 +310,24 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
                 RowsRecorded++;
             }
             last = frame;
+            presentedFailed = failedRows;
             snapshotNeeded = false;
             stale = false;
             Frames++;
         }
         context.Custom(new RowOperation(new Rect(Bounds.Size), rows, framebuffer, fontKey.Scale));
-        // Failed-command badges in the left padding, beside the command line of each command that exited non-zero.
-        if (failedRows.Length > 0)
-        {
-            var brush = new SolidColorBrush(colors.Ansi.Count > 1 ? colors.Ansi[1] : global::Avalonia.Media.Colors.IndianRed);
-            foreach (var row in failedRows)
-                context.FillRectangle(brush, new Rect(0, Padding.Top + (row + 0.15) * cells.CellHeight, Math.Min(3, Math.Max(1, Padding.Left - 1)), cells.CellHeight * 0.7), 1);
-        }
+        DrawFailedBadges(context, cells);
+    }
+
+    // Failed-command badges in the left padding, beside the command line of each command that exited non-zero.
+    // Every presented frame draws them, held ones included, or they would vanish while underlines resolve.
+    private void DrawFailedBadges(DrawingContext context, CellFonts cells)
+    {
+        BadgesDrawn = presentedFailed.Length;
+        if (presentedFailed.Length == 0) return;
+        var brush = new SolidColorBrush(colors.Ansi.Count > 1 ? colors.Ansi[1] : global::Avalonia.Media.Colors.IndianRed);
+        foreach (var row in presentedFailed)
+            context.FillRectangle(brush, new Rect(0, Padding.Top + (row + 0.15) * cells.CellHeight, Math.Min(3, Math.Max(1, Padding.Left - 1)), cells.CellHeight * 0.7), 1);
     }
 
     private void UpdateBlink(Frame frame)
