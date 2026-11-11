@@ -33,11 +33,30 @@ internal static class LanguageDependencyChecks
         Environment.SetEnvironmentVariable("PATH", bin); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
         try
         {
+            Links();
             Host(root, workspace, bin);
             Ui(root, workspace);
             Settings(root, bin, savedPath);
         }
         finally { Environment.SetEnvironmentVariable("PATH", savedPath); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>URLs in hint text are links to the right target, the words around them stay plain, and trailing punctuation is left out.</summary>
+    private static void Links()
+    {
+        var text = new SharpRail.Plugins.UI.Kit.LinkedTextBlock { Source = "Install PowerShell 7 from https://aka.ms/powershell or your package manager." };
+        var links = text.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Select(inline => (Control)inline.Child!).ToArray();
+        Require(links.Length == 1 && Avalonia.Automation.AutomationProperties.GetName(links[0]) == "https://aka.ms/powershell", "The hint's URL did not become one link named by the URL.");
+        Require(text.Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text).SequenceEqual(["Install PowerShell 7 from ", " or your package manager."]), "The words around the link were not plain text.");
+        Uri? opened = null;
+        text.LinkClicked += (_, e) => opened = e.Url;
+        links[0].RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, Source = links[0] });
+        Require(opened?.AbsoluteUri == "https://aka.ms/powershell" && links[0].Focusable && links[0].Cursor is not null, "Clicking the link did not raise it with the right target, focusable with a pointer cursor.");
+        static string[] Urls(string value) => SharpRail.Plugins.UI.Kit.LinkedTextBlock.Split(value).Where(part => part.Url is not null).Select(part => part.Text).ToArray();
+        Require(Urls("See https://a.example/x. Then (https://b.example/y), or https://c.example/z?q=(1).").SequenceEqual(["https://a.example/x", "https://b.example/y", "https://c.example/z?q=(1)"]),
+            "Trailing punctuation became part of a link, or two URLs in one hint were not both found.");
+        Require(Urls("no links here, not even http or xhttps://x").Length == 0 && new SharpRail.Plugins.UI.Kit.LinkedTextBlock { Source = "Needs Go" }.Text == "Needs Go", "Plain text was changed.");
+        Console.WriteLine("PASS URLs in hints are links with the right target, plain words around them, and no trailing punctuation");
     }
 
     private static LanguageServerState Row(HostStateStore state, string workspace, string id) =>
@@ -170,6 +189,18 @@ internal static class LanguageDependencyChecks
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Content?.ToString() == "Allow this server to start"), "The per-server allow checkbox came back.");
             Console.WriteLine("PASS Settings shows Needs Go with the rail marker before any start, and nothing for a server without dependencies");
             Select("go");
+            var launched = new List<Uri>();
+            var launcher = SharpRail.UI.Panels.LanguageProviderLinks.Launch;
+            SharpRail.UI.Panels.LanguageProviderLinks.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
+            try
+            {
+                E2E.E2eWorkspace.Until(() => Shows("Needs Go"), "The Go row was not shown.");
+                var hint = settings.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.LinkedTextBlock>().Single(block => block.Name == "DependencyHint" && block.IsEffectivelyVisible);
+                var link = hint.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Single().Child!;
+                link.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, Source = link });
+                Require(launched.Select(uri => uri.AbsoluteUri).SequenceEqual(["https://go.dev/dl/"]), "The Go hint's URL did not open through the app's launcher.");
+            }
+            finally { SharpRail.UI.Panels.LanguageProviderLinks.Launch = launcher; }
             var servers = pane.FindControl<ListBox>("Servers")!;
             bool PaneNeeds() => Enumerable.Range(0, servers.ItemCount).Any(index => servers.Items[index]?.ToString() == "Go (gopls)" && servers.ContainerFromIndex(index) is ListBoxItem row
                 && row.GetLogicalDescendants().OfType<TextBlock>().Any(block => block.Name == "ServerNeeds" && block.IsEffectivelyVisible));

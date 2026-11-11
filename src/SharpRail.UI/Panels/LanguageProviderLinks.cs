@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
+using SharpRail.Plugins.UI.Kit;
+
 namespace SharpRail.UI.Panels;
 
 internal static class LanguageProviderLinks
@@ -24,6 +26,13 @@ internal static class LanguageProviderLinks
 
     /// <summary>Opens a link through the window's launcher: every link button and the Help menu's Report an Issue… go through it.</summary>
     internal static Func<TopLevel, Uri, Task> Launch { get; set; } = (top, uri) => top.Launcher.LaunchUriAsync(uri);
+
+    /// <summary>Opens a link activated inside a <see cref="LinkedTextBlock"/> through the same launcher.</summary>
+    internal static async void OnLinkClicked(object? sender, LinkClickedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Control control && TopLevel.GetTopLevel(control) is { } top) await Launch(top, e.Url);
+    }
 
     internal static async void Open(object? sender, RoutedEventArgs e)
     {

@@ -136,6 +136,7 @@ internal sealed partial class LanguagePanel : UserControl
     {
         this.host = host; this.workspace = workspace; this.navigate = navigate; this.state = state;
         AvaloniaXamlLoader.Load(this);
+        AddHandler(global::SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent, LanguageProviderLinks.OnLinkClicked);
         Name = "LspPanel";
         Log.Info("pane.created", ("workspace", workspace));
         this.FindControl<Button>("RetryRead")!.Click += (_, _) => { Log.Info("pane.retry-clicked", ("workspace", this.workspace)); ShowRetry(false); RefreshNow(); };

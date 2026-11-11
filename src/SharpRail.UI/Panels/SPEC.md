@@ -346,7 +346,7 @@ Settings › Code Intelligence shows the selected server's tools in a System dep
 the same control and actions; servers without declared tools show no section, and a server whose required tool is
 missing carries a small red marker in the left list. The page re-reads the catalog (which carries the probe) when
 `LanguageTools` or `LanguageServers` changes, so a path set in either place, or by another client, updates both.
-`--lsp-dependencies` asserts the pane and the page.
+`--lsp-dependencies` asserts the pane and the page. An http(s) URL in an install hint or a server's detail is a link (`LinkedTextBlock`, trailing punctuation excluded) that opens through the same launcher as the other links, so on a remote host or the web client it opens on the client machine; Copy install hint still copies the plain text.
 
 Every host call of the pane is bounded (20 s to read or stop, 120 s to start): a call that never answers or throws leaves the status line with the reason and a Retry button, and the request slot is released, so a later refresh is never swallowed by a dead one. A workspace switch makes the retained panes inert while it runs and the Code Intelligence pane is made clickable and scrollable again when the switch settles or fails; it was previously restored by nobody, which left the pane frozen after any switch. `--lsp-narrow` asserts the timeout, the throwing call, the bounded log and the lag watchdog.
 

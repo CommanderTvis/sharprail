@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.UI.Panels;
 
@@ -72,6 +73,7 @@ internal sealed partial class LanguageDependencyList : UserControl
     public LanguageDependencyList()
     {
         AvaloniaXamlLoader.Load(this);
+        AddHandler(LinkedTextBlock.LinkClickedEvent, LanguageProviderLinks.OnLinkClicked);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

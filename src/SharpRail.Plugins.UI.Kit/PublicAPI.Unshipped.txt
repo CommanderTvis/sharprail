@@ -673,3 +673,16 @@ static SharpRail.Plugins.UI.Kit.Units.Seconds(long seconds) -> string!
 static SharpRail.Plugins.UI.Kit.Units.Size(long bytes) -> string!
 static readonly SharpRail.Plugins.UI.Kit.Ui.ChipFill -> Avalonia.Media.SolidColorBrush!
 static SharpRail.Plugins.UI.Kit.Ui.Blend(Avalonia.Media.Color from, Avalonia.Media.Color toward, int percent) -> Avalonia.Media.Color
+override SharpRail.Plugins.UI.Kit.LinkedTextBlock.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override SharpRail.Plugins.UI.Kit.LinkedTextBlock.StyleKeyOverride.get -> System.Type!
+SharpRail.Plugins.UI.Kit.LinkClickedEventArgs
+SharpRail.Plugins.UI.Kit.LinkClickedEventArgs.LinkClickedEventArgs(System.Uri! url) -> void
+SharpRail.Plugins.UI.Kit.LinkClickedEventArgs.Url.get -> System.Uri!
+SharpRail.Plugins.UI.Kit.LinkedTextBlock
+SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClicked -> System.EventHandler<SharpRail.Plugins.UI.Kit.LinkClickedEventArgs!>?
+SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkedTextBlock() -> void
+SharpRail.Plugins.UI.Kit.LinkedTextBlock.Source.get -> string?
+SharpRail.Plugins.UI.Kit.LinkedTextBlock.Source.set -> void
+static readonly SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent -> Avalonia.Interactivity.RoutedEvent<SharpRail.Plugins.UI.Kit.LinkClickedEventArgs!>!
+static readonly SharpRail.Plugins.UI.Kit.LinkedTextBlock.SourceProperty -> Avalonia.StyledProperty<string?>!
+static SharpRail.Plugins.UI.Kit.LinkedTextBlock.Split(string? text) -> System.Collections.Generic.IReadOnlyList<(string! Text, System.Uri? Url)>!

@@ -36,7 +36,7 @@
           </Border>
           <StackPanel Grid.Column="1" Spacing="8" Margin="16,0,0,0">
             <TextBlock x:Name="LspServerHeading" Classes="settings-heading verbatim" />
-            <TextBlock x:Name="LspImplementation" TextWrapping="Wrap" />
+            <rendering:LinkedTextBlock x:Name="LspImplementation" TextWrapping="Wrap" />
             <TextBlock x:Name="LspVersion" Classes="settings-description" />
             <StackPanel x:Name="LspTermsSection" Spacing="4" IsVisible="False">
               <TextBlock Text="License terms" Classes="settings-label" />

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.UI.Panels;
 
@@ -34,6 +35,7 @@ public sealed partial class SettingsView
         var defaultArguments = PageControl<CheckBox>(panel, "LspDefaultArguments");
         var arguments = PageControl<TextBox>(panel, "LspArguments");
         var message = PageControl<TextBlock>(panel, "LspMessage");
+        PageControl<LinkedTextBlock>(panel, "LspImplementation").LinkClicked += LanguageProviderLinks.OnLinkClicked;
         var save = PageControl<Button>(panel, "LspSave");
         var termsSection = PageControl<StackPanel>(panel, "LspTermsSection");
         var termsStatus = PageControl<TextBlock>(panel, "LspTermsStatus");
@@ -92,7 +94,7 @@ public sealed partial class SettingsView
             var server = catalog.First(server => server.Id == id);
             dependencies.Dependencies = server.Dependencies;
             dependencySection.IsVisible = server.Dependencies is { Count: > 0 };
-            PageControl<TextBlock>(panel, "LspImplementation").Text = server.Detail.Length > 0 ? server.Detail : id;
+            PageControl<LinkedTextBlock>(panel, "LspImplementation").Source = server.Detail.Length > 0 ? server.Detail : id;
             PageControl<TextBlock>(panel, "LspVersion").Text = server.Version == "toolchain"
                 ? "Version: supplied by the host SDK" : "Pinned managed version: " + server.Version;
             message.Text = "";
