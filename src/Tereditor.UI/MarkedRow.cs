@@ -59,6 +59,14 @@ internal sealed class MarkedRow : Panel
         return new Size(double.IsInfinity(available.Width) ? width : Math.Min(width, available.Width), Math.Max(height, Math.Max(block, markHeight)));
     }
 
+    /// <summary>The height of a title's first line including its top padding: indicators centre on it, however many lines follow.</summary>
+    private static double FirstLineHeight(Control title)
+    {
+        if (title is not TextBlock text) return title.DesiredSize.Height;
+        var line = text.LineHeight > 0 ? text.LineHeight : text.TextLayout.TextLines.FirstOrDefault()?.Height ?? text.DesiredSize.Height;
+        return text.Padding.Top + line;
+    }
+
     protected override Size ArrangeOverride(Size final)
     {
         foreach (var leading in Of(RowRole.Leading)) leading.Arrange(new Rect(0, 0, LeadingWidth, final.Height));
@@ -68,6 +76,7 @@ internal sealed class MarkedRow : Panel
         var block = titles.Concat(belows).Sum(child => child.DesiredSize.Height);
         var y = (final.Height - block) / 2;
         var titleWidth = 0.0;
+        var markCentre = titles.Length > 0 ? y + FirstLineHeight(titles[0]) / 2 : final.Height / 2;
         foreach (var title in titles)
         {
             titleWidth = Math.Min(title.DesiredSize.Width, Math.Max(0, inner - MarksWidth()));
@@ -84,7 +93,7 @@ internal sealed class MarkedRow : Panel
         {
             if (!mark.IsVisible) { mark.Arrange(default); continue; }
             x += Gap;
-            mark.Arrange(new Rect(x, (final.Height - mark.DesiredSize.Height) / 2, mark.DesiredSize.Width, mark.DesiredSize.Height));
+            mark.Arrange(new Rect(x, markCentre - mark.DesiredSize.Height / 2, mark.DesiredSize.Width, mark.DesiredSize.Height));
             x += mark.DesiredSize.Width;
         }
         return final;
