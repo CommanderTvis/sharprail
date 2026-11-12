@@ -118,7 +118,24 @@ internal static class RailGroupingE2E
         var marked = tabRow.GetVisualDescendants().OfType<MarkedRow>().First();
         var icon = marked.Children.First(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading);
         if (!guide.IsEffectivelyVisible || guide.TranslatePoint(new Point(guide.Bounds.Width / 2, 0), icon) is not { } at) return false;
-        return Math.Abs(at.X - icon.Bounds.Width / 2) <= 0.5;
+        return Math.Abs(at.X - icon.Bounds.Width / 2) <= 0.5 && GuideClearOfIcon(app, guide, icon) && GuideClearOfChildIcon(app, guide, Item(app, workspace));
+    }
+
+    /// <summary>Whether the guide's rectangle misses the icon of the grouped workspace row it belongs to, with a gap on both sides.</summary>
+    private static bool GuideClearOfChildIcon(E2eWorkspace app, Control guide, Control item)
+    {
+        var childIcon = item.GetVisualDescendants().OfType<MarkedRow>().First().Children.First(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading);
+        var line = new Rect(guide.TranslatePoint(default, app.Window) ?? default, guide.Bounds.Size);
+        var mark = new Rect(childIcon.TranslatePoint(default, app.Window) ?? default, childIcon.Bounds.Size);
+        return !line.Inflate(2).Intersects(mark);
+    }
+
+    /// <summary>Whether the guide's rectangle stays clear of the creator icon's bounds and starts just below them, never over the icon.</summary>
+    private static bool GuideClearOfIcon(E2eWorkspace app, Control guide, Control icon)
+    {
+        var line = new Rect(guide.TranslatePoint(default, app.Window) ?? default, guide.Bounds.Size);
+        var mark = new Rect(icon.TranslatePoint(default, app.Window) ?? default, icon.Bounds.Size);
+        return !line.Intersects(mark) && line.Top >= mark.Bottom - 0.01 && line.Top - mark.Bottom <= 4;
     }
 
     /// <summary>A project's titles share one line budget that shrinks as its list grows, and they wrap between words.</summary>

@@ -91,8 +91,8 @@ public sealed partial class WorkbenchWindow
                     pair = (null, WorkspaceTabsHost(worktree.Path));
                 if (showWorkspaces) pair.Row ??= WorkspaceItem(worktree);
                 else if (pair.Row is not null) { pair.Row = null; railSelection.Remove("workspace:" + worktree.Path); railStats.Remove(worktree.Path); }
-                var indent = showWorkspaces ? 16 * (relative < 0 ? depth : relative) : 0;
-                var itemLeft = relative < 0 ? 24 : 8;
+                var indent = showWorkspaces ? (relative < 0 ? 32 * depth : 16 * relative) : 0;
+                var itemLeft = relative < 0 ? 24 : 16;
                 var tabsLeft = relative < 0 ? (showWorkspaces ? 40 : 20) : 24;
                 if (pair.Row is Grid item)
                 {
@@ -620,7 +620,7 @@ public sealed partial class WorkbenchWindow
         item.LayoutUpdated += (_, _) =>
         {
             if (!nestGuide.IsVisible) return;
-            if (creatorRow?.IsEffectivelyVisible != true) creatorRow = FindCreatorRow(worktree.Path);
+            if (creatorRow?.IsEffectivelyVisible != true || TopLevel.GetTopLevel(creatorRow) is null) creatorRow = FindCreatorRow(worktree.Path);
             if (creatorRow?.GetVisualDescendants().OfType<MarkedRow>().FirstOrDefault() is not { } marked || marked.TranslatePoint(default, item) is not { } at) return;
             var left = at.X + MarkedRow.LeadingWidth / 2 - nestGuide.Width / 2;
             var creator = state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == worktree.Path)?.Creator;
