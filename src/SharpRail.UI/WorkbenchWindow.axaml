@@ -100,7 +100,7 @@
       <LayoutTransformControl x:Name="HeaderZoom">
       <Grid x:Name="MainHeader" ColumnDefinitions="*,Auto" Background="Transparent">
         <local:LocationStrip x:Name="LocationBar" ClipToBounds="True">
-          <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" Padding="0">
+          <Border x:Name="ProjectSegment" Classes="location-segment" Width="200" Padding="0">
             <Grid RowDefinitions="14,20" VerticalAlignment="Center">
               <TextBlock Classes="location-caption tr-text-metadata" Text="Project" />
               <Button x:Name="ScopeProject" Grid.Row="1" Classes="location-pill tr-title-section">
@@ -115,7 +115,7 @@
               </Button>
             </Grid>
           </Border>
-          <Border x:Name="BranchSegment" Classes="location-segment" MaxWidth="440" IsVisible="False">
+          <Border x:Name="BranchSegment" Classes="location-segment" Width="360" IsVisible="False">
             <!-- Two captioned blocks side by side: the branch pill, then the remote's sync state with the one action it offers. -->
             <Grid x:Name="BranchColumns" ColumnDefinitions="Auto,Auto" VerticalAlignment="Center">
               <Grid RowDefinitions="14,20">
@@ -137,6 +137,8 @@
               </Grid>
             </Grid>
           </Border>
+          <!-- Holds the Branch segment's slot while it is hidden (Project Home, no repository), so nothing else moves. -->
+          <Border x:Name="BranchReserve" Width="360" IsHitTestVisible="False" />
         </local:LocationStrip>
         <StackPanel x:Name="HeaderTools" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <StackPanel x:Name="HostListeningMark" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="False"

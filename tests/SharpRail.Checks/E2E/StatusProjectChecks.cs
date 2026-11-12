@@ -13,7 +13,7 @@ namespace SharpRail.Checks.E2E;
 /// <summary>
 /// The header's status area through switches between projects whose content differs (a long and a short branch, no remote, ahead and
 /// behind, a folder that is no repository, Project Home and a workspace): its bounds never change at any step. The rail (unified
-/// chrome) holds every bound; the top bar sizes its segments to their names, so only its height and row are held.
+/// chrome) holds every bound; the top bar holds its row, its segments' full bounds (fixed widths, names truncated) and the tools.
 /// </summary>
 internal static class StatusProjectChecks
 {
@@ -92,9 +92,10 @@ internal static class StatusProjectChecks
             var origin = control.TranslatePoint(default, app.Window) ?? default;
             return size ? $"{name}={origin.X:F1},{origin.Y:F1},{control.Bounds.Width:F1},{control.Bounds.Height:F1}" : $"{name}={origin.X:F1},{origin.Y:F1},,{control.Bounds.Height:F1}";
         }
-        // The rail holds its header and everything below the project; the top bar holds its row and the project segment's place.
+        bool Visible(string name) => app.Window.GetVisualDescendants().OfType<Control>().FirstOrDefault(c => c.Name == name)?.IsVisible == true;
+        // The rail holds its header and everything below the project; the top bar holds its row, the Project segment, the Branch slot (the segment, or the reserve holding its place when hidden) and the tools.
         return unified
             ? string.Join(" ", Box("RailHeader"), Box("ProjectSegment"), Box("RailStatus"), Box("ProjectsPanel"))
-            : string.Join(" ", Box("LocationBar", false), Box("ProjectSegment", false), Box("HeaderTools"));
+            : string.Join(" ", Box("LocationBar", false), Box("ProjectSegment"), "Branch" + Box(Visible("BranchSegment") ? "BranchSegment" : "BranchReserve")[(Visible("BranchSegment") ? "BranchSegment" : "BranchReserve").Length..], Box("HeaderTools"));
     }
 }

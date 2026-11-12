@@ -19,8 +19,8 @@ namespace SharpRail.UI;
 public sealed class LocationStrip : Panel
 {
     private const double Least = 72;
-    // The branch yields; the project keeps what is left.
-    private static readonly int[] YieldOrder = [1];
+    // The branch yields (or the empty slot that holds its place); the project keeps what is left.
+    private static readonly int[] YieldOrder = [1, 2];
     private double[] widths = [];
 
     /// <summary>The width every segment wants, before any yields; the header weighs it against the room it has.</summary>
@@ -83,6 +83,10 @@ public sealed partial class WorkbenchWindow
         // Focus lands on the card, not its first button, so opening it shows no tooltip.
         branchCard.Opened += (_, _) => (branchCard.Content as Control)?.Focus();
         branch.Flyout = branchCard;
+        var segment = this.FindControl<Border>("BranchSegment")!;
+        var reserve = this.FindControl<Border>("BranchReserve")!;
+        reserve.IsVisible = !segment.IsVisible;
+        segment.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) reserve.IsVisible = !segment.IsVisible; };
     }
 
     private void Switcher(string name, Action<ContextMenu> fill)

@@ -98,6 +98,7 @@ public sealed partial class WorkbenchWindow
     {
         projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : state.Current.ProjectName(projectRoot);
         this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
+        ToolTip.SetTip(projectLabel, projectLabel.Text);
         this.FindControl<Button>("ScopeProject")!.SetValue(AutomationProperties.NameProperty, "Project " + projectLabel.Text);
         UpdateBranchSegment();
     }
