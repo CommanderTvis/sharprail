@@ -21,6 +21,7 @@ using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;
 using SharpRail.Plugins.UI.Kit;
+using SharpRail.UI.Docking;
 using SharpRail.UI.Plugins;
 using SharpRail.UI.Terminal;
 
@@ -1945,6 +1946,32 @@ internal static class ClaudeChatUiChecks
         Require(ChatView.LocalChatStates > 0 && ChatView.Histories.ContainsKey((Workspace, Chat)), "A hidden chat keeps its draft and history.");
         ChatView.ForgetChat(Workspace, Chat);
         Require(ChatView.LocalChatStates == 0 && !ChatView.Histories.ContainsKey((Workspace, Chat)), "A chat closed for good left its draft or history behind.");
+    }
+
+    /// <summary>Tabs opened and closed leave nothing behind in the window's per-tab tables: companion width callbacks of chat documents and diff guards.</summary>
+    internal static void ClosedTabsForgetWindowState(string root)
+    {
+        var directory = Path.Combine(root, "closed-tab-state");
+        Directory.CreateDirectory(directory);
+        using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false);
+        E2eWorkspace.Until(() => app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
+        app.Workbench.PluginRegistry.AddDocument("claude-code", new("fixture-doc", _ => new TextBlock { Text = "fixture" }) { HostsCompanions = true });
+        var baseline = (app.Window.WidthSaverCount, app.Window.DiffGuardCount);
+        const int Count = 5;
+        for (var index = 0; index < Count; index++)
+        {
+            Await(app.Window.OpenPluginDocumentAsync(app.Root, "fixture-doc", "t" + index, "T" + index));
+            app.Window.WidthSaver(new SharpRail.Plugins.Api.UI.CompanionHost(app.Root, "t" + index));
+            var diff = new DockTab("diff:working::f" + index, "f" + index + " · Diff", "diff", "f" + index, Scope: "working");
+            app.Window.Layout.Open(diff, keep: true);
+            app.Window.DiffGuard(diff, app.Root + ":" + diff.Id);
+        }
+        Require(app.Window.WidthSaverCount == baseline.WidthSaverCount + Count && app.Window.DiffGuardCount == baseline.DiffGuardCount + Count, "Open chat and diff tabs keep their per-tab state.");
+        foreach (var group in app.Window.Layout.State.Groups.Select(item => item.Id).ToArray())
+            foreach (var tab in app.Window.Layout.Tabs(group).Where(tab => tab.Kind is "plugin" or "diff").ToArray()) app.Window.Layout.Close(group, tab.Id);
+        E2eWorkspace.Until(() => app.Window.WidthSaverCount == baseline.WidthSaverCount && app.Window.DiffGuardCount == baseline.DiffGuardCount);
+        Require(app.Window.WidthSaverCount == baseline.WidthSaverCount && app.Window.DiffGuardCount == baseline.DiffGuardCount,
+            $"Closed chat and diff tabs left companion width callbacks ({app.Window.WidthSaverCount}) or diff guards ({app.Window.DiffGuardCount}) behind.");
     }
 
     private static void Bounded()

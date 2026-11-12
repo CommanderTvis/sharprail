@@ -367,6 +367,7 @@ public sealed partial class WorkbenchWindow
         {
             var (registration, props) = pluginDocuments[key];
             pluginDocuments.Remove(key);
+            widthSavers.Remove(CompanionKey(new CompanionHost(props.WorkspaceId, props.Id)));
             try { registration.Closed?.Invoke(props); }
             catch (Exception error) { Console.Error.WriteLine($"Plugin document {registration.Scheme} failed to close: {error.Message}"); }
             if (registration.HostsCompanions) NotifyCompanionHost(new CompanionHost(props.WorkspaceId, props.Id), false);
@@ -441,7 +442,9 @@ public sealed partial class WorkbenchWindow
     // One delegate per tab, so the subscription made on a pane's first opening is the one removed on the next.
     private readonly Dictionary<string, Action<double>> widthSavers = [];
 
-    private Action<double> WidthSaver(CompanionHost host)
+    internal int WidthSaverCount => widthSavers.Count;
+
+    internal Action<double> WidthSaver(CompanionHost host)
     {
         var key = CompanionKey(host);
         if (!widthSavers.TryGetValue(key, out var saver))

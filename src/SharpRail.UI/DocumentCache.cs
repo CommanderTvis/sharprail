@@ -30,6 +30,7 @@ public sealed partial class WorkbenchWindow
         }
         foreach (var key in proposedDiffs.Keys.Where(key => !live.Contains(key)).ToArray()) proposedDiffs.Remove(key);
         foreach (var key in tabViews.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray()) tabViews.Remove(key);
+        foreach (var key in diffGuards.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray()) diffGuards.Remove(key);
         foreach (var key in reviewStates.Keys.Where(key => !live.Contains(key)).ToArray()) reviewStates.Remove(key);
     }
 

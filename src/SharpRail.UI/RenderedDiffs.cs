@@ -33,7 +33,9 @@ public sealed partial class WorkbenchWindow
     // Show diff anyway is remembered per diff tab and per review section, for this window's session.
     private readonly Dictionary<string, DiffGuardMemory> diffGuards = [];
 
-    private DiffGuardMemory DiffGuard(DockTab tab, string key)
+    internal int DiffGuardCount => diffGuards.Count;
+
+    internal DiffGuardMemory DiffGuard(DockTab tab, string key)
     {
         if (diffGuards.TryGetValue(key, out var memory)) return memory;
         var path = tab.Path;

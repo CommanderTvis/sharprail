@@ -1049,6 +1049,7 @@ internal static class Program
             ClaudeChatUiChecks.ClosedViewsCollectable();
             ClaudeChatUiChecks.ClosedRunningViewHasNoTimer();
             ClaudeChatUiChecks.ClosedChatForgetsLocalState();
+            ClaudeChatUiChecks.ClosedTabsForgetWindowState(root);
             Console.WriteLine("PASS closed chat views are collectable");
             return;
         }
