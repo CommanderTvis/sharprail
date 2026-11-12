@@ -6,27 +6,6 @@
              Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12">
   <UserControl.Styles>
     <Style Selector="UserControl.host-path-entry-only Button.host-path-picker"><Setter Property="IsVisible" Value="False" /></Style>
-    <Style Selector="Expander">
-      <Setter Property="MinHeight" Value="0" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="Template">
-        <ControlTemplate>
-          <StackPanel>
-            <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                          Background="Transparent" BorderThickness="0" Padding="8,4" MinHeight="0">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Path Data="M 2,4 L 6,8 L 10,4" Width="12" Height="12"
-                      Stroke="{x:Static kit:Ui.TextBrush}" StrokeThickness="1.5"
-                      VerticalAlignment="Center" />
-                <ContentPresenter Content="{TemplateBinding Header}" VerticalAlignment="Center" />
-              </StackPanel>
-            </ToggleButton>
-            <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsExpanded}" />
-          </StackPanel>
-        </ControlTemplate>
-      </Setter>
-    </Style>
     <Style Selector="Expander#ConfigurationExpander">
       <Setter Property="Template">
         <ControlTemplate>
@@ -35,7 +14,7 @@
       </Setter>
     </Style>
     <Style Selector="TextBox"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="28" /></Style>
-    <Style Selector="Button"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="0" /></Style>
+    <Style Selector="Button:not(.link)"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="0" /></Style>
     <Style Selector="CheckBox"><Setter Property="MinHeight" Value="0" /></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="*,Auto">

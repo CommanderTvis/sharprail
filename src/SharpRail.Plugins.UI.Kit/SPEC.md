@@ -472,4 +472,4 @@ EditorFrame.DeferSyntaxColors holds lexical style application while a semantic p
 Static-member italic styling follows the FONT_TYPE=2 defaults in IntelliJ Community's
 [default color schemes](https://github.com/JetBrains/intellij-community/blob/master/platform/platform-resources/src/DefaultColorSchemesManager.xml).
 
-Settings pages show a boolean as a `CheckBox` holding a label and a muted description, never a bordered toggle row. `Button.link` carries an 8,4 padding so its hover and focus region has room around the text.
+Settings pages show a boolean as a `CheckBox` holding a label and a muted description, never a bordered toggle row. `Button.link` has no left or right padding, and an expander header has none either, so the text or arrow of a collapsible section header or link starts at the same left edge as the content under it and as sibling headers.

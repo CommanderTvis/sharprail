@@ -72,7 +72,7 @@ internal sealed class LanguageRunningView : UserControl
         body.IsVisible = IsOpen;
     }
 
-    private void Show(LanguageResult result)
+    internal void Show(LanguageResult result)
     {
         var total = result.Configuration.Length > 0 && JsonNode.Parse(result.Configuration) is JsonObject json ? json["totalBytes"]?.GetValue<long>() ?? 0 : 0;
         count = result.Servers.Count;
