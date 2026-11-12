@@ -30,7 +30,8 @@ return Guard(() =>
     Check(Dotnet, ["publish", "src/Tereditor.UI", .. publish, "-o", Path.Combine(output, "client")]);
     Check(Dotnet, ["publish", "src/Tereditor.Host.Remote", .. publish, "-o", Path.Combine(output, "host")]);
     Check(Dotnet, ["publish", "tests/Tereditor.Checks", .. publish, "--self-contained", "true", "-p:PublishReadyToRun=true", "-o", Path.Combine(output, "checks")]);
-    foreach (var item in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md", "licenses", "WINDOWS.md" }) CopyInto(item, output);
+    foreach (var item in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md", "licenses" }) CopyInto(item, output);
+    Copy(Path.Combine("docs", "windows.md"), Path.Combine(output, "WINDOWS.md"));
     var zip = At("artifacts", $"tereditor-{rid}.zip");
     DeleteAll(zip);
     using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create))

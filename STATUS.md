@@ -1166,7 +1166,7 @@ Authorities: upstream [shared environment](https://github.com/JetBrains/thinkrai
 | H09 | Missing | Periodic identity healing when a watched root is replaced while all subscribers remain attached and no fresh admission occurs. Current watcher heals on a new subscriber/prewarm or error. |
 | H10 | Missing | Watcher admission/activity lifecycle seam that seeds retained HEAD baseline before metadata events, including recreation and failed-registration cleanup. |
 | H12 | Partial | Full frontmatter YAML semantics for graph metadata: anchors, nested maps and multiline scalars. The portable spec dialect is deliberately narrower; editing preview properties does not make graph parsing a full YAML parser. |
-| H13 | Partial | Windows shell resolution, ConPTY and platform filesystem/native build paths are implemented. The Settings shell picker and per-shell startup guidance are missing; current guidance only distinguishes SHELL from the default. See [Windows](WINDOWS.md), [terminal contract](src/Tereditor.Host.Core/Terminals.SPEC.md) and [startup handling](src/Tereditor.Host.Core/PtyTerminalService.cs). Real Windows execution is tracked once under V09. |
+| H13 | Partial | Windows shell resolution, ConPTY and platform filesystem/native build paths are implemented. The Settings shell picker and per-shell startup guidance are missing; current guidance only distinguishes SHELL from the default. See [Windows](docs/windows.md), [terminal contract](src/Tereditor.Host.Core/Terminals.SPEC.md) and [startup handling](src/Tereditor.Host.Core/PtyTerminalService.cs). Real Windows execution is tracked once under V09. |
 
 #### Fork plugin differences and acceptance gaps
 

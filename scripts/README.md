@@ -236,7 +236,7 @@ icon, the client under `usr/lib/tereditor`) written as a squashfs image behind t
 (`scripts/tool` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
 `TEREDITOR_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile and the client cross-links with Zig) and stops at
 `artifacts/linux/AppDir`. `scripts/mise run check:packaged -- --linux` unpacks the image with the runtime's own
-`--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
+`--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [docs/linux.md](../docs/linux.md).
 
 `dmg [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to

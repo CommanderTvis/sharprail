@@ -84,7 +84,7 @@ discovery, which the Windows backend does not provide. Unix-only agent process
 discovery and the Codex Unix IDE socket retain their existing platform limits.
 
 Cross-compilation and macOS checks do not establish Windows runtime acceptance.
-The [terminal contract](src/Tereditor.Host.Core/Terminals.SPEC.md#windows-verification-scope) records
+The [terminal contract](../src/Tereditor.Host.Core/Terminals.SPEC.md#windows-verification-scope) records
 what the source checks established. Packaged Windows execution and manual desktop input/IME acceptance
 remain distinct; outstanding platform work is tracked in
-[STATUS.md](STATUS.md#outstanding-acceptance-work).
+[STATUS.md](../STATUS.md#outstanding-acceptance-work).

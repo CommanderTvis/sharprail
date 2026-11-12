@@ -18,7 +18,7 @@
 
 ## Platforms
 
-- [Windows](../WINDOWS.md) and [Linux](../LINUX.md): setup and validation limits.
+- [Windows](windows.md) and [Linux](linux.md): setup and validation limits.
 
 ## Develop
 

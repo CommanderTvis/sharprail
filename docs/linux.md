@@ -49,5 +49,5 @@ On Linux x64, `scripts/mise run package:linux` writes `artifacts/tereditor-linux
 `scripts/mise run package:linux linux-arm64` writes `artifacts/tereditor-linux-arm64.AppImage` (appimagetool and its runtime are
 per-architecture binaries, so each image is packed on a host of its own architecture). `scripts/mise run check:packaged -- --linux`
 runs the packaged gate for the image matching the host. Every tool is pinned and checksummed in `mise.toml`; see
-[scripts/README.md](scripts/README.md). The native libraries cross-compile with Zig and the NativeAOT client links with Zig against glibc 2.31, so
+[scripts/README.md](../scripts/README.md). The native libraries cross-compile with Zig and the NativeAOT client links with Zig against glibc 2.31, so
 `TEREDITOR_APPDIR_ONLY=1 scripts/mise run package:linux` also publishes the Linux client on macOS; add `linux-arm64` for the arm64 client. The arm64 image has been cross-built only; its runtime behaviour is covered by CI on an arm64 runner.

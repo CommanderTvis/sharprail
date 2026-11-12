@@ -24,7 +24,7 @@ Its native editor uses Ctrl-based editing shortcuts and its terminals always use
 Skia. Metal, the macOS notification bridge and native Mermaid build targets are
 not loaded or built on Windows; the existing unavailable-Mermaid view still applies.
 
-The Linux x64 desktop client (X11 or XWayland, glibc 2.31 or newer, shipped as an AppImage: [LINUX.md](../../LINUX.md)) has the same
+The Linux x64 desktop client (X11 or XWayland, glibc 2.31 or newer, shipped as an AppImage: [Linux](../../docs/linux.md)) has the same
 shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal preference is ignored), the extended client area only where `LinuxWindowChrome` trusts the desktop (see Window chrome) and the system title bar elsewhere, no Mermaid library (the unavailable view applies) and `LinuxNotifier`. Its native libraries
 are cross-compiled with Zig by `build-linux.sh` beside Ghostty and Scintilla; Linux execution is covered by the `--linux` gate
 and is otherwise unverified (see STATUS.md V13).

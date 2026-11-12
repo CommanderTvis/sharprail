@@ -10,8 +10,8 @@ Your files, Git operations and shells run on the host machine. A client gives yo
 | [Android](android.md) | Android 7.0 or later | Connects to a host on another machine. |
 | Browser | WebAssembly | Connects to a host too. |
 
-iOS clients are not yet supported. Windows and Linux use Skia terminals. See [Windows](../WINDOWS.md) and
-[Linux](../LINUX.md) for setup and validation limits.
+iOS clients are not yet supported. Windows and Linux use Skia terminals. See [Windows](windows.md) and
+[Linux](linux.md) for setup and validation limits.
 
 ## Hosting
 

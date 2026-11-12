@@ -224,7 +224,7 @@ with `TEREDITOR_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in mem
 | Plugin records: `CodexSettings`, `ClaudeCodeSettings`, `OmpSettings`, `PiSettings`, `AcpSettings`, `AirSettings`, `DiscordSettings`, `ProcessesSettings` (the other 11 settings records are empty) | `state.json` | host | XML comments, plugin `SPEC.md` |
 | Projects, recents, labels, workspaces, presets, keymaps | `state.json` | host | `HostState.SPEC.md` |
 | Managed server pins (version, URL, SHA-256 per platform) | code: each `Lsp.*` plugin's spec, `ManagedArtifacts` | build | plugin `SPEC.md`, `Language/SPEC.md` |
-| Env vars: `TEREDITOR_ROOT`, `_BIND`, `_PORT`, `_TOKEN`, `_STATE_DIR`, `_BROWSER_ROOT`, `_HEADLESS_MCP`, `_LSP_DISABLE`, `_GH_OFFLINE`, `_OMP_HOME`, `_DISCORD_IPC_DIR`, `_WINDOW_DECORATIONS`, `_PERFORMANCE`, `_PROFILE`, `_REMOTE` | process env | process | `Host.Remote/SPEC.md` (first seven), `LINUX.md`; rest code only |
+| Env vars: `TEREDITOR_ROOT`, `_BIND`, `_PORT`, `_TOKEN`, `_STATE_DIR`, `_BROWSER_ROOT`, `_HEADLESS_MCP`, `_LSP_DISABLE`, `_GH_OFFLINE`, `_OMP_HOME`, `_DISCORD_IPC_DIR`, `_WINDOW_DECORATIONS`, `_PERFORMANCE`, `_PROFILE`, `_REMOTE` | process env | process | `Host.Remote/SPEC.md` (first seven), `docs/linux.md`; rest code only |
 | Command-line flags | `tests/Tereditor.Checks` modes only. The host and app take no flags | none | `docs/develop/agent-reference.md` |
 
 State is JSON via source-generated `HostJson`, persisted atomically. A memory-only store (no directory) turns language
@@ -339,7 +339,7 @@ Choices and why:
 
 - Base `dotnet/runtime` (not `aspnet`, not `sdk`): the headless app has no web dependency. Framework-dependent publish
   keeps the image small. Image build is a copy, so it is fast and the same on both architectures.
-- git is needed (the repo requires Git 2.36+ on PATH per `LINUX.md`). The distro Git version in the base must be checked in
+- git is needed (the repo requires Git 2.36+ on PATH per `docs/linux.md`). The distro Git version in the base must be checked in
   slice 4. Assumed fine on current Debian.
 - Non-root user. `safe.directory` is set through `GIT_CONFIG_*` because the bind-mounted checkout is usually owned by a
   different uid. Assumed this is enough. If the host user's uid differs and the run must write files, the example `.mcp.json`
@@ -464,7 +464,7 @@ The image stays small because nothing heavy ships in it. The cache volume reache
 ### Multi-arch and CI publishing
 
 - Build `dotnet publish -r linux-x64` and `-r linux-arm64` on CI. The repo already has native arm64 CI runners
-  (`LINUX.md`), so each architecture is published on its own runner and no emulation is needed. The headless app has no
+  (`docs/linux.md`), so each architecture is published on its own runner and no emulation is needed. The headless app has no
   native libraries, so cross-publishing from one runner is also possible. Assumed true, verify in slice 4.
 - New workflow `.github/workflows/container.yml` (outline, not final):
   1. Trigger: `workflow_dispatch`, tag `v*`, and nightly after CI is green on `main`.

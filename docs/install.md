@@ -21,7 +21,7 @@ installation.
 
 Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/Tereditor.UI.exe`. The standalone host is
 `host/Tereditor.Host.Remote.exe`. Windows 10 1809 or later and Git for Windows are required. See
-[Windows](../WINDOWS.md) for setup and validation limits.
+[Windows](windows.md) for setup and validation limits.
 
 On x64, WinGet also works through the [thinkrail source](https://github.com/CommanderTvis/winget-thinkrail). Add the
 source once from an administrator terminal, then install.
@@ -43,7 +43,7 @@ chmod +x tereditor-nightly-linux-x64.AppImage
 ./tereditor-nightly-linux-x64.AppImage
 ```
 
-Without FUSE, run it with `--appimage-extract-and-run`. See [Linux](../LINUX.md) for the libraries it needs and how it
+Without FUSE, run it with `--appimage-extract-and-run`. See [Linux](linux.md) for the libraries it needs and how it
 differs from macOS.
 
 ## Android

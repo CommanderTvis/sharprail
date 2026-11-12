@@ -35,7 +35,7 @@ managed language servers at runtime, not the build.
 ### All platforms
 
 - Git 2.36 or newer on `PATH`: the build fetches pinned sources with it, and the app needs `git worktree list -z`
-  (see [LINUX.md](../../LINUX.md)).
+  (see [docs/linux.md](../linux.md)).
 
 ### macOS (`build`, `dev`, `package:macos`, `check:terminal`)
 
@@ -52,14 +52,14 @@ managed language servers at runtime, not the build.
 
 - `bash`, `curl`, `tar`, POSIX `sh`, `patch` and `shasum`: the mise download and the native recipes.
 - To run the app: glibc 2.31 or newer, an X11 or XWayland session, `libX11`, `libXcursor`, `libXrandr`, `libXi`,
-  `fontconfig` and a GL or software Skia stack ([LINUX.md](../../LINUX.md)).
+  `fontconfig` and a GL or software Skia stack ([docs/linux.md](../linux.md)).
 - Pack the AppImage on a host of the target architecture (`TEREDITOR_APPDIR_ONLY=1` assembles the AppDir anywhere).
   The NativeAOT client links with the pinned Zig against glibc 2.31, so no system C toolchain is needed.
 
 ### Windows (`build`, `package:windows`)
 
 - Windows 10 1809 or later or Windows 11, x64 or ARM64; Git for Windows, Windows PowerShell and `tar.exe`
-  ([WINDOWS.md](../../WINDOWS.md)). Zig compiles the native libraries (`scripts/windows-native.ps1`).
+  ([docs/windows.md](../windows.md)). Zig compiles the native libraries (`scripts/windows-native.ps1`).
 - `package:windows` only: Visual Studio 2022 or its Build Tools with the C++ build tools for the target
   architecture (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` or `.ARM64`) and a Windows SDK; NativeAOT links
   the client and host with them. `build` and `dev` do not need them.
