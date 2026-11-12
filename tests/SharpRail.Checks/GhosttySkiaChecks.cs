@@ -307,6 +307,41 @@ internal static class GhosttySkiaChecks
         Console.WriteLine("PASS Skia terminal underlines resolve before the frame showing their line, and survive output on other rows");
     }
 
+    // A failed-command badge sits on the command line it belongs to: it moves with that line while output scrolls,
+    // is not drawn on the alternate screen, and goes when a program erases or overwrites the line or it scrolls out.
+    internal static void CheckFailedBadgesFollowContent()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            Until(() => view.Frames > 0, "first frame");
+            var last = view.Size.Rows;
+            const string failed = "\e]133;A\a$ \e]133;B\afalse\r\n\e]133;C\a\e]133;D;1\a";
+            void Send(string text) { view.Write(Encoding.UTF8.GetBytes(text)); Pump(); Pump(); }
+            void Expect(string description, params int[] rows)
+            {
+                Until(() => view.FailedCommandRows.SequenceEqual(rows) && view.BadgesDrawn == rows.Length,
+                    description + ": expected badge rows [" + string.Join(", ", rows) + "], got [" + string.Join(", ", view.FailedCommandRows) + "] (" + view.BadgesDrawn + " drawn)");
+            }
+            Send("\e[4;1H" + failed);
+            Expect("failed command on its line", 3);
+            Send("\e[" + last + ";1H\r\n\r\n");
+            Expect("two lines of output scrolled", 1);
+            Send("\e[?1049h\e[H\e[2Jfull-screen program\e[3;1Hmore");
+            Expect("alternate screen");
+            Send("\e[?1049l");
+            Expect("back from the alternate screen", 1);
+            Send("\e[2;1H\e[2Kredrawn by a program");
+            Expect("command line overwritten");
+            Send("\e[6;1H" + failed + "\e[" + last + ";1H" + string.Concat(Enumerable.Repeat("\r\n", 6)));
+            Expect("command line scrolled out");
+        }
+        finally { window.Close(); Pump(); }
+        Console.WriteLine("PASS Skia failed-command badges follow their line, skip the alternate screen and go with erased lines");
+    }
+
     internal static void CheckFileLinks()
     {
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };

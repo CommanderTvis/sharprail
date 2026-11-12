@@ -97,7 +97,10 @@ pub fn failedCommandRows(self: *Surface, rows: []u16) usize {
     var y: usize = 0;
     while (y < t.rows and count < rows.len) : (y += 1) {
         const pin = t.screens.active.pages.pin(.{ .viewport = .{ .x = 0, .y = @intCast(y) } }) orelse break;
-        if (pin.rowAndCell().row.command_failed) {
+        const rac = pin.rowAndCell();
+        // A program that erased or redrew the command line (a full-screen TUI) leaves output cells: the mark goes too.
+        if (rac.row.command_failed and rac.cell.semantic_content == .output) rac.row.command_failed = false;
+        if (rac.row.command_failed) {
             rows[count] = @intCast(y);
             count += 1;
         }

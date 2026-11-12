@@ -479,6 +479,13 @@ internal static class Program
             Console.WriteLine("PASS project closure checks");
             return;
         }
+        if (args.SequenceEqual(["--terminal-badges"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            GhosttySkiaChecks.CheckFailedBadgesFollowContent();
+            return;
+        }
         if (args.SequenceEqual(["--terminal-links"]))
         {
             TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult();
@@ -487,6 +494,7 @@ internal static class Program
             GhosttySkiaChecks.CheckFileLinks();
             GhosttySkiaChecks.CheckHyperlinks();
             GhosttySkiaChecks.CheckUnderlinesBeforeFrame();
+            GhosttySkiaChecks.CheckFailedBadgesFollowContent();
             TerminalFileLinkChecks.RunUi(root);
             TerminalFileLinkChecks.RunWorkbench(root);
             EditorWorkbenchChecks.FileLinkPosition(root);

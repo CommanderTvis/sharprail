@@ -155,12 +155,34 @@ static void on_semantic_prompt(GhosttyTerminal terminal, void *userdata, const G
     }
 }
 
-// The viewport rows that hold the command line of a command that exited non-zero.
+// A command line is still on screen while its first cell keeps the prompt/input mark; a program that erases or redraws
+// the row (a full-screen TUI) leaves output cells there, and the failed mark goes with the content.
+static bool command_line_intact(GhosttyTrackedGridRef ref) {
+    GhosttyGridRef grid = { 0 };
+    GhosttyCell cell = 0;
+    GhosttyCellSemanticContent content = GHOSTTY_CELL_SEMANTIC_OUTPUT;
+    if (ghostty_tracked_grid_ref_snapshot(ref, &grid) != GHOSTTY_SUCCESS) return false;
+    if (ghostty_grid_ref_cell(&grid, &cell) != GHOSTTY_SUCCESS) return false;
+    return ghostty_cell_get(cell, GHOSTTY_CELL_DATA_SEMANTIC_CONTENT, &content) == GHOSTTY_SUCCESS && content != GHOSTTY_CELL_SEMANTIC_OUTPUT;
+}
+
+// The viewport rows that hold the command line of a command that exited non-zero. None on the alternate screen, where
+// the primary screen's lines are hidden; lines that were erased or overwritten are forgotten.
 GAV_API size_t gav_vt_failed_rows(gav_vt *vt, uint16_t *rows, size_t capacity) {
+    GhosttyTerminalScreen screen = GHOSTTY_TERMINAL_SCREEN_PRIMARY;
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, &screen);
+    if (screen != GHOSTTY_TERMINAL_SCREEN_PRIMARY) return 0;
     size_t count = 0;
-    for (size_t i = 0; i < vt->failed_count && count < capacity; i++) {
+    for (size_t i = 0; i < vt->failed_count;) {
+        if (!command_line_intact(vt->failed[i])) {
+            untrack(&vt->failed[i]);
+            memmove(vt->failed + i, vt->failed + i + 1, (vt->failed_count - i - 1) * sizeof *vt->failed);
+            vt->failed_count--;
+            continue;
+        }
         GhosttyPointCoordinate point = { 0 };
-        if (ghostty_tracked_grid_ref_point(vt->failed[i], GHOSTTY_POINT_TAG_VIEWPORT, &point) == GHOSTTY_SUCCESS) rows[count++] = (uint16_t)point.y;
+        if (count < capacity && ghostty_tracked_grid_ref_point(vt->failed[i], GHOSTTY_POINT_TAG_VIEWPORT, &point) == GHOSTTY_SUCCESS) rows[count++] = (uint16_t)point.y;
+        i++;
     }
     return count;
 }
