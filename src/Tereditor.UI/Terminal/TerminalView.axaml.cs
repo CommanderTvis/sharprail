@@ -83,7 +83,12 @@ public sealed partial class TerminalView : UserControl, IDisposable
         stackSplitter = this.FindControl<GridSplitter>("TerminalCompanionStackSplitter")!;
         companionSplitter.DragCompleted += (_, _) => CompanionWidthChanged?.Invoke(CompanionColumns[2].ActualWidth);
         accessoriesDivider = this.FindControl<Border>("TerminalAccessoriesDivider")!;
-        this.FindControl<StackPanel>("TerminalAccessories")!.SizeChanged += (_, _) => LayoutCompanion();
+        var accessoriesStrip = this.FindControl<Border>("TerminalAccessoriesStrip")!;
+        Accessories.SizeChanged += (_, _) =>
+        {
+            accessoriesStrip.Padding = Accessories.Bounds.Height > 0 ? new Thickness(0, 2 * LayoutRoles.ChipGap, 0, LayoutRoles.ChipGap) : default;
+            LayoutCompanion();
+        };
         SizeChanged += (_, _) => LayoutCompanion();
         retry.Click += (_, _) => Start(retrying: true);
         this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
