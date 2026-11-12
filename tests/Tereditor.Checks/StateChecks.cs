@@ -259,6 +259,22 @@ internal static class StateChecks
         Directory.CreateDirectory(gone);
         Require(recents.Current.RecentProjects.SequenceEqual([other, gone]), "A restored folder returns to recents in its place.");
 
+        // Open projects and their workspaces hide the same way: a deleted folder leaves the rail, a restored one returns.
+        var rail = new HostStateStore(Path.Combine(root, "state-rail"));
+        var staying = Directory.CreateDirectory(Path.Combine(root, "state-staying")).FullName;
+        var vanishing = Directory.CreateDirectory(Path.Combine(root, "state-vanishing")).FullName;
+        var vanishingTree = Directory.CreateDirectory(Path.Combine(root, "state-vanishing-tree")).FullName;
+        await rail.ChangeAsync([HostStateChange.OpenProject(staying), HostStateChange.OpenProject(vanishing)]);
+        rail.ChangeWorkspaces(_ => [new("s", staying, WorkspaceKinds.Default, staying, "main", "main"), new("v", vanishing, WorkspaceKinds.Default, vanishing, "main", "main"),
+            new("t", staying, WorkspaceKinds.Managed, vanishingTree, "tree", "main")]);
+        Directory.Delete(vanishingTree);
+        Require(rail.Current.Workspaces.Select(workspace => workspace.Id).SequenceEqual(["s", "v"]), "A workspace whose folder is gone leaves the rail.");
+        Directory.Delete(vanishing);
+        Require(rail.Current.Projects.SequenceEqual([staying]) && rail.Current.Workspaces.Select(workspace => workspace.Id).SequenceEqual(["s"]),
+            "A project whose folder is gone leaves the rail with its workspaces.");
+        Directory.CreateDirectory(vanishing);
+        Require(rail.Current.Projects.SequenceEqual([vanishing, staying]), "A restored project folder returns to the rail.");
+
         // Sessions end with the app; a persisted agent record whose workspace folder is gone can never resume, so a load drops it.
         var agentsDirectory = Path.Combine(root, "state-agents");
         var living = Directory.CreateDirectory(Path.Combine(root, "state-agents-living")).FullName;

@@ -17,11 +17,16 @@ public sealed partial class ProjectServices
     public async ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default)
     {
         var project = Path.TrimEndingDirectorySeparator(ProjectPath(projectRoot));
+        // A rail re-syncs its projects on focus; one whose folder went away takes the snapshot that no longer shows it.
+        if (!Directory.Exists(project))
+        {
+            state?.Republish();
+            throw new DirectoryNotFoundException($"Directory does not exist: {project}");
+        }
         var current = state?.Current;
         if (current is not null && !current.Projects.Concat(current.RecentProjects).Concat(current.Workspaces.Select(workspace => workspace.ProjectRoot))
             .Any(known => Path.TrimEndingDirectorySeparator(known) == project))
             throw new UnauthorizedAccessException("That folder is not a project of this host.");
-        if (!Directory.Exists(project)) throw new DirectoryNotFoundException($"Directory does not exist: {project}");
         // Behind this session's own Git actions too, so folder truth read before an init is not written after it.
         await mutations.WaitAsync(cancellationToken);
         try { return await ListAsync(project, cancellationToken); }

@@ -252,12 +252,16 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
-    // Recents is a projection checked against the filesystem on every read: a folder that no longer exists, or became a
-    // file, drops out, while other filesystem errors keep it. The stored list is untouched, so a restored folder returns.
+    // Projects, their workspaces and recents are a projection checked against the filesystem on every read: a folder that no
+    // longer exists, or became a file, drops out, while other filesystem errors keep it. The stored lists are untouched, so a
+    // restored folder (or a remounted volume) returns.
     private static HostState Visible(HostState current)
     {
+        var projects = current.Projects.Where(Exists).ToArray();
         var recents = current.RecentProjects.Where(Exists).ToArray();
-        return recents.Length == current.RecentProjects.Count ? current : current with { RecentProjects = recents };
+        var workspaces = current.Workspaces.Where(workspace => Exists(workspace.ProjectRoot) && (workspace.Path == workspace.ProjectRoot || Exists(workspace.Path))).ToArray();
+        return projects.Length == current.Projects.Count && recents.Length == current.RecentProjects.Count && workspaces.Length == current.Workspaces.Count ? current
+            : current with { Projects = projects, RecentProjects = recents, Workspaces = workspaces };
 
         static bool Exists(string path)
         {
@@ -265,6 +269,13 @@ public sealed partial class HostStateStore : IHostStateService
             catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
         }
+    }
+
+    /// <summary>Sends every client a fresh snapshot without changing the state, so a folder found gone leaves their rails.</summary>
+    internal void Republish()
+    {
+        lock (gate)
+            if (!ReferenceEquals(Visible(state), state)) Publish(state with { }, persist: false);
     }
 
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(Current);
