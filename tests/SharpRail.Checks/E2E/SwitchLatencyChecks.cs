@@ -24,7 +24,7 @@ internal static class SwitchLatencyChecks
         foreach (var path in workspaces)
         {
             Switch(app, path, document: false);
-            app.Click(app.Find<Avalonia.Controls.Button>("Tab_files"));
+            app.ShowTool("tool:files");
             app.Open("README.md", true);
         }
         var times = new List<double>();
