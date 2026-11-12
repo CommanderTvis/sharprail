@@ -519,8 +519,9 @@
       <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
   </UserControl.Styles>
+  <!-- Clipping to the frame's inner rounded edge keeps the navigation pane's fill from painting over the bottom-left corner's border. -->
   <Border x:Name="SettingsFrame" Background="{x:Static rendering:Ui.Elevated}"
-          BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8">
+          BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
     <Grid RowDefinitions="42.5,*">
       <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0,12,0">

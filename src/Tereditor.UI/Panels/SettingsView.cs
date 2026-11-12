@@ -95,7 +95,6 @@ public sealed partial class SettingsView : UserControl
         var frame = this.FindControl<Border>("SettingsFrame")!;
         // On Android Settings is a page over the whole screen, not a card.
         if (OperatingSystem.IsAndroid()) { frame.CornerRadius = default; frame.BorderThickness = default; }
-        else frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
         ShowSection(section);
         if (window.Workbench.Compact) WireSectionList();
