@@ -28,6 +28,7 @@ internal static class LanguagePaneNarrowChecks
         Hidden(fixture);
         Scrolls(fixture);
         Poll(fixture);
+        Suggestion(fixture);
         Burst(fixture);
         UiThreadCalls(fixture);
         LanguageLifecycleLogChecks.Run(fixture);
@@ -75,6 +76,45 @@ internal static class LanguagePaneNarrowChecks
             }
             Require(scroll.Offset.Y >= before - 1, $"A refresh moved the scroll offset from {before} to {scroll.Offset.Y}.");
             Console.WriteLine("PASS The Code Intelligence pane scrolls with the wheel, reaches its last row and does not overflow horizontally");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>The "Suggested by file" line wraps onto as many lines as the file name needs instead of ending in an ellipsis, and Hide stays visible beside or below it.</summary>
+    private static void Suggestion(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-suggestion"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        var window = new Window { Width = 300, Height = 600, Content = pane };
+        window.Show();
+        try
+        {
+            E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
+            var file = "src/Company.Product.Module/Company.Product.Module.Services.Implementation.csproj";
+            foreach (var width in new double[] { 300, 700 })
+            {
+                window.Width = width;
+                pane.ShowInventory([new LanguageServerState("fake-0", file, "idle", "detail", "1")]);
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+                var row = (Control)pane.FindControl<ListBox>("Servers")!.ContainerFromIndex(0)!;
+                var text = row.GetLogicalDescendants().OfType<TextBlock>().Single(block => block.Text == "Suggested by file: " + file);
+                var lines = text.TextLayout.TextLines;
+                Require(text.TextTrimming == Avalonia.Media.TextTrimming.None && lines.Sum(line => line.Length) >= text.Text!.Length,
+                    $"At {width}px the suggestion is trimmed ({lines.Count} lines, {lines.Sum(line => line.Length)} of {text.Text!.Length} characters).");
+                Require(lines.All(line => line.WidthIncludingTrailingWhitespace <= text.Bounds.Width + 0.5), $"At {width}px a suggestion line is wider than its block.");
+                if (width < 400) Require(lines.Count > 1, "The long suggestion should wrap at the narrow width.");
+                var hide = row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerHideAction");
+                var at = hide.TranslatePoint(default, row)!.Value;
+                Require(hide.IsEffectivelyVisible && at.X >= 0 && at.X + hide.Bounds.Width <= row.Bounds.Width + 0.5 && at.Y + hide.Bounds.Height <= row.Bounds.Height + 0.5,
+                    $"At {width}px Hide is not fully inside the row.");
+            }
+            Console.WriteLine("PASS The suggested-by line wraps instead of trimming and Hide stays visible at narrow and wide widths");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
