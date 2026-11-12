@@ -56,7 +56,7 @@
 ## Scratch files
 
 - Put temporary files in the agent scratchpad or the OS temp directory (a task-specific subdirectory, removed when the task ends, including after failed checks); never in the checkout. The checks do this themselves via `CheckRoot` (`TEREDITOR_CHECKS_ROOT`, `TEREDITOR_CHECKS_KEEP=1`). `.bench` (git-ignored) holds only tiny persistent files such as `checks-last-run.txt`, which `--last-failed` needs. Keep no historical logs, captures, copied trees, build outputs, caches or archives. Never delete another active task's files.
-- Record durable verification facts in owning module specs and dated task outcomes in `context-log.md`. Keep scratch evidence only if the user asks.
+- Record durable verification facts in owning module specs and a short dated outcome per landed task in `context-log.md` (follow its header rules: about ten lines, prune old or superseded entries). Keep scratch evidence only if the user asks.
 
 ## Startup performance
 
