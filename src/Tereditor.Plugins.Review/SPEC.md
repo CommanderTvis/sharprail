@@ -11,7 +11,7 @@ tags: [v1, plugins]
 ## Responsibility
 
 Owns the Review tool window in the right rail: a one-line summary of the workspace's changes, the active repo hosting
-plugin's pull request review section, and a Show Changes button. Builtin, enabled by default, no dependencies, wire
+plugin's pull request review section, and a Show Changes button. Builtin, off by default, no dependencies, wire
 version 1, category Version control, icon `discuss-line`, right side, `RequiresGit`. The host and UI assemblies
 reference only their plugin API entry and shared contract; the UI also uses the kit.
 

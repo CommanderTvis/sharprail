@@ -47,7 +47,7 @@
 - Review staged, working, branch and commit diffs.
 - Review Markdown changes as rendered documents as well as source diffs.
 - Stage and unstage files.
-- Open a pull request or push updates to one from the Review panel (the Review plugin).
+- Open a pull request or push updates to one from the Review panel (the Review plugin, off by default: turn it on in Settings › Plugins).
 
 ## Terminals
 

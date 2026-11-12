@@ -24,7 +24,7 @@ public static class ReviewPlugin
     {
         Category = PluginCategories.VersionControl,
         Description = "The Review tool window: a summary of the workspace's changes and the repo host's pull request review.",
-        EnabledByDefault = true,
+        EnabledByDefault = false,
         Headless = HeadlessSupport.No,
         Host = "Tereditor.Plugins.Review.Host.dll",
         Ui = "Tereditor.Plugins.Review.UI.dll",

@@ -185,14 +185,14 @@ internal sealed class E2eWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Specs and Blueprint are off by default; fixture projects keep a spec graph, so a host without a stored choice
-    /// for them turns them on explicitly, and a stored choice (a check that disabled one first) is kept. Checks that
+    /// Specs, Blueprint and Review are off by default; fixture projects keep a spec graph and checks use the Review
+    /// tool, so a host without a stored choice for them turns them on explicitly, and a stored choice (a check that disabled one first) is kept. Checks that
     /// open a workbench window on their own profile call it for that profile's state.
     /// </summary>
     internal static void EnableSpecPlugins(IHostStateService state) => Task.Run(async () =>
     {
         var stored = (await state.GetStateAsync()).PluginSettings;
-        var changes = ((string[])["spec-dialect", "blueprint"]).Where(id => !stored.ContainsKey(id)).Select(id => HostStateChange.PluginEnabled(id, true)).ToList();
+        var changes = ((string[])["spec-dialect", "blueprint", "review"]).Where(id => !stored.ContainsKey(id)).Select(id => HostStateChange.PluginEnabled(id, true)).ToList();
         if (changes.Count > 0) await state.ChangeAsync(changes);
     }).GetAwaiter().GetResult();
 
