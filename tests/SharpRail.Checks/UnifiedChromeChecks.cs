@@ -236,6 +236,9 @@ internal static class UnifiedChromeChecks
             RightBar(app);
             HeaderDivider(app);
             Layout(app, header);
+            // Without a title row for traffic lights (the browser), the header keeps its own inset from the window's top edge.
+            Require(OperatingSystem.IsMacOS() || app.Find<Border>("ProjectSegment").TranslatePoint(default, app.Window)!.Value.Y >= WorkbenchWindow.RailTopInset,
+                "The rail header does not touch the window's top edge.");
             ViewMenu(app, unified: true);
             HeaderPopups(app);
             Console.WriteLine("PASS unified chrome: no top bar, the rail header, its menus and popups open, no Settings gear in the right bar");

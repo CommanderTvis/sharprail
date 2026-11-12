@@ -19,6 +19,9 @@ public sealed partial class WorkbenchWindow
 {
     private Grid? railLightsRow;
 
+    /// <summary>The room above the rail's header where there is no title row for the window's buttons.</summary>
+    internal const double RailTopInset = 8;
+
     private void WireUnifiedChrome()
     {
         var rootGrid = this.FindControl<Grid>("WorkbenchRoot")!;
@@ -75,7 +78,9 @@ public sealed partial class WorkbenchWindow
         }
         if (railLightsRow is null)
         {
-            // Without window chrome to clear, the overflow button shares the project's row.
+            // Without window chrome to clear, the overflow button shares the project's row, and the header's own top inset
+            // stands in for the title row the traffic lights leave on a Mac: the browser's page edge is not a window frame.
+            header.Margin = new Thickness(0, RailTopInset, 0, 8);
             var line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             Ui.Place(line, project); Ui.Place(line, actions, 0, 1);
             header.Children.Add(line);
