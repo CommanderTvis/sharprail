@@ -24,7 +24,8 @@
       </DockPanel>
     </Border>
     </StackPanel>
-    <StackPanel x:Name="TerminalAccessories" Grid.Row="3" Grid.ColumnSpan="3" />
+    <!-- The strip behind the accessory chips is the terminal's own background, so it reads as part of the surface. -->
+    <StackPanel x:Name="TerminalAccessories" Grid.Row="3" Grid.ColumnSpan="3" Background="{x:Static rendering:Ui.Terminal}" />
     <ContentControl x:Name="TerminalBody" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="1" Grid.Column="1" Width="1" IsVisible="False"
                   Background="{x:Static rendering:Ui.BorderBrush}" ResizeDirection="Columns" />

@@ -724,6 +724,23 @@ internal static class ClaudeChatUiChecks
                 catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
                 finally { window.Close(); }
             }
+            // The strip under a terminal (the environment chips) paints the colour the terminal itself paints, in every theme and for a custom palette.
+            var custom = original with { Id = "custom-strip", Colors = new Dictionary<string, Avalonia.Media.Color?>(original.Colors) { ["sidebar"] = Avalonia.Media.Color.Parse("#123456") } };
+            foreach (var theme in SharpRail.UI.Rendering.Themes.All.Concat([custom]))
+            {
+                Ui.Apply(theme);
+                using var terminal = new TerminalView(_ => new FileDropChecks.RecordingTerminal(), new("/tmp", "strip-probe", "", "strip-client"));
+                terminal.Accessories.Children.Add(new Border { Height = 20 });
+                var window = new Window { Width = 400, Height = 200, Content = terminal, Background = Ui.Surface };
+                window.Show();
+                try
+                {
+                    Frame(window); Frame(window);
+                    var strip = (terminal.Accessories.Background as ISolidColorBrush)?.Color;
+                    Require(strip == SharpRail.UI.Terminal.TerminalTheme.Colors().Background, $"{theme.Id}: the strip under the terminal is the colour the terminal paints.");
+                }
+                finally { window.Close(); }
+            }
         }
         finally { Ui.Apply(original); }
     }
