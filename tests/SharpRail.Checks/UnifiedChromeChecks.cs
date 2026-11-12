@@ -22,6 +22,7 @@ internal static class UnifiedChromeChecks
     {
         Migration();
         PlaygroundGuideChecks.Run(Path.Combine(root, "playground-guide"));
+        ZoomedColumns(Path.Combine(root, "unified-zoom"));
         Window(Path.Combine(root, "unified-chrome"));
         Classic(Path.Combine(root, "classic-chrome"));
     }
@@ -173,6 +174,55 @@ internal static class UnifiedChromeChecks
         var more = app.Window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "AppMenuButton");
         Require(OperatingSystem.IsMacOS() == (more is null), "The three-dots button is drawn in the browser only: a Mac has the native application menu.");
         Require(Math.Abs(header.Bounds.Width - Right(more ?? app.Find<Button>("AddProjectMenu"))) <= 1 || !OperatingSystem.IsMacOS(), "The last button of the first row ends at the rail's right edge.");
+    }
+
+    /// <summary>
+    /// At every page zoom in a fixed window the Projects rail stays (never narrower than its minimum, so the traffic lights keep their
+    /// inset and nothing sits under them), the main column keeps 320, and the right side gives way first: it shrinks to its minimum or
+    /// folds away before the rail shrinks, and never grows back as the zoom rises.
+    /// </summary>
+    private static void ZoomedColumns(string directory)
+    {
+        UnifiedChrome.Override = true;
+        using var app = OpenFixtureProject(directory);
+        var window = app.Window;
+        var (width, height) = (window.Width, window.Height);
+        var previous = double.PositiveInfinity;
+        try
+        {
+            window.Width = 1200; window.Height = 800;
+            foreach (var zoom in InterfaceZoom.Factors.Where(factor => factor >= 1))
+            {
+                InterfaceZoom.Apply(Application.Current!, zoom);
+                for (var round = 0; round < 3; round++) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
+                var surface = app.Find<DockSurface>("WorkspaceWorkbench");
+                var rail = app.Find<Border>("AuxiliaryRegion_left");
+                var centre = app.Find<Border>("CenterRegion");
+                var right = app.Find<Border>("AuxiliaryRegion_right");
+                var shell = surface.Bounds.Width - DockSurface.RailWidth;
+                var step = $"at {zoom:0.##}x ({shell:0} wide: rail {rail.Bounds.Width:0.#}, centre {centre.Bounds.Width:0.#}, right {right.Bounds.Width:0.#})";
+                var minimum = Math.Min(.4 * shell, SideGeometry.MinPaneWidth);
+                Require(rail.IsVisible && rail.Bounds.Width >= minimum - 1, $"The Projects rail keeps its minimum {step}.");
+                Require(rail.Bounds.Width * zoom >= 80 - 1, $"The rail holds the traffic lights' inset {step}.");
+                var inset = centre.TranslatePoint(default, surface)!.Value.X;
+                Require(inset >= rail.Bounds.Width - 1, $"Nothing of the main column starts inside the rail's strip {step}.");
+                Require(centre.Bounds.Width >= 320 - 1, $"The main column keeps 320 {step}.");
+                var side = right.IsVisible ? right.Bounds.Width : 0;
+                Require(side <= 1 || side >= SideGeometry.MinPaneWidth - 1, $"The right side is at its minimum or folded away, never a sliver {step}.");
+                Require(side <= previous + 1, $"The right side does not grow as the zoom rises {step}.");
+                var wanted = window.Layout.State.LeftWidth * shell;
+                Require(rail.Bounds.Width >= wanted - 1 || side <= 1, $"The rail only shrinks below its width after the right side folded {step}.");
+                previous = side;
+            }
+        }
+        finally
+        {
+            InterfaceZoom.Apply(Application.Current!, 1);
+            window.Width = width; window.Height = height;
+            Dispatcher.UIThread.RunJobs();
+            UnifiedChrome.Override = false;
+        }
+        Console.WriteLine("PASS unified chrome: at every zoom the rail stays, the main column keeps 320 and the right side folds first");
     }
 
     private static void Classic(string directory)

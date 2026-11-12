@@ -109,7 +109,7 @@ public sealed partial class DockSurface : Grid
         {
             if (Drawers) return;
             if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
-                PreviewSides(new SideGeometry(GeometryState(), ShellWidth).Project());
+                PreviewSides(new SideGeometry(GeometryState(), ShellWidth, Session.FixedLeft).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
         Session.ToolsChanged += RefreshTools;
@@ -169,7 +169,7 @@ public sealed partial class DockSurface : Grid
         var state = Session.State;
         if (Drawers) { RebuildDrawers(state); RebuildRails(); return; }
         var geometry = GeometryState();
-        var widths = new SideGeometry(geometry, ShellWidth).Project();
+        var widths = new SideGeometry(geometry, ShellWidth, Session.FixedLeft).Project();
         var left = SideGeometry.Shown(geometry, "left");
         var right = SideGeometry.Shown(geometry, "right");
         shell.ColumnDefinitions.Add(new(left ? new GridLength(widths.Left, GridUnitType.Star) : new GridLength(0)));
@@ -292,11 +292,14 @@ public sealed partial class DockSurface : Grid
             var value = Width(Geometry().Project());
             var opposite = region == "left" ? GeometryState().RightWidth : GeometryState().LeftWidth;
             var maximum = Math.Min(Math.Min(.7, 1 - opposite - 1e-6), Width(Geometry().Resize(region, direction)));
-            var minimum = SideGeometry.SideMinimum(ShellWidth);
+            var minimum = SideFloor(region);
             return maximum < minimum ? (value, value, value) : (value, minimum, maximum);
         }, value => CommitSideWidth(region, value));
         PlaceSide(splitter, column, span);
     }
+
+    private double SideFloor(string region) =>
+        region == "left" && Session.FixedLeft ? SideGeometry.FixedLeftMinimum(ShellWidth) : SideGeometry.SideMinimum(ShellWidth);
 
     private void CommitSideWidth(string region, double width)
     {
@@ -308,7 +311,7 @@ public sealed partial class DockSurface : Grid
         var maximum = Math.Max(double.Epsilon, Math.Min(.7, available - Math.Min(1e-6, available / 2)));
         Session.Geometry(state =>
         {
-            var value = Math.Clamp(width, Math.Min(SideGeometry.SideMinimum(ShellWidth), maximum), maximum);
+            var value = Math.Clamp(width, Math.Min(SideFloor(region), maximum), maximum);
             if (home) state.HomeProjectsWidth = value;
             else if (region == "left") state.LeftWidth = value;
             else state.RightWidth = value;

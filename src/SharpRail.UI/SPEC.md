@@ -232,6 +232,7 @@ confirmation gesture. Other platforms have no menu bar and keep their chords.
 On macOS and in the browser (`UnifiedChrome`; the other platforms keep the top bar and the dock's left column until they are moved over) the window has no top bar, so the
 main column starts at the top edge. A phone-sized workbench keeps its own pages and is never unified.
 
+- The rail never disappears, at any page zoom: a large zoom shrinks the window's width in layout units, and the columns then give way in a fixed order. The right side shrinks to its minimum, then folds away (its tool strip stays to reopen it), then the rail shrinks to its own minimum (220 units, at most 40% of the frame), and only last does the main column go under 320. The rail's width keeps the traffic lights' inset, so they never overlap the main column.
 - The left column is the fixed Projects rail alone: no title, icon, tool tabs, drag handle or drop target, not part of presets,
   not hideable, and absent from the Layout page's offerings (its group limit reads "Right side groups"). A saved layout's other left
   tools move to the right side when it loads (and after every preset), documents there go to the centre.
