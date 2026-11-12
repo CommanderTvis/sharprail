@@ -119,7 +119,7 @@ internal sealed class E2eWorkspace : IDisposable
         bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null,
         IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, SharpRail.Plugins.Api.Host.PluginHostModule?)>? hostPlugins = null,
         IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
-        SharpRail.Host.Core.Plugins.Isolation.PluginIsolation? isolation = null)
+        SharpRail.Host.Core.Plugins.Isolation.PluginIsolation? isolation = null, bool playground = false)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -172,6 +172,7 @@ internal sealed class E2eWorkspace : IDisposable
             IsolatedPlugins = isolation is null ? null : async (entry, client, ended, token) =>
                 await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended,
                     open => new SharpRail.UI.Plugins.RemoteSurface(open, entry.Label), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token),
+            PlaygroundGuide = playground,
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };

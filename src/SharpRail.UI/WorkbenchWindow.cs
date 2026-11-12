@@ -662,6 +662,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 VerticalAlignment = VerticalAlignment.Center
             };
             var isDefault = workspaceRoot == projectRoot;
+            if (isDefault && workbench.PlaygroundGuide)
+                empty.Children.Add(Panels.PlaygroundGuide.Create(CloneProject, () => ShowSettings("Model providers"), url => OpenLink(url)));
             empty.Children.Add(Ui.Text(isDefault ? "DEFAULT WORKSPACE" : "WORKSPACE READY", size: 12));
             empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : WorkspaceName(workspaceRoot), Ui.TextBrush));
             readyBranch = Ui.Text("");

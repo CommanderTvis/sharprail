@@ -21,6 +21,7 @@ internal static class UnifiedChromeChecks
     internal static void Run(string root)
     {
         Migration();
+        PlaygroundGuideChecks.Run(Path.Combine(root, "playground-guide"));
         Window(Path.Combine(root, "unified-chrome"));
         Classic(Path.Combine(root, "classic-chrome"));
     }

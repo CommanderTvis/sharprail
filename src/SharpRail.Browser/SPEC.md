@@ -68,6 +68,16 @@ pull-to-refresh is off. The browser Back button does not yet step out of a page.
 keyboard and address-bar behaviour on iOS and Android, safe-area insets, touch scrolling and long press in the
 canvas, pinch, and the on-screen keyboard over terminals.
 
+The host-less Playground greets a newcomer with a getting-started card, in the Default workspace's empty view and
+on Welcome, and never in a hosted or desktop session. It opens with a short, truthful account of the tab: no server
+or account; files, git history and keys are saved in the browser's storage and survive a reload but not cleared
+site data; keys go only to the chosen model provider; clones pass through a public CORS proxy; the terminal is a
+simulated shell without node or npm; only Pi runs in a tab, while Claude Code and Codex need a host. Three steps
+follow, with links that open the clone dialog and the model providers settings. The wording changes with what the
+tab really does.
+
+The rail header keeps a small inset from the page's top edge where there is no window title row to clear.
+
 ## Tailscale
 
 The connect screen offers "Connect over Tailscale" beside the address form. The tab then joins the tailnet as
