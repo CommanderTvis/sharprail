@@ -139,7 +139,24 @@ internal static class TerminalResumeHintChecks
         Console.WriteLine("PASS terminal input hold: keys dropped during a driven entry, writes unaffected, nesting, restart, time limit and close release it");
     }
 
-    // The companion beside the surface: 45% on first opening, a restored width, covering the surface when the view is narrow.
+    // A long drawing in a narrow column never takes the column: the surface keeps its minimum, the companion its bounded share, the drawing scrolls inside.
+    private static void StackedBounds(Fixture fixture, TerminalView view, ContentControl body, Border pane, string when)
+    {
+        var scroller = new ScrollViewer { Content = new StackPanel { Children = { new TextBlock { Text = string.Join('\n', Enumerable.Range(0, 200).Select(line => "markdown line " + line)) } } } };
+        pane.Child = scroller;
+        foreach (var height in new[] { 500.0, 360.0 })
+        {
+            fixture.Window.Height = height; Settle();
+            var share = pane.Bounds.Height / view.Bounds.Height;
+            Require(view.CompanionStacked && pane.TranslatePoint(default, view) is { } origin && origin.Y >= body.Bounds.Bottom - 1 && body.Bounds.Height >= TerminalView.StackedSurfaceMinHeight - 1 && share <= TerminalView.CompanionStackMaxShare + 0.01 && pane.Bounds.Height >= TerminalView.StackedCompanionMinHeight - 1,
+                $"At {when} width and height {height} the surface keeps {body.Bounds.Height} (min {TerminalView.StackedSurfaceMinHeight}) and the companion {pane.Bounds.Height} of {view.Bounds.Height} (max share {TerminalView.CompanionStackMaxShare}).");
+            Require(scroller.Extent.Height > scroller.Viewport.Height && Math.Abs(scroller.Bounds.Height - pane.Bounds.Height) < 1, "The long drawing scrolls inside the companion's own area.");
+        }
+        fixture.Window.Height = 500; Settle();
+        pane.Child = null;
+    }
+
+    // The companion beside the surface: 45% on first opening, a restored width, stacked below the surface when the view is narrow.
     private static void Companion()
     {
         using var fixture = new Fixture(false, null);
@@ -149,22 +166,37 @@ internal static class TerminalResumeHintChecks
         var body = view.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody");
         var pane = new Border { Name = "CheckCompanion" };
         view.Companion = pane; Settle();
-        Require(!view.CompanionOverlay && Math.Abs(pane.Bounds.Width / view.Bounds.Width - 0.45) < 0.02, $"The first opening takes 45%: {pane.Bounds.Width} of {view.Bounds.Width}.");
+        Require(!view.CompanionStacked && Math.Abs(pane.Bounds.Width / view.Bounds.Width - 0.45) < 0.02, $"The first opening takes 45%: {pane.Bounds.Width} of {view.Bounds.Width}.");
+        Require(body.Bounds.Height > 300 && Math.Abs(pane.Bounds.Height - body.Bounds.Height) < 1, "Wide, the companion sits beside the surface at its full height.");
         view.CompanionWidth = 300; Settle();
         Require(Math.Abs(pane.Bounds.Width - 300) < 1 && Math.Abs(body.Bounds.Width + 300 - view.Bounds.Width) < 12, $"A restored width applies to the open companion: pane {pane.Bounds.Width}, body {body.Bounds.Width}, view {view.Bounds.Width}.");
         fixture.Window.Width = 400; Settle();
-        Require(view.CompanionOverlay && Math.Abs(pane.Bounds.Width - view.Bounds.Width) < 1 && Math.Abs(body.Bounds.Width - view.Bounds.Width) < 1,
-            "A narrow view shows the companion over the surface, which keeps its width.");
+        Require(view.CompanionStacked && Math.Abs(pane.Bounds.Width - view.Bounds.Width) < 1 && Math.Abs(body.Bounds.Width - view.Bounds.Width) < 1,
+            "A narrow view stacks the companion below the surface at the full width.");
+        StackedBounds(fixture, view, body, pane, "narrow");
         fixture.Window.Width = 900; Settle();
-        Require(!view.CompanionOverlay && Math.Abs(pane.Bounds.Width - 300) < 1, "A wide view returns the companion to its column at the saved width.");
+        Require(!view.CompanionStacked && Math.Abs(pane.Bounds.Width - 300) < 1, "A wide view returns the companion to its column at the saved width.");
         view.Companion = null; Settle();
         Require(saved.Count == 1 && Math.Abs(saved[0] - 300) < 1 && view.CompanionWidth is { } kept && Math.Abs(kept - 300) < 1, "Closing reports the width and keeps it.");
         Require(Math.Abs(body.Bounds.Width - view.Bounds.Width) < 1, "Closing returns the full width to the surface.");
         fixture.Window.Width = 400; Settle();
         view.Companion = pane; Settle();
-        Require(view.CompanionOverlay && view.CompanionWidth is { } narrow && Math.Abs(narrow - 300) < 1, "Opening while narrow covers the surface and still remembers the width.");
+        Require(view.CompanionStacked && view.CompanionWidth is { } narrow && Math.Abs(narrow - 300) < 1, "Opening while narrow stacks the companion and still remembers the width.");
         view.Companion = null; Settle();
-        Require(!view.CompanionOverlay && saved.Count == 1, "Closing an overlay reports no width.");
+        Require(!view.CompanionStacked && saved.Count == 1, "Closing a stacked companion reports no width.");
+        // A hairline sits between the chips and the content above only while a companion is open, without moving anything.
+        var chips = view.GetLogicalDescendants().OfType<StackPanel>().Single(control => control.Name == "TerminalAccessories");
+        var divider = view.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "TerminalAccessoriesDivider");
+        chips.Children.Add(new Border { Height = 24 }); Settle();
+        var chipHeight = chips.Bounds.Height; var bodyHeight = body.Bounds.Height;
+        Require(!divider.IsVisible, "Without a companion the chip strip is borderless.");
+        view.Companion = pane; Settle();
+        Require(divider.IsVisible && ReferenceEquals(divider.Background, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) && Math.Abs(divider.Bounds.Height - 1) < 0.01 &&
+            Math.Abs(divider.Bounds.Top - chips.Bounds.Top) < 0.5 && Math.Abs(chips.Bounds.Height - chipHeight) < 0.5,
+            $"An open companion shows a 1px border on the chip strip's top edge without resizing it: {divider.Bounds}, strip {chips.Bounds}.");
+        view.Companion = null; Settle();
+        Require(!divider.IsVisible && Math.Abs(chips.Bounds.Height - chipHeight) < 0.5 && Math.Abs(body.Bounds.Height - bodyHeight) < 0.5, "Closing removes the border and restores the sizes.");
+        chips.Children.Clear(); Settle();
         // The strip row above the surface: the tab's top row, a list only with several items, pressing it toggles.
         var presses = 0;
         var chosen = -1;
@@ -186,7 +218,7 @@ internal static class TerminalResumeHintChecks
         Require(chosen == 2, "Choosing an item reports its index.");
         view.CompanionStrips.Children.Clear(); Settle();
         Require(Math.Abs(body.Bounds.Top) < 0.5, "Without a strip there is no gap above the surface.");
-        Console.WriteLine("PASS terminal companion: first opening takes 45%, a saved width is restored, a narrow view shows it as an overlay");
+        Console.WriteLine("PASS terminal companion: first opening takes 45%, a saved width is restored, a narrow view stacks it below within bounded shares, a hairline separates it from the chips");
     }
 
     private sealed class Fixture : IDisposable

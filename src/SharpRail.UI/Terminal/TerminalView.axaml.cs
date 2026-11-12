@@ -36,6 +36,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private Action? releaseHint;
     private readonly ContentControl companion;
     private readonly GridSplitter companionSplitter;
+    private readonly GridSplitter stackSplitter;
+    private readonly Border accessoriesDivider;
     // 45% of the view beside a 1* terminal column.
     private GridLength companionWidth = new(45.0 / 55, GridUnitType.Star);
     private int generation;
@@ -78,7 +80,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
+        stackSplitter = this.FindControl<GridSplitter>("TerminalCompanionStackSplitter")!;
         companionSplitter.DragCompleted += (_, _) => CompanionWidthChanged?.Invoke(CompanionColumns[2].ActualWidth);
+        accessoriesDivider = this.FindControl<Border>("TerminalAccessoriesDivider")!;
+        this.FindControl<StackPanel>("TerminalAccessories")!.SizeChanged += (_, _) => LayoutCompanion();
         SizeChanged += (_, _) => LayoutCompanion();
         retry.Click += (_, _) => Start(retrying: true);
         this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
@@ -348,11 +353,17 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Presses the offer's "Quit that process and resume" button, as a click would; false when it is not shown.</summary>
     internal bool QuitResumeOffer() { if (quitOffered is not { } quit) return false; quit(); return true; }
 
-    /// <summary>Below this view width the companion covers the surface instead of squeezing it.</summary>
-    public const double CompanionOverlayBelow = 560;
+    /// <summary>Below this view width the companion stacks below the surface instead of squeezing it.</summary>
+    public const double CompanionStackBelow = 560;
 
-    /// <summary>Whether the open companion currently covers the surface (the view is narrower than <see cref="CompanionOverlayBelow"/>).</summary>
-    public bool CompanionOverlay { get; private set; }
+    /// <summary>A stacked companion never takes more than this share of the height; the surface keeps the rest.</summary>
+    public const double CompanionStackMaxShare = 0.6;
+
+    /// <summary>The least height a stacked surface keeps (several rows plus the composer) and the least a stacked companion keeps.</summary>
+    public const double StackedSurfaceMinHeight = 200, StackedCompanionMinHeight = 80;
+
+    /// <summary>Whether the open companion currently is stacked below the surface (the view is narrower than <see cref="CompanionStackBelow"/>).</summary>
+    public bool CompanionStacked { get; private set; }
 
     /// <summary>Raised with the column's width in pixels after the user drags the splitter or closes a resized companion.</summary>
     public event Action<double>? CompanionWidthChanged;
@@ -368,19 +379,19 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// </summary>
     public double? CompanionWidth
     {
-        get => companion.IsVisible && !CompanionOverlay && CompanionColumns[2].ActualWidth > 0 ? CompanionColumns[2].ActualWidth
+        get => companion.IsVisible && !CompanionStacked && CompanionColumns[2].ActualWidth > 0 ? CompanionColumns[2].ActualWidth
             : companionWidth.IsAbsolute ? companionWidth.Value : null;
         set
         {
             if (value is not > 0) return;
             companionWidth = new GridLength(value.Value);
-            if (!companion.IsVisible || CompanionOverlay) return;
+            if (!companion.IsVisible || CompanionStacked) return;
             CompanionColumns[0].Width = new GridLength(1, GridUnitType.Star);
             CompanionColumns[2].Width = companionWidth;
         }
     }
 
-    /// <summary>The embedded companion pane beside the surface (over it when narrow); null closes it.</summary>
+    /// <summary>The embedded companion pane beside the surface (below it when narrow); null closes it.</summary>
     public Control? Companion
     {
         get => companion.Content as Control;
@@ -392,7 +403,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
                 var columns = CompanionColumns;
                 var column = columns[2];
                 // The first opening takes 45%; afterwards the width the user left is restored in pixels.
-                if (!visible && !CompanionOverlay && column.ActualWidth > 0)
+                if (!visible && !CompanionStacked && column.ActualWidth > 0)
                 {
                     companionWidth = new(column.ActualWidth);
                     CompanionWidthChanged?.Invoke(column.ActualWidth);
@@ -407,32 +418,45 @@ public sealed partial class TerminalView : UserControl, IDisposable
         }
     }
 
-    private bool NarrowForCompanion => Bounds.Width is > 0 && Bounds.Width < CompanionOverlayBelow;
+    private bool NarrowForCompanion => Bounds.Width is > 0 && Bounds.Width < CompanionStackBelow;
 
-    // Narrow, the open companion spans the view over the surface with its own surface colour; wide, it is the third column again.
+    // Narrow, the open companion spans the view below the surface, split by a draggable splitter; wide, it is the third column again.
     private void LayoutCompanion()
     {
-        var overlay = companion.IsVisible && NarrowForCompanion;
-        if (overlay != CompanionOverlay)
+        var stacked = companion.IsVisible && NarrowForCompanion;
+        var rows = ((Grid)companion.Parent!).RowDefinitions;
+        if (stacked != CompanionStacked)
         {
-            CompanionOverlay = overlay;
+            CompanionStacked = stacked;
             var columns = CompanionColumns;
-            Grid.SetColumn(companion, overlay ? 0 : 2);
-            Grid.SetColumnSpan(companion, overlay ? 3 : 1);
-            companion.Background = overlay ? Ui.Surface : null;
-            companion.ZIndex = overlay ? 5 : 0;
-            if (overlay)
+            Grid.SetRow(companion, stacked ? 3 : 1);
+            Grid.SetColumn(companion, stacked ? 0 : 2);
+            Grid.SetColumnSpan(companion, stacked ? 3 : 1);
+            rows[1].Height = new GridLength(stacked ? 3 : 1, GridUnitType.Star);
+            rows[3].Height = stacked ? new GridLength(2, GridUnitType.Star) : new GridLength(0);
+            if (stacked)
             {
                 if (columns[2].ActualWidth > 0) companionWidth = new(columns[2].ActualWidth);
                 columns[2].Width = new GridLength(0);
             }
-            else if (companion.IsVisible)
+            else
             {
-                columns[0].Width = new GridLength(1, GridUnitType.Star);
-                columns[2].Width = companionWidth;
+                rows[1].MinHeight = rows[3].MinHeight = 0;
+                if (companion.IsVisible)
+                {
+                    columns[0].Width = new GridLength(1, GridUnitType.Star);
+                    columns[2].Width = companionWidth;
+                }
             }
         }
-        companionSplitter.IsVisible = companion.IsVisible && !overlay;
+        if (stacked && Bounds.Height > 0)
+        {
+            rows[1].MinHeight = Math.Max(StackedSurfaceMinHeight, Bounds.Height * (1 - CompanionStackMaxShare));
+            rows[3].MinHeight = StackedCompanionMinHeight;
+        }
+        companionSplitter.IsVisible = companion.IsVisible && !stacked;
+        stackSplitter.IsVisible = stacked;
+        accessoriesDivider.IsVisible = companion.IsVisible && this.FindControl<StackPanel>("TerminalAccessories")!.Bounds.Height > 0;
     }
 
     /// <summary>Types into the shell as if typed; ignored until the shell has started.</summary>

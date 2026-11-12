@@ -15,7 +15,8 @@ internal sealed class CompanionDocument : ContentControl
 {
     private readonly ContentControl companion = new() { Name = "DocumentCompanion", IsVisible = false, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
     private readonly GridSplitter splitter = new() { Name = "DocumentCompanionSplitter", Width = 1, IsVisible = false, Background = Ui.BorderBrush, ResizeDirection = GridResizeDirection.Columns };
-    private readonly Grid grid = new() { RowDefinitions = new RowDefinitions("Auto,*,Auto"), ColumnDefinitions = new ColumnDefinitions("*,Auto,0") };
+    private readonly Grid grid = new() { RowDefinitions = new RowDefinitions("Auto,*,Auto,0,Auto"), ColumnDefinitions = new ColumnDefinitions("*,Auto,0") };
+    private readonly GridSplitter stackSplitter = new() { Name = "DocumentCompanionStackSplitter", Height = 1, IsVisible = false, Background = Ui.BorderBrush, ResizeDirection = GridResizeDirection.Rows };
     private GridLength companionWidth = new(45.0 / 55, GridUnitType.Star);
 
     public CompanionDocument(string pluginId, CompanionHost host, Control content)
@@ -33,11 +34,14 @@ internal sealed class CompanionDocument : ContentControl
         Grid.SetRow(companion, 1);
         Grid.SetColumn(splitter, 1);
         Grid.SetColumn(companion, 2);
-        Grid.SetRow(Accessories, 2);
+        Grid.SetRow(Accessories, 4);
+        Grid.SetRow(stackSplitter, 2);
+        Grid.SetColumnSpan(stackSplitter, 3);
         SizeChanged += (_, _) => LayoutCompanion();
         splitter.DragCompleted += (_, _) => WidthChanged?.Invoke(grid.ColumnDefinitions[2].ActualWidth);
         Grid.SetColumnSpan(Accessories, 3);
         grid.Children.Add(splitter);
+        grid.Children.Add(stackSplitter);
         grid.Children.Add(companion);
         grid.Children.Add(Accessories);
         grid.Children.Add(Strips);
@@ -52,8 +56,8 @@ internal sealed class CompanionDocument : ContentControl
     /// <summary>The strip below the body that holds the companion chips.</summary>
     public StackPanel Accessories { get; }
 
-    /// <summary>Whether the open companion currently covers the document (the view is narrower than <see cref="Terminal.TerminalView.CompanionOverlayBelow"/>).</summary>
-    public bool Overlay { get; private set; }
+    /// <summary>Whether the open companion currently is stacked below the document (the view is narrower than <see cref="Terminal.TerminalView.CompanionStackBelow"/>).</summary>
+    public bool Stacked { get; private set; }
 
     /// <summary>Raised with the column's width in pixels after the user drags the splitter or closes a resized companion.</summary>
     public event Action<double>? WidthChanged;
@@ -61,21 +65,21 @@ internal sealed class CompanionDocument : ContentControl
     /// <summary>The companion column's width in pixels when it was resized, else null (the first opening takes 45%). Setting it restores a saved width.</summary>
     public double? CompanionWidth
     {
-        get => companion.IsVisible && !Overlay && grid.ColumnDefinitions[2].ActualWidth > 0 ? grid.ColumnDefinitions[2].ActualWidth
+        get => companion.IsVisible && !Stacked && grid.ColumnDefinitions[2].ActualWidth > 0 ? grid.ColumnDefinitions[2].ActualWidth
             : companionWidth.IsAbsolute ? companionWidth.Value : null;
         set
         {
             if (value is not > 0) return;
             companionWidth = new GridLength(value.Value);
-            if (!companion.IsVisible || Overlay) return;
+            if (!companion.IsVisible || Stacked) return;
             grid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             grid.ColumnDefinitions[2].Width = companionWidth;
         }
     }
 
-    private bool Narrow => Bounds.Width is > 0 && Bounds.Width < Terminal.TerminalView.CompanionOverlayBelow;
+    private bool Narrow => Bounds.Width is > 0 && Bounds.Width < Terminal.TerminalView.CompanionStackBelow;
 
-    /// <summary>The embedded companion pane beside the document (over it when narrow); null closes it.</summary>
+    /// <summary>The embedded companion pane beside the document (below it when narrow); null closes it.</summary>
     public Control? Companion
     {
         get => companion.Content as Control;
@@ -86,7 +90,7 @@ internal sealed class CompanionDocument : ContentControl
             {
                 var column = grid.ColumnDefinitions[2];
                 // The first opening takes 45%; afterwards the width the user left is restored in pixels.
-                if (!visible && !Overlay && column.ActualWidth > 0)
+                if (!visible && !Stacked && column.ActualWidth > 0)
                 {
                     companionWidth = new(column.ActualWidth);
                     WidthChanged?.Invoke(column.ActualWidth);
@@ -101,29 +105,41 @@ internal sealed class CompanionDocument : ContentControl
         }
     }
 
-    // Narrow, the open companion spans the view over the document with its own surface colour; wide, it is the third column again.
+    // Narrow, the open companion spans the view below the document, split by a draggable splitter; wide, it is the third column again.
     private void LayoutCompanion()
     {
-        var overlay = companion.IsVisible && Narrow;
-        if (overlay != Overlay)
+        var stacked = companion.IsVisible && Narrow;
+        var rows = grid.RowDefinitions;
+        if (stacked != Stacked)
         {
-            Overlay = overlay;
+            Stacked = stacked;
             var columns = grid.ColumnDefinitions;
-            Grid.SetColumn(companion, overlay ? 0 : 2);
-            Grid.SetColumnSpan(companion, overlay ? 3 : 1);
-            companion.Background = overlay ? Ui.Surface : null;
-            companion.ZIndex = overlay ? 5 : 0;
-            if (overlay)
+            Grid.SetRow(companion, stacked ? 3 : 1);
+            Grid.SetColumn(companion, stacked ? 0 : 2);
+            Grid.SetColumnSpan(companion, stacked ? 3 : 1);
+            rows[1].Height = new GridLength(stacked ? 3 : 1, GridUnitType.Star);
+            rows[3].Height = stacked ? new GridLength(2, GridUnitType.Star) : new GridLength(0);
+            if (stacked)
             {
                 if (columns[2].ActualWidth > 0) companionWidth = new(columns[2].ActualWidth);
                 columns[2].Width = new GridLength(0);
             }
-            else if (companion.IsVisible)
+            else
             {
-                columns[0].Width = new GridLength(1, GridUnitType.Star);
-                columns[2].Width = companionWidth;
+                rows[1].MinHeight = rows[3].MinHeight = 0;
+                if (companion.IsVisible)
+                {
+                    columns[0].Width = new GridLength(1, GridUnitType.Star);
+                    columns[2].Width = companionWidth;
+                }
             }
         }
-        splitter.IsVisible = companion.IsVisible && !overlay;
+        if (stacked && Bounds.Height > 0)
+        {
+            rows[1].MinHeight = Math.Max(Terminal.TerminalView.StackedSurfaceMinHeight, Bounds.Height * (1 - Terminal.TerminalView.CompanionStackMaxShare));
+            rows[3].MinHeight = Terminal.TerminalView.StackedCompanionMinHeight;
+        }
+        splitter.IsVisible = companion.IsVisible && !stacked;
+        stackSplitter.IsVisible = stacked;
     }
 }

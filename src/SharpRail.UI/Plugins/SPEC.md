@@ -203,7 +203,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
   drawing's title and "· N visualizations", in muted text on the tab's own background with a divider below. Pressing the strip
   opens or closes the pane; with several items a chevron lists them and choosing one shows it in the pane. The strip exists only
   while the tab has something to show (no strip, no gap), and is the same on terminals and chat tabs; there is no chip.
-  The pane's width is saved per tab with the open state, and below 560 px the pane covers the body instead of squeezing it. A pane belongs to its tab: it can be closed but not moved elsewhere (a drawing the agent detaches opens as its own tab instead).
+  The pane's width is saved per tab with the open state, and below 560 px the pane stacks below the body (bounded share, the body keeps a usable minimum) instead of squeezing it. A pane belongs to its tab: it can be closed but not moved elsewhere (a drawing the agent detaches opens as its own tab instead).
   The companion frame clips its content to keep oversized plugin drawings inside its split.
   A plugin's focus request selects that companion in every window holding the named terminal, including when another window is active.
   Selecting a companion changes the embedded pane, preserving keyboard focus in the terminal or
