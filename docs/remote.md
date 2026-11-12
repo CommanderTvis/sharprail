@@ -11,7 +11,7 @@ Your files, Git operations and shells run on the host machine. A client gives yo
 | Browser | WebAssembly | Connects to a host too. |
 
 iOS clients are not yet supported. Windows and Linux use Skia terminals. See [Windows](windows.md) and
-[Linux](linux.md) for setup and validation limits.
+[Linux](linux.md) for setup and platform limits.
 
 ## Hosting
 

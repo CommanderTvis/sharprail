@@ -6,7 +6,7 @@
 - [Using tereditor](using.md): projects, workspaces, editor, diffs and terminals.
 - [Agents](agents.md): agent panes, worktrees, environments, code intelligence, omp and Air Gateway.
 - [Plugins](plugins.md): what ships and how to add your own.
-- [Headless tereditor](headless.md): run it in a container for AI experiments (design).
+- [Headless tereditor](headless.md): run its language tools for an agent without a window, for example in a container.
 - [Headless tereditor in Claude Code on the web](headless-cloud.md): a setup script for a cloud environment.
 - [Terminal rendering](terminal.md): how terminals draw, with a comparison against Ghostty.
 
@@ -18,7 +18,7 @@
 
 ## Platforms
 
-- [Windows](windows.md) and [Linux](linux.md): setup and validation limits.
+- [Windows](windows.md) and [Linux](linux.md): setup and what differs from macOS.
 
 ## Develop
 

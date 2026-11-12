@@ -80,14 +80,12 @@ Swift run the SDK's own executable when it is allowed for that server.
 - Agent sessions run in terminals; the Claude Code plugin can also present a session as a chat tab.
 - Switching a plugin off also switches off the plugins that require it. Switching it on again brings back exactly those that were on before. One you had turned off stays off, and one you switch yourself meanwhile keeps your choice.
 - PDFs preview with built-in support and need no plugin.
-- Android includes the builtin plugin interfaces. Plugin UI beyond the default workbench has not yet been verified on a
-  device.
 
 [Agents](agents.md) explains how the agent plugins, omp's profile and Air Gateway work.
 
 ## Keyboard shortcuts from plugins
 
-A plugin can add actions to Settings › Keymap (`IPluginUIContext.KeymapAction`): each has an id within the plugin, a title, a
+A plugin can add actions to Settings › Keymap: each has an id within the plugin, a title, a
 group name of the plugin's choosing, optional default shortcuts for macOS and for other platforms, and the command to run. They
 appear under Plugins in the keymap page, can be bound like any action and are checked for conflicts against all others. Your
 bindings are stored in the keymap preset and survive turning the plugin off: its actions leave the live keymap while it is off
@@ -99,7 +97,6 @@ Gateway settings pages.
 
 - tereditor finds plugins under `<stateDir>/plugins/<id>/` and in any extra plugin paths you add.
 - It lists them in Settings › Plugins, but it does not run them yet. Turning one on shows "External plugins are not supported in this version."
-- External plugins will run again once they can run apart from tereditor's own processes. Until then, the host and the app load no code at
-  run time, so both can be built as NativeAOT.
+- External plugins will run once they can run apart from tereditor's own processes.
 
 The [Plugin API contract](../src/Tereditor.Plugins.Api/SPEC.md) documents the extension points and installation format.

@@ -91,7 +91,6 @@ discussion develops.
 
 - It launches in a workspace terminal with tereditor's MCP tools, and a pane lists its context files with token
   estimates.
-- The integration follows omp's documentation and has not been verified against a real install.
 - With MCP on, omp launches use a `tereditor` omp profile with its own sign-in, settings and sessions, apart from your
   default profile.
 - Settings › omp can import your existing sign-in.
@@ -115,7 +114,7 @@ Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.co
   every agent, with the default marked, and start any of them. With no default the click asks (or starts the only agent).
 - Start a chat with the ACP button in the workspace's tab strip. It runs in the workspace folder; it can read and write
   files and run commands there, and every permission it asks for is shown to you.
-- Sign in with the agent's own tool; tereditor never asks for credentials. See `src/Tereditor.Plugins.Acp/SPEC.md` for what is not supported yet.
+- Sign in with the agent's own tool; tereditor never asks for credentials.
 
 ## Pi
 

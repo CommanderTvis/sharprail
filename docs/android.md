@@ -27,8 +27,7 @@ settings, plugins and shells stay on the host.
 Choose one of three ways on the connect screen.
 
 1. Over Tailscale, which needs no addresses or tokens. See [Pair over Tailscale](tailscale.md).
-2. By QR code. In the desktop app, show the code in Settings › Host, then choose Scan QR code. QR scanning has not yet
-   been exercised on a device.
+2. By QR code. In the desktop app, show the code in Settings › Host, then choose Scan QR code.
 3. By hand. Enter the host's address and token. The port is 54123 when none is given.
 
 The app remembers the host and connects by itself on the next launch. Settings › Host › Disconnect forgets the token.
@@ -50,5 +49,3 @@ pinned JDK into mise's shared data directory.
 scripts/mise run android run   # build, install on the connected device or emulator, and start
 scripts/mise run android apk   # Release package at artifacts/android/tereditor.apk
 ```
-
-See `src/Tereditor.Android/SPEC.md` for the design and limits.

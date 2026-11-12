@@ -1,7 +1,5 @@
 # Headless tereditor for AI experiments
 
-Status: the stdio server works and a container image is built by the Container workflow. The package is private until the owner makes it public.
-
 tereditor can run without a window. It serves its language tools to an agent over MCP, on stdin and stdout, for one project. The spec and Blueprint tools are off by default and you opt in (see [Spec and Blueprint tools](#spec-and-blueprint-tools)). The main use is research: does the LSP toolset help an agent do a task?
 
 To use it in a cloud session of Claude Code on the web, see [headless-cloud.md](headless-cloud.md).
@@ -48,16 +46,12 @@ container run --rm -v ~/.cache/tereditor:/cache ghcr.io/commandertvis/tereditor:
 
 `warm` takes server ids (`csharp`, `typescript`, `python`, `css`, `shell`, `php`, `clangd`, `kotlin`; default `csharp`), installs the runtimes and servers into `/cache` and exits. A second run returns at once. Progress is in `/cache/home/.tereditor/logs/code-intelligence.log` (`host.runtime-install`, `host.server-install`, `host.install-command`).
 
-Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are handled. The image is for linux/amd64 and linux/arm64 under one tag. While CI is off it is built by hand from a Mac, see [the publishing steps](headless-cloud.md#publishing-the-image).
+Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are handled. The image is for linux/amd64 and linux/arm64 under one tag.
 
-- The `nightly` tag moves. The Container workflow overwrites it on every run. Each run also pushes an immutable `sha-<short commit>` tag.
-- To pin, use the digest: `docker pull ghcr.io/commandertvis/tereditor:nightly` then `docker inspect --format '{{index .RepoDigests 0}}' ghcr.io/commandertvis/tereditor:nightly`, and put `ghcr.io/commandertvis/tereditor@sha256:...` in the config. The run summary of the workflow also lists the digest.
+- The `nightly` tag moves to each new build. Every build also has an immutable `sha-<short commit>` tag.
+- To pin, use the digest: `docker pull ghcr.io/commandertvis/tereditor:nightly` then `docker inspect --format '{{index .RepoDigests 0}}' ghcr.io/commandertvis/tereditor:nightly`, and put `ghcr.io/commandertvis/tereditor@sha256:...` in the config.
 - The `/cache` volume holds the downloaded runtimes and language servers, and the state. The first run downloads them. Keep the volume to avoid that. A run with `--network none` works only after a run with the same volume has downloaded what the project needs.
 - The workspace mount is read-write. The container user has uid 1000. Git accepts a checkout owned by another user.
-- A new package on ghcr.io is private. The owner makes it public in the package settings on GitHub. A workflow cannot do that. Until then run `docker login ghcr.io` with a token that can read packages.
-- The workflow needs write access for workflows in the package settings, or the push is refused.
-
-To run it by hand: `gh workflow run container.yml -f tag=nightly`. To try the script on a local image: `scripts/mise x -- dotnet run --file scripts/container-smoke.cs -- <image>`.
 
 ## Run it from a build
 
@@ -179,7 +173,7 @@ Not headless, because the server needs a toolchain that has no pinned download h
 | PowerShell | needs PowerShell 7; not pinned |
 | Swift, Dart | no managed installation: they run the machine's own SDK |
 
-They stay desktop-only until a runtime with a checksum is pinned for them. Air Context is not headless. Kotlin analyses a single file without a JDK; importing a Gradle or Maven project needs a JDK on the machine (not verified in a container).
+They stay desktop-only until a runtime with a checksum is pinned for them. Air Context is not headless. Kotlin analyses a single file without a JDK; importing a Gradle or Maven project needs a JDK on the machine.
 
 With `TEREDITOR_TOOLCHAINS=managed` (the image sets it) the servers use only the pinned runtimes. Outside the image the default is the machine's PATH for .NET, so set it to `managed` there too. The JavaScript-based servers need no Node or npm: they use a pinned Bun, downloaded from GitHub releases into the cache and checked against its SHA-256, and install their packages from registry.npmjs.org.
 
@@ -206,7 +200,7 @@ It is a JetBrains product with its own terms (the JetBrains User Agreement, vers
    - Your personal licence, mounted as a directory (see "Your own licence, mounted" below).
    - `-e INTELLIJ_SERVER_LICENSE=...` (the code itself), `-e INTELLIJ_SERVER_LICENSE_FILE=<file, directory or the downloaded zip>`, or `-e JETBRAINS_LICENSE_SERVER=<url>`. `INTELLIJ_SERVER_LICENSE` wins over a mounted licence; so does `JETBRAINS_LICENSE_SERVER`.
 
-   Not verified against a real server: that these routes unlock it, and that Java analysis finds a JDK; give the server one with `lsp_status` operation `configure` and the `projectJdk` setting if the project needs one that is not in the image.
+   If the project needs a JDK that is not in the image, give the server one with `lsp_status` operation `configure` and the `projectJdk` setting.
 7. When IntelliJ takes over: once it works, it replaces the Kotlin server for `.kt` and is the only server for `.java`. Working means the terms are accepted, it started and it is licensed. If any of these fails (not accepted, fails to start, no license or an expired one), the previous server keeps serving, nothing regresses, and the answer carries a hint saying why IntelliJ is not in use. There is no setting to keep the old server once IntelliJ works. `retry` for `intellij` tries it again.
 8. `warm intellij` downloads the server and prints the terms (exit 2) unless the consent variable is set.
 
@@ -305,8 +299,6 @@ Commit one `.tereditor/mcp.toml` with `[arms.nolsp]` as above, then give the age
 ```
 
 Save the second file with `TEREDITOR_ARM=nolsp` and pass each to its own run with `claude --mcp-config <file> --strict-mcp-config`. Define an `[arms.lsp]` table too, even an empty one, because an undefined arm is an error. Logs land in `.tereditor/runs/` of the project.
-
-Verified offline with the local `claude` CLI (2.1.319): the flags `--mcp-config` and `--strict-mcp-config` exist. Not verified: `${PWD}` expansion in an `--mcp-config` file, and how the agent behaves without the tools.
 
 Comparing the arms with `jq`, one directory of logs per arm:
 

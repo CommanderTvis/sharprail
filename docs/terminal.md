@@ -6,8 +6,6 @@
 - On macOS, Ghostty's Metal terminal textures are composed directly into that view, without copying frames back to the
   CPU. Skia is the fallback.
 - Mermaid diagrams use Merman, a native Rust renderer, and display as vector SVGs without a JavaScript engine.
-- Published .NET 10 builds start with precompiled code and tune hot paths as you work, while keeping support for loading
-  managed plugins.
 
 ## Comparison with Ghostty
 
@@ -28,5 +26,3 @@ What it shows:
   actually displayed.
 
 Renderer benchmark sources and reproduction commands are in [`benchmarks/ghostty`](../benchmarks/ghostty/README.md).
-The reusable terminal controls live in `src/Ghostty.Avalonia`, and its README documents the API, build requirements and
-limits of the Skia path.

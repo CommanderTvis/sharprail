@@ -1,12 +1,16 @@
 # Linux desktop
 
-The [nightly prerelease](https://github.com/CommanderTvis/tereditor/releases/tag/nightly) includes
-`tereditor-nightly-linux-x64.AppImage`, built on an Ubuntu runner and gated by the packaged `--linux` checks, and
-`tereditor-nightly-linux-arm64.AppImage`, built and checked the same way on a native arm64 runner. The arm64 image does not gate the
-nightly yet: when its job fails, the release goes out without it. Both are signed (embedded GPG signature).
-The target is x86-64 or arm64 (aarch64) Linux with glibc 2.31 or newer (Ubuntu 20.04, Debian 11, Fedora 32 and later) and an X11 or XWayland
-session. Each image bundles .NET; it needs Git 2.36 or newer on `PATH` (older Git lacks `worktree list -z`, so Ubuntu 22.04's 2.34 shows a Git error in Changes) and, from the system, the X11 client libraries
-(`libX11`, `libXcursor`, `libXrandr`, `libXi`), `fontconfig` and a GL or software Skia stack that any desktop install has.
+The [nightly release](https://github.com/CommanderTvis/tereditor/releases/tag/nightly) has an AppImage for x64
+(`tereditor-nightly-linux-x64.AppImage`) and for arm64 (`tereditor-nightly-linux-arm64.AppImage`). Both carry an
+embedded GPG signature.
+
+## What you need
+
+- x86-64 or arm64 Linux with glibc 2.31 or newer (Ubuntu 20.04, Debian 11, Fedora 32 and later).
+- An X11 or XWayland session.
+- Git 2.36 or newer on `PATH`. With older Git, such as Ubuntu 22.04's 2.34, Changes shows a Git error.
+- The X11 client libraries (`libX11`, `libXcursor`, `libXrandr`, `libXi`), `fontconfig` and OpenGL, which any desktop
+  install has. .NET is bundled.
 
 ## Run it
 
@@ -15,7 +19,7 @@ chmod +x tereditor-nightly-linux-x64.AppImage
 ./tereditor-nightly-linux-x64.AppImage
 ```
 
-Without FUSE (containers, some minimal installs), let the runtime unpack the image itself:
+Without FUSE (containers, some minimal installs), let the image unpack itself:
 
 ```sh
 ./tereditor-nightly-linux-x64.AppImage --appimage-extract-and-run
@@ -23,31 +27,29 @@ Without FUSE (containers, some minimal installs), let the runtime unpack the ima
 ./tereditor-nightly-linux-x64.AppImage --appimage-extract && squashfs-root/AppRun
 ```
 
-Without ICU installed, `AppRun` starts .NET in invariant-globalization mode instead of failing.
+## Window title bar
+
+On GNOME, KDE, Cinnamon, Budgie, Pantheon, Unity, Deepin, COSMIC and XFCE, tereditor's header strip doubles as the
+title bar, with the window controls at its right. On other desktops and tiling window managers such as i3, sway or
+Hyprland, the system title bar stays.
+
+To choose, open Settings › Appearance › Window decorations and pick Automatic, Integrated header or System title bar.
+If the frame looks wrong on your window manager, start tereditor with `TEREDITOR_WINDOW_DECORATIONS=system` to always
+keep the system title bar (or `=client` to force the integrated header). The variable overrides the setting.
 
 ## What differs from macOS
 
-- Terminals always use Skia (libghostty-vt cells); the Settings renderer choice is hidden and a saved Metal preference is ignored.
-- On GNOME, KDE, Cinnamon, Budgie, Pantheon, Unity, Deepin, COSMIC and XFCE the header strip is the title bar (client-side decorations):
-  window controls sit at its right, the app draws the border, shadow and resize grips, and no separate title-bar row is spent.
-  Elsewhere (unknown or unset `XDG_CURRENT_DESKTOP`, tiling managers such as i3, sway or Hyprland, no `DISPLAY`) the system title bar
-  stays. `TEREDITOR_WINDOW_DECORATIONS=system` always keeps it and `=client` forces ours (when an X11 connection exists), for
-  example if the window frame looks wrong on your window manager; it beats the Settings choice, and Settings says when it is set.
-  Settings › Appearance › Window decorations chooses Automatic (recommended), Integrated header or System title bar; the choice is shared
-  by every client of the host, applies to open windows at once and, if a window manager keeps the old frame, to the next window you open.
-  Avalonia marks this X11 option experimental; it has not yet run on a real desktop.
 - Ctrl replaces Command in the editor and shortcuts.
-- Mermaid diagrams show their source with a notice: Merman publishes its C ABI for Apple platforms only.
-- Away notifications use `notify-send` when it is installed; clicking one cannot return to the app.
-- Created workspaces clone configured ignored paths with `cp -a --reflink=auto` (shared extents on btrfs and XFS, a copy elsewhere).
-- Show in file manager asks the freedesktop.org FileManager1 D-Bus service (`gdbus`, then `busctl`) to select the entry in whatever file manager runs, then falls back to `xdg-open` and `gio open` on the containing folder, with `APPDIR` entries removed from the child environment; a missing launcher is reported in the app. The action is hidden when the connected host is remote. Delete uses `gio trash`.
-- Child shells inherit `APPIMAGE`, `APPDIR` and `ARGV0` from the runtime.
+- Terminals always draw with Skia; there is no Metal renderer to choose.
+- Mermaid diagrams show their source instead of a rendered diagram.
+- Away notifications use `notify-send` when it is installed. Clicking one does not bring the app back.
+- Show in file manager opens your file manager on the entry, and is hidden when you are connected to a remote host.
+  Delete moves files to the trash.
+- New workspaces copy configured ignored paths with reflinks where the file system supports them (btrfs, XFS), and with
+  a plain copy elsewhere.
 
-## Build it
+## Build from source
 
-On Linux x64, `scripts/mise run package:linux` writes `artifacts/tereditor-linux-x64.AppImage`; on Linux arm64,
-`scripts/mise run package:linux linux-arm64` writes `artifacts/tereditor-linux-arm64.AppImage` (appimagetool and its runtime are
-per-architecture binaries, so each image is packed on a host of its own architecture). `scripts/mise run check:packaged -- --linux`
-runs the packaged gate for the image matching the host. Every tool is pinned and checksummed in `mise.toml`; see
-[scripts/README.md](../scripts/README.md). The native libraries cross-compile with Zig and the NativeAOT client links with Zig against glibc 2.31, so
-`TEREDITOR_APPDIR_ONLY=1 scripts/mise run package:linux` also publishes the Linux client on macOS; add `linux-arm64` for the arm64 client. The arm64 image has been cross-built only; its runtime behaviour is covered by CI on an arm64 runner.
+[Machine setup](develop/setup.md) lists what to install. On Linux x64, `scripts/mise run package:linux` writes
+`artifacts/tereditor-linux-x64.AppImage`. On Linux arm64, `scripts/mise run package:linux linux-arm64` writes
+`artifacts/tereditor-linux-arm64.AppImage`.

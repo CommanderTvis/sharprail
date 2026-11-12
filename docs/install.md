@@ -14,14 +14,13 @@ brew install --cask commandertvis/thinkrail/tereditor
 ```
 
 The cask always downloads the current nightly, so update it with
-`brew upgrade --cask --greedy commandertvis/thinkrail/tereditor`. The tap's own workflow does not test this cask's
-installation.
+`brew upgrade --cask --greedy commandertvis/thinkrail/tereditor`.
 
 ## Windows
 
 Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/Tereditor.UI.exe`. The standalone host is
 `host/Tereditor.Host.Remote.exe`. Windows 10 1809 or later and Git for Windows are required. See
-[Windows](windows.md) for setup and validation limits.
+[Windows](windows.md) for running a host and platform limits.
 
 On x64, WinGet also works through the [thinkrail source](https://github.com/CommanderTvis/winget-thinkrail). Add the
 source once from an administrator terminal, then install.
@@ -31,8 +30,7 @@ winget source add --name thinkrail --arg https://winget-thinkrail.vercel.app --t
 winget install --id CommanderTvis.tereditor --exact --source thinkrail --scope user
 ```
 
-WinGet adds no command alias, so launch `client\Tereditor.UI.exe` from the install folder. The source's own workflow
-does not test this package's installation.
+WinGet adds no command alias, so launch `client\Tereditor.UI.exe` from the install folder.
 
 ## Linux
 
