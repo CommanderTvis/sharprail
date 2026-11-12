@@ -73,6 +73,8 @@ public sealed partial class WorkbenchWindow
         {
             ((Panel)segment.Parent!).Children.Remove(segment);
             segment.MaxWidth = double.PositiveInfinity;
+            // The top bar gives each segment a fixed width; in the rail it follows the rail's width.
+            segment.Width = double.NaN;
             segment.HorizontalAlignment = HorizontalAlignment.Stretch;
             segment.Padding = new Thickness(8, 0, 8, 0);
         }
