@@ -402,18 +402,18 @@ public sealed partial class WorkbenchWindow
         select.Click += (_, _) => _ = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)
             ? OpenProjectAsync(project) : OpenProjectHomeAsync(project);
         AutomationProperties.SetName(select, state.Current.ProjectName(project));
-        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,14,4,*") };
+        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
         var folder = Ui.Icon("folderFill", Ui.Muted, 14);
         var name = Ui.Text(state.Current.ProjectName(project), Ui.Muted);
         var countText = Ui.Text("", Ui.Hint, 12);
         countText.Name = "ProjectWorkspaceCount";
         countText.VerticalAlignment = VerticalAlignment.Center;
         Ui.Place(row, countText, 0, 3);
-        Ui.Place(projectLabel, folder, 0, 1); Ui.Place(projectLabel, name, 0, 3);
+        Ui.Place(projectLabel, folder); Ui.Place(projectLabel, name, 0, 2);
         var pinMark = ActionIcons.Create(ActionIcon.Pin, Ui.Hint, 12);
-        pinMark.Name = "ProjectPinMark"; pinMark.Margin = new Thickness(0, 0, 4, 0); pinMark.VerticalAlignment = VerticalAlignment.Center;
+        pinMark.Name = "ProjectPinMark"; pinMark.Margin = new Thickness(4, 0, 0, 0); pinMark.VerticalAlignment = VerticalAlignment.Center;
         ToolTip.SetTip(pinMark, "Pinned"); AutomationProperties.SetName(pinMark, "Pinned");
-        Ui.Place(projectLabel, pinMark);
+        Ui.Place(projectLabel, pinMark, 0, 3);
         railSelection["project:" + project] = () =>
         {
             var plain = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees);

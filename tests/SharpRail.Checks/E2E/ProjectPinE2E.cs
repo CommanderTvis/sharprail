@@ -22,7 +22,7 @@ internal static class ProjectPinE2E
         var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
         AddProject(app, "Open project", second);
         Until(() => Rows(app).Contains(second));
-        var third = IsolatedGit.Repository(Path.Combine(directory, "third-project"));
+        var third = IsolatedGit.Repository(Path.Combine(directory, "third-project-with-a-deliberately-very-long-name-that-must-be-trimmed"));
         AddProject(app, "Open project", third);
         Until(() => Rows(app).Contains(third));
         // The host lists the newest project first; the rail must keep whatever order it has below the pins.
@@ -68,11 +68,12 @@ internal static class ProjectPinE2E
             var markBox = mark.TranslatePoint(default, row)!.Value;
             var nameBox = projectName.TranslatePoint(default, row)!.Value;
             var trailingCluster = row.Children.OfType<Control>().Where(item => Grid.GetColumn(item) >= 3).ToArray();
-            Require(!trailingCluster.Any(item => item.GetLogicalDescendants().Contains(mark)) && markBox.X + mark.Bounds.Width <= nameBox.X,
-                "The pin mark sits before the project name, outside the trailing count and add cluster.");
+            Require(!trailingCluster.Any(item => item.GetLogicalDescendants().Contains(mark)) && markBox.X >= nameBox.X + projectName.Bounds.Width - 0.5,
+                "The pin mark sits right of the project name, outside the trailing count and add cluster.");
             Require(ToolTip.GetTip(mark) as string == "Pinned" && AutomationProperties.GetName(mark) == "Pinned", "The pin mark is tooltipped and named Pinned.");
-            Require(label.Bounds.Right <= row.Bounds.Width && trailingCluster.All(item => !item.IsEffectivelyVisible || item.Bounds.Width == 0 || item.Bounds.X >= label.Bounds.Right - 0.5),
-                "The name area never overlaps the trailing cluster.");
+            Require(label.Bounds.Right <= row.Bounds.Width && trailingCluster.All(item => !item.IsEffectivelyVisible || item.Bounds.Width == 0 || item.Bounds.X >= label.Bounds.Right - 0.5)
+                && markBox.X + mark.Bounds.Width <= label.Bounds.Right + 0.5,
+                "The name area never overlaps the trailing cluster, and the pin stays inside it.");
         }
         Require(ActionIcons.Asset(ActionIcon.Pin) != ActionIcons.Asset(ActionIcon.Unpin), "Pin and Unpin are distinct registry icons.");
         var reread = new SharpRail.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath);
