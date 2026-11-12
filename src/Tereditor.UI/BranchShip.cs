@@ -180,7 +180,9 @@ public sealed partial class WorkbenchWindow
         Ship(remoteSync!, action == "sync", "Sync");
         var inSync = status.HasOrigin && status.Published && status.Ahead <= 0 && status.Behind <= 0;
         var plain = !status.HasOrigin || !status.Published || inSync;
-        Text(remoteState!, plain, !status.HasOrigin ? "No remote" : !status.Published ? "Not published" : "In sync", !status.HasOrigin ? Ui.Hint : Ui.Muted);
+        // The branch it pushes to always shows, so the block names its remote and not only the counts and the action.
+        var upstream = "origin/" + status.Branch;
+        Text(remoteState!, true, !status.HasOrigin ? "No remote" : !status.Published ? "Not published" : inSync ? upstream + " · in sync" : upstream, !status.HasOrigin ? Ui.Hint : Ui.Muted);
         Text(remoteAhead!, !plain && status.Ahead > 0, "↑" + status.Ahead, Ui.TextBrush);
         Text(remoteBehind!, !plain && status.Behind > 0, "↓" + status.Behind, Ui.Warning);
 
