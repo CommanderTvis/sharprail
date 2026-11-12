@@ -6,9 +6,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Resources.Pdf;
+namespace Tereditor.UI.Resources.Pdf;
 
 /// <summary>
 /// The page's text over its rasterized image: the image is a picture of the page, so the text a reader selects and

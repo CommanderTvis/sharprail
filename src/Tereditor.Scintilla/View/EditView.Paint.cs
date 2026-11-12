@@ -1,11 +1,11 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 using System.Text;
 
-using SharpRail.Scintilla.Core;
-
 using SkiaSharp;
 
-namespace SharpRail.Scintilla.View;
+using Tereditor.Scintilla.Core;
+
+namespace Tereditor.Scintilla.View;
 
 // Painting straight onto the canvas (upstream EditView::PaintText, DrawLine and MarginView::PaintMargin, with
 // Native/EditView.patch: text and backgrounds positioned through the shaped layout). No buffered pixmaps.

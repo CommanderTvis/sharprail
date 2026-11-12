@@ -7,9 +7,9 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Editor;
+using Tereditor.UI.Editor;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The native menu bar on macOS: File, Edit, View, Window and Help in a workbench window, Edit and Window in any
@@ -32,7 +32,7 @@ public static class ApplicationMenu
 
     /// <summary>
     /// Sets the application menu. Avalonia fills it with its own "About Avalonia" when none is set by the time the platform
-    /// builds the menu bar, so this runs from <c>Initialize</c>, before that; the menu holds About SharpRail and the platform items follow.
+    /// builds the menu bar, so this runs from <c>Initialize</c>, before that; the menu holds About tereditor and the platform items follow.
     /// </summary>
     public static void SetApplicationMenu(Application app) => NativeMenu.SetMenu(app, AppMenu(() => Panels.Dialogs.About(ActiveWindow()),
         () => { if (ActiveWindow() is WorkbenchWindow { IsActive: true } window) window.Run(WindowShortcuts.Settings); }));

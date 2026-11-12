@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>
 /// Checks and themes hand-written SVG before it is drawn. Nothing in an accepted document can run or reach outside

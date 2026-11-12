@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// The limits on running language servers (host setting <c>language-limits</c>, JSON): stop after <see cref="IdleMinutes"/> without

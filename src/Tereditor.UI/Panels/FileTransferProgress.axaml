@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Panels.FileTransferProgress"
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.UI.Panels.FileTransferProgress"
              IsVisible="False">
   <Border Background="{x:Static kit:Ui.Elevated}" Padding="8,4">
     <DockPanel>

@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// The one way a directory is printed in a pane: a muted 12 px folder icon, then the path in the code font, a long path losing its middle

@@ -1,4 +1,4 @@
-global using SharpRail.Plugins.UI.Kit;
-global using SharpRail.Plugins.UI.Kit.Editor;
-global using SharpRail.Plugins.UI.Kit.Markdown;
-global using SharpRail.Plugins.UI.Kit.Visualization;
+global using Tereditor.Plugins.UI.Kit;
+global using Tereditor.Plugins.UI.Kit.Editor;
+global using Tereditor.Plugins.UI.Kit.Markdown;
+global using Tereditor.Plugins.UI.Kit.Visualization;

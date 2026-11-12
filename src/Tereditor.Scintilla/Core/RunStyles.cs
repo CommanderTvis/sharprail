@@ -1,5 +1,5 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>Result of <see cref="RunStyles{T}.FillRange"/>: whether anything changed and the range actually filled.</summary>
 internal readonly record struct FillResult(bool Changed, int Position, int FillLength);

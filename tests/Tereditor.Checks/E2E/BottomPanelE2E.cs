@@ -4,11 +4,11 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // The bottom zone was retired; retain regression coverage for empty startup and explicit terminals.
 internal static class BottomPanelE2E

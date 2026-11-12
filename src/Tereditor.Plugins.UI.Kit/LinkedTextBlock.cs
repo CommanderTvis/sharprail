@@ -6,7 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Raised when a link inside a <see cref="LinkedTextBlock"/> is activated; the hosting surface opens it through the app's one open-URL path.</summary>
 public sealed class LinkClickedEventArgs(Uri url) : RoutedEventArgs(LinkedTextBlock.LinkClickedEvent) { public Uri Url { get; } = url; }

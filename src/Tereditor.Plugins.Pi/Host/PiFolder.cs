@@ -2,9 +2,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Pi.Host;
+namespace Tereditor.Plugins.Pi.Host;
 
 /// <summary>
 /// Folds Pi's RPC events and stored messages into the chat's ordered, id-keyed item list. Pure state: no process and no

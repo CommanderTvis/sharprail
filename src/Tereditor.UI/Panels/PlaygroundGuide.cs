@@ -4,7 +4,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>First steps in the Playground, shown on Welcome and in the Default workspace: get a project in, connect a model, then let an agent work on it.</summary>
 internal static class PlaygroundGuide

@@ -3,11 +3,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>Applies the host's shared-state snapshots and connection changes to this window.</summary>
 public sealed partial class WorkbenchWindow

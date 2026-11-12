@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// A narrow list on the left and the selected item's settings on the right, as on Settings › Code Intelligence: the list has a divider at its

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>How a registry npx agent is started with Bun instead of npx: the same pinned package, the runner changes.</summary>
 internal static class AcpRunner

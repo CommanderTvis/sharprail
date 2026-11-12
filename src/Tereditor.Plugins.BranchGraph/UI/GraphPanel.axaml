@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.BranchGraph.UI.GraphPanel"
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.BranchGraph.UI.GraphPanel"
              x:ClassModifier="internal"
              Name="GraphPanel">
   <Grid>

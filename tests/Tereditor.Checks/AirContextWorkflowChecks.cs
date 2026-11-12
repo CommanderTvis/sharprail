@@ -9,15 +9,15 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.AirContext.Host;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.AirContext.Host;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class AirContextChecks
 {
@@ -110,7 +110,7 @@ internal static partial class AirContextChecks
         var other2 = Path.Combine(workspace, "context-other"); Directory.CreateDirectory(other2);
         Require(!(await rig.Workspace(other2)).Enabled && !Enabled(rig.StateDirectory).Contains(other2), "Cloud enablement was inherited into another workspace.");
         var crossed = await search.Call(new() { ["query"] = "x", ["workspace"] = other2 }, default);
-        Require(crossed.Error && crossed.Text.Contains("not a known SharpRail workspace of this project", StringComparison.Ordinal) && crossed.Text.Contains("Known workspaces:", StringComparison.Ordinal), "Context search crossed into an unknown workspace or did not list the known ones: " + crossed.Text);
+        Require(crossed.Error && crossed.Text.Contains("not a known tereditor workspace of this project", StringComparison.Ordinal) && crossed.Text.Contains("Known workspaces:", StringComparison.Ordinal), "Context search crossed into an unknown workspace or did not list the known ones: " + crossed.Text);
         await ResolveSiblingAsync();
         var escaped = await search.Call(new() { ["query"] = "x", ["path"] = "../outside" }, default);
         Require(escaped.Error && escaped.Text.Contains("outside this workspace", StringComparison.Ordinal), "Context path escaped the workspace.");
@@ -152,7 +152,7 @@ internal static partial class AirContextChecks
 
     private static void WorkflowUi(string root)
     {
-        SharpRail.Plugins.AirContext.UI.AirContextPane.SignInPollInterval = TimeSpan.FromMilliseconds(200);
+        Tereditor.Plugins.AirContext.UI.AirContextPane.SignInPollInterval = TimeSpan.FromMilliseconds(200);
         var storage = Path.Combine(root, "context-workflow-ui"); Directory.CreateDirectory(storage);
         using var handler = new Handler(_ => Task.FromResult("fixture"u8.ToArray())); using var http = new HttpClient(handler);
         var bundle = new ContextBundle("workflow", "fixture", new("https://download.jetbrains.com/fixture"), Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData("fixture"u8)));
@@ -166,7 +166,7 @@ internal static partial class AirContextChecks
         TurnOn(app);
         var plugins = app.PluginRuntime!;
         // A workbench lookup leaves out the Settings overlay, which repeats some of the same controls.
-        T Find<T>(Control owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name && (owner is SharpRail.UI.Panels.SettingsView || !control.GetLogicalAncestors().OfType<SharpRail.UI.Panels.SettingsView>().Any()));
+        T Find<T>(Control owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name && (owner is Tereditor.UI.Panels.SettingsView || !control.GetLogicalAncestors().OfType<Tereditor.UI.Panels.SettingsView>().Any()));
         void Button(Control owner, string name) => Find<Button>(owner, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
         void Toggle()
         {
@@ -175,8 +175,8 @@ internal static partial class AirContextChecks
             window.MouseDown(point, Avalonia.Input.MouseButton.Left); window.MouseUp(point, Avalonia.Input.MouseButton.Left);
         }
         string[] EnabledNow() => Enabled(app.State!.DirectoryPath!);
-        var ownedAtStart = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count;
-        IReadOnlyList<Window> Dialogs() => [.. SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Skip(ownedAtStart)];
+        var ownedAtStart = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count;
+        IReadOnlyList<Window> Dialogs() => [.. Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Skip(ownedAtStart)];
         Reveal(app);
         var workspace = app.Window.WorkspaceRoot;
         try
@@ -188,8 +188,8 @@ internal static partial class AirContextChecks
             Require(!EnabledNow().Contains(workspace) && runtime is null, "Canceling cloud enablement changed host state or started Context.");
             Toggle(); E2E.E2eWorkspace.Until(() => Dialogs().Count > 0);
             confirmation = Dialogs().Single(); Button(confirmation, "EnableContextConfirm");
-            E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-            var terms = window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+            E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Any());
+            var terms = window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Single();
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(terms, "ConsentCheck").IsEnabled);
             Require(!EnabledNow().Contains(workspace) && runtime is null && Find<CheckBox>(terms, "ConsentCheck").IsChecked == false,
                 "Missing vendor consent enabled or executed Context instead of opening review.");
@@ -212,7 +212,7 @@ internal static partial class AirContextChecks
             Require(rows.All(row => row.IsEffectivelyVisible && row.Y is not null && Math.Abs(row.Y.Value - rows[0].Y!.Value) < 1), $"Index now, Stop and Logs… do not share one row: {string.Join(", ", rows.Select(row => row.Y))}.");
             // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
             Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
-            var settings = new SharpRail.UI.Panels.SettingsView(window, () => { }, section: "Code Intelligence");
+            var settings = new Tereditor.UI.Panels.SettingsView(window, () => { }, section: "Code Intelligence");
             window.ShowInOverlay(settings);
             try
             {
@@ -242,8 +242,8 @@ internal static partial class AirContextChecks
             }
             finally { settings.Close(); }
             Button(window, "ContextIndex"); E2E.E2eWorkspace.Until(() => runtime?.Indexes == 1);
-            Button(window, "ContextLogs"); E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.LogsWindow>().Any());
-            var logs = window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.LogsWindow>().Single();
+            Button(window, "ContextLogs"); E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.LogsWindow>().Any());
+            var logs = window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.LogsWindow>().Single();
             E2E.E2eWorkspace.Until(() => Find<TextBox>(logs, "ServerOutput").Text?.Contains("fixture indexing", StringComparison.Ordinal) == true);
             Require(!Find<TextBox>(logs, "ServerOutput").Text!.Contains("fixture-private-secret", StringComparison.Ordinal), "The logs window exposed a secret."); logs.Close();
             E2E.E2eWorkspace.Until(() => Find<Button>(window, "ContextStop").IsEnabled);

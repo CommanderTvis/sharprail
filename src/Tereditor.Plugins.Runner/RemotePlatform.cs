@@ -15,10 +15,10 @@ using Avalonia.Rendering;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
-/// SharpRail's remote platform backend (Security.SPEC.md, UI halves): every top-level the plugin's process opens (a
+/// tereditor's remote platform backend (Security.SPEC.md, UI halves): every top-level the plugin's process opens (a
 /// surface, a popup, a window) is a <see cref="RemoteTopLevel"/> that Skia's CPU raster draws into memory, which the
 /// renderer diffs and sends. Rendering runs on the UI thread, ticked on demand; nothing touches a GPU, a screen or a
 /// window system.
@@ -30,7 +30,7 @@ internal static class RemotePlatform
     internal static Compositor Compositor { get; private set; } = null!;
 
     public static AppBuilder UseRemote(this AppBuilder builder) =>
-        builder.UseStandardRuntimePlatformSubsystem().UseWindowingSubsystem(Initialize, "SharpRailRemote").UseHarfBuzz();
+        builder.UseStandardRuntimePlatformSubsystem().UseWindowingSubsystem(Initialize, "TereditorRemote").UseHarfBuzz();
 
     private static void Initialize()
     {
@@ -193,7 +193,7 @@ internal sealed class RemoteTopLevel : IWindowImpl, IPopupImpl, IFramebufferPlat
     public Action<PixelPoint>? PositionChanged { get; set; }
     public Action? Deactivated { get; set; }
     public Action? Activated { get; set; }
-    public IPlatformHandle Handle { get; } = new PlatformHandle(IntPtr.Zero, "SharpRailRemote");
+    public IPlatformHandle Handle { get; } = new PlatformHandle(IntPtr.Zero, "TereditorRemote");
     public Size MaxAutoSizeHint => new(1920, 1080);
     public Action<WindowTransparencyLevel>? TransparencyLevelChanged { get; set; }
     public WindowTransparencyLevel TransparencyLevel { get; private set; } = WindowTransparencyLevel.Transparent;

@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 /// <summary>The Java / Kotlin (IntelliJ) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
@@ -18,7 +18,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.IntelliJ.dll"
+        Host = "Tereditor.Plugins.Lsp.IntelliJ.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()
@@ -64,7 +64,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         ActionAsync = IntelliJLicensing.ActionAsync,
         PrimeWorkspaceAsync = (prime, cancellationToken) => Task.Run(() => IntelliJIndexPrimer.Prime(prime.SourceState, prime.TargetState, cancellationToken), cancellationToken),
         InitializeTimeout = TimeSpan.FromMinutes(15),
-        InitializeProgressToken = "sharprail-intellij-init",
+        InitializeProgressToken = "tereditor-intellij-init",
         SourceSchemes = ["jar:", "jrt:"],
         ReadSourceAsync = ReadSourceAsync,
         Settings = [],

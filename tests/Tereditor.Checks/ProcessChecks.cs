@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The bounded child-process runner and the Git calls built on it, against real children.</summary>
 internal static class ProcessChecks
@@ -91,23 +91,23 @@ internal static class ProcessChecks
         }
 
         // The environment is read at each spawn, so a repair made after startup reaches later children.
-        Environment.SetEnvironmentVariable("SHARPRAIL_CHECK_LIVE", "late");
-        Environment.SetEnvironmentVariable("SHARPRAIL_CHECK_DROPPED", "present");
+        Environment.SetEnvironmentVariable("TEREDITOR_CHECK_LIVE", "late");
+        Environment.SetEnvironmentVariable("TEREDITOR_CHECK_DROPPED", "present");
         try
         {
-            var live = await Sh(directory, "echo \"$SHARPRAIL_CHECK_LIVE/${SHARPRAIL_CHECK_DROPPED-unset}/$SHARPRAIL_CHECK_ADDED\"",
-                environment: new Dictionary<string, string?> { ["SHARPRAIL_CHECK_DROPPED"] = null, ["SHARPRAIL_CHECK_ADDED"] = "added" });
+            var live = await Sh(directory, "echo \"$TEREDITOR_CHECK_LIVE/${TEREDITOR_CHECK_DROPPED-unset}/$TEREDITOR_CHECK_ADDED\"",
+                environment: new Dictionary<string, string?> { ["TEREDITOR_CHECK_DROPPED"] = null, ["TEREDITOR_CHECK_ADDED"] = "added" });
             Require(live.Output == "late/unset/added\n", "The child did not see the live environment with its overrides: " + live.Output);
         }
         finally
         {
-            Environment.SetEnvironmentVariable("SHARPRAIL_CHECK_LIVE", null);
-            Environment.SetEnvironmentVariable("SHARPRAIL_CHECK_DROPPED", null);
+            Environment.SetEnvironmentVariable("TEREDITOR_CHECK_LIVE", null);
+            Environment.SetEnvironmentVariable("TEREDITOR_CHECK_DROPPED", null);
         }
 
         try
         {
-            await ChildProcess.RunAsync("sharprail-no-such-program", directory, [], TimeSpan.FromSeconds(5), CancellationToken.None);
+            await ChildProcess.RunAsync("tereditor-no-such-program", directory, [], TimeSpan.FromSeconds(5), CancellationToken.None);
             throw new InvalidOperationException("A missing program started.");
         }
         catch (Win32Exception) { }

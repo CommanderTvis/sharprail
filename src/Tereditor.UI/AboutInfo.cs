@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// What the About screen says about this build, read from in-memory assembly attributes and the runtime only:
@@ -9,9 +9,9 @@ namespace SharpRail.UI;
 /// </summary>
 public static class AboutInfo
 {
-    public const string Name = "SharpRail";
+    public const string Name = "tereditor";
     public const string Description = "A native C# and Avalonia workbench for projects, worktrees, terminals and Git";
-    public const string Repository = "https://github.com/CommanderTvis/sharprail";
+    public const string Repository = "https://github.com/CommanderTvis/tereditor";
     /// <summary>A new issue on the repository the About screen links to.</summary>
     public const string NewIssue = Repository + "/issues/new";
     public const string Upstream = "https://github.com/JetBrains/thinkrail";
@@ -46,7 +46,7 @@ public static class AboutInfo
         foreach (var candidate in new[]
         {
             Path.Combine(@base, "..", "Resources", NoticesFile), Path.Combine(@base, NoticesFile),
-            Path.Combine(@base, "..", NoticesFile), Path.Combine(@base, "..", "..", "share", "doc", "sharprail", NoticesFile)
+            Path.Combine(@base, "..", NoticesFile), Path.Combine(@base, "..", "..", "share", "doc", "tereditor", NoticesFile)
         })
             if (File.Exists(candidate)) return Path.GetFullPath(candidate);
         return null;

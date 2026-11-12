@@ -9,9 +9,9 @@ case "$abi" in
  x86_64) goarch=amd64; compiler=x86_64-linux-android24-clang ;;
  *) echo "Unsupported Android ABI: $abi" >&2; exit 1 ;;
 esac
-# Output: this checkout's src/SharpRail.Android/obj/tailscale/<abi>, which the Android project packages. The Go toolchain,
+# Output: this checkout's src/Tereditor.Android/obj/tailscale/<abi>, which the Android project packages. The Go toolchain,
 # build and module caches are the machine-wide ones scripts/tailscale-go.sh provisions; Go locks them itself.
-out="$root/src/SharpRail.Android/obj/tailscale/$abi"
+out="$root/src/Tereditor.Android/obj/tailscale/$abi"
 goroot="$(sh scripts/tailscale-go.sh)"
 cache="$(dirname "$goroot")"
 mkdir -p "$out"
@@ -23,10 +23,10 @@ case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x8
 export GOOS=android GOARCH="$goarch" CGO_ENABLED=1 GOTOOLCHAIN=local
 export GOCACHE="$cache/build-cache" GOMODCACHE="$cache/modules"
 export CC="$ndk/toolchains/llvm/prebuilt/$ndk_host/bin/$compiler"
-cd src/SharpRail.Android/Tailscale.Native
+cd src/Tereditor.Android/Tailscale.Native
 # Library builds would report 1.x.y-devDATE-g<hash>-dirty to the admin console; stamp the pinned module version instead.
-tsversion="$(sed -n 's/^require tailscale\.com v\([0-9][0-9.]*\)$/\1/p' go.mod)-sharprail"
-"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$tsversion -X tailscale.com/version.longStamp=$tsversion -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libSharpRailTailscale.so" .
+tsversion="$(sed -n 's/^require tailscale\.com v\([0-9][0-9.]*\)$/\1/p' go.mod)-tereditor"
+"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$tsversion -X tailscale.com/version.longStamp=$tsversion -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libTereditorTailscale.so" .
 # Module cache licenses are read-only. Keep staged copies writable so repeated
 # builds replace them cleanly, and propagate all real copy/list failures.
 copy_license() {
@@ -58,4 +58,4 @@ while IFS= read -r license; do
  cat "$license" >> "$out/THIRD-PARTY-NOTICES.txt"
  printf '\n' >> "$out/THIRD-PARTY-NOTICES.txt"
 done < "$lists/license-files.list"
-printf '%s\n' "$out/libSharpRailTailscale.so"
+printf '%s\n' "$out/libTereditorTailscale.so"

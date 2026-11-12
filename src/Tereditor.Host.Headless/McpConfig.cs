@@ -2,11 +2,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
 using Tomlyn;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>A configuration problem. The message names the file, line and key and is printed on stderr before the process exits with 2.</summary>
 internal sealed class McpConfigException(string message) : Exception(message);
@@ -29,11 +29,11 @@ internal static class KnownTools
 
 internal sealed record LogSettings(bool Enabled, string Level, int MaxResultChars, int MaxFileKb, string Directory);
 
-/// <summary>What the project's <c>.sharprail/mcp.toml</c>, the selected arm, the environment and the flags add up to.</summary>
+/// <summary>What the project's <c>.tereditor/mcp.toml</c>, the selected arm, the environment and the flags add up to.</summary>
 internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string> Disable, IReadOnlyList<string>? Allow,
     IReadOnlyDictionary<string, ToolRule> Rules, LogSettings Log, IReadOnlyList<string> Warnings, IReadOnlyList<string>? Enable = null)
 {
-    internal const string FileName = ".sharprail/mcp.toml";
+    internal const string FileName = ".tereditor/mcp.toml";
 
     /// <summary>Whether the tool exists for this run: allowed, not disabled and not switched off by its own table.</summary>
     internal bool Offers(string tool) =>
@@ -84,26 +84,26 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
     /// <summary>Reads the project file and layers the arm, environment and flags over it. Throws <see cref="McpConfigException"/>.</summary>
     internal static McpConfig Load(string workspace, McpFlags flags, Func<string, string?> environment)
     {
-        var path = Path.Combine(workspace, ".sharprail", "mcp.toml");
+        var path = Path.Combine(workspace, ".tereditor", "mcp.toml");
         Layer fromFile = new();
         Dictionary<string, Layer> arms = new(StringComparer.Ordinal);
         var found = System.IO.File.Exists(path);
         if (found) Read(path, fromFile, arms);
 
-        var arm = flags.Arm ?? Env(environment, "SHARPRAIL_ARM");
+        var arm = flags.Arm ?? Env(environment, "TEREDITOR_ARM");
         Layer? selected = null;
         if (arm is not null && !arms.TryGetValue(arm, out selected))
             throw new McpConfigException($"arm \"{arm}\" is not defined in {FileName} ({(found ? arms.Count == 0 ? "the file has no [arms.*] tables" : "defined: " + string.Join(", ", arms.Keys.Order(StringComparer.Ordinal)) : "the file does not exist")}).");
 
         var outside = new Layer();
-        if (Env(environment, "SHARPRAIL_TOOLS_DISABLE") is { } disable) outside.Disable = Names(disable, "SHARPRAIL_TOOLS_DISABLE");
-        if (Env(environment, "SHARPRAIL_TOOLS_ALLOW") is { } allow) outside.Allow = Names(allow, "SHARPRAIL_TOOLS_ALLOW");
-        if (Env(environment, "SHARPRAIL_LOG") is { } log)
-            outside.LogEnabled = log switch { "0" => false, "1" => true, _ => throw new McpConfigException($"SHARPRAIL_LOG: expected 0 or 1, got \"{log}\".") };
-        if (Env(environment, "SHARPRAIL_LOG_LEVEL") is { } level)
-            outside.Level = Levels.Contains(level) ? level : throw new McpConfigException($"SHARPRAIL_LOG_LEVEL: expected meta, args or full, got \"{level}\".");
-        if (Env(environment, "SHARPRAIL_RUNS_DIR") is { } directory) outside.Directory = directory;
-        if (Env(environment, "SHARPRAIL_TOOLS_ENABLE") is { } enable) outside.Enable = ParseGroups(enable, "SHARPRAIL_TOOLS_ENABLE");
+        if (Env(environment, "TEREDITOR_TOOLS_DISABLE") is { } disable) outside.Disable = Names(disable, "TEREDITOR_TOOLS_DISABLE");
+        if (Env(environment, "TEREDITOR_TOOLS_ALLOW") is { } allow) outside.Allow = Names(allow, "TEREDITOR_TOOLS_ALLOW");
+        if (Env(environment, "TEREDITOR_LOG") is { } log)
+            outside.LogEnabled = log switch { "0" => false, "1" => true, _ => throw new McpConfigException($"TEREDITOR_LOG: expected 0 or 1, got \"{log}\".") };
+        if (Env(environment, "TEREDITOR_LOG_LEVEL") is { } level)
+            outside.Level = Levels.Contains(level) ? level : throw new McpConfigException($"TEREDITOR_LOG_LEVEL: expected meta, args or full, got \"{level}\".");
+        if (Env(environment, "TEREDITOR_RUNS_DIR") is { } directory) outside.Directory = directory;
+        if (Env(environment, "TEREDITOR_TOOLS_ENABLE") is { } enable) outside.Enable = ParseGroups(enable, "TEREDITOR_TOOLS_ENABLE");
         var fromFlags = new Layer { Disable = flags.Disable is null ? null : Names(flags.Disable, "--disable-tools"), Enable = flags.Enable is null ? null : ParseGroups(flags.Enable, "--enable-tools") };
 
         var merged = new Layer();
@@ -113,7 +113,7 @@ internal sealed record McpConfig(string? Arm, string? File, IReadOnlyList<string
             warnings.Add($"tool \"{name}\" is not in the headless roster and has no effect.");
         var rules = merged.Tools.ToDictionary(pair => pair.Key, pair => new ToolRule(pair.Value.Enabled, pair.Value.Operations));
         var settings = new LogSettings(merged.LogEnabled ?? false, merged.Level ?? "meta", merged.MaxResultChars ?? 4000, merged.MaxFileKb ?? 51200,
-            Path.GetFullPath(merged.Directory ?? Path.Combine(".sharprail", "runs"), workspace));
+            Path.GetFullPath(merged.Directory ?? Path.Combine(".tereditor", "runs"), workspace));
         return new McpConfig(arm, found ? FileName : null, merged.Disable ?? [], merged.Allow, rules, settings, warnings, merged.Enable ?? []);
     }
 

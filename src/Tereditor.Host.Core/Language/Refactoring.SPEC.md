@@ -17,7 +17,7 @@ from a language server or IDE engine, never from textual replace. A missing capa
 ## Survey of what exists (2026-10-27)
 
 - MCP tools: `lsp_diagnostics`, `lsp_navigate`, `lsp_status` (`LanguageMcpTools`,
-  `src/SharpRail.Host.Core/LanguageServices.cs`). All read-only; see "Inspection does not apply code actions"
+  `src/Tereditor.Host.Core/LanguageServices.cs`). All read-only; see "Inspection does not apply code actions"
   in the parent spec.
 - Session requests (`LanguageSession.cs`): `textDocument/` hover, definition, typeDefinition, implementation,
   references, documentSymbol, semanticTokens/full, diagnostic, `workspace/symbol`, `workspace/diagnostic`, and
@@ -30,12 +30,12 @@ from a language server or IDE engine, never from textual replace. A missing capa
   `fileOperations` (`willRenameFiles`), `workDoneProgress` cancel for refactorings, `window.showDocument`.
 - Server-to-client requests (`LanguageConnection.cs`): `workspace/applyEdit` is answered `applied=false` ("Use the
   editor to apply changes"). Everything else listed there is configuration, folders, registration or progress.
-- Editor (`SharpRail.UI/Editor/CodeDocumentView.Language.cs`, `src/SharpRail.Scintilla`): diagnostics squiggles,
+- Editor (`Tereditor.UI/Editor/CodeDocumentView.Language.cs`, `src/Tereditor.Scintilla`): diagnostics squiggles,
   semantic colors, a context menu and chords for Go to Declaration (F12), Type Declaration, Implementation, Find
   Usages (Alt+F7, Shift+F12), document and workspace symbols, hover via `inspect`. No completion, signature help,
   rename, code actions, formatting or organize imports. Scintilla is a managed port with its own undo (`Editor`);
   an edit applied by the host must enter that undo stack as one group.
-- Plugin hooks (`LanguageServerSpec`, `src/SharpRail.Plugins.Api.Host/LanguageServerTypes.cs`) declare identity,
+- Plugin hooks (`LanguageServerSpec`, `src/Tereditor.Plugins.Api.Host/LanguageServerTypes.cs`) declare identity,
   launch, options and adaptations, but nothing about refactorings.
 
 ## Capability matrix
@@ -119,7 +119,7 @@ by the plugin's `KindAliases`; an unmapped action keeps `id` empty and is still 
 Three tools, registered with the other `lsp_*` tools in the desktop and the headless host (`LanguageRefactoringTools`).
 They follow the `lsp_navigate` conventions: absolute `workspace`, servers started on demand with the 60 second wait and
 the 90 second deadline, zero-based UTF-16 positions, and a 28,000 character budget. The write step is an `operation`
-value, not a flag, so `.sharprail/mcp.toml` can make a tool read-only (`operations = ["list", "preview"]`). The tool
+value, not a flag, so `.tereditor/mcp.toml` can make a tool read-only (`operations = ["list", "preview"]`). The tool
 descriptions and the prompt guidance tell agents to prefer them over hand-editing for semantic changes.
 
 - `lsp_code_actions`, operations `list` (default), `preview`, `apply`. `list` takes `path` and either a range
@@ -380,7 +380,7 @@ Phase 3, change signature, move, safe delete, file operations:
 Phase 4, remaining items: pull up/push down, visibility, static, type change and convert actions through generic
 code actions with plugin `KindAliases`; `lsp_undo`; Reformat via formatting.
 
-Specs to keep consistent when implementing: the parent spec (Agents and Analysis sections), `SharpRail.UI/SPEC.md`
+Specs to keep consistent when implementing: the parent spec (Agents and Analysis sections), `Tereditor.UI/SPEC.md`
 (Edit menu), `Plugins.SPEC.md` (language server hook), `docs/develop/agent-reference.md` (check modes).
 
 ## Comparison with OMP and the JetBrains MCP
@@ -435,7 +435,7 @@ Deliberate differences:
   refused, and the refusal names the tool to use (`lsp_code_actions`, `lsp_rename`, `lsp_format`), so the write
   approval of those tools cannot be bypassed. A payload may not carry `textDocument` or `uri`.
 - Codex and headless approve and switch the same six tool names as before; every addition is an operation or
-  parameter of an existing tool, so `.sharprail/mcp.toml` operation narrowing covers them.
+  parameter of an existing tool, so `.tereditor/mcp.toml` operation narrowing covers them.
 - `symbolBody` and dependency source (`source`) have no counterpart in either reference.
 - A file or directory rename is capped at 1000 files; an identical path, a missing source or an existing destination
   is refused, and a server that fails `workspace/willRenameFiles` with anything but method-not-found ends the call

@@ -10,13 +10,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Byte classification, byte-only diff sides, immutable original reads and inert active content, locally and over WebSocket RPC.</summary>
 internal static class ContentChecks

@@ -1,8 +1,8 @@
 using System.Diagnostics;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// A listing whose ignore check stalls: a fake git hangs on check-ignore and leaves an orphan holding its output pipe,

@@ -163,12 +163,14 @@
       "LastProject": "$ROOT/project",
       "LastProjectRoot": "$ROOT/project",
       "LastAtHome": true,
-      "Companions": {}
+      "Companions": {},
+      "CompanionWidths": {}
     }
   ],
   "CollapsedProjects": [
     "$ROOT/older"
   ],
+  "PinnedProjects": [],
   "CollapsedRemotes": [
     "origin"
   ],

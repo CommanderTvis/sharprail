@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Providers;
+namespace Tereditor.Plugins.Providers;
 
 /// <summary>A provider an agent documents: its id in the agent's files, a name and the variable its key is read from.</summary>
 public sealed record CatalogProvider(string Id, string Name, string EnvVar);

@@ -3,10 +3,10 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Tailscale.Host;
+namespace Tereditor.Plugins.Tailscale.Host;
 
 public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHostModule
 {
@@ -112,10 +112,10 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
         var identity = remote is null ? null : await network.PeerAsync(remote, timeout.Token);
         if (identity is null) { http.Response.StatusCode = 403; http.Response.Close(); return; }
         byte[] bytes;
-        if (http.Request.HttpMethod == "GET" && http.Request.Url?.AbsolutePath == "/sharprail") bytes = PluginJson.SerializeToUtf8Bytes(new TailscaleHostInfo(hostName));
-        else if (http.Request.HttpMethod == "POST" && http.Request.Url?.AbsolutePath == "/sharprail/pair")
+        if (http.Request.HttpMethod == "GET" && http.Request.Url?.AbsolutePath == "/tereditor") bytes = PluginJson.SerializeToUtf8Bytes(new TailscaleHostInfo(hostName));
+        else if (http.Request.HttpMethod == "POST" && http.Request.Url?.AbsolutePath == "/tereditor/pair")
         {
-            var token = http.Request.Headers["X-SharpRail-Pairing"] ?? "";
+            var token = http.Request.Headers["X-tereditor-Pairing"] ?? "";
             var state = registry.Request(token, identity.Id, identity.Name, identity.User);
             var address = state == "approved" ? await serving.EnsureListening!(hostAddress.ToString(), timeout.Token) : null;
             bytes = PluginJson.SerializeToUtf8Bytes(new TailscalePairReply(state, address));

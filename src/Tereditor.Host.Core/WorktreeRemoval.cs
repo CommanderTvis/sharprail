@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// Removes a linked worktree's checkout and its Git registration. A checkout may hold read-only directories

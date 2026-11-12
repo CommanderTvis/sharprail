@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.GitHub.UI;
+namespace Tereditor.Plugins.GitHub.UI;
 
 /// <summary>
 /// Settings › GitHub (W4): the host's <c>gh</c> sign-in status. It reads the status when shown and again every half
@@ -24,7 +24,7 @@ internal sealed class GitHubSettingsPage : StackPanel
         Spacing = 8;
         text.Classes.Add("settings-label");
         detail.Classes.Add("settings-description");
-        var description = new TextBlock { Text = "SharpRail uses the GitHub CLI on this computer; it stores no credentials." };
+        var description = new TextBlock { Text = "tereditor uses the GitHub CLI on this computer; it stores no credentials." };
         description.Classes.Add("settings-description");
         status.Children.Add(text);
         status.Children.Add(detail);

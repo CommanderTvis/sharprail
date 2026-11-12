@@ -1,5 +1,5 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>Byte character classes for word boundaries (upstream src/CharClassify.h/.cxx).</summary>
 /// <remarks>Classes cover UTF-8 bytes; every byte at or above 0x80 is a word byte by default. Unicode-aware

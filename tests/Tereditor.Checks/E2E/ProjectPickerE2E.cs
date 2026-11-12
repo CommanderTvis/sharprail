@@ -5,9 +5,9 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ProjectPickerE2E
 {
@@ -35,10 +35,10 @@ internal static class ProjectPickerE2E
             Require(Equals(notice.Tag, "NoticeDialog") && notice.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "DialogExplanation" && text.Text == message + path) &&
                 !app.Find<TextBlock>("WorkspaceError").IsVisible, "An unusable path must be refused in the notice dialog: " + message);
             app.Click(notice.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "NoticeDismiss"));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
             Require(app.Window.WorkspaceRoot == app.Root && ProjectNames(app).Count() == 1, "An unusable path must leave the open workspace and the project list alone.");
         }
-        Console.WriteLine("PASS SharpRail: a missing folder or a file picked as a project is refused by inspection before anything opens");
+        Console.WriteLine("PASS tereditor: a missing folder or a file picked as a project is refused by inspection before anything opens");
     }
 
     private static void Picker(string root)
@@ -66,7 +66,7 @@ internal static class ProjectPickerE2E
         Until(() => input.IsFocused);
         input.Text = repo;
         dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
         WaitForProject(app, "projects-path-repo");
         Console.WriteLine("PASS upstream projects.spec.ts: opens a project from an explicit host path");
     }
@@ -83,7 +83,7 @@ internal static class ProjectPickerE2E
             "A failed picker must fall back to host-path entry and show its error.");
         Named<TextBox>(dialog, "OpenProjectPathInput").Text = repo;
         app.Click(Named<Button>(dialog, "OpenProjectPathSubmit"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
         WaitForProject(app, "projects-failure-repo");
         Console.WriteLine("PASS upstream projects.spec.ts: picker failure falls back to host-path entry on every host platform");
     }
@@ -102,7 +102,7 @@ internal static class ProjectPickerE2E
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "OpenProjectPathInput").Text = manual;
         app.Click(Named<Button>(dialog, "OpenProjectPathSubmit"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
         WaitForProject(app, "projects-supersede-manual");
         reply.SetResult(stale);
         Settle(800);
@@ -121,7 +121,7 @@ internal static class ProjectPickerE2E
         AddProject(app, "Open project");
         WaitForProject(app, "projects-init-plain");
         Settle(500);
-        Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !Directory.Exists(Path.Combine(plain, ".git")),
+        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !Directory.Exists(Path.Combine(plain, ".git")),
             "A plain folder opens directly, without offering or running git init.");
         Require(app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AddWorkspace").IsEnabled,
             "A plain folder must keep Start work available to enter its project folder.");
@@ -177,7 +177,7 @@ internal static class ProjectPickerE2E
         Settle(50);
         app.Click(Named<Button>(dialog, "CloneProjectCreate"), freshGesture: false);
         WaitForProject(app, "clone-source");
-        Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(), "The dialog closes once the clone opens.");
+        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(), "The dialog closes once the clone opens.");
         Require(Directory.Exists(Path.Combine(parent, "clone-source", ".git")) && File.Exists(Path.Combine(parent, "clone-source", ".git", "shallow")),
             "A depth of one makes a shallow clone in the chosen folder.");
         Console.WriteLine("PASS fork clone-project.spec.ts: clones into the chosen folder, names it after the repository, and opens it");
@@ -209,8 +209,8 @@ internal static class ProjectPickerE2E
 
     private static DialogWindow Dialog(E2eWorkspace app)
     {
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         Settle(100);
         return dialog;
     }

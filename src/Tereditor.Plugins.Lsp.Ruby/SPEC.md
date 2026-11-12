@@ -16,6 +16,6 @@ The plugin id is `lsp-ruby`; it ships enabled. Its host half is a `LanguageServe
 the catalog, its sessions stop and its saved settings are kept. Implementation: Ruby LSP · Shopify.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 It allows `initialize` 15 minutes, since Ruby LSP sets up its bundle first.

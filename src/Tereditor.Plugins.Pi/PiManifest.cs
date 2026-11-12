@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Pi;
+namespace Tereditor.Plugins.Pi;
 
 public static class PiManifest
 {
@@ -14,8 +14,8 @@ public static class PiManifest
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Pi.Host.dll",
-        Ui = "SharpRail.Plugins.Pi.UI.dll",
+        Host = "Tereditor.Plugins.Pi.Host.dll",
+        Ui = "Tereditor.Plugins.Pi.UI.dll",
         Assets = "assets",
         Contributes = new() { SideTools = [new("pane", "Pi", Icon, PluginToolSide.Right)] }
     };

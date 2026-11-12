@@ -3,11 +3,11 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.AirContext.UI;
+namespace Tereditor.Plugins.AirContext.UI;
 
 /// <summary>
 /// Air Context's two sections of the Code Intelligence pages. The account section (Settings) holds what is global to
@@ -261,7 +261,7 @@ internal sealed partial class AirContextPane : UserControl
         var window = DialogWindow.Create("Enable Air Context for this project?", 520);
         window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
-        text.Text = "Indexing sends the source chunks, paths and revision metadata of this project's workspaces to JetBrains, including workspaces created later. SharpRail will index automatically when you launch a SharpRail agent. It uses the CLI's existing JetBrains login and index cache, but never installs global agent hooks or configuration and never stops an outside watcher. Disabling it in any workspace's pane disables the project.";
+        text.Text = "Indexing sends the source chunks, paths and revision metadata of this project's workspaces to JetBrains, including workspaces created later. tereditor will index automatically when you launch a tereditor agent. It uses the CLI's existing JetBrains login and index cache, but never installs global agent hooks or configuration and never stops an outside watcher. Disabling it in any workspace's pane disables the project.";
         text.IsVisible = true;
         var actions = window.FindControl<StackPanel>("DialogActions")!;
         var cancel = Ui.Button("Cancel", () => window.Close(false));

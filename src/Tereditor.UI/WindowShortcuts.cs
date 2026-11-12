@@ -1,9 +1,9 @@
 using Avalonia.Input;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// One window-level command: its stable keymap action id, the gesture menus and tooltips show and the key-down test that reaches

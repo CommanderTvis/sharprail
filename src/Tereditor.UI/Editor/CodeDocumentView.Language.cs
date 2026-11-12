@@ -8,10 +8,10 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Scintilla;
+using Tereditor.Host.Abstractions;
+using Tereditor.Scintilla;
 
-namespace SharpRail.UI.Editor;
+namespace Tereditor.UI.Editor;
 
 /// <summary>One row of the language results list, which the view's compiled item template binds to.</summary>
 internal sealed record LanguagePreviewRow(LanguageItem Item, string Location, string Description, string Code, byte[] Styles,

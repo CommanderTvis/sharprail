@@ -2,7 +2,7 @@
 // host itself issues. Anything else exits 128 and says so; nothing here starts a process or reaches a network.
 import { structuredPatch } from '../vendor/diff/index.js';
 
-const AUTHOR = { name: 'SharpRail', email: 'tab@sharprail.local' };
+const AUTHOR = { name: 'tereditor', email: 'tab@tereditor.local' };
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 

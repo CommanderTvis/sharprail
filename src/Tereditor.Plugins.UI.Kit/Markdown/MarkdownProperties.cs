@@ -5,7 +5,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 public sealed partial class MarkdownPreview
 {

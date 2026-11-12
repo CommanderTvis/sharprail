@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>Host workspace tools bound to the authenticated terminal's working directory.</summary>
 public sealed class WorkspaceMcpTools(HostStateStore state)
@@ -13,11 +13,11 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Create(string workspace, TerminalRef? terminal = null) => new(
         "workspace_create", "Create a workspace",
-        "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server; without languageServers no server starts until the first lsp_* call or editor open, and idle servers stop after the idle limit.",
+        "Create a Git worktree for this terminal's project in tereditor's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server; without languageServers no server starts until the first lsp_* call or editor open, and idle servers stop after the idle limit.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "description":{"type":"string","minLength":1,"description":"A concise description of the work, displayed to the user as the workspace label."},
-              "branch":{"type":"string","description":"New branch name. Omit to use SharpRail's next available workspace branch."},
+              "branch":{"type":"string","description":"New branch name. Omit to use tereditor's next available workspace branch."},
               "baseBranch":{"type":"string","description":"Base branch or commit. Defaults to HEAD of the calling workspace; use the user's requested base."},
               "languageServers":{"type":"array","items":{"type":"string"},"description":"Language servers to start for the new workspace, as ids or language names (\"csharp\", \"typescript\", \"go\"), or \"auto\" for every server with files in the project. Starts in the background; the result lists each server's state. List the servers the agents of this workspace need."}
             },"required":["description"],"additionalProperties":false}
@@ -62,7 +62,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Title(TerminalRef? terminal) => new(
         "set_title", "Title this terminal",
-        "Title the SharpRail terminal tab you run in. Call it once, as soon as the task is clear, before your other tool calls, and again only when the terminal moves to another task. An unnamed managed workspace on a generated workspace-N branch takes this first title as its workspace name and branch slug; manual names are kept.",
+        "Title the tereditor terminal tab you run in. Call it once, as soon as the task is clear, before your other tool calls, and again only when the terminal moves to another task. An unnamed managed workspace on a generated workspace-N branch takes this first title as its workspace name and branch slug; manual names are kept.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "title":{"type":"string","minLength":1,"description":"3-6 words naming what this terminal is working on, in the user's language. For a PR, issue, or ticket: `<Verb> #<number> <its exact title>`."}
@@ -107,7 +107,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Delete(string workspace) => new(
         "workspace_delete", "Delete a workspace",
-        "Remove a workspace of this terminal's project from SharpRail and from disk, keeping its branch. Use it for a workspace you created once its work is preserved. Refuses a checkout with uncommitted changes, the workspace this terminal runs in, the Default workspace and a worktree SharpRail did not create.",
+        "Remove a workspace of this terminal's project from tereditor and from disk, keeping its branch. Use it for a workspace you created once its work is preserved. Refuses a checkout with uncommitted changes, the workspace this terminal runs in, the Default workspace and a worktree tereditor did not create.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "path":{"type":"string","minLength":1,"description":"The workspace's path, as workspace_create returned it."}
@@ -138,8 +138,8 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
         "workspace_emigrate", "Move this terminal into a workspace you created",
         "Move ONLY the calling terminal tab into a workspace this same terminal created with workspace_create, and relaunch this agent there resumed (same tab, same conversation). " +
         "Use it ONLY when BOTH hold: (1) the user explicitly instructed you to work in a new workspace, and (2) you are 100% certain you will never again read, edit, build or run anything in the workspace you were started in. " +
-        "If either is in doubt, do NOT call it; keep working in the new workspace's path from here instead. The user must approve each move in SharpRail; a refusal changes nothing. " +
-        "On approval this session ends within seconds and resumes with its working directory, language servers and SharpRail tools in the target: end your turn immediately after the reply, without further tool calls.",
+        "If either is in doubt, do NOT call it; keep working in the new workspace's path from here instead. The user must approve each move in tereditor; a refusal changes nothing. " +
+        "On approval this session ends within seconds and resumes with its working directory, language servers and tereditor tools in the target: end your turn immediately after the reply, without further tool calls.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "path":{"type":"string","minLength":1,"description":"The target workspace's path, as workspace_create returned it to this terminal."},
@@ -171,7 +171,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                 ["status"] = "approved",
                 ["from"] = terminal!.WorkspaceId,
                 ["to"] = target,
-                ["next"] = $"This session ends in about {Math.Ceiling(EmigrationGrace.TotalSeconds)} seconds and is relaunched, resumed under the same session id, in this same tab with {target} as its working directory and SharpRail workspace. End your turn now without further tool calls; the resumed session continues the work there."
+                ["next"] = $"This session ends in about {Math.Ceiling(EmigrationGrace.TotalSeconds)} seconds and is relaunched, resumed under the same session id, in this same tab with {target} as its working directory and tereditor workspace. End your turn now without further tool calls; the resumed session continues the work there."
             }.ToJsonString(), false);
         });
 
@@ -189,7 +189,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
         try { full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(wanted)); }
         catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return "the path is not valid."; }
         var destination = current.Workspaces.FirstOrDefault(workspace => workspace.Path == wanted || workspace.Path == full);
-        if (destination is null) return "the path is not a SharpRail workspace.";
+        if (destination is null) return "the path is not a tereditor workspace.";
         target = destination.Path;
         var source = current.Workspaces.FirstOrDefault(workspace => workspace.Path == terminal.WorkspaceId);
         if (source is null || source.ProjectRoot != destination.ProjectRoot) return "the target belongs to another project.";
@@ -234,8 +234,8 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
             var agents = state.AgentSessions;
             await Task.Run(() => agents.Release(terminal));
             if (record.SessionId is { Length: > 0 } id && !await Task.Run(() => agents.Hold(moved, record.Kind, id)))
-                throw new InvalidOperationException("another SharpRail process opened this session meanwhile.");
-            var session = await terminals.AttachAsync(new TerminalAttachRequest(TerminalTab.SessionFor(target, terminal.TabKey), target, "sharprail-emigration")
+                throw new InvalidOperationException("another tereditor process opened this session meanwhile.");
+            var session = await terminals.AttachAsync(new TerminalAttachRequest(TerminalTab.SessionFor(target, terminal.TabKey), target, "tereditor-emigration")
             { TabKey = terminal.TabKey, Yield = true, Program = resume });
             await session.DisposeAsync();
         }

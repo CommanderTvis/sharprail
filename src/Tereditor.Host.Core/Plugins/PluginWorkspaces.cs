@@ -1,8 +1,8 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 // Projects and workspaces as plugins read them (H12), and the lifecycle events derived from shared state.
 public sealed partial class PluginRuntime

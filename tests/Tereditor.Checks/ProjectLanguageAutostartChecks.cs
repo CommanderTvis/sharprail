@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class ProjectLanguageAutostartChecks
 {
@@ -41,7 +41,7 @@ internal static class ProjectLanguageAutostartChecks
         Require(prepared, "Managed command launch omitted project language startup.");
         E2E.E2eWorkspace.Until(() => app.Terminals.Attempts > attempts);
         app.Host.LanguageReply = null;
-        var view = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root,
+        var view = new Tereditor.UI.Panels.LanguageConfigurationView(app.Host, app.Root,
             new("typescript", "", "idle", "Fixture", "fixture"));
         var settings = new Avalonia.Controls.Window { Width = 600, Height = 600, Content = view };
         settings.Show(app.Window);
@@ -65,13 +65,13 @@ internal static class ProjectLanguageAutostartChecks
         foreach (var folder in new[] { project, child, other }) Directory.CreateDirectory(folder);
         var storage = Path.Combine(root, "state");
         await using var server = remote ? RemoteServer.Create(project, IPAddress.Loopback, 0, "autostart-test", storage,
-            plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
+            plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         using var remoteHost = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "autostart-test");
         IProjectServices host = remoteHost ?? (IProjectServices)new LocalProjectAdapter(new ProjectServices(project, state));
-        var previousDisabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var previousDisabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try
         {
             await host.OpenProjectAsync(project);
@@ -140,7 +140,7 @@ internal static class ProjectLanguageAutostartChecks
             Require((await host.LanguageAsync(new(child, Operation: "projectAutostart"))).Configuration == "[]", "Project autostart could not be cleared from a sibling workspace.");
             Console.WriteLine("PASS project language autostart persistence, isolation, concurrent start and warm reuse " + (remote ? "remote" : "local"));
         }
-        finally { await state.StopLanguagesAsync(); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", previousDisabled); }
+        finally { await state.StopLanguagesAsync(); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", previousDisabled); }
 
         async Task WaitReady(string workspace)
         {

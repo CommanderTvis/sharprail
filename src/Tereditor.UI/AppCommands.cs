@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The app's one owner of quit and close commands, shared by every window. Window input (and a future

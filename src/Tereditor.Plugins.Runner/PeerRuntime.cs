@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// The generated proxies' way to the trusted side over the runner's channel: calls and one-ways go out on the context's

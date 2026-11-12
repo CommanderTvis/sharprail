@@ -1,10 +1,10 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class ProjectServices
 {
-    internal const string FileTransferPrefix = ".sharprail-transfer-";
+    internal const string FileTransferPrefix = ".tereditor-transfer-";
 
     public async ValueTask<IReadOnlyList<string>> ImportFilesAsync(FileTransferRequest request, CancellationToken cancellationToken = default)
     {

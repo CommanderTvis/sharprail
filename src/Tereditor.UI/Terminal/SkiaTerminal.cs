@@ -7,11 +7,11 @@ using Avalonia.Threading;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 // The Skia renderer: libghostty-vt in the app, attached straight to the host session without a relay. It is
 // also every renderer's view of a terminal another client holds: the holder's grid at its real size, scrolled

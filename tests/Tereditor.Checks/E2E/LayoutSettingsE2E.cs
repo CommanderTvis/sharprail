@@ -5,12 +5,12 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class LayoutSettingsE2E
 {
@@ -40,10 +40,10 @@ internal static class LayoutSettingsE2E
 
     private static void Respond(E2eWorkspace app, SettingsView settings, bool accept)
     {
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => Label(button, accept ? "Apply layout" : "Cancel")));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
     }
 
     private static void Review(string root)
@@ -143,8 +143,8 @@ internal static class LayoutSettingsE2E
 
     private static void GrandfatheredLimit(string root)
     {
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
-        if (string.IsNullOrEmpty(source)) { Console.WriteLine("SKIP upstream side-group overage: set SHARPRAIL_TEST_GIT_SOURCE."); return; }
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
+        if (string.IsNullOrEmpty(source)) { Console.WriteLine("SKIP upstream side-group overage: set TEREDITOR_TEST_GIT_SOURCE."); return; }
         var directory = WorkspaceTabsE2E.Repository(root, "layout-side-overage", source);
         using (var app = new E2eWorkspace(directory))
         {

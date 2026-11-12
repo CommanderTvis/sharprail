@@ -11,12 +11,12 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.UI.Android;
+using Tereditor.Host.Client;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.UI.Android;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class EmbeddedTailscaleRpcChecks
 {
@@ -34,10 +34,10 @@ internal static class EmbeddedTailscaleRpcChecks
         builder.WebHost.UseKestrel().UseUrls("http://127.0.0.1:0");
         await using var bootstrap = builder.Build();
         var pairRequests = 0;
-        bootstrap.MapGet("/sharprail", () => Results.Json(new { name = "Fixture SharpRail" }));
-        bootstrap.MapPost("/sharprail/pair", (HttpContext context) =>
+        bootstrap.MapGet("/tereditor", () => Results.Json(new { name = "Fixture tereditor" }));
+        bootstrap.MapPost("/tereditor/pair", (HttpContext context) =>
         {
-            Require(context.Request.Headers["X-SharpRail-Pairing"] == pairing.Token, "The embedded pairing lost its approval credential.");
+            Require(context.Request.Headers["X-tereditor-Pairing"] == pairing.Token, "The embedded pairing lost its approval credential.");
             return Results.Json(new { state = Interlocked.Increment(ref pairRequests) == 1 ? "pending" : "approved", address = advertised.AbsoluteUri });
         });
         await bootstrap.StartAsync(token);

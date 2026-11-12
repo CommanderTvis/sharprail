@@ -2,10 +2,10 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 public interface ITerminalRpcInterceptor
 {

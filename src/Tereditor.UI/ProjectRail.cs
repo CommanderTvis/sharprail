@@ -8,11 +8,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -359,7 +359,7 @@ public sealed partial class WorkbenchWindow
             if (e.Source is Visual source && source.GetVisualAncestors().Any(ancestor => ancestor is Control { Name: "WorkspaceTabs" })) e.Handled = true;
         });
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-        var add = Ui.IconButton("add", $"Start work ({Shortcut(SharpRail.Host.Abstractions.KeymapActions.NewWorkspace)})", () => _ = CreateWorkspaceDialogAsync());
+        var add = Ui.IconButton("add", $"Start work ({Shortcut(Tereditor.Host.Abstractions.KeymapActions.NewWorkspace)})", () => _ = CreateWorkspaceDialogAsync());
         add.Name = "AddWorkspace";
         add.Width = add.Height = 28; add.Padding = new(7);
         trailing.Children.Add(add);

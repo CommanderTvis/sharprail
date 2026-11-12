@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>One edit to a plugin's settings namespace: switch it on again, and set or drop its suspension mark.</summary>
 internal readonly record struct SuspensionChange(string Id, bool Enable, string? SuspendedBy);

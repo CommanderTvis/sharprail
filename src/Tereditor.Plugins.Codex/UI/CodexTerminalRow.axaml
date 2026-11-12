@@ -1,7 +1,7 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-       xmlns:agent="using:SharpRail.Plugins.Agent.UI"
-           x:Class="SharpRail.Plugins.Codex.UI.CodexTerminalRow" x:ClassModifier="internal"
+       xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+       xmlns:agent="using:Tereditor.Plugins.Agent.UI"
+           x:Class="Tereditor.Plugins.Codex.UI.CodexTerminalRow" x:ClassModifier="internal"
            Margin="8,2" Spacing="2">
   <agent:ManualLaunchNotice x:Name="LaunchNotice" />
   <WrapPanel x:Name="TerminalAgentFacts" Orientation="Horizontal" VerticalAlignment="Center">

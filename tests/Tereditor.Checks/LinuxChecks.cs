@@ -7,15 +7,15 @@ using Avalonia.Threading;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Scintilla;
-using SharpRail.UI;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Scintilla;
+using Tereditor.UI;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The Linux desktop gate (<c>--linux</c>), run from the packaged AppImage payload on Linux. The portable checks also run
@@ -58,7 +58,7 @@ internal static class LinuxChecks
             "The Integrated and System settings decide; Automatic and anything unknown follow the desktop.");
         Require(!Set("client", "system", "GNOME") && Set("system", "client", "sway") && Set("system", "bogus", "GNOME") == false && Set("client", "bogus", "sway"),
             "The environment override beats the setting, and an invalid override is ignored.");
-        Require(LinuxWindowChrome.OverrideNote(new LinuxSession("system", "GNOME", ":0")).Contains("SHARPRAIL_WINDOW_DECORATIONS=system", StringComparison.Ordinal) &&
+        Require(LinuxWindowChrome.OverrideNote(new LinuxSession("system", "GNOME", ":0")).Contains("TEREDITOR_WINDOW_DECORATIONS=system", StringComparison.Ordinal) &&
             LinuxWindowChrome.OverrideNote(new LinuxSession(" Client ", null, ":0")).Contains("=client", StringComparison.Ordinal) &&
             LinuxWindowChrome.OverrideNote(new LinuxSession(null, "GNOME", ":0")) == "" && LinuxWindowChrome.OverrideNote(new LinuxSession("auto", "GNOME", ":0")) == "",
             "Settings names an active override and says nothing otherwise.");

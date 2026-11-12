@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 public sealed class LocalTerminalCatalogAdapter(ITerminalCatalogService host) : ITerminalCatalogService
 {

@@ -7,21 +7,21 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Acp;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.Omp;
-using SharpRail.Plugins.Pi;
-using SharpRail.Plugins.Processes;
-using SharpRail.Plugins.Processes.Host;
-using SharpRail.Plugins.Processes.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Acp;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.Omp;
+using Tereditor.Plugins.Pi;
+using Tereditor.Plugins.Processes;
+using Tereditor.Plugins.Processes.Host;
+using Tereditor.Plugins.Processes.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Processes plugin (Plugins.Processes/SPEC.md): the tree and its sums, the capped trend, sampling only when asked, the stop paths, and the
 // plugin switch: disabled, the agent-facing owned-process management is gone; enabled, it is the #52 behaviour.
@@ -104,8 +104,8 @@ internal static class ProcessesChecks
 
     private static void Tree()
     {
-        Require(SharpRail.Host.Core.ProcessTable.Elapsed("1-02:03:04") == new TimeSpan(1, 2, 3, 4) && SharpRail.Host.Core.ProcessTable.Elapsed("12:34") == new TimeSpan(0, 12, 34) &&
-            SharpRail.Host.Core.ProcessTable.Elapsed("2147483647:59:59") is null && SharpRail.Host.Core.ProcessTable.Elapsed("99999999-00:00:00") is null && SharpRail.Host.Core.ProcessTable.Elapsed("junk") is null,
+        Require(Tereditor.Host.Core.ProcessTable.Elapsed("1-02:03:04") == new TimeSpan(1, 2, 3, 4) && Tereditor.Host.Core.ProcessTable.Elapsed("12:34") == new TimeSpan(0, 12, 34) &&
+            Tereditor.Host.Core.ProcessTable.Elapsed("2147483647:59:59") is null && Tereditor.Host.Core.ProcessTable.Elapsed("99999999-00:00:00") is null && Tereditor.Host.Core.ProcessTable.Elapsed("junk") is null,
             "ps's elapsed time parses, and a garbled field is unknown instead of throwing out of the whole process table.");
         var snapshot = Snapshot(Fixture(false));
         Require(snapshot.Groups.Select(group => group.Id).SequenceEqual([ProcessModel.LanguageGroup, ProcessModel.AgentGroup, ProcessModel.SpawnedGroup]), "The top groups must be Language servers, AI agents and daemons, Spawned agents.");
@@ -388,7 +388,7 @@ internal static class ProcessesChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         // The trend never touches the memory figure: a gap of at least 8 px separates them.
         var memory = panel.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text is { } label && (label.EndsWith(" KB") || label.EndsWith(" MB")) && text.IsEffectivelyVisible);
-        var spark = panel.GetVisualDescendants().OfType<SharpRail.Plugins.Processes.UI.Sparkline>().First(control => control.IsEffectivelyVisible);
+        var spark = panel.GetVisualDescendants().OfType<Tereditor.Plugins.Processes.UI.Sparkline>().First(control => control.IsEffectivelyVisible);
         var gap = spark.TranslatePoint(default, window)!.Value.X - memory.TranslatePoint(new Point(memory.Bounds.Width, 0), window)!.Value.X;
         Require(gap >= 8, $"The trend must keep a gap from the memory figure, got {gap}px.");
         var box = panel.GetLogicalDescendants().OfType<CheckBox>().Single();

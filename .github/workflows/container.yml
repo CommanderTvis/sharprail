@@ -1,6 +1,6 @@
 name: Container
 
-# Publishes the headless image to ghcr.io/commandertvis/sharprail. Each architecture is published on a native runner, smoke
+# Publishes the headless image to ghcr.io/commandertvis/tereditor. Each architecture is published on a native runner, smoke
 # tested, and only then pushed. The manifest job joins whatever was pushed into the multi-arch tag, which every run overwrites.
 # Dispatch by hand with `gh workflow run container.yml -f tag=nightly`, or wait for the nightly schedule.
 on:
@@ -50,7 +50,7 @@ jobs:
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
       - name: Check the tag
         run: |
@@ -66,11 +66,11 @@ jobs:
           {
             echo "image=$image"
             echo "sha=$sha"
-            echo "local=sharprail-headless:${{ matrix.arch }}"
+            echo "local=tereditor-headless:${{ matrix.arch }}"
           } >> "$GITHUB_OUTPUT"
-      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/Tereditor.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
       # The image has no .NET runtime and no external plugins: fail unless the publish is one NativeAOT binary.
-      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Require NativeAOT headless ${{ matrix.rid }}" env SHARPRAIL_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/SharpRail.Checks -c Release -- --case packaged-binaries
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Require NativeAOT headless ${{ matrix.rid }}" env TEREDITOR_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/Tereditor.Checks -c Release -- --case packaged-binaries
       - run: >
           sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Build image ${{ matrix.arch }}" docker build
           -f docker/headless/Dockerfile

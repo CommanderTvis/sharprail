@@ -15,16 +15,16 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class TerminalCommitLinkChecks
 {
@@ -80,11 +80,11 @@ internal static class TerminalCommitLinkChecks
         var project = new LocalProjectAdapter(new ProjectServices(repo));
         var launch = new TerminalLaunch(repo, "commit-file", repo, "commit-file")
         { ResolveCommitLinks = (text, token) => TerminalCommitLinks.Resolve(project, text, token) };
-        var links = await SharpRail.UI.Terminal.TerminalFileLinks.Resolve(terminals, launch, sha, default);
+        var links = await Tereditor.UI.Terminal.TerminalFileLinks.Resolve(terminals, launch, sha, default);
         Require(links.Count == 1 && links[0].Path == path && TerminalCommitLinks.Commit(links[0]) is null,
             "An existing file whose name is a commit hash must retain file-link precedence.");
         var failing = launch with { ResolveCommitLinks = (_, _) => throw new IOException("Commit lookup disconnected.") };
-        links = await SharpRail.UI.Terminal.TerminalFileLinks.Resolve(terminals, failing, sha, default);
+        links = await Tereditor.UI.Terminal.TerminalFileLinks.Resolve(terminals, failing, sha, default);
         Require(links.Count == 1 && links[0].Path == path, "A commit lookup failure must preserve an independently resolved file link.");
         await terminals.CloseAsync("commit-file");
         File.Delete(path);
@@ -198,7 +198,7 @@ internal static class TerminalCommitLinkChecks
         var found = new Dictionary<string, string>();
         for (var index = 0; index < 5000; index++)
         {
-            var body = $"tree {tree}\nauthor Checks <checks@sharprail.invalid> 1700000000 +0000\ncommitter Checks <checks@sharprail.invalid> 1700000000 +0000\n\ncommit {index}\n";
+            var body = $"tree {tree}\nauthor Checks <checks@tereditor.invalid> 1700000000 +0000\ncommitter Checks <checks@tereditor.invalid> 1700000000 +0000\n\ncommit {index}\n";
             var bytes = Encoding.UTF8.GetBytes(body);
             var sha = Convert.ToHexStringLower(SHA1.HashData(Encoding.UTF8.GetBytes("commit " + bytes.Length + "\0").Concat(bytes).ToArray()));
             if (found.TryGetValue(sha[..4], out var first))

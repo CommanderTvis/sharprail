@@ -1,4 +1,4 @@
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal sealed record GateOutcome(string Mode, string Metric, string Status, double? BaselineMean, double? CurrentMean, double? ChangePercent, double LimitPercent, string Reason);
 internal static class Gates

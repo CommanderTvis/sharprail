@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>Registers an agent's chat document and opens chats into it: the launcher, resume and fork all end at <see cref="Open"/>.</summary>
 internal static class ChatDocuments
@@ -75,7 +75,7 @@ internal static class ChatDocuments
 
     public static ChatEnvironment Environment(IPluginUIContext context, IChatClient client, ChatAgent agent, Func<string, string, Task<string>> readFile, string workspaceId, SelectionSource selection) => new(client, agent)
     {
-        // A proposal opens SharpRail's own diff of the file against the text the call would write; a call that already ran shows the file's changes.
+        // A proposal opens tereditor's own diff of the file against the text the call would write; a call that already ran shows the file's changes.
         OpenDiff = request => OpenDiffAsync(context, readFile, workspaceId, request),
         OpenFile = async path => { if (path.Length > 0) await context.Editors.OpenAsync(workspaceId, path); },
         OpenFileAt = async (path, line) => { if (path.Length > 0) await context.Editors.OpenAsync(workspaceId, path, new() { Line = line > 0 ? line : null }); },

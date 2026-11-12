@@ -1,16 +1,16 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 internal sealed record ClaudeLaunchPreset(string Id, string Label, string Args, string? Model = null, ActionIcon? Icon = null);
 
 internal sealed record ClaudeModel(string Id, string Label);
 
 /// <summary>
-/// The command lines a Claude Code session starts with. Every session SharpRail starts appends its system prompt file
+/// The command lines a Claude Code session starts with. Every session tereditor starts appends its system prompt file
 /// and, by default, turns off the CLI's own agent view, each in the syntax of the shell that will read it.
 /// </summary>
 internal static partial class ClaudeLaunch
@@ -36,7 +36,7 @@ internal static partial class ClaudeLaunch
         [.. Models.Select(model => new ClaudeLaunchPreset("model-" + model.Id, model.Label, "--model " + model.Id, model.Id))]
     ];
 
-    /// <summary>Claude Code's own background-agent view, which SharpRail's workspaces and terminals replace.</summary>
+    /// <summary>Claude Code's own background-agent view, which tereditor's workspaces and terminals replace.</summary>
     public const string AgentViewVariable = "CLAUDE_CODE_DISABLE_AGENT_VIEW";
 
     private static bool Windows(HostPlatform? platform) => platform == HostPlatform.Windows;
@@ -57,7 +57,7 @@ internal static partial class ClaudeLaunch
     private static readonly string[] SessionChoices = ["--continue", "-c", "--resume", "-r", "--teleport", "--session-id", "--fork-session", "--print", "-p"];
 
     /// <summary>
-    /// A fresh id for a new conversation, so SharpRail knows the session before any hook reports it; null when the
+    /// A fresh id for a new conversation, so tereditor knows the session before any hook reports it; null when the
     /// arguments continue, resume, fork or teleport one, or print and exit.
     /// </summary>
     public static string? NewSessionId(string args) => SessionChoices.Any(choice => HasOption(args, choice)) ? null : Guid.NewGuid().ToString();
@@ -101,7 +101,7 @@ internal static partial class ClaudeLaunch
         }.Where(part => part.Length > 0));
         var line = LaunchCommand(Contribute(command, contributions, platform), string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), "--add-dir " + EnvironmentReference(ClaudeCodeContract.ScratchVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);
-        return !Windows(platform) && line.Length > 0 ? "SHARPRAIL_UI_LAUNCH=claude " + line : line;
+        return !Windows(platform) && line.Length > 0 ? "TEREDITOR_UI_LAUNCH=claude " + line : line;
     }
 
     private static bool HasOption(string args, string name) => ArgumentWord().Matches(args)

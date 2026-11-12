@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Processes.UI;
+namespace Tereditor.Plugins.Processes.UI;
 
 /// <summary>The UI half: the Processes side tool. Its panel polls the host only while it is on screen.</summary>
 public sealed class ProcessesUI : PluginUIModule

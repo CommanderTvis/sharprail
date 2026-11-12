@@ -6,11 +6,11 @@ using System.Text.RegularExpressions;
 
 using Tomlyn;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// Warm-start for a created workspace: copy-on-write clones of the ignored paths the project lists in its
-/// <c>.sharprail/workspace.toml</c> (dependencies, build caches), so the new worktree starts warm instead of cold. Best effort in every respect: no volume,
+/// <c>.tereditor/workspace.toml</c> (dependencies, build caches), so the new worktree starts warm instead of cold. Best effort in every respect: no volume,
 /// platform or filesystem that cannot clone, and no failure, ever reaches the caller.
 /// </summary>
 internal static class WorkspaceClone
@@ -86,7 +86,7 @@ internal static class WorkspaceClone
     }
 
     /// <summary>Where a project states what its created workspaces start with, relative to the project root.</summary>
-    internal const string ConfigPath = ".sharprail/workspace.toml";
+    internal const string ConfigPath = ".tereditor/workspace.toml";
 
     private const int ConfigLimit = ProjectToml.MaximumBytes;
 
@@ -106,7 +106,7 @@ internal static class WorkspaceClone
     /// <summary>Reads the source checkout's rules; a malformed or newer-versioned file yields no rules and a diagnostic, never an exception.</summary>
     internal static Rules ReadRules(string source, Action<string>? report = null)
     {
-        var path = Path.Combine(source, ".sharprail", "workspace.toml");
+        var path = Path.Combine(source, ".tereditor", "workspace.toml");
         try
         {
             var info = new FileInfo(path);

@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 public sealed record TailscaleSettings;
 public sealed record TailscaleStatusParams;
@@ -37,8 +37,8 @@ public static class TailscaleContract
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
         Assets = "assets",
-        Host = "SharpRail.Plugins.Tailscale.Host.dll",
-        Ui = "SharpRail.Plugins.Tailscale.UI.dll"
+        Host = "Tereditor.Plugins.Tailscale.Host.dll",
+        Ui = "Tereditor.Plugins.Tailscale.UI.dll"
     };
 }
 

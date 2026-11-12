@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>How alarmed a provider is about a usage window; the bar wears the provider's answer, never the kit's.</summary>
 public enum AccountSeverity

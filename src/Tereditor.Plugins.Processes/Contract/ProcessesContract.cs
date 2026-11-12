@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Processes;
+namespace Tereditor.Plugins.Processes;
 
 /// <summary>
 /// One row of the process tree. <paramref name="Kind"/> is group, workspace, language, agent, parent (a spawn's starter), spawned or owned.
@@ -62,11 +62,11 @@ public static class ProcessesPlugin
     public static readonly PluginManifest Manifest = new(Id, "Processes", "node-tree", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
-        Description = "Shows the language servers, agents and spawned agents SharpRail runs, with CPU and memory, and stops the processes agents report as theirs.",
+        Description = "Shows the language servers, agents and spawned agents tereditor runs, with CPU and memory, and stops the processes agents report as theirs.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Processes.Host.dll",
-        Ui = "SharpRail.Plugins.Processes.UI.dll",
+        Host = "Tereditor.Plugins.Processes.Host.dll",
+        Ui = "Tereditor.Plugins.Processes.UI.dll",
         Contributes = new()
         {
             SideTools = [new(Tool, "Processes", "node-tree", PluginToolSide.Right)]

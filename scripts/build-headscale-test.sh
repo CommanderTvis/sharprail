@@ -1,5 +1,5 @@
 #!/bin/sh
-# Provision what `--headscale` needs under $SHARPRAIL_CACHE_DIR/headscale-test (the machine-wide cache): the checksum-pinned Headscale
+# Provision what `--headscale` needs under $TEREDITOR_CACHE_DIR/headscale-test (the machine-wide cache): the checksum-pinned Headscale
 # release binary, the userspace tailnet node used as the host side (cmd/tsforward) and the desktop
 # build of the embedded Tailscale library the client side loads. No account, root or system Go.
 set -eu
@@ -15,7 +15,7 @@ case "$(uname -s)-$(uname -m)" in
 esac
 . "$root/scripts/lock.sh"
 . "$root/scripts/native-cache.sh"
-out="$(sharprail_cache_dir)/headscale-test"
+out="$(tereditor_cache_dir)/headscale-test"
 mkdir -p "$out"
 # Checkouts share the directory; each file is written beside it and renamed into place.
 acquire_lock "$out.lock"
@@ -30,10 +30,10 @@ goroot="$(sh scripts/tailscale-go.sh)"
 cache="$(dirname "$goroot")"
 case "$(uname -s)" in Darwin) ext=dylib ;; *) ext=so ;; esac
 export CGO_ENABLED=1 GOTOOLCHAIN=local GOCACHE="$cache/build-cache" GOMODCACHE="$cache/modules"
-cd src/SharpRail.Android/Tailscale.Native
+cd src/Tereditor.Android/Tailscale.Native
 "$goroot/bin/go" build -mod=readonly -trimpath -o "$out/tsforward.partial" ./cmd/tsforward
 mv "$out/tsforward.partial" "$out/tsforward"
-"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -o "$out/libSharpRailTailscale.$ext.partial" .
-mv "$out/libSharpRailTailscale.$ext.partial" "$out/libSharpRailTailscale.$ext"
-rm -f "$out/libSharpRailTailscale.h" "$out/libSharpRailTailscale.$ext.h"
+"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -o "$out/libTereditorTailscale.$ext.partial" .
+mv "$out/libTereditorTailscale.$ext.partial" "$out/libTereditorTailscale.$ext"
+rm -f "$out/libTereditorTailscale.h" "$out/libTereditorTailscale.$ext.h"
 printf '%s\n' "$out"

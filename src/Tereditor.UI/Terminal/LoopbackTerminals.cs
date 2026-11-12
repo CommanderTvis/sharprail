@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 // The app's own terminal sessions, starting the host's loopback server before the first shell so every shell
 // gets the MCP route. Starting it binds a socket, so it runs off the caller's thread.

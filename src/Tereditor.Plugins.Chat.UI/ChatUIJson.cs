@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// Source-generated JSON metadata, with the serializer's default options, for the chat view's client-local preferences

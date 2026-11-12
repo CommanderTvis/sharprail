@@ -2,10 +2,10 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Threading.Channels;
 
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Isolation;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>
 /// The sessions remote clients hold with external plugins' processes on this host (Security.SPEC.md, UI halves), one

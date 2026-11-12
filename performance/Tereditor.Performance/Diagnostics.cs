@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal sealed partial class Runner
 {
@@ -25,11 +25,11 @@ internal sealed partial class Runner
             await Commands.Run(dotnet, ["tool", "restore"], tools);
             var env = new Dictionary<string, string>
             {
-                ["SHARPRAIL_ROOT"] = fixture,
-                ["SHARPRAIL_PROFILE"] = Path.Combine(scratch, "profile"),
-                ["SHARPRAIL_STATE_DIR"] = Path.Combine(scratch, "host"),
-                ["SHARPRAIL_REMOTE"] = "",
-                ["SHARPRAIL_PERFORMANCE"] = "1",
+                ["TEREDITOR_ROOT"] = fixture,
+                ["TEREDITOR_PROFILE"] = Path.Combine(scratch, "profile"),
+                ["TEREDITOR_STATE_DIR"] = Path.Combine(scratch, "host"),
+                ["TEREDITOR_REMOTE"] = "",
+                ["TEREDITOR_PERFORMANCE"] = "1",
                 ["DOTNET_DiagnosticPorts"] = "",
                 ["DOTNET_DefaultDiagnosticPortSuspend"] = "0"
             };
@@ -41,7 +41,7 @@ internal sealed partial class Runner
             var tree = JsonSerializer.Deserialize<MemorySnapshot>(await Commands.Run(Probe, ["memory", trace.Process.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)], token: timeout.Token), Data.Json)!;
             Data.Save(Path.Combine(output, "diagnostic-memory.json"), tree);
             var power = await Commands.Run("pmset", ["-g", "batt"]);
-            target = tree.Processes.Select(row => Process.GetProcessById(row.Pid)).FirstOrDefault(process => process.ProcessName == "SharpRail.UI") ?? throw new IOException("Cannot identify the traced UI process.");
+            target = tree.Processes.Select(row => Process.GetProcessById(row.Pid)).FirstOrDefault(process => process.ProcessName == "Tereditor.UI") ?? throw new IOException("Cannot identify the traced UI process.");
             var counters = await Commands.Run(dotnet, ["tool", "run", "dotnet-counters", "--", "collect", "--process-id", target.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), "--counters", "System.Runtime", "--duration", "00:00:00:05", "--format", "json", "--output", Path.Combine(output, "runtime-counters.json")], tools, timeout.Token);
             File.WriteAllText(Path.Combine(output, "counters.log"), counters);
             await trace.Process.WaitForExitAsync(timeout.Token);
@@ -51,7 +51,7 @@ internal sealed partial class Runner
             await Commands.Run(dotnet, ["tool", "run", "dotnet-trace", "--", "convert", tracePath, "--format", "Speedscope", "--output", Path.Combine(output, "startup")], tools, timeout.Token);
             var speedscope = Path.Combine(output, "startup.speedscope.json");
             Data.Save(Path.Combine(output, "diagnostic.json"), new { schema = 1, artifact, fixtureHash, ready, power, diagnosticMemory = "diagnostic-memory.json (instrumented run, immediately after readiness; not headline RAM)", toolVersion = "10.0.750501", scope = "Separate instrumented embedded launch; managed thread sampling, not CPU-only or native profiling. Counters begin after workspace readiness and cover five seconds. Not included in benchmark aggregates." });
-            File.WriteAllText(Path.Combine(output, "report.html"), "<!doctype html><html lang=en><meta charset=utf-8><title>SharpRail startup diagnostics</title><style>body{font:14px/1.5 system-ui;max-width:1200px;margin:24px auto;padding:20px}svg{width:100%;height:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere}text{font:11px system-ui}</style><h1>Instrumented startup diagnostics</h1><p>Power during this diagnostic: " + WebUtility.HtmlEncode(power) + "</p><p>Separate run: tracing may suspend startup and adds overhead. Managed thread sample weights include waiting; they are not precise CPU time. Native/GPU stacks and physical GPU residency are unavailable. Counters start after workspace readiness. Headline startup/RAM comparisons use the measure command without EventPipe diagnostics.</p>" + Flamegraph(speedscope) + "<h2>Hot managed methods</h2><pre>" + WebUtility.HtmlEncode(hot) + "</pre><p><a href=startup.nettrace>Raw nettrace</a> · <a href=startup.speedscope.json>Speedscope</a> · <a href=runtime-counters.json>Runtime counters</a> · <a href=diagnostic.json>Provenance</a> · <a href=diagnostic-memory.json>Instrumented process memory</a></p></html>");
+            File.WriteAllText(Path.Combine(output, "report.html"), "<!doctype html><html lang=en><meta charset=utf-8><title>tereditor startup diagnostics</title><style>body{font:14px/1.5 system-ui;max-width:1200px;margin:24px auto;padding:20px}svg{width:100%;height:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere}text{font:11px system-ui}</style><h1>Instrumented startup diagnostics</h1><p>Power during this diagnostic: " + WebUtility.HtmlEncode(power) + "</p><p>Separate run: tracing may suspend startup and adds overhead. Managed thread sample weights include waiting; they are not precise CPU time. Native/GPU stacks and physical GPU residency are unavailable. Counters start after workspace readiness. Headline startup/RAM comparisons use the measure command without EventPipe diagnostics.</p>" + Flamegraph(speedscope) + "<h2>Hot managed methods</h2><pre>" + WebUtility.HtmlEncode(hot) + "</pre><p><a href=startup.nettrace>Raw nettrace</a> · <a href=startup.speedscope.json>Speedscope</a> · <a href=runtime-counters.json>Runtime counters</a> · <a href=diagnostic.json>Provenance</a> · <a href=diagnostic-memory.json>Instrumented process memory</a></p></html>");
         }
         finally
         {

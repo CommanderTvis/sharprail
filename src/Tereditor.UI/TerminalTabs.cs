@@ -1,11 +1,11 @@
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

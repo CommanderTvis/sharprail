@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>One chat's stored draft: the text, its revision, the revision the last send consumed, and when it last changed (Unix milliseconds).</summary>
 internal sealed record StoredDraft(string Text, long Revision, long Consumed, long Changed)

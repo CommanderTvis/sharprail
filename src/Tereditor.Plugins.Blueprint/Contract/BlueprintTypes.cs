@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Blueprint;
+namespace Tereditor.Plugins.Blueprint;
 
 public sealed record BlueprintOption(string Id, string Label, string Axis);
 public enum BlueprintControlKind { Select, Multi }

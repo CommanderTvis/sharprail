@@ -26,7 +26,7 @@ missing; tasks run under `scripts/mise` find `dotnet` and the others on PATH.
 
 The build recipes also fetch, pinned by commit or checksum, the Ghostty sources and Zig dependency mirror
 (`scripts/zig-deps.sh`) and Go for the Android Tailscale bridge (`scripts/tailscale-go.sh`). Build caches and those
-downloads live in the machine-wide `SHARPRAIL_CACHE_DIR` (`~/.cache/sharprail`), shared by every checkout; see
+downloads live in the machine-wide `TEREDITOR_CACHE_DIR` (`~/.cache/tereditor`), shared by every checkout; see
 [scripts/README.md](../../scripts/README.md). NuGet packages restore from nuget.org in locked mode. The app downloads
 managed language servers at runtime, not the build.
 
@@ -53,7 +53,7 @@ managed language servers at runtime, not the build.
 - `bash`, `curl`, `tar`, POSIX `sh`, `patch` and `shasum`: the mise download and the native recipes.
 - To run the app: glibc 2.31 or newer, an X11 or XWayland session, `libX11`, `libXcursor`, `libXrandr`, `libXi`,
   `fontconfig` and a GL or software Skia stack ([LINUX.md](../../LINUX.md)).
-- Pack the AppImage on a host of the target architecture (`SHARPRAIL_APPDIR_ONLY=1` assembles the AppDir anywhere).
+- Pack the AppImage on a host of the target architecture (`TEREDITOR_APPDIR_ONLY=1` assembles the AppDir anywhere).
   The NativeAOT client links with the pinned Zig against glibc 2.31, so no system C toolchain is needed.
 
 ### Windows (`build`, `package:windows`)

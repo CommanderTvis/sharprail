@@ -7,13 +7,13 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Host state parity: the same changes through direct and WebSocket RPC adapters yield the same snapshots, broadcasts and files.</summary>
 internal static class StateChecks
@@ -35,10 +35,10 @@ internal static class StateChecks
 
     internal static async Task Run(string root)
     {
-        var legacyFrame = new SharpRail.UI.Docking.LayoutSession();
+        var legacyFrame = new Tereditor.UI.Docking.LayoutSession();
         legacyFrame.SwitchWorkspace(root);
         legacyFrame.Open(new("kept", "Kept", "file", "kept.txt"), true);
-        var legacyBottom = new SharpRail.UI.Docking.DockGroup { Region = "bottom" };
+        var legacyBottom = new Tereditor.UI.Docking.DockGroup { Region = "bottom" };
         legacyFrame.State.Groups.Add(legacyBottom);
         legacyFrame.View.Documents[legacyBottom.Id] =
         [
@@ -56,9 +56,9 @@ internal static class StateChecks
         File.WriteAllText(Path.Combine(profilePath, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
         {
             Windows = new[] { new { Layout = legacyFrame.State, LastProject = root } },
-            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Old layout"] = legacyFrame.State.Copy() } }
+            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, Tereditor.UI.Docking.DockState> { ["Old layout"] = legacyFrame.State.Copy() } }
         }));
-        var restored = new SharpRail.UI.State.ProfileStore(profilePath).Data;
+        var restored = new Tereditor.UI.State.ProfileStore(profilePath).Data;
         foreach (var frame in new[] { restored.Windows[0].Layout, restored.Preferences.CustomPresets["Old layout"] })
         {
             var center = frame.Center.Leaves().First();
@@ -85,9 +85,9 @@ internal static class StateChecks
         File.WriteAllText(Path.Combine(splitProfile, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
         {
             Windows = new[] { new { Layout = splitLayout, LastProject = root } },
-            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Split layout"] = splitLayout.Copy() } }
+            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, Tereditor.UI.Docking.DockState> { ["Split layout"] = splitLayout.Copy() } }
         }));
-        var reloaded = new SharpRail.UI.State.ProfileStore(splitProfile).Data;
+        var reloaded = new Tereditor.UI.State.ProfileStore(splitProfile).Data;
         foreach (var frame in new[] { reloaded.Windows[0].Layout, reloaded.Preferences.CustomPresets["Split layout"] })
         {
             var center = frame.Center.GroupId;
@@ -101,7 +101,7 @@ internal static class StateChecks
         // Fixed theme mode keeps these stores off the bundled theme catalogue, which needs a running Avalonia platform.
         Directory.CreateDirectory(Path.Combine(root, "tab-mode-migration"));
         File.WriteAllText(Path.Combine(root, "tab-mode-migration", "profile.json"), """{ "Preferences": { "ThemeMode": "fixed" } }""");
-        var migratedProfile = new SharpRail.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
+        var migratedProfile = new Tereditor.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
         migratedProfile.Data.StateMigrated = true;
         migratedProfile.Data.Preferences.VerticalCenterTabs = true;
         migratedProfile.Data.Preferences.VerticalTabsInProjects = true;
@@ -114,16 +114,16 @@ internal static class StateChecks
         await migratedStore.ChangeAsync([HostStateChange.Setting("vertical-tabs", "false")]);
         Require(migratedProfile.OpenState().Current.Settings.VerticalCenterTabs == false,
             "Local fallback preferences must never overwrite a host's saved tab mode.");
-        var fallback = new SharpRail.UI.State.Preferences { VerticalCenterTabs = true, VerticalTabsInProjects = true };
-        using var olderSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), fallback, new HostState { Settings = new() { ThemeMode = "fixed" } });
+        var fallback = new Tereditor.UI.State.Preferences { VerticalCenterTabs = true, VerticalTabsInProjects = true };
+        using var olderSubscription = new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), fallback, new HostState { Settings = new() { ThemeMode = "fixed" } });
         Require(fallback.VerticalCenterTabs && fallback.VerticalTabsInProjects, "Older hosts must retain local tab-mode preferences.");
-        var browserPreferences = new SharpRail.UI.State.Preferences();
-        using var browserSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(migratedStore), browserPreferences, migratedStore.Current);
+        var browserPreferences = new Tereditor.UI.State.Preferences();
+        using var browserSubscription = new Tereditor.UI.State.SharedState(new LocalStateAdapter(migratedStore), browserPreferences, migratedStore.Current);
         Require(!browserPreferences.VerticalCenterTabs && browserPreferences.VerticalTabsInProjects,
             "A browser's fresh preferences must inherit both saved host tab-mode fields, including false.");
-        var accentPreferences = new SharpRail.UI.State.Preferences();
-        using var accentSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), accentPreferences, new HostState { Settings = new() { Accent = "purple" } });
-        Require(accentPreferences.Accent == "purple" && new SharpRail.UI.State.Preferences().Accent.Length == 0,
+        var accentPreferences = new Tereditor.UI.State.Preferences();
+        using var accentSubscription = new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), accentPreferences, new HostState { Settings = new() { Accent = "purple" } });
+        Require(accentPreferences.Accent == "purple" && new Tereditor.UI.State.Preferences().Accent.Length == 0,
             "The shared accent reaches the preferences, and the default is the theme's own accent.");
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
@@ -174,33 +174,33 @@ internal static class StateChecks
                 await service.ChangeAsync([HostStateChange.Setting("file-width", "39")]);
                 throw new InvalidOperationException($"The {name} host accepted an invalid width.");
             }
-            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             foreach (var bad in new[] { "#3B82F6", "#3b82f", "blue!", "rgb(0,0,0)", "Blue" })
                 try
                 {
                     await service.ChangeAsync([HostStateChange.Setting("accent", bad)]);
                     throw new InvalidOperationException($"The {name} host accepted the accent {bad}.");
                 }
-                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             try
             {
                 await service.ChangeAsync([HostStateChange.Setting("window-decorations", "wayland")]);
                 throw new InvalidOperationException($"The {name} host accepted an unknown window decorations value.");
             }
-            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             try
             {
                 await service.ChangeAsync([HostStateChange.DiffBase(project, "--output=x")]);
                 throw new InvalidOperationException($"The {name} host stored an option-shaped review target.");
             }
-            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             watch.Cancel();
             try
             {
                 await service.ChangeAsync([HostStateChange.Setting("custom-highlighting", """[{"Scope":"broken"}]""")]);
                 throw new InvalidOperationException($"The {name} host accepted malformed custom highlighting.");
             }
-            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
         }
         var expected = Describe(await local.GetStateAsync());
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
@@ -229,7 +229,7 @@ internal static class StateChecks
         Require(!await asking && (await remote.GetStateAsync()).PendingEmigrations.Count == 0, "A remote client's denial settles the request and clears it.");
         using var wrong = new RemoteStateAdapter(new Uri(address), "wrong-token");
         try { await wrong.GetHandshakeAsync(); throw new InvalidOperationException("A wrong token must not learn the protocol version."); }
-        catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode is SharpRail.Host.Protocol.StatusCode.Unauthenticated or SharpRail.Host.Protocol.StatusCode.PermissionDenied) { }
+        catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode is Tereditor.Host.Protocol.StatusCode.Unauthenticated or Tereditor.Host.Protocol.StatusCode.PermissionDenied) { }
         Require(new HostHandshake(0, "").Supports(0) && !new HostHandshake(0, "").Supports(1) && new HostHandshake(2, "").Supports(2) && new HostHandshake(3, "").Supports(2),
             "A handshake supports features introduced at or below its version.");
         Require(!HostCapabilities.Supports(null, 0) && !HostCapabilities.Supports(0, 1) && HostCapabilities.Supports(1, 1) && HostCapabilities.Supports(2, 1),
@@ -331,7 +331,7 @@ internal static class StateChecks
             Require((await service.ListWorkspacesAsync(withoutSeparator)).Workspaces.Single().Path == withoutSeparator,
                 $"A {label} known folder also authorizes the same path without its trailing separator.");
             try { await service.ListWorkspacesAsync(stranger); throw new InvalidOperationException($"A {label} host listed a folder that is not its project."); }
-            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or Tereditor.Host.Protocol.RpcException) { }
         }
         Directory.Delete(linked, recursive: true);
         foreach (var service in new[] { local, remote })

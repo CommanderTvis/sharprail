@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed partial class FileTransferProgress : UserControl
 {

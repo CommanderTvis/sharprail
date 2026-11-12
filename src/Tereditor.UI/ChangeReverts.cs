@@ -1,9 +1,9 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

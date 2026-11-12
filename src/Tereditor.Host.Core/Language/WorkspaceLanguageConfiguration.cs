@@ -2,9 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal static class WorkspaceLanguageConfiguration
 {

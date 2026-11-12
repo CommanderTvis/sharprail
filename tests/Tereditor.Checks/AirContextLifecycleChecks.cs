@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.AirContext.Host;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.AirContext.Host;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class AirContextChecks
 {
@@ -30,24 +30,24 @@ internal static partial class AirContextChecks
         // A fresh profile: the plugin is off, so nothing is served, said or shown until the user turns it on.
         Require((await rig.Plugins.ListAsync()).Single(entry => entry.Id == AirContextContract.Id).Status == PluginStatus.Disabled, "A fresh profile started Air Context.");
         Require(rig.Tools(workspace).Count == 0 && rig.Runtime.ToolGuidanceSections().Count == 0, "A fresh profile served Air Context tools or instructions.");
-        Require(!SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(rig.Runtime.ToolGuidanceSections(), []).Contains("Air Context", StringComparison.Ordinal), "A fresh profile mentioned Air Context in the instructions.");
+        Require(!Tereditor.Plugins.ClaudeCode.Host.SystemPrompt.Compose(rig.Runtime.ToolGuidanceSections(), []).Contains("Air Context", StringComparison.Ordinal), "A fresh profile mentioned Air Context in the instructions.");
         await rig.Enable(true);
         var review = await rig.Consent(new());
         await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
         Require((await rig.Workspace(workspace, "enable")).Enabled, "Enabling the workspace failed.");
 
         var terminal = new TerminalRef(workspace, "lifecycle");
-        string Claude(IReadOnlyList<string> guidance) => SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(guidance, []);
-        string Codex(IReadOnlyList<string> guidance) => SharpRail.Plugins.Codex.Host.CodexSystemPrompt.Compose(guidance, []);
+        string Claude(IReadOnlyList<string> guidance) => Tereditor.Plugins.ClaudeCode.Host.SystemPrompt.Compose(guidance, []);
+        string Codex(IReadOnlyList<string> guidance) => Tereditor.Plugins.Codex.Host.CodexSystemPrompt.Compose(guidance, []);
         Require(rig.Tools(workspace).Select(tool => tool.Name).Order().SequenceEqual(ToolNames), "The enabled plugin did not serve its tools.");
         var guidance = rig.Runtime.ToolGuidanceSections();
         Require(guidance.Count == 1 && Claude(guidance).Contains("`context_search`", StringComparison.Ordinal) && Codex(guidance).Contains("Air Context (`jbcontext`)", StringComparison.Ordinal),
             "The enabled plugin's paragraph did not reach the agent instructions.");
-        Require(Claude(guidance).Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- Air Context (`jbcontext`) provides", StringComparison.Ordinal),
+        Require(Claude(guidance).Contains("Prefer available tereditor MCP tools; disabled plugins may hide tools:\n\n- Air Context (`jbcontext`) provides", StringComparison.Ordinal),
             "The paragraph moved out of its place in the instructions.");
         Require(Claude(guidance).Contains("You MUST call `context_search` first", StringComparison.Ordinal) && Codex(guidance).Contains("its final report MUST state how many `context_search` calls", StringComparison.Ordinal),
             "The enabled plugin's paragraph is not strict.");
-        string Told(string at = "") => string.Concat(rig.Runtime.PromptTexts(SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.Id, SharpRail.Plugins.Api.Host.PromptPlacement.ToolList, at));
+        string Told(string at = "") => string.Concat(rig.Runtime.PromptTexts(Tereditor.Plugins.ClaudeCode.ClaudeCodeContract.Id, Tereditor.Plugins.Api.Host.PromptPlacement.ToolList, at));
         Require(Told(workspace).Contains("Air Context is ENABLED for this project", StringComparison.Ordinal) && Told(workspace).Contains("MUST call `context_search` first", StringComparison.Ordinal) && !Told().Contains("ENABLED for this project", StringComparison.Ordinal),
             "A session in an enabled project was not told Air Context is enabled, or the workspace-independent text was.");
         await rig.Workspace(workspace, "disable");
@@ -175,7 +175,7 @@ internal static partial class AirContextChecks
             Require((await rig.Workspace(feature)).Enabled, "An existing worktree of the enabled project is not enabled.");
             // The session-start line is a synchronous lookup from memory: it lists no worktrees (no git) and does not wait.
             var (before, clock) = (Volatile.Read(ref listings), System.Diagnostics.Stopwatch.StartNew());
-            var told = string.Concat(rig.Runtime.PromptTexts(SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.Id, SharpRail.Plugins.Api.Host.PromptPlacement.ToolList, feature));
+            var told = string.Concat(rig.Runtime.PromptTexts(Tereditor.Plugins.ClaudeCode.ClaudeCodeContract.Id, Tereditor.Plugins.Api.Host.PromptPlacement.ToolList, feature));
             Require(Volatile.Read(ref listings) == before && clock.ElapsedMilliseconds < 500 && told.Contains("Air Context is ENABLED for this project", StringComparison.Ordinal),
                 $"The prompt lookup listed worktrees ({Volatile.Read(ref listings) - before}) or took {clock.ElapsedMilliseconds} ms, or got the wrong answer.");
             lock (trees) trees.Add(new(later, "later", false, false));

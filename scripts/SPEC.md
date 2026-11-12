@@ -40,13 +40,13 @@ upload.
 
 Their public surface is the task list, [scripts/README.md](README.md), `AGENTS.md` and the root
 `README.md`. Native libraries belong to the project that ships them and are MSBuild targets there (see
-Invariants): Merman and notifications in `SharpRail.UI.csproj`, the Ghostty libraries in
-`src/Ghostty.Avalonia` (`build-native.sh`, `build-android.sh`, `build-windows.ps1`), the WASM libraries in `SharpRail.Browser.csproj` (`wasm-native.sh`) and the file
+Invariants): Merman and notifications in `Tereditor.UI.csproj`, the Ghostty libraries in
+`src/Ghostty.Avalonia` (`build-native.sh`, `build-android.sh`, `build-windows.ps1`), the WASM libraries in `Tereditor.Browser.csproj` (`wasm-native.sh`) and the file
 icons in the kit. The Ghostty recipes apply the checked-in texture export and scrollback memory patches to
 the pinned Ghostty source. `android` needs the Android SDK (`ANDROID_HOME`, default `~/Library/Android/sdk`)
 and a JDK 17 or 21 (the pinned one `scripts/tool jdk` prints, or `JAVA_HOME` when set), fails with a message when either is missing, and installs the `android`
 workload into the SDK when absent. Recipes may depend on POSIX `sh`, Git, `shasum`, clang/Xcode tools and,
-for the benchmark only, Node. They read source trees and write only to the machine-wide cache (`SHARPRAIL_CACHE_DIR`), `obj`, `.bench` and
+for the benchmark only, Node. They read source trees and write only to the machine-wide cache (`TEREDITOR_CACHE_DIR`), `obj`, `.bench` and
 `artifacts`; never to a repo-local `.tools`. Product logic, a second source of package versions, and editing sources are forbidden.
 
 ## Invariants
@@ -69,8 +69,8 @@ Caches. Zig's global package cache is shared in the store (it is content-address
 per-build caches, patched source trees and objects stay in the checkout because they embed absolute paths.
 
 Windows x64 and ARM64 use `scripts/mise.cmd run package:windows -- -RuntimeIdentifier <rid>` for
-NativeAOT client/host output (linked by Visual Studio's C++ linker) and `artifacts/SharpRail-win-x64.zip` or
-`artifacts/SharpRail-win-arm64.zip` (ARM64 output is `artifacts/windows-arm64`; it is built on an ARM64 host,
+NativeAOT client/host output (linked by Visual Studio's C++ linker) and `artifacts/tereditor-win-x64.zip` or
+`artifacts/tereditor-win-arm64.zip` (ARM64 output is `artifacts/windows-arm64`; it is built on an ARM64 host,
 with natives cached per RID). Published checks are staged alongside the unpacked package and excluded from the
 distribution zip. Publishing refuses to replace executables running from its output directory.
 `windows-native.ps1` provides exclusive file locks for the Windows native builds; both libraries retain
@@ -96,14 +96,14 @@ file; the checks only add their own, and the gate names the checks' publish so i
 carry what that publish has for it.
 
 `dmg` packs that bundle, unchanged and with an Applications shortcut beside it, into a compressed disk
-image (`artifacts/SharpRail.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not
+image (`artifacts/tereditor.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not
 notarized. `.github/workflows/nightly.yml` builds it on a macOS runner, the Android package on a Linux
 one and the Windows x64 and ARM64 packages on Windows runners every day at 03:00 UTC (and on demand), each uploaded as a workflow artifact named
-`SharpRail-nightly-<date>-<commit>`. When all succeed it replaces the `nightly` prerelease: the tag moves to
-the built commit and the files keep the names `SharpRail-nightly.dmg`, `SharpRail-nightly.apk` and the two Windows ZIPs.
+`tereditor-nightly-<date>-<commit>`. When all succeed it replaces the `nightly` prerelease: the tag moves to
+the built commit and the files keep the names `tereditor-nightly.dmg`, `tereditor-nightly.apk` and the two Windows ZIPs.
 
-`package:android` signs with the key named by `SHARPRAIL_ANDROID_KEYSTORE`, `SHARPRAIL_ANDROID_KEY_ALIAS` and
-`SHARPRAIL_ANDROID_KEY_PASSWORD` (one password for the store and the key, passed to the build by name rather
+`package:android` signs with the key named by `TEREDITOR_ANDROID_KEYSTORE`, `TEREDITOR_ANDROID_KEY_ALIAS` and
+`TEREDITOR_ANDROID_KEY_PASSWORD` (one password for the store and the key, passed to the build by name rather
 than by value); without them the package carries the machine's debug key. The nightly uses one key, kept in
 the repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, so each
 night's package installs over the last. Replacing that key breaks updating from every earlier package.
@@ -116,7 +116,7 @@ readiness markers, not synthetic timers; it is never part of the check gate.
 The dependency-boundary check and the public-surface check are repository gates rather than product
 behavior, but they need the compiled assemblies and negative fixtures, so they live in the checks executable
 (`-- --conformance`, also in the argument-free gate) and are specified in
-[the checks spec](../tests/SharpRail.Checks/SPEC.md#conformance). No script duplicates them.
+[the checks spec](../tests/Tereditor.Checks/SPEC.md#conformance). No script duplicates them.
 
 `check:fsevents` is a macOS-only functional resource-lifetime check. It builds strict Release unless
 `--no-build` is requested, compiles the checks' native interposer with warnings as errors, and scopes
@@ -131,4 +131,4 @@ license notices are included in the APK; no global Go installation is modified.
 The browser build runs `build-tailscale-wasm.sh` (also `scripts/mise run tailscale:wasm`) when its inputs change.
 It builds the browser's lazily downloaded Tailscale node for js/wasm with the same pinned Go and omitted-feature
 tags, writes its Brotli sidecar, Go's `wasm_exec.js`, licence notices and `manifest.json`, and caches the result
-under `$SHARPRAIL_CACHE_DIR/tailscale-wasm/<key>` before copying it to `src/SharpRail.Browser/obj/tailscale-wasm`.
+under `$TEREDITOR_CACHE_DIR/tailscale-wasm/<key>` before copying it to `src/Tereditor.Browser/obj/tailscale-wasm`.

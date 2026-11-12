@@ -1,14 +1,14 @@
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Lsp.IntelliJ;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Lsp.IntelliJ;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class IntelliJTermsChecks
 {

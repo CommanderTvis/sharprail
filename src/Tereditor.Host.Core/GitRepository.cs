@@ -1,9 +1,9 @@
 using System.Diagnostics;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal static class GitRepository
 {

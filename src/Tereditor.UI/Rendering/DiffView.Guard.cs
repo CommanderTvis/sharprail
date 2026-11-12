@@ -5,10 +5,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Scintilla;
+using Tereditor.Host.Abstractions;
+using Tereditor.Scintilla;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>
 /// Where a diff tab remembers that its reader chose Show diff anyway, and how it opens the editable file.

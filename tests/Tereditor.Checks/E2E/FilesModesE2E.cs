@@ -3,12 +3,12 @@ using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Upstream #779: Files is one tool with an All | Changed switch. All marks changed files with a status letter and

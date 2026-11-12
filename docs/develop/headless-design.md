@@ -1,4 +1,4 @@
-# Headless SharpRail for AI research: design
+# Headless tereditor for AI research: design
 
 Status: design record. The headless module has landed (see its SPEC); sections below that describe unbuilt parts remain proposals. Written 2026-11-06.
 
@@ -6,16 +6,16 @@ Reading guide. Facts are marked where it matters. "Verified" means I read the co
 reasonable expectation that a slice must prove before it relies on it. Every assumption is also listed in section G.
 
 The user-facing summary is [docs/headless.md](../headless.md). The module contract is
-[src/SharpRail.Host.Headless/SPEC.md](../../src/SharpRail.Host.Headless/SPEC.md).
+[src/Tereditor.Host.Headless/SPEC.md](../../src/Tereditor.Host.Headless/SPEC.md).
 
 ## A. Goals, non-goals and the experiment workflow
 
 ### Goals
 
-- Run SharpRail with no window, no terminal and no agent of its own, serving MCP over stdio for one project.
+- Run tereditor with no window, no terminal and no agent of its own, serving MCP over stdio for one project.
 - Ship it as a small container image. A Claude Code project adds one `.mcp.json` entry and it works.
-- Configure everything for that run from TOML files in the project's `.sharprail/`, committed with the project.
-- Answer one question with data: does the SharpRail LSP toolset make an agent better, faster or cheaper?
+- Configure everything for that run from TOML files in the project's `.tereditor/`, committed with the project.
+- Answer one question with data: does the tereditor LSP toolset make an agent better, faster or cheaper?
   That needs tool switches (same task, LSP on and off) and an opt-in per-call log.
 
 ### Non-goals
@@ -34,7 +34,7 @@ A research repo `acme-bench/` with one task, run twice from the same commit.
 acme-bench/
   .mcp.arm-lsp.json
   .mcp.arm-nolsp.json
-  .sharprail/
+  .tereditor/
     host.toml
     language.toml
     mcp.toml
@@ -47,24 +47,24 @@ acme-bench/
 ```json
 {
   "mcpServers": {
-    "sharprail": {
+    "tereditor": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm", "--init",
         "-v", "${PWD}:/workspace",
-        "-v", "sharprail-cache:/cache",
-        "-e", "SHARPRAIL_ARM=lsp",
-        "ghcr.io/commandertvis/sharprail:0.1.0"
+        "-v", "tereditor-cache:/cache",
+        "-e", "TEREDITOR_ARM=lsp",
+        "ghcr.io/commandertvis/tereditor:0.1.0"
       ]
     }
   }
 }
 ```
 
-`.mcp.arm-nolsp.json` is identical except `SHARPRAIL_ARM=nolsp`. Both mount the same `sharprail-cache` volume, so the
+`.mcp.arm-nolsp.json` is identical except `TEREDITOR_ARM=nolsp`. Both mount the same `tereditor-cache` volume, so the
 language servers install once. The image tag is a fixed version, never `latest`, so both arms run the same bits.
 
-`.sharprail/mcp.toml` (new):
+`.tereditor/mcp.toml` (new):
 
 ```toml
 version = 1
@@ -91,7 +91,7 @@ git worktree add ../bench-nolsp $COMMIT
 
 Where results land:
 
-- `../bench-lsp/.sharprail/runs/<session>.jsonl` and the same under `bench-nolsp`: SharpRail's per-call log.
+- `../bench-lsp/.tereditor/runs/<session>.jsonl` and the same under `bench-nolsp`: tereditor's per-call log.
 - `../lsp.stream.jsonl`, `../nolsp.stream.jsonl`: Claude Code's own transcript with token use, turns and cost.
 - The resulting diff in each worktree (`git diff $COMMIT`) and whatever test command the task defines.
 
@@ -101,7 +101,7 @@ Claude Code CLI. I did not run them here, so the exact flag spelling is assumed 
 Confounders the workflow must control, and the doc tells researchers:
 
 - Tool descriptions and the MCP `instructions` text are part of the treatment. They stay as shipped in both arms.
-- Claude Code's built-in Grep and Read stay on in both arms. Only SharpRail tools change.
+- Claude Code's built-in Grep and Read stay on in both arms. Only tereditor tools change.
 - Cold language-server start costs wall time on the first call. Pre-warm the cache (section D) or compare after warmup.
 - Model sampling varies. Run each arm several times. The log carries a `run_id` for that.
 
@@ -113,16 +113,16 @@ All claims verified from `src/*/*.csproj` and the module specs.
 
 | Group | Projects | Depends on UI? |
 | --- | --- | --- |
-| Plugin API | `SharpRail.Plugins.Api` (contract), `SharpRail.Plugins.Api.Host` (host-side seams), `SharpRail.Plugins.Api.UI` (Avalonia) | only `.Api.UI` |
-| Host contract | `SharpRail.Host.Abstractions`, `SharpRail.Host.Protocol` (RPC DTOs, generated codec) | no |
-| Host core | `SharpRail.Host.Core`: state, files, Git, terminals, language services, `McpServer`, `PluginRuntime`, `ProjectToml` | no. Its csproj has no Avalonia reference |
-| Remote transport | `SharpRail.Host.Remote` (Web SDK): WebSocket RPC, `LoopbackServer` (terminal MCP and plugin routes), `HeadlessLanguageMcp`, standalone `Program.cs` | no |
-| Client side | `SharpRail.Host.Client` (RPC client), `SharpRail.UI` (Avalonia workbench), `SharpRail.Android`, `SharpRail.Browser`, `Ghostty.Avalonia`, `SharpRail.Scintilla`, `SharpRail.Plugins.UI.Kit` | yes |
-| Builtin plugins | `SharpRail.Plugins.<Name>` with a `Contract` and a `Host/` project (no Avalonia, 23 counted) and a `UI/` project (Avalonia, about 22) | Host halves no, UI halves yes |
-| Language servers | `SharpRail.Plugins.Lsp.<Name>`, 18 projects, one per server, host side only | no |
-| Tests | `tests/SharpRail.Checks` (executable runner), `SharpRail.Language.Integration`, `SharpRail.Browser.Checks`, plugin fixtures | n/a |
+| Plugin API | `Tereditor.Plugins.Api` (contract), `Tereditor.Plugins.Api.Host` (host-side seams), `Tereditor.Plugins.Api.UI` (Avalonia) | only `.Api.UI` |
+| Host contract | `Tereditor.Host.Abstractions`, `Tereditor.Host.Protocol` (RPC DTOs, generated codec) | no |
+| Host core | `Tereditor.Host.Core`: state, files, Git, terminals, language services, `McpServer`, `PluginRuntime`, `ProjectToml` | no. Its csproj has no Avalonia reference |
+| Remote transport | `Tereditor.Host.Remote` (Web SDK): WebSocket RPC, `LoopbackServer` (terminal MCP and plugin routes), `HeadlessLanguageMcp`, standalone `Program.cs` | no |
+| Client side | `Tereditor.Host.Client` (RPC client), `Tereditor.UI` (Avalonia workbench), `Tereditor.Android`, `Tereditor.Browser`, `Ghostty.Avalonia`, `Tereditor.Scintilla`, `Tereditor.Plugins.UI.Kit` | yes |
+| Builtin plugins | `Tereditor.Plugins.<Name>` with a `Contract` and a `Host/` project (no Avalonia, 23 counted) and a `UI/` project (Avalonia, about 22) | Host halves no, UI halves yes |
+| Language servers | `Tereditor.Plugins.Lsp.<Name>`, 18 projects, one per server, host side only | no |
+| Tests | `tests/Tereditor.Checks` (executable runner), `Tereditor.Language.Integration`, `Tereditor.Browser.Checks`, plugin fixtures | n/a |
 
-Key finding. The reorganisation the user asked for is mostly done. `SharpRail.Host.Core` already references every
+Key finding. The reorganisation the user asked for is mostly done. `Tereditor.Host.Core` already references every
 plugin `Host` project and every `Lsp.*` plugin, and none of those pull Avalonia. Direct references are verified.
 Transitive ones are assumed clean and slice 2 proves it with `dotnet list package --include-transitive`.
 What is missing is a small executable that composes Core without Kestrel.
@@ -130,15 +130,15 @@ What is missing is a small executable that composes Core without Kestrel.
 ### How the host runs today
 
 - Embedded in the desktop app: `App.cs` builds the services and `PluginHostSeams` in process.
-- Standalone: `SharpRail.Host.Remote/Program.cs` reads `SHARPRAIL_ROOT`, `SHARPRAIL_BIND`, `SHARPRAIL_PORT`,
-  `SHARPRAIL_TOKEN` (required), `SHARPRAIL_STATE_DIR`, `SHARPRAIL_BROWSER_ROOT`, `SHARPRAIL_HEADLESS_MCP=1`.
+- Standalone: `Tereditor.Host.Remote/Program.cs` reads `TEREDITOR_ROOT`, `TEREDITOR_BIND`, `TEREDITOR_PORT`,
+  `TEREDITOR_TOKEN` (required), `TEREDITOR_STATE_DIR`, `TEREDITOR_BROWSER_ROOT`, `TEREDITOR_HEADLESS_MCP=1`.
   `RemoteServer.Create` composes `HostStateStore`, `PtyTerminalService`, `PluginRuntime`, `LoopbackServer` and the RPC.
 - Terminal MCP (verified in `McpRoute.cs`, `PtyTerminalService.cs`): `LoopbackServer` listens on `127.0.0.1:<random>`.
   Each terminal gets a random token and the env var `THINKRAIL_MCP_URL=http://127.0.0.1:<port>/mcp/<token>`.
   `POST /mcp/<token>` resolves the token to `(terminal, workspace)` and answers one JSON-RPC request. An unknown token is 404.
   The tool table is `workspaceTools` (4 tools) plus `PluginRuntime.McpTools(terminal, workspace)` plus `LanguageMcpTools`.
 - Headless MCP route (verified in `HeadlessLanguageMcp.cs`, `LanguageChecks.cs`, `AirContextChecks.cs`): with
-  `SHARPRAIL_HEADLESS_MCP=1` the standalone host also serves `POST /mcp` for one fixed root, guarded by the host bearer
+  `TEREDITOR_HEADLESS_MCP=1` the standalone host also serves `POST /mcp` for one fixed root, guarded by the host bearer
   token. It offers `LanguageMcpTools` plus the enabled plugins' tools with `owner = null`. It is exercised by two checks.
   So the headless tool table already exists. Only the transport differs from what we need.
 - The protocol is `McpServer.HandleAsync(JsonNode message, IReadOnlyList<McpTool> tools)`: one request in, one result out,
@@ -167,10 +167,10 @@ mount a prepared JetBrains login and accepted state. That is out of scope for th
 
 Every plugin states the decision in its manifest: `Headless = HeadlessSupport.Yes` or `No`. The default is `Undeclared`,
 which a check refuses for a builtin, so a new plugin forces a conscious choice. A headless host (`HostKind.Headless`) runs
-only plugins that say `Yes`. Any other plugin is refused with "not available in headless SharpRail", and so is a plugin
+only plugins that say `Yes`. Any other plugin is refused with "not available in headless tereditor", and so is a plugin
 that depends on it. A headless plugin still has to be enabled. `HeadlessEnabledByDefault` replaces `EnabledByDefault` on a
 headless host. Nothing uses it by default now: the spec graph and Blueprint are off in headless too, and the run opts in
-with `SHARPRAIL_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in memory. The roster
+with `TEREDITOR_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in memory. The roster
 `BuiltinPlugins.Headless` is the builtins that declare `Yes`. No tool is added.
 
 | Plugin | Headless | Reason |
@@ -179,7 +179,7 @@ with `SHARPRAIL_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in mem
 | `blueprint` | yes, off by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
 | `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-kotlin` (8) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Each installs into the cache from a pinned, checksummed download on a pinned runtime (.NET SDK, Bun) or as a self-contained archive. On linux/arm64 `lsp-clangd` uses LLVM's own build, which the image build extracts from the 1.1 GB toolchain archive (pinned URL and SHA-256) down to `bin/clangd` and its builtin headers. |
 | `lsp-java`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-ruby`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (9) | no | Their servers need a toolchain with no pinned download (JDK, Go, Rust, Coursier, Ruby, R, PowerShell, Swift, Dart); each flips to yes when that runtime is pinned with a checksum. |
-| `lsp-intellij` | yes, opt-in | Not in the default roster: it exists only when `SHARPRAIL_PREFETCH` or `SHARPRAIL_ACCEPT_TERMS` names it. Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `SHARPRAIL_ACCEPT_TERMS`. See [headless.md](../headless.md#the-intellij-server-opt-in). |
+| `lsp-intellij` | yes, opt-in | Not in the default roster: it exists only when `TEREDITOR_PREFETCH` or `TEREDITOR_ACCEPT_TERMS` names it. Self-contained archive with its own JRE (checked on both Linux architectures). It needs a JetBrains licence and the user's agreement to the JetBrains User Agreement, given with `accept_terms`, an MCP prompt or `TEREDITOR_ACCEPT_TERMS`. See [headless.md](../headless.md#the-intellij-server-opt-in). |
 | `claude-code`, `codex`, `omp`, `pi`, `acp` | no | They launch an agent in a terminal or chat pane. Headless is the tool server an agent calls. |
 | `air-gateway` | no | It starts Codex and Claude Code through Air Gateway per launch. |
 | `air-context` | no | Sign-in and consent are user-only and the indexing is cloud processing. |
@@ -216,16 +216,16 @@ with `SHARPRAIL_TOOLS_ENABLE=spec,blueprint`, which sets it for those two in mem
 | `LanguageLimits` (`idleMinutes`, `memoryBudgetMb`, `caps`), JSON string | `state.json` | host | `Language/SPEC.md` "limits" |
 | `TerminalMemory` (`enabled`, `perTerminalMb`, `totalMb`, `graceSeconds`, `protect`), JSON string | `state.json` | host | `Terminals.SPEC.md` "Memory guard" |
 | Per-workspace server configuration (init options, settings, autostart) | `state.json` `WorkspaceLanguages`, `ProjectLanguageAutostart` | workspace / project | `Language/SPEC.md`, `Language/CONFIGURATION.md` |
-| Shared server options (`autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`, `initializationOptions`, `settings`) | `<project>/.sharprail/language.toml`, `version = 1`, `[servers.<id>]` | project | `Language/SPEC.md` "Project language file" |
+| Shared server options (`autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`, `initializationOptions`, `settings`) | `<project>/.tereditor/language.toml`, `version = 1`, `[servers.<id>]` | project | `Language/SPEC.md` "Project language file" |
 | Hidden servers per project | `state.json` `ProjectLanguageHidden` | user, per project | `HostState.cs` comment |
-| Instruction sections off | `<project>/.sharprail/instructions.toml`, `version = 1`, `disabled = [...]` | project | `Plugins.SPEC.md` |
-| Cloned ignored paths | `<project>/.sharprail/workspace.toml`, `[clone] include` | project | `Workspaces.SPEC.md` |
+| Instruction sections off | `<project>/.tereditor/instructions.toml`, `version = 1`, `disabled = [...]` | project | `Plugins.SPEC.md` |
+| Cloned ignored paths | `<project>/.tereditor/workspace.toml`, `[clone] include` | project | `Workspaces.SPEC.md` |
 | Plugin enabled and settings | `state.json` `PluginSettings[<id>]` (JSON object, `enabled` plus the plugin's own record) | host | contract XML comments only |
 | Plugin records: `CodexSettings`, `ClaudeCodeSettings`, `OmpSettings`, `PiSettings`, `AcpSettings`, `AirSettings`, `DiscordSettings`, `ProcessesSettings` (the other 11 settings records are empty) | `state.json` | host | XML comments, plugin `SPEC.md` |
 | Projects, recents, labels, workspaces, presets, keymaps | `state.json` | host | `HostState.SPEC.md` |
 | Managed server pins (version, URL, SHA-256 per platform) | code: each `Lsp.*` plugin's spec, `ManagedArtifacts` | build | plugin `SPEC.md`, `Language/SPEC.md` |
-| Env vars: `SHARPRAIL_ROOT`, `_BIND`, `_PORT`, `_TOKEN`, `_STATE_DIR`, `_BROWSER_ROOT`, `_HEADLESS_MCP`, `_LSP_DISABLE`, `_GH_OFFLINE`, `_OMP_HOME`, `_DISCORD_IPC_DIR`, `_WINDOW_DECORATIONS`, `_PERFORMANCE`, `_PROFILE`, `_REMOTE` | process env | process | `Host.Remote/SPEC.md` (first seven), `LINUX.md`; rest code only |
-| Command-line flags | `tests/SharpRail.Checks` modes only. The host and app take no flags | none | `docs/develop/agent-reference.md` |
+| Env vars: `TEREDITOR_ROOT`, `_BIND`, `_PORT`, `_TOKEN`, `_STATE_DIR`, `_BROWSER_ROOT`, `_HEADLESS_MCP`, `_LSP_DISABLE`, `_GH_OFFLINE`, `_OMP_HOME`, `_DISCORD_IPC_DIR`, `_WINDOW_DECORATIONS`, `_PERFORMANCE`, `_PROFILE`, `_REMOTE` | process env | process | `Host.Remote/SPEC.md` (first seven), `LINUX.md`; rest code only |
+| Command-line flags | `tests/Tereditor.Checks` modes only. The host and app take no flags | none | `docs/develop/agent-reference.md` |
 
 State is JSON via source-generated `HostJson`, persisted atomically. A memory-only store (no directory) turns language
 services off (verified: `DirectoryPath is not null` in `LanguageServices.cs`), so a headless run needs a state directory.
@@ -238,9 +238,9 @@ host setting with no global off switch.
 
 ### The executable
 
-New project `src/SharpRail.Host.Headless`, assembly `sharprail-headless`, a plain console app
-(`Microsoft.NET.Sdk`, not Web). It references only `SharpRail.Host.Core`. No Kestrel, no Avalonia, no Skia.
-The image entrypoint is `sharprail-headless mcp`.
+New project `src/Tereditor.Host.Headless`, assembly `tereditor-headless`, a plain console app
+(`Microsoft.NET.Sdk`, not Web). It references only `Tereditor.Host.Core`. No Kestrel, no Avalonia, no Skia.
+The image entrypoint is `tereditor-headless mcp`.
 
 Subcommands:
 
@@ -248,7 +248,7 @@ Subcommands:
 | --- | --- |
 | `mcp` (default) | stdio MCP server for `/workspace` |
 | `warm` | install the pinned servers named in config or flags into the cache, then exit (needs network) |
-| `check-config` | parse and validate `.sharprail/*.toml`, print precise errors, exit 1 on any |
+| `check-config` | parse and validate `.tereditor/*.toml`, print precise errors, exit 1 on any |
 | `schema` | print the JSON Schema for all config files (slice 6) |
 | `manifest` | print version, pinned server versions and hashes as JSON |
 | `report` | compare two run logs (slice 5, optional) |
@@ -294,7 +294,7 @@ Rules that keep stdio clean:
 
 Smaller than it sounds, because the split exists. In order of value to the main use case:
 
-1. New `SharpRail.Host.Headless` project and its checks. No moves.
+1. New `Tereditor.Host.Headless` project and its checks. No moves.
 2. Config surface (section E): move the three TOML readers (`ProjectLanguageFile`, instructions, workspace clone) behind
    one `ProjectConfig` reader. They already share `ProjectToml`. Keep their files and keys.
 3. Move headless-relevant composition out of `RemoteServer.Create` into a Core `HostComposition` that both Remote and
@@ -318,20 +318,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
     && rm -rf /var/lib/apt/lists/*
 # Prebuilt on the CI runner for the target RID, copied in. No SDK in the image.
 ARG TARGETARCH
-COPY publish/linux-${TARGETARCH}/ /opt/sharprail/
-RUN useradd --uid 10001 --create-home sharprail && mkdir -p /cache /workspace && chown sharprail /cache
-USER sharprail
-ENV HOME=/home/sharprail \
-    SHARPRAIL_ROOT=/workspace \
-    SHARPRAIL_CACHE_DIR=/cache \
-    SHARPRAIL_STATE_DIR=/tmp/sharprail-state \
-    SHARPRAIL_OFFLINE=0 \
-    SHARPRAIL_TOOLCHAINS=managed \
+COPY publish/linux-${TARGETARCH}/ /opt/tereditor/
+RUN useradd --uid 10001 --create-home tereditor && mkdir -p /cache /workspace && chown tereditor /cache
+USER tereditor
+ENV HOME=/home/tereditor \
+    TEREDITOR_ROOT=/workspace \
+    TEREDITOR_CACHE_DIR=/cache \
+    TEREDITOR_STATE_DIR=/tmp/tereditor-state \
+    TEREDITOR_OFFLINE=0 \
+    TEREDITOR_TOOLCHAINS=managed \
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/workspace \
     DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 VOLUME ["/cache"]
 WORKDIR /workspace
-ENTRYPOINT ["/opt/sharprail/sharprail-headless"]
+ENTRYPOINT ["/opt/tereditor/tereditor-headless"]
 CMD ["mcp"]
 ```
 
@@ -343,17 +343,17 @@ Choices and why:
   slice 4. Assumed fine on current Debian.
 - Non-root user. `safe.directory` is set through `GIT_CONFIG_*` because the bind-mounted checkout is usually owned by a
   different uid. Assumed this is enough. If the host user's uid differs and the run must write files, the example `.mcp.json`
-  can add `"--user", "${SHARPRAIL_UID}:${SHARPRAIL_GID}"` and the researcher exports those. Docker on macOS maps ownership itself.
+  can add `"--user", "${TEREDITOR_UID}:${TEREDITOR_GID}"` and the researcher exports those. Docker on macOS maps ownership itself.
 - Volumes: `/workspace` (bind mount of the project, read-write because the agent edits files, and the run log is written to
-  `/workspace/.sharprail/runs/`) and `/cache` (named volume).
+  `/workspace/.tereditor/runs/`) and `/cache` (named volume).
 - `/cache` holds `language/` (managed server installs, shared caches such as gopls). The state directory (`state.json`,
   per-run) stays out of the shared volume on tmpfs, because two containers on one `state.json` are last-writer-wins
   (verified, `Host.Remote/SPEC.md` "Decisions"). Installs are safe to share: they are serialised by a filesystem lease
   across host processes (verified, `Language/SPEC.md` "Provisioning").
-  Today the language directory is `<stateDir>/language`. Slice 1 adds `SHARPRAIL_CACHE_DIR` as an additive override.
-  Fallback with zero code: symlink `/tmp/sharprail-state/language` to `/cache/language` in an init step. Assumed workable.
-- Env vars are the container-level layer of config precedence (section E): `SHARPRAIL_ARM`, `SHARPRAIL_OFFLINE`,
-  `SHARPRAIL_LOG` and any key via `SHARPRAIL_SET__host.language.allow_path=false` style overrides.
+  Today the language directory is `<stateDir>/language`. Slice 1 adds `TEREDITOR_CACHE_DIR` as an additive override.
+  Fallback with zero code: symlink `/tmp/tereditor-state/language` to `/cache/language` in an init step. Assumed workable.
+- Env vars are the container-level layer of config precedence (section E): `TEREDITOR_ARM`, `TEREDITOR_OFFLINE`,
+  `TEREDITOR_LOG` and any key via `TEREDITOR_SET__host.language.allow_path=false` style overrides.
 - Signals and stop. `docker run -i --init` puts `tini` as PID 1, forwards SIGTERM, and reaps language-server children.
   The app also registers `PosixSignalRegistration` for SIGTERM and SIGINT. EOF on stdin is the normal stop. On any of
   these it runs the shutdown in step 6 above, stops language servers (their own watchdog also ends them when the host dies,
@@ -371,7 +371,7 @@ What the code does today (verified by reading `LanguageServers*.cs`, `ManagedArt
 
 - Servers are downloaded and verified. `ProvisionAsync` calls `ArtifactInstaller.InstallAsync` for archives. It checks the
   64 hex SHA-256 first, downloads from an allow-listed host with `AllowAutoRedirect = false`, hashes the file, extracts
-  to a `.partial-<guid>` directory, writes a `.sharprail-artifact.json` marker, then renames. Formats it can unpack are
+  to a `.partial-<guid>` directory, writes a `.tereditor-artifact.json` marker, then renames. Formats it can unpack are
   `gz`, `tar.gz` and (default branch) `zip`. NuGet and npm servers have their own pinned paths.
 - Runtimes are never downloaded. Every runtime is found, not installed: `LanguageServers.ProbeTool` looks at the host-wide
   tool override (`HostSettings.LanguageTools`), then the tool's home variable (`DOTNET_ROOT`, `JAVA_HOME`), then the
@@ -449,7 +449,7 @@ Rough expectations, replaced by measurements in the container slice:
 | --- | --- | --- |
 | `dotnet/runtime:10.0` base | image | about 80 to 90 MB compressed |
 | git and certificates | image | about 30 MB |
-| `sharprail-headless`, framework-dependent, Core plus all plugin Host halves, no UI | image | about 25 to 40 MB |
+| `tereditor-headless`, framework-dependent, Core plus all plugin Host halves, no UI | image | about 25 to 40 MB |
 | Image total (one slim image) | registry | about 150 MB |
 | .NET SDK | cache volume | about 220 MB download, about 500 MB on disk |
 | Node.js with npm | cache volume | about 30 MB download, about 200 MB on disk |
@@ -469,7 +469,7 @@ The image stays small because nothing heavy ships in it. The cache volume reache
 - New workflow `.github/workflows/container.yml` (outline, not final):
   1. Trigger: `workflow_dispatch`, tag `v*`, and nightly after CI is green on `main`.
   2. Job `publish` on each of `ubuntu-latest` and the arm64 runner: checkout, `scripts/mise run` publish step, build the
-     image with `docker buildx build --platform linux/<arch> --push --provenance=true --sbom=true -t ghcr.io/commandertvis/sharprail:sha-<short>-<arch>`.
+     image with `docker buildx build --platform linux/<arch> --push --provenance=true --sbom=true -t ghcr.io/commandertvis/tereditor:sha-<short>-<arch>`.
   3. Job `manifest`: `docker buildx imagetools create` joins `-amd64` and `-arm64` into one multi-arch tag.
   4. Login uses `GITHUB_TOKEN` with `packages: write`. No other secret.
   5. Smoke test before tagging (headless, no GUI): run the image with a fixture workspace, send `initialize` and
@@ -478,7 +478,7 @@ The image stays small because nothing heavy ships in it. The cache volume reache
   Research docs tell people to pin a `vX.Y.Z` or a digest.
 - Version mapping: the app version equals the repo version stamped at publish. The image carries OCI labels
   `org.opencontainers.image.revision` (commit) and `.version`. Pinned server versions are in code, so one image
-  digest fixes one set of server versions. `sharprail-headless manifest` prints them.
+  digest fixes one set of server versions. `tereditor-headless manifest` prints them.
 - The workflow follows the repo rules: one CI attempt, no reruns, whoever pushes it watches the run.
 
 ### Reproducibility and offline mode
@@ -488,18 +488,18 @@ The image stays small because nothing heavy ships in it. The cache volume reache
   hashes (`Pinning.Lockfile`), NuGet servers SHA-512 per package, Go servers `go.sum`. `Pinning.Partial` and `None`
   exist for some servers (Swift and Dart follow the SDK). The doc lists which servers are fully pinned, from the plugins' specs.
 - Managed runtimes (new, section above) are pinned the same way. With `source = "managed"` the whole chain from the image
-  digest to the language server and its runtime is pinned. `sharprail-headless manifest` prints every server and runtime
+  digest to the language server and its runtime is pinned. `tereditor-headless manifest` prints every server and runtime
   version with its SHA-256, and the run log's `start` event records it.
 - PATH override. `LanguageServerOptions.AllowPath` is per server and defaults to false (verified). For the container the
   doc requires a hard global switch: `host.toml` `[language] allow_path = false` (default in headless, and a project file
-  cannot enable it unless `SHARPRAIL_ALLOW_PATH=1` is set in the container env). Needs a small change in
+  cannot enable it unless `TEREDITOR_ALLOW_PATH=1` is set in the container env). Needs a small change in
   `LanguageServers.Resolution.cs`. If `allow_path` is on, the run log records it in the header. `source = "managed"` also
   stops PATH and home variable lookups for runtimes.
-- Pre-warm: `docker run --rm -v sharprail-cache:/cache -v "$PWD":/workspace ghcr.io/commandertvis/sharprail:<v> warm`
+- Pre-warm: `docker run --rm -v tereditor-cache:/cache -v "$PWD":/workspace ghcr.io/commandertvis/tereditor:<v> warm`
   reads `host.toml` and `language.toml`, resolves which servers will run, and downloads those servers and the runtimes
   they need into `/cache`. It needs network and exits nonzero on any hash mismatch. `warm --restore` also fills
   `/cache/nuget` for a C# solution.
-- Offline rerun: `--network none` plus `SHARPRAIL_OFFLINE=1` (or `[host] offline = true`). Offline mode refuses any download
+- Offline rerun: `--network none` plus `TEREDITOR_OFFLINE=1` (or `[host] offline = true`). Offline mode refuses any download
   with an error naming the missing artifact and the `warm` command. Needed for offline: the cache volume warmed by the same
   image version, and the project's own dependencies (NuGet cache, `node_modules`, Gradle cache) present in `/workspace`
   or `/cache`. Servers that resolve project dependencies on start (Roslyn, JDT, Metals) do not work offline without
@@ -512,7 +512,7 @@ The image stays small because nothing heavy ships in it. The cache volume reache
 
 ### Files and precedence
 
-One TOML file per area, in the project's `.sharprail/`. Existing files keep every key and meaning.
+One TOML file per area, in the project's `.tereditor/`. Existing files keep every key and meaning.
 
 | File | Status | Area |
 | --- | --- | --- |
@@ -527,16 +527,16 @@ Precedence, lowest to highest:
 
 1. Built-in defaults.
 2. State file (`state.json`). In the container it is per-run and starts empty, so this layer is inert. Desktop users keep it.
-3. Project files in `.sharprail/` (read from `/workspace`).
-4. Container environment: `SHARPRAIL_ARM`, `SHARPRAIL_OFFLINE`, `SHARPRAIL_TOOLCHAINS`, `SHARPRAIL_LOG`, `SHARPRAIL_ALLOW_PATH`, and the generic
-   `SHARPRAIL_SET__<file>.<dotted.key>=<toml value>`.
+3. Project files in `.tereditor/` (read from `/workspace`).
+4. Container environment: `TEREDITOR_ARM`, `TEREDITOR_OFFLINE`, `TEREDITOR_TOOLCHAINS`, `TEREDITOR_LOG`, `TEREDITOR_ALLOW_PATH`, and the generic
+   `TEREDITOR_SET__<file>.<dotted.key>=<toml value>`.
 5. Command-line flags to `mcp`: `--arm`, `--offline`, `--log`, `--set file.key=value`.
 
 Why env beats the project file: the harness owner pins experiment variables from outside without editing committed files.
 
 This is one deliberate difference from today's rule for `language.toml` ("a key stored in host state for the workspace wins
 over the file"). With layer 2 empty in the container, that rule holds unchanged and no existing behaviour moves.
-There is no user-level layer in the container. A desktop `~/.sharprail/config/*.toml` layer is possible later and is not
+There is no user-level layer in the container. A desktop `~/.tereditor/config/*.toml` layer is possible later and is not
 part of this design.
 
 ### Validation
@@ -602,7 +602,7 @@ version = 1
 [log]
 enabled = false              # opt-in
 detail = "meta"              # meta | args | full
-dir = ".sharprail/runs"      # relative to /workspace
+dir = ".tereditor/runs"      # relative to /workspace
 run_id = ""                  # free text label copied to every event
 
 [tools]
@@ -615,7 +615,7 @@ operations = []              # if non-empty, only these operations; schema enum 
 [tools.lsp_diagnostics]
 scopes = []
 
-[arms.<name>]                # selected by --arm / SHARPRAIL_ARM; overlays [tools] and [log]
+[arms.<name>]                # selected by --arm / TEREDITOR_ARM; overlays [tools] and [log]
 tools.disable = ["@lsp"]     # "@group" expands a group
 ```
 
@@ -666,8 +666,8 @@ Goal: a setting that has no documentation cannot exist. Mechanism:
    For existing records with XML comments, the source generator can read the `<summary>` text as the doc. That keeps
    one source of truth and avoids duplicating prose. Plugin settings records get the attribute in their contract projects.
 2. A registry `ConfigRegistry` built from the attributes by a source generator (reflection-free, same style as `HostJson`).
-   It feeds two consumers: the TOML loader (validation, types, ranges) and `sharprail-headless schema` (JSON Schema, draft 2020-12, one per file).
-3. The JSON Schema is published in the image at `/opt/sharprail/schema/`, so editors get completion with the Even Better TOML
+   It feeds two consumers: the TOML loader (validation, types, ranges) and `tereditor-headless schema` (JSON Schema, draft 2020-12, one per file).
+3. The JSON Schema is published in the image at `/opt/tereditor/schema/`, so editors get completion with the Even Better TOML
    `#:schema` comment.
 
 Existing `language.toml` options are already a typed catalog (`configurationSchema` per server, verified), so the language
@@ -703,10 +703,10 @@ call, and as `server` events.
 - `detail = "full"` adds result text, truncated to 4 KiB each. Explicit opt-in only, and `start` records the level so a log can
   never be mistaken for a lighter one.
 - Never logged at any level: environment variables, tokens, anything under `/cache`.
-- The log lives in the project at `.sharprail/runs/` (decided). It is the one documented exception to the rule that SharpRail
-  writes nothing but shareable configuration into `.sharprail/`, and it applies only when `[log] enabled = true`. The
+- The log lives in the project at `.tereditor/runs/` (decided). It is the one documented exception to the rule that tereditor
+  writes nothing but shareable configuration into `.tereditor/`, and it applies only when `[log] enabled = true`. The
   rule text in `Language/SPEC.md` and `Workspaces.SPEC.md` is updated in the same commit as this design. The host still never
-  creates a `.gitignore`. The docs tell researchers to add `.sharprail/runs/` to `.git/info/exclude`, the same advice
+  creates a `.gitignore`. The docs tell researchers to add `.tereditor/runs/` to `.git/info/exclude`, the same advice
   `Workspaces.SPEC.md` gives for the directory.
 
 ### How switches work
@@ -717,7 +717,7 @@ call, and as `server` events.
   tool (verified in `LanguageMcpTools`), so narrowing is a filter on that list. The call also rejects a removed operation with a message naming the allowed ones.
 - No rename, by decision.
 - Plugin level: `plugins/<id>.toml` `enabled = false` removes that plugin's tools through the existing reconciler.
-- Existing switches stay: `SHARPRAIL_LSP_DISABLE=1` and `[language] enabled = false` (turn language off at the source). The doc
+- Existing switches stay: `TEREDITOR_LSP_DISABLE=1` and `[language] enabled = false` (turn language off at the source). The doc
   recommends tool-level switches for experiments because the tool list the model sees is then explicit and logged.
 - An arm is just a named overlay (`[arms.<name>]`). `start` logs the effective result.
 
@@ -735,7 +735,7 @@ jq -s '[.[]|select(.ev=="call" and .servers_started>0)] | map(.ms)' runs/*.jsonl
 ```
 
 Outcomes (tokens, turns, cost, pass or fail) come from Claude Code's stream-json and the task's test command. A `report` command
-(`sharprail-headless report lsp.jsonl nolsp.jsonl`) that prints one two-column table of those numbers is slice 5b and is
+(`tereditor-headless report lsp.jsonl nolsp.jsonl`) that prints one two-column table of those numbers is slice 5b and is
 optional. It does not compute significance.
 
 ## G. Risks, open questions and the sliced plan
@@ -780,7 +780,7 @@ Assumed, each proven by a named slice:
   another uid on Linux hosts. The example uses `--user` when needed.
 - stdout corruption by stray console output. Mitigated by the stdout swap and a check that runs every default plugin.
 - Confounds from instructions, tool descriptions and warm indexes (section A). Documented, not eliminated.
-- Log privacy. `meta` is the default and full text needs an explicit level. The `.sharprail/runs/` exception to the directory rule is documented.
+- Log privacy. `meta` is the default and full text needs an explicit level. The `.tereditor/runs/` exception to the directory rule is documented.
 - Two containers on one checkout will collide on server state. The workflow uses separate worktrees.
 - Licensing of redistributed runtimes: nothing is bundled in the image. The runtimes are downloaded by the user's container
   from the vendors, like the servers. The licenses are listed in `manifest` output and in the docs page.
@@ -794,9 +794,9 @@ Sizes are rough focused engineer-days. The NativeAOT work is out of scope by the
 
 | # | Slice | Scope | Touches | Tested headlessly by | Size |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Headless stdio MCP | New `SharpRail.Host.Headless` project, `mcp` and `check-config` stubs, composition as in C, stdout discipline, `instructions` override, `SHARPRAIL_CACHE_DIR`, hard `allow_path=false` default, roster limited to LSP + SpecDialect + Blueprint, Air Context off | new project, `McpServer.HandleAsync` (additive parameter), `LanguageServers.Resolution.cs` (global switch), language dir override | `--headless`: spawn the built exe, send `initialize`, `tools/list`, `lsp_status` and `spec_grep` over pipes against a fixture workspace; EOF exits 0; a plugin writing to stdout does not break frames | 3 to 4 |
+| 1 | Headless stdio MCP | New `Tereditor.Host.Headless` project, `mcp` and `check-config` stubs, composition as in C, stdout discipline, `instructions` override, `TEREDITOR_CACHE_DIR`, hard `allow_path=false` default, roster limited to LSP + SpecDialect + Blueprint, Air Context off | new project, `McpServer.HandleAsync` (additive parameter), `LanguageServers.Resolution.cs` (global switch), language dir override | `--headless`: spawn the built exe, send `initialize`, `tools/list`, `lsp_status` and `spec_grep` over pipes against a fixture workspace; EOF exits 0; a plugin writing to stdout does not break frames | 3 to 4 |
 | 2 | Runtime provisioner, .NET SDK first | `ManagedRuntimes` with the pinned .NET SDK for linux x64 and arm64, `[toolchains] source`, `ProbeTool` order, clean per-run PATH and cache env, `FindDotnet` returns the managed SDK, `warm` for C#, `NUGET_PACKAGES` under the cache, offline flag | `Host.Core/Language` (new file, `LanguageServers.Dependencies.cs`), `Plugins.Api.Host` (small, `PublicAPI.Unshipped.txt`), pin script | `--runtimes` with a local fake HTTP server serving a tiny fake archive: hash match installs, mismatch installs nothing, redirect to an unlisted host is refused, offline refuses, PATH does not leak (a fake `dotnet` on PATH is ignored). Real download only in the container smoke job | 4 to 5 |
-| 3 | Tool switches and run log | `mcp.toml` (`[tools]`, `[arms]`, `[log]`), decorator, JSONL events and detail levels, env and flag layer for `arm`, `log`, the documented `.sharprail/runs/` exception in the two specs | Headless project, a small TOML reader reusing `ProjectToml`, `Language/SPEC.md`, `Workspaces.SPEC.md` | `--headless-switches`: disabled tool absent from `tools/list` and the call is unknown; narrowed `operations`; log off writes no file; `meta` never leaks args | 3 |
+| 3 | Tool switches and run log | `mcp.toml` (`[tools]`, `[arms]`, `[log]`), decorator, JSONL events and detail levels, env and flag layer for `arm`, `log`, the documented `.tereditor/runs/` exception in the two specs | Headless project, a small TOML reader reusing `ProjectToml`, `Language/SPEC.md`, `Workspaces.SPEC.md` | `--headless-switches`: disabled tool absent from `tools/list` and the call is unknown; narrowed `operations`; log off writes no file; `meta` never leaks args | 3 |
 | 4 | Slim image, local | Dockerfile, `.dockerignore`, `manifest`, example `.mcp.json`, first `docs/headless.md`, a `container:build` task | new files, `scripts/` | Build locally, `docker run -i` with piped JSON, assert tools list and clean stop on EOF and SIGTERM, then `warm` and an `lsp_navigate` on a tiny C# fixture | 3 |
 | 5 | CI publish to ghcr.io | `container.yml`, multi-arch manifest, tags, labels, smoke on amd64 (blocking) and arm64 (non-blocking at first), size measurement | `.github/workflows/container.yml` | the workflow's own smoke job | 2 |
 | 6 | First C# experiment (user) | The user runs the worked example from section A on this repo or a small C# repo, arms LSP on and off, jq comparison. Fixes what hurts | `docs/headless.md`, optional `report` | Manual: Claude Code against the container. Validates the `${PWD}` and flag assumptions | 1 plus iteration |
@@ -813,13 +813,13 @@ desktop also uses, so the default `source = "path"` keeps desktop behaviour byte
 ### Decided by the user
 
 - One slim image, no variant tags. Runtimes are provisioned on demand into the cache volume, pinned with SHA-256.
-- Run log at `.sharprail/runs/` in the project, opt-in only, as a documented exception to the "nothing else" rule.
+- Run log at `.tereditor/runs/` in the project, opt-in only, as a documented exception to the "nothing else" rule.
 - Air Context is off in version 1. No mounted login.
 - First experiment language is C#, then TypeScript, then Python.
 - Env vars and flags override committed project files.
-- Arms are `[arms.<name>]` in `mcp.toml`, selected by `SHARPRAIL_ARM`. Two `.mcp.json` files that differ only in env overrides also work.
+- Arms are `[arms.<name>]` in `mcp.toml`, selected by `TEREDITOR_ARM`. Two `.mcp.json` files that differ only in env overrides also work.
 - `mcp.toml` holds the tool switches and the call log together.
-- Registry name `ghcr.io/commandertvis/sharprail`.
+- Registry name `ghcr.io/commandertvis/tereditor`.
 - The arm64 smoke job is non-blocking at first.
 
 ### Open questions

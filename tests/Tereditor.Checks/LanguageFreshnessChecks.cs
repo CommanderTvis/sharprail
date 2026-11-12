@@ -3,11 +3,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Agents get no partial answers from a project graph that is still loading, see files created after the server started without a
@@ -31,8 +31,8 @@ internal static partial class LanguageFreshnessChecks
         await File.WriteAllTextAsync(Path.Combine(workspace, "Gadget.cs"), "class Gadget\n{\n}\n");
         await File.WriteAllTextAsync(Path.Combine(workspace, "other", "Gadget.cs"), "class Gadget\n{\n}\n");
 
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var (grace, reload, debounce) = (LanguageSession.SettleGrace, LanguageSession.ReloadWait, LanguageSession.WatchDebounce);
         (LanguageSession.SettleGrace, LanguageSession.ReloadWait, LanguageSession.WatchDebounce) = (TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(20), TimeSpan.FromMilliseconds(100));
         var state = new HostStateStore(Path.Combine(root, "state"));
@@ -99,7 +99,7 @@ internal static partial class LanguageFreshnessChecks
         {
             await state.StopLanguagesAsync();
             (LanguageSession.SettleGrace, LanguageSession.ReloadWait, LanguageSession.WatchDebounce) = (grace, reload, debounce);
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 

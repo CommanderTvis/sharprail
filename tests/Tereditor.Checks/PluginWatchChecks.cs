@@ -5,18 +5,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // A plugin's explicit WatchWorkspaceAsync of a workspace no window has mounted, as the fork's
 // watchWorkspaceForLiveContent: one shared watch per workspace, readiness from the host's first batch, broad

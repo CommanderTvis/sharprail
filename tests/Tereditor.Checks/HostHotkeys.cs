@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Input;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Gives the headless platform the host OS's command modifier (Meta on macOS), as the native platforms report it.</summary>
 internal static class HostHotkeys

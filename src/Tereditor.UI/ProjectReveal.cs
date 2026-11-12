@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>This window's view of which project the rail shows expanded for the workspace it landed on.</summary>
 public sealed partial class WorkbenchWindow

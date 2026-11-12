@@ -7,16 +7,16 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.UI;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.UI;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class App : Application
 {
@@ -216,8 +216,8 @@ public sealed partial class App : Application
     private static void FitIconSlot(Control slot)
     {
         slot.Margin = new Thickness(0, 0, IconGap, 0);
-        slot.Width = SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
-        slot.Height = SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
+        slot.Width = Tereditor.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
+        slot.Height = Tereditor.Plugins.UI.Kit.LayoutRoles.MenuIconSlot;
         slot.ClipToBounds = false;
         if (slot is ContentControl content) { content.HorizontalContentAlignment = HorizontalAlignment.Center; content.VerticalContentAlignment = VerticalAlignment.Center; }
         else if (slot is ContentPresenter presenter) { presenter.HorizontalContentAlignment = HorizontalAlignment.Center; presenter.VerticalContentAlignment = VerticalAlignment.Center; }
@@ -227,12 +227,12 @@ public sealed partial class App : Application
     private static void ReserveIconColumn(MenuItem item)
     {
         var column = item.GetVisualDescendants().OfType<Grid>().SelectMany(grid => grid.ColumnDefinitions).FirstOrDefault(definition => definition.SharedSizeGroup == "MenuItemIcon");
-        if (column is not null) column.MinWidth = item.Icon is null ? 0 : SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot + IconGap;
+        if (column is not null) column.MinWidth = item.Icon is null ? 0 : Tereditor.Plugins.UI.Kit.LayoutRoles.MenuIconSlot + IconGap;
     }
 
 #if !ANDROID && !BROWSER
-    private static string TailscaleClientDirectory() => Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") ??
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail"), "tailscale-client");
+    private static string TailscaleClientDirectory() => Path.Combine(Environment.GetEnvironmentVariable("TEREDITOR_PROFILE") ??
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor"), "tailscale-client");
 
     private static Task<DesktopStartup>? startup;
 
@@ -247,17 +247,17 @@ public sealed partial class App : Application
 
     private sealed record DesktopStartup(string? Endpoint, string Token, string InitialRoot, ProfileStore Profile, HostStateStore Local, bool Remote,
         HostConnection Connection, IHostStateService StateService, RemoteTerminalAdapter? RemoteTerminals, PtyTerminalService? LocalTerminals,
-        SharpRail.Host.Remote.LoopbackServer? Loopback, SharpRail.Host.Core.Plugins.PluginRuntime? Runtime, SharpRail.Host.Remote.HostListener? Listener,
+        Tereditor.Host.Remote.LoopbackServer? Loopback, Tereditor.Host.Core.Plugins.PluginRuntime? Runtime, Tereditor.Host.Remote.HostListener? Listener,
         RemotePluginAdapter? RemotePlugins, IPluginService Plugins, Func<IProjectServices> Sessions, RemoteTerminalCatalogAdapter? RemoteCatalog, ITerminalCatalogService? Catalog);
 
     private static DesktopStartup PrepareDesktop(TailscaleConnection? chosen)
     {
         StartupPhases.Mark("desktop-prepare-start");
-        var endpoint = chosen?.Address ?? Environment.GetEnvironmentVariable("SHARPRAIL_REMOTE");
-        var initialRoot = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? (chosen is null ? Directory.GetCurrentDirectory() : "");
-        var profileDirectory = chosen is null ? Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") : TailscaleClientDirectory();
+        var endpoint = chosen?.Address ?? Environment.GetEnvironmentVariable("TEREDITOR_REMOTE");
+        var initialRoot = Environment.GetEnvironmentVariable("TEREDITOR_ROOT") ?? (chosen is null ? Directory.GetCurrentDirectory() : "");
+        var profileDirectory = chosen is null ? Environment.GetEnvironmentVariable("TEREDITOR_PROFILE") : TailscaleClientDirectory();
         var profile = profileDirectory is null ? ProfileStore.OpenDefault(initialRoot) : new ProfileStore(profileDirectory);
-        var token = chosen?.Token ?? Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? "";
+        var token = chosen?.Token ?? Environment.GetEnvironmentVariable("TEREDITOR_TOKEN") ?? "";
         // The local host's state always migrates, so a remote session never leaves pre-host fields behind.
         var local = profile.OpenState();
         var remote = !string.IsNullOrEmpty(endpoint);
@@ -274,18 +274,18 @@ public sealed partial class App : Application
         if (localTerminals is not null) local.WorkspaceRemoved += path => _ = Task.Run(async () => await localTerminals.CloseWorkspaceAsync(path));
         local.Terminals = localTerminals;
         // The app's own host runs its plugins in process; a remote host runs them where it runs.
-        var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals, local);
+        var loopback = remote ? null : new Tereditor.Host.Remote.LoopbackServer(localTerminals, local);
         var tailscale = new TailscaleServing();
-        var runtime = loopback is null ? null : new SharpRail.Host.Core.Plugins.PluginRuntime(new()
+        var runtime = loopback is null ? null : new Tereditor.Host.Core.Plugins.PluginRuntime(new()
         {
             StateDirectory = profile.DirectoryPath,
             State = local,
             PublicBaseUrl = () => loopback.BaseUrl,
             Terminals = localTerminals,
-            Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.Create(tailscale)
+            Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.Create(tailscale)
         });
         if (loopback is not null) loopback.Plugins = runtime;
-        var listener = runtime is null ? null : new SharpRail.Host.Remote.HostListener(initialRoot, local, localTerminals, runtime);
+        var listener = runtime is null ? null : new Tereditor.Host.Remote.HostListener(initialRoot, local, localTerminals, runtime);
         listener?.ConfigureTailscale(tailscale);
         runtime?.Start();
         var remotePlugins = remote ? new RemotePluginAdapter(new Uri(endpoint!), token) : null;

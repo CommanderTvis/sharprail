@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

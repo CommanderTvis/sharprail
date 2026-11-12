@@ -8,7 +8,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 /// <summary>
 /// A tab group on a phone: one member over the whole centre, under a strip of chips naming every member. Which member

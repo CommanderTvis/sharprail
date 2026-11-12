@@ -46,8 +46,8 @@ int main(int argc, char **argv) {
         window.contentView = view;
         [window makeKeyAndOrderFront:nil]; [NSApp activateIgnoringOtherApps:YES];
         gav_view_focus(pointer);
-        gav_view_input(pointer, "export SHARPRAIL_TERMINAL_CHECK=retained; printf '\\n%s:%s:%s\\n' SHARPRAIL_SHELL $$ \"$PWD\"\r");
-        waitText(pointer, @"SHARPRAIL_SHELL:");
+        gav_view_input(pointer, "export TEREDITOR_TERMINAL_CHECK=retained; printf '\\n%s:%s:%s\\n' TEREDITOR_SHELL $$ \"$PWD\"\r");
+        waitText(pointer, @"TEREDITOR_SHELL:");
         require([readText(pointer) containsString:[NSString stringWithUTF8String:argv[1]]], "shell working directory");
         gav_view_input(pointer, "printf '\\033[32mMETAL_%s\\033[0m\\n' OUTPUT\r");
         waitText(pointer, @"METAL_OUTPUT");
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 5; i++) pump();
         window.contentView = view; [window setContentSize:NSMakeSize(640, 320)];
         gav_view_focus(pointer);
-        gav_view_input(pointer, "printf '\\n%s:%s\\n' SESSION \"$SHARPRAIL_TERMINAL_CHECK\"\r");
+        gav_view_input(pointer, "printf '\\n%s:%s\\n' SESSION \"$TEREDITOR_TERMINAL_CHECK\"\r");
         waitText(pointer, @"SESSION:retained");
         // Exercise AppKit's key path, not just direct text injection.
         NSString *command = @"printf 'KEY_%s' OK\r";

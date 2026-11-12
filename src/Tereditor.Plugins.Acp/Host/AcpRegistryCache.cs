@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 internal sealed record AcpFetchResult(int Status, string? Body, string? ETag, string? LastModified);
 
@@ -28,7 +28,7 @@ internal sealed class AcpRegistryCache(string directory, AcpFetch fetch, Func<Da
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd("SharpRail-ACP/0.1");
+        request.Headers.UserAgent.ParseAdd("tereditor-ACP/0.1");
         if (etag is not null) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
         if (lastModified is not null) request.Headers.TryAddWithoutValidation("If-Modified-Since", lastModified);
         using var response = await client.SendAsync(request, cancellationToken);

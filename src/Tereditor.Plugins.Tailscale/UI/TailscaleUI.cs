@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Tailscale.UI;
+namespace Tereditor.Plugins.Tailscale.UI;
 
 public sealed class TailscaleUI : PluginUIModule
 {

@@ -2,10 +2,10 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.Api;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// Resolves a plugin's icon name: a Remix Icon name maps to the kit's bundled glyph, <c>asset:&lt;path&gt;</c> draws an SVG or PNG
@@ -86,7 +86,7 @@ public static class PluginIcons
     {
         var brand = entry.Id switch { "claude-code" => "claude", "discord" => "discord", _ => "" };
         if (brand.Length == 0) return Resolve(entry.Icon, entry, Ui.TextBrush, 16);
-        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Brands/" + brand + ".svg"));
+        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Tereditor.UI/Assets/Brands/" + brand + ".svg"));
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
         var icon = new AssetIcon("plugin-brand:" + entry.Id, Fallback, Ui.TextBrush, 16);
@@ -107,7 +107,7 @@ public static class PluginIcons
     private static byte[]? Bundled(string? pluginId)
     {
         if (pluginId != "pi") return null;
-        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Brands/pi.svg"));
+        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Tereditor.UI/Assets/Brands/pi.svg"));
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
         return buffer.ToArray();

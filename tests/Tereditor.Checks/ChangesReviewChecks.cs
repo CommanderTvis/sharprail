@@ -4,24 +4,24 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class ChangesReviewChecks
 {
     private static Control SourceControl(DiffView view) =>
-        view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().LastOrDefault() as Control
+        view.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().LastOrDefault() as Control
         ?? view.GetLogicalDescendants().OfType<SelectableTextBlock>().Last();
 
-    private static string SourceText(DiffView view) => SharpRail.Scintilla.ScintillaEditor.IsSupported
-        ? string.Join('\n', view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Select(editor => editor.Text))
+    private static string SourceText(DiffView view) => Tereditor.Scintilla.ScintillaEditor.IsSupported
+        ? string.Join('\n', view.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Select(editor => editor.Text))
         : E2E.E2eWorkspace.MarkdownSourceText(view);
 
     internal static void Run(string root)
@@ -30,7 +30,7 @@ internal static class ChangesReviewChecks
         ContentIdentity();
         Retention();
         PortableReview();
-        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
+        if (!Tereditor.Scintilla.ScintillaEditor.IsSupported) return;
         var original = string.Join('\n', Enumerable.Range(1, 35).Select(index => "line " + index)) + "\n";
         var changed = original.Replace("line 2\n", "first change " + new string('x', 200) + "\n", StringComparison.Ordinal)
             .Replace("line 30\n", "last change\n", StringComparison.Ordinal);
@@ -105,7 +105,7 @@ internal static class ChangesReviewChecks
         scroller.Offset = default;
         Until(() => Parts<Grid>("ReviewStickyHeader").Single().Children.Count == 0);
         // Stacked sections realize per hunk; the long line lives in the first hunk's editor.
-        var editor = Review()!.DiffFor("a.txt")!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+        var editor = Review()!.DiffFor("a.txt")!.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>()
             .Last(editor => editor.Text.Contains(new string('x', 200), StringComparison.Ordinal));
         Until(() => editor.VerticalScroll.Maximum == 0);
         Require(double.IsPositiveInfinity(editor.WrapWidth), "Stacked code must stay unwrapped.");
@@ -132,7 +132,7 @@ internal static class ChangesReviewChecks
         app.Window.Layout.Open(new DockTab("changes:all:", "Changes · All changes", "changes", Scope: "all"), true);
         Until(() => Review() is not null && Parts<Border>("ReviewSection").Any(section => Equals(section.Tag, "untracked.txt")));
         Review()!.Reveal("untracked.txt");
-        Until(() => Review()!.DiffFor("untracked.txt")?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+        Until(() => Review()!.DiffFor("untracked.txt")?.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>()
             .Any(editor => editor.Text.Contains("new untracked content", StringComparison.Ordinal)) == true);
         Console.WriteLine("PASS continuous Changes review: click grammar, lazy generated sections, Keep/viewed progress, presentation switches, navigator and historical scope");
     }
@@ -140,7 +140,7 @@ internal static class ChangesReviewChecks
     internal static void Presentation()
     {
         const string diff = "@@ -1,2 +1,2 @@\n context\n-before source\n+after source\n";
-        var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
+        var context = new Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
         var files = new[] { "README.md", "notes.md", "code.cs" }.Select(path => new GitChange(path, "M", " ", null, 1, 1)).ToArray();
         var choices = new Dictionary<string, string>();
         var state = new ChangesReviewState { ActivePath = "README.md" };
@@ -149,7 +149,7 @@ internal static class ChangesReviewChecks
             _ => Task.FromResult(new GitSnapshot(true, "main", files, [], [])),
             (file, natural, _, _) => Task.FromResult(new DiffView(diff, file.Path, 800,
                 file.Path.EndsWith(".md", StringComparison.Ordinal) ? [new DiffChoice("markdown", "Preview", _ =>
-                    Task.FromResult<Control?>(new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview("Changed **paragraph**", file.Path, context))), DiffChoice.Source] : [DiffChoice.Source],
+                    Task.FromResult<Control?>(new Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview("Changed **paragraph**", file.Path, context))), DiffChoice.Source] : [DiffChoice.Source],
                 selected: choices.GetValueOrDefault(file.Path), selectedChanged: choice => choices[file.Path] = choice,
                 naturalHeight: natural, embedded: true)),
             _ => { }, () => { }, () => { }, () => true, () => single, value => single = value);
@@ -170,7 +170,7 @@ internal static class ChangesReviewChecks
             bool Controls() => Button("ReviewSplit").IsVisible && Button("ReviewInline").IsVisible && Button("ReviewWhitespace").IsVisible;
             void Split(DiffView view)
             {
-                var editors = view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().ToArray();
+                var editors = view.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().ToArray();
                 Require(editors.Length == 2, "Split Source must create two editors instead of a unified patch.");
                 var old = editors.Single(editor => editor.Name == "DiffOldText");
                 var next = editors.Single(editor => editor.Name == "DiffNewText");
@@ -182,15 +182,15 @@ internal static class ChangesReviewChecks
             }
             void Inline(string path)
             {
-                Until(() => pane.DiffFor(path)?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().SingleOrDefault() is { Name: "DiffInlineText" });
-                var editor = pane.DiffFor(path)!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single();
+                Until(() => pane.DiffFor(path)?.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().SingleOrDefault() is { Name: "DiffInlineText" });
+                var editor = pane.DiffFor(path)!.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single();
                 Require(editor.Text.Contains("before source", StringComparison.Ordinal) && editor.Text.Contains("after source", StringComparison.Ordinal),
                     "Inline Source contains both changes in one source editor.");
             }
             Until(() => pane.DiffFor("README.md")?.IsRendered == true);
             Require(!Controls(), "Preview-only review must not offer source layout or whitespace controls.");
             Click("DiffView_code", pane.DiffFor("README.md"));
-            if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
+            if (!Tereditor.Scintilla.ScintillaEditor.IsSupported)
             {
                 Until(() => pane.DiffFor("README.md") is { IsRendered: false });
                 Require(!Controls() && SourceText(pane.DiffFor("README.md")!).Contains("before source", StringComparison.Ordinal) &&
@@ -224,9 +224,9 @@ internal static class ChangesReviewChecks
             Click("ReviewStacked"); Until(() => pane.DiffFor("code.cs") is not null && Controls());
             Require(pane.DiffFor("README.md")!.IsRendered && !pane.DiffFor("code.cs")!.IsRendered,
                 "Mixed stacked review offers source controls without changing Markdown Preview.");
-            var preview = pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
+            var preview = pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
             Click("ReviewSplit"); Split(pane.DiffFor("code.cs")!);
-            Require(ReferenceEquals(preview, pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single()),
+            Require(ReferenceEquals(preview, pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single()),
                 "Source layout changes leave the rendered Markdown control and its state intact.");
             // Bodies stay mounted up to three viewports ahead, so the window must be short enough to put code.cs beyond that.
             window.Height = 120;
@@ -244,7 +244,7 @@ internal static class ChangesReviewChecks
             Require(Button("DiffSplit", standalone).IsVisible, "Standalone Markdown Source offers its source-layout toggle.");
             Split(standalone);
             Click("DiffSplit", standalone);
-            Require(standalone.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single().Name == "DiffInlineText",
+            Require(standalone.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single().Name == "DiffInlineText",
                 "Standalone Markdown Source switches to a real inline editor.");
             Console.WriteLine("PASS review controls: Preview-only, real Source inline/split geometry, resize, file-mode retention and mixed stacked review");
         }
@@ -273,7 +273,7 @@ internal static class ChangesReviewChecks
             Until(() => pane.DiffFor("a.txt")?.Bounds.Height > 0);
             var retained = pane.DiffFor("a.txt")!;
             var source = SourceControl(retained);
-            var editor = source as SharpRail.Scintilla.ScintillaEditor;
+            var editor = source as Tereditor.Scintilla.ScintillaEditor;
             editor?.SelectRange(editor.Text.IndexOf("new", StringComparison.Ordinal), 3);
             var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
             scroll.Offset = new Vector(0, 40);
@@ -347,20 +347,20 @@ internal static class ChangesReviewChecks
 
     private static void MarkdownScrolling()
     {
-        var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
+        var context = new Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
         var markdown = string.Join("\n\n", Enumerable.Range(1, 90).Select(index => "Paragraph " + index + " with enough content to review."));
         var state = new ChangesReviewState();
         using var pane = new ChangesReviewPane("Changes", state, false,
             _ => Task.FromResult(new GitSnapshot(true, "main", [new GitChange("README.md", "M", " ", null, 90, 0)], [], [])),
             (_, natural, triage, _) => Task.FromResult(new DiffView("", "README.md", 800,
-                [new DiffChoice("markdown", "Preview", _ => Task.FromResult<Control?>(new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview(markdown, "README.md", context)))],
+                [new DiffChoice("markdown", "Preview", _ => Task.FromResult<Control?>(new Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview(markdown, "README.md", context)))],
                 naturalHeight: natural, embedded: true)),
             _ => { }, () => { }, () => { }, () => true, () => false, _ => { });
         var window = new Window { Width = 800, Height = 500, Content = pane };
         window.Show();
         try
         {
-            SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview? Preview() => pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().FirstOrDefault();
+            Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview? Preview() => pane.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().FirstOrDefault();
             Until(() => Preview()?.Bounds.Height > 1000);
             var preview = Preview()!;
             var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");

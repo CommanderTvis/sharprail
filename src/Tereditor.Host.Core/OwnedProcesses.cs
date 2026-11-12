@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The long-running processes agents reported as their own (<c>owned_process_report</c>), keyed by the reporting terminal,
@@ -81,7 +81,7 @@ public sealed class OwnedProcesses
     {
         if (!Enabled) throw new ArgumentException("Owned-process management is off: the Processes plugin is disabled.");
         if (pid <= 1) throw new ArgumentException("pid must be a process of yours; pid 1 and below are never accepted.");
-        if (pid == Environment.ProcessId || refused.Contains(pid)) throw new ArgumentException($"pid {pid} is SharpRail itself or a terminal's shell, which is never accepted.");
+        if (pid == Environment.ProcessId || refused.Contains(pid)) throw new ArgumentException($"pid {pid} is tereditor itself or a terminal's shell, which is never accepted.");
         var row = ProcessTable.Read().FirstOrDefault(known => known.Pid == pid) ?? throw new ArgumentException($"No live process has pid {pid}.");
         // kill(pid, 0) succeeds only for a process this user may signal.
         if (!OperatingSystem.IsWindows() && Posix.Kill(pid, 0) != 0) throw new ArgumentException($"pid {pid} belongs to another user, so it cannot be stopped for you.");
@@ -96,7 +96,7 @@ public sealed class OwnedProcesses
             Save();
         }
         Changed?.Invoke();
-        return $"Reported pid {pid}. SharpRail stops it when this terminal closes or SharpRail quits; call owned_process_release when you stop it yourself.";
+        return $"Reported pid {pid}. tereditor stops it when this terminal closes or tereditor quits; call owned_process_release when you stop it yourself.";
     }
 
     /// <summary>Forgets the terminal's record of a pid without touching the process; false when it had none.</summary>

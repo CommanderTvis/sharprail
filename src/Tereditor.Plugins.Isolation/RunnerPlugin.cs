@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>
 /// The runner's <c>plugin</c> mode: one external plugin's process (Security.SPEC.md, one process per plugin). The host

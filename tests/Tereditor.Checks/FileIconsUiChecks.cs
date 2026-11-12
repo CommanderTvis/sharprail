@@ -12,18 +12,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class FileIconsChecks
 {
@@ -36,7 +36,7 @@ internal static partial class FileIconsChecks
             var mode = remote ? "remote" : "local";
             var workspace = Path.Combine(root, "file-icons-ui", mode);
             Directory.CreateDirectory(workspace);
-            var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
+            var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
             if (source is not null)
             {
                 IsolatedGit.Run(workspace, "init", "-b", "main");
@@ -103,7 +103,7 @@ internal static partial class FileIconsChecks
     private static byte[] Raster(E2eWorkspace app, Control icon)
     {
         var layers = app.Window.GetLogicalDescendants().OfType<Control>()
-            .Where(control => control.IsVisible && (control is SharpRail.UI.OverlayHost || control is Border border && ReferenceEquals(border.Background, Ui.Overlay))).ToArray();
+            .Where(control => control.IsVisible && (control is Tereditor.UI.OverlayHost || control is Border border && ReferenceEquals(border.Background, Ui.Overlay))).ToArray();
         foreach (var layer in layers) layer.IsVisible = false;
         try { return Raster(app.Window, icon); }
         finally { foreach (var layer in layers) layer.IsVisible = true; }
@@ -203,7 +203,7 @@ internal static partial class FileIconsChecks
             Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "ChangesTree"));
             Loaded(app.Find<TreeView>("ChangesTree"), "python");
         }
-        else Console.WriteLine("SKIP file-icons change rows: set SHARPRAIL_TEST_GIT_SOURCE to an existing fork clone.");
+        else Console.WriteLine("SKIP file-icons change rows: set TEREDITOR_TEST_GIT_SOURCE to an existing fork clone.");
 
         app.ShowTool("files");
         app.Window.ShowSettings("Appearance");

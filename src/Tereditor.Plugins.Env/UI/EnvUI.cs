@@ -2,12 +2,12 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Env.UI;
+namespace Tereditor.Plugins.Env.UI;
 
 public sealed class EnvUI : PluginUIModule
 {

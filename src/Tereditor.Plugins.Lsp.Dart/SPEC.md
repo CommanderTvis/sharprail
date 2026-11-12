@@ -16,7 +16,7 @@ The plugin id is `lsp-dart`; it ships enabled. Its host half is a `LanguageServe
 the catalog, its sessions stop and its saved settings are kept. Implementation: Dart Analysis Server · Dart SDK.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 There is no managed installation: the server runs only from the Dart SDK on PATH, when the user allows PATH for it.
 

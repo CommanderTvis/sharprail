@@ -10,11 +10,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -96,7 +96,7 @@ public sealed partial class WorkbenchWindow
 
     private void UpdateScopeLabels()
     {
-        projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : state.Current.ProjectName(projectRoot);
+        projectLabel.Text = projectRoot.Length == 0 ? "tereditor" : state.Current.ProjectName(projectRoot);
         this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
         ToolTip.SetTip(projectLabel, projectLabel.Text);
         this.FindControl<Button>("ScopeProject")!.SetValue(AutomationProperties.NameProperty, "Project " + projectLabel.Text);
@@ -120,7 +120,7 @@ public sealed partial class WorkbenchWindow
             scope.Name = "WelcomeScope";
             panel.Children.Add(scope);
         }
-        var title = Ui.Text(clean ? "SharpRail" : state.Current.ProjectName(projectRoot), Ui.TextBrush, 24);
+        var title = Ui.Text(clean ? "tereditor" : state.Current.ProjectName(projectRoot), Ui.TextBrush, 24);
         title.Name = "WelcomeTitle";
         panel.Children.Add(title);
         // The reference's screen is heading, then one to three cards; no pitch prose.
@@ -161,7 +161,7 @@ public sealed partial class WorkbenchWindow
                 setUp.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
                 buttons.Children.Add(setUp);
             }
-            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut(SharpRail.Host.Abstractions.KeymapActions.NewWorkspace)}).", primary: hasSpecs)
+            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut(Tereditor.Host.Abstractions.KeymapActions.NewWorkspace)}).", primary: hasSpecs)
             { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction", IsVisible = welcomeGitReady };
             create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
             var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
@@ -442,7 +442,7 @@ public sealed partial class WorkbenchWindow
                     var baseline = choice.DefaultCommand ?? "";
                     // Agents often skip the system prompt's titling rule on a first task; the opening prompt states it so the generated workspace gets named.
                     var opening = !choice.InProjectFolder && !string.IsNullOrWhiteSpace(choice.InitialPrompt)
-                        ? choice.InitialPrompt + "\n\nFirst, if the task is clear, call the SharpRail `set_title` MCP tool (load it with ToolSearch if it is deferred) with a 3-6 word title; this names the workspace."
+                        ? choice.InitialPrompt + "\n\nFirst, if the task is clear, call the tereditor `set_title` MCP tool (load it with ToolSearch if it is deferred) with a 3-6 word title; this names the workspace."
                         : choice.InitialPrompt;
                     var unedited = string.IsNullOrWhiteSpace(command) || command == baseline;
                     // A launcher that presents its agent without a terminal takes the start over unless the command was edited.
@@ -495,7 +495,7 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    /// <summary>An attached worktree is only forgotten; one SharpRail created is removed from disk unless Git refuses.</summary>
+    /// <summary>An attached worktree is only forgotten; one tereditor created is removed from disk unless Git refuses.</summary>
     private async Task RemoveWorkspaceAsync(WorkspaceRecord worktree)
     {
         var external = worktree.Kind == WorkspaceKinds.External;
@@ -506,8 +506,8 @@ public sealed partial class WorkbenchWindow
         try
         {
             if (!(external
-                ? await Dialogs.Confirm(this, $"Remove {WorkspaceName(worktree.Path)} from SharpRail?",
-                    $"SharpRail stops listing {worktree.Path}. The checkout and its branch stay untouched; reopen it from Open existing worktree…", "Remove from SharpRail", dismiss: dismiss.Token)
+                ? await Dialogs.Confirm(this, $"Remove {WorkspaceName(worktree.Path)} from tereditor?",
+                    $"tereditor stops listing {worktree.Path}. The checkout and its branch stay untouched; reopen it from Open existing worktree…", "Remove from tereditor", dismiss: dismiss.Token)
                 : await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained.",
                     dismiss: dismiss.Token))) return;
         }
@@ -602,7 +602,7 @@ public sealed partial class WorkbenchWindow
         }
         menu.Items.Add(UnreadMenuItem(menu, worktree));
         if (worktree.Kind == WorkspaceKinds.Default) return openIn;
-        // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
+        // An attached worktree is the user's: tereditor neither renames nor removes it, it only stops listing it.
         if (worktree.Kind == WorkspaceKinds.Managed)
         {
             var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
@@ -610,7 +610,7 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(rename);
         }
         menu.Items.Add(new Separator());
-        var remove = Ui.IconMenu(worktree.Kind == WorkspaceKinds.External ? "Remove from SharpRail" : "Remove worktree…", () => _ = RemoveWorkspaceAsync(worktree),
+        var remove = Ui.IconMenu(worktree.Kind == WorkspaceKinds.External ? "Remove from tereditor" : "Remove worktree…", () => _ = RemoveWorkspaceAsync(worktree),
             ActionIcon.Delete, !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);

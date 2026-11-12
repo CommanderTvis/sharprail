@@ -23,14 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: stamp
-        run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: echo "name=tereditor-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       # build-native.sh archives libghostty with Homebrew's llvm-ar.
       - run: brew install llvm
       - uses: actions/cache@v6
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Package macOS" sh scripts/mise run package:macos osx-arm64
       - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Packaged check macOS" sh scripts/mise run check:packaged -- --packaged
@@ -52,12 +52,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: stamp
-        run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: echo "name=tereditor-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # The Android workload compiles against this platform, which the runner image may not carry yet.
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
@@ -72,12 +72,12 @@ jobs:
           [ -n "$SIGNING_KEY" ] || { echo "::error::ANDROID_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/android-key.pk8"
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          "$apksigner" sign --key "$RUNNER_TEMP/android-key.pk8" --cert signing/android-cert.pem artifacts/android/SharpRail.apk
+          "$apksigner" sign --key "$RUNNER_TEMP/android-key.pk8" --cert signing/android-cert.pem artifacts/android/tereditor.apk
           rm -f "$RUNNER_TEMP/android-key.pk8"
-          "$apksigner" verify --print-certs artifacts/android/SharpRail.apk | tee "$RUNNER_TEMP/certs.txt"
+          "$apksigner" verify --print-certs artifacts/android/tereditor.apk | tee "$RUNNER_TEMP/certs.txt"
           expected=$(openssl x509 -in signing/android-cert.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d : | tr A-F a-f)
           grep -qi "certificate SHA-256 digest: $expected" "$RUNNER_TEMP/certs.txt" || { echo "::error::APK is not signed with signing/android-cert.pem"; exit 1; }
-      - run: mv artifacts/android/SharpRail.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
+      - run: mv artifacts/android/tereditor.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.stamp.outputs.name }}-android
@@ -98,7 +98,7 @@ jobs:
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # The AppImage carries an embedded signature, so the key is in the keyring before the package step.
       - env:
@@ -107,15 +107,15 @@ jobs:
           [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
       - env:
-          SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          TEREDITOR_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
         run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Package Linux" sh scripts/mise run package:linux
       - env:
-          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+          TEREDITOR_CHECKS_KEEP_GOING: "1"
         run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v7
         with:
-          name: SharpRail-nightly-linux-x64
-          path: artifacts/SharpRail-linux-x64.AppImage
+          name: tereditor-nightly-linux-x64
+          path: artifacts/tereditor-linux-x64.AppImage
           if-no-files-found: error
           compression-level: 0
       - if: failure()
@@ -134,7 +134,7 @@ jobs:
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # The AppImage carries an embedded signature, so the key is in the keyring before the package step.
       - env:
@@ -143,15 +143,15 @@ jobs:
           [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
       - env:
-          SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          TEREDITOR_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
         run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Package Linux ARM64" sh scripts/mise run package:linux linux-arm64
       - env:
-          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+          TEREDITOR_CHECKS_KEEP_GOING: "1"
         run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v7
         with:
-          name: SharpRail-nightly-linux-arm64
-          path: artifacts/SharpRail-linux-arm64.AppImage
+          name: tereditor-nightly-linux-arm64
+          path: artifacts/tereditor-linux-arm64.AppImage
           if-no-files-found: error
           compression-level: 0
       - if: failure()
@@ -172,7 +172,7 @@ jobs:
         with:
           path: |
             ~\AppData\Local\mise
-            ~\AppData\Local\sharprail\cache
+            ~\AppData\Local\tereditor\cache
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
       - uses: actions/cache/restore@v6
@@ -192,12 +192,12 @@ jobs:
             src/Ghostty.Avalonia/obj/native/win-x64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
       - env:
-          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+          TEREDITOR_CHECKS_KEEP_GOING: "1"
         run: ./scripts/mise.cmd x -- dotnet run --file scripts/ci-run.cs -- "Packaged check Windows x64" ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v7
         with:
-          name: SharpRail-nightly-windows-x64
-          path: artifacts/SharpRail-win-x64.zip
+          name: tereditor-nightly-windows-x64
+          path: artifacts/tereditor-win-x64.zip
           if-no-files-found: error
           compression-level: 0
       - if: failure()
@@ -221,7 +221,7 @@ jobs:
         with:
           path: |
             ~\AppData\Local\mise
-            ~\AppData\Local\sharprail\cache
+            ~\AppData\Local\tereditor\cache
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       - run: ./scripts/mise.cmd x -- dotnet run --file scripts/ci-run.cs -- "Cross-build Ghostty for Windows ARM64" ./scripts/mise.cmd x -- powershell -NoProfile -ExecutionPolicy Bypass -File src/Ghostty.Avalonia/build-windows.ps1 -RuntimeIdentifier win-arm64 -Cache src/Ghostty.Avalonia/obj/native
       - uses: actions/upload-artifact@v7
@@ -250,7 +250,7 @@ jobs:
         with:
           path: |
             ~\AppData\Local\mise
-            ~\AppData\Local\sharprail\cache
+            ~\AppData\Local\tereditor\cache
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
       - uses: actions/cache/restore@v6
@@ -275,12 +275,12 @@ jobs:
             src/Ghostty.Avalonia/obj/native/win-arm64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
       - env:
-          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+          TEREDITOR_CHECKS_KEEP_GOING: "1"
         run: ./scripts/mise.cmd x -- dotnet run --file scripts/ci-run.cs -- "Packaged check Windows ARM64" ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
       - uses: actions/upload-artifact@v7
         with:
-          name: SharpRail-nightly-windows-arm64
-          path: artifacts/SharpRail-win-arm64.zip
+          name: tereditor-nightly-windows-arm64
+          path: artifacts/tereditor-win-arm64.zip
           if-no-files-found: error
           compression-level: 0
       - if: failure()
@@ -301,7 +301,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: packages
-          pattern: SharpRail-nightly-*
+          pattern: tereditor-nightly-*
           merge-multiple: true
       # One prerelease that moves: the tag follows the commit, and the files keep their names from night to night. The
       # previous release is never deleted before the new files are up, so a failing night leaves the last good release.
@@ -310,12 +310,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -eu
-          mv packages/*.dmg SharpRail-nightly.dmg
-          mv packages/*.apk SharpRail-nightly.apk
-          mv packages/SharpRail-linux-x64.AppImage SharpRail-nightly-linux-x64.AppImage
-          assets="SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-linux-x64.AppImage"
+          mv packages/*.dmg tereditor-nightly.dmg
+          mv packages/*.apk tereditor-nightly.apk
+          mv packages/tereditor-linux-x64.AppImage tereditor-nightly-linux-x64.AppImage
+          assets="tereditor-nightly.dmg tereditor-nightly.apk tereditor-nightly-linux-x64.AppImage"
           missing=""
-          for pair in SharpRail-linux-arm64.AppImage:SharpRail-nightly-linux-arm64.AppImage SharpRail-win-x64.zip:SharpRail-nightly-win-x64.zip SharpRail-win-arm64.zip:SharpRail-nightly-win-arm64.zip; do
+          for pair in tereditor-linux-arm64.AppImage:tereditor-nightly-linux-arm64.AppImage tereditor-win-x64.zip:tereditor-nightly-win-x64.zip tereditor-win-arm64.zip:tereditor-nightly-win-arm64.zip; do
             src="packages/${pair%%:*}"
             dst="${pair##*:}"
             if [ -f "$src" ]; then
@@ -326,7 +326,7 @@ jobs:
               echo "::warning::$dst was not built tonight; releasing without it"
             fi
           done
-          notes="Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+          notes="Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a tereditor host; the Linux AppImages are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
           if [ -n "$missing" ]; then
             notes="$notes
 

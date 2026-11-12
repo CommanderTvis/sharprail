@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace SharpRail.Plugins.Isolation.Generator;
+namespace Tereditor.Plugins.Isolation.Generator;
 
 /// <summary>
 /// The proxies and dispatchers. Runner direction: a proxy per root context and per interface a <c>LocalInRunner</c>
@@ -14,7 +14,7 @@ namespace SharpRail.Plugins.Isolation.Generator;
 /// </summary>
 internal sealed partial class Emitter
 {
-    private const string Iso = "global::SharpRail.Plugins.Isolation.";
+    private const string Iso = "global::Tereditor.Plugins.Isolation.";
 
     private static readonly SymbolDisplayFormat Format = SymbolDisplayFormat.FullyQualifiedFormat
         .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);

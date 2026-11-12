@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal sealed partial class SwitchFixture : StackPanel
 {

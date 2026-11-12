@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// A loopback TCP relay in front of a WebSocket RPC host that can drop one client's connections and refuse

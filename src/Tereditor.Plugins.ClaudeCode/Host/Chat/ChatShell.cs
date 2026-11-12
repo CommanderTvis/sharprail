@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>What a bash-mode command printed (each stream cut at <see cref="ChatShell.OutputLimit"/>) and how it ended; <see cref="ExitCode"/> is null when it was stopped.</summary>
 internal sealed record ChatShellResult(string Stdout, string Stderr, int? ExitCode, bool Stopped);

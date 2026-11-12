@@ -3,15 +3,15 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.TerminalsE2E;
-using static SharpRail.Checks.E2E.TerminalSessionsE2E;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.TerminalsE2E;
+using static Tereditor.Checks.E2E.TerminalSessionsE2E;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Two clients of one real WebSocket RPC host, each with its own profile, connection and grid: which terminals exist is
 // the host's catalog, and a terminal is held by one client, and watched by the others, until another takes it over.
@@ -55,7 +55,7 @@ internal static class SharedTerminalsE2E
             shell.Run("exit 0");
             Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
             Until(() => View(a, initial).IsKeyboardFocusWithin);
-            Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && a.Window.Layout.Tabs(group).Select(tab => tab.Id).SequenceEqual([initial.Id]) &&
+            Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && a.Window.Layout.Tabs(group).Select(tab => tab.Id).SequenceEqual([initial.Id]) &&
                 a.Window.Layout.Selected(group)?.Id == initial.Id && Catalog(host, workspace).SequenceEqual([initial.Id]),
                 "An exited shell's tab must leave its group, the host's catalog and every client without asking, and hand focus to the tab beside it.");
             Console.WriteLine("PASS terminal exit: a shell that exits closes its tab in every client by default, without confirmation, and focus moves on in its group");
@@ -367,7 +367,7 @@ internal static class SharedTerminalsE2E
             Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2);
             CloseTab(a, TerminalTabs(a)[1]);
             Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
-            Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && Catalog(host, workspace).SequenceEqual([initial.Id]),
+            Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && Catalog(host, workspace).SequenceEqual([initial.Id]),
                 "A terminal closed in one client must leave every client and the host's catalog without asking again.");
             Console.WriteLine("PASS shared terminals: closing a terminal in one client removes it from the other");
 

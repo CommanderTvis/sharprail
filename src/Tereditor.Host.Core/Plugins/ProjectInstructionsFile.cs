@@ -4,10 +4,10 @@ using System.Text.Json.Nodes;
 
 using Tomlyn;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
-/// The project's instruction-section choices, <c>.sharprail/instructions.toml</c> under the project root
+/// The project's instruction-section choices, <c>.tereditor/instructions.toml</c> under the project root
 /// (<see cref="Version"/> 1): only a disable-list of section identifiers, so a project never stores instruction text and a
 /// change to the enabled plugins can never leave it invalid. Unknown identifiers are kept and ignored; sections not listed
 /// are on. Reading never throws: a broken file disables nothing and is reported.
@@ -26,7 +26,7 @@ internal static class ProjectInstructionsFile
         internal static Snapshot Empty(string path) => new(path, false, "", [], new JsonObject(), []);
     }
 
-    internal static string PathOf(string root) => System.IO.Path.Combine(root, ".sharprail", "instructions.toml");
+    internal static string PathOf(string root) => System.IO.Path.Combine(root, ".tereditor", "instructions.toml");
 
     internal static string StampOf(string path)
     {
@@ -93,7 +93,7 @@ internal static class ProjectInstructionsFile
     internal static string Render(IEnumerable<string> disabled, JsonObject? extra = null)
     {
         var text = new StringBuilder();
-        text.Append("# Instruction sections SharpRail leaves out of agent sessions in this project.\n");
+        text.Append("# Instruction sections tereditor leaves out of agent sessions in this project.\n");
         text.Append("# Shared with the team: commit it. Change it in the agent's Context tab; unknown ids are kept.\n");
         text.Append("version = ").Append(Version).Append('\n');
         var ids = disabled.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();

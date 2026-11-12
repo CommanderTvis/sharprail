@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 internal sealed class ContextMcpConnection : IAsyncDisposable
 {
@@ -33,7 +33,7 @@ internal sealed class ContextMcpConnection : IAsyncDisposable
         {
             ["protocolVersion"] = "2025-06-18",
             ["capabilities"] = new JsonObject { ["roots"] = new JsonObject { ["listChanged"] = false } },
-            ["clientInfo"] = new JsonObject { ["name"] = "SharpRail", ["version"] = "1" }
+            ["clientInfo"] = new JsonObject { ["name"] = "tereditor", ["version"] = "1" }
         }, token);
         if (initialized["protocolVersion"]?.GetValue<string>() is not ("2024-11-05" or "2025-03-26" or "2025-06-18"))
             throw new IOException("Unsupported JetBrains Context MCP protocol.");

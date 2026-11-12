@@ -193,7 +193,7 @@
           "Svg.SceneGraph": "5.2.3"
         }
       },
-      "sharprail.scintilla": {
+      "tereditor.scintilla": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",

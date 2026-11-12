@@ -1,6 +1,6 @@
 # GitHub plugin
 
-Original SharpRail implementation. This plugin invokes the user's installed GitHub CLI (`gh`); it does not bundle
+Original tereditor implementation. This plugin invokes the user's installed GitHub CLI (`gh`); it does not bundle
 GitHub source, binaries or an SDK.
 
 `assets/github.svg` is the GitHub mark from Simple Icons (https://github.com/simple-icons/simple-icons,

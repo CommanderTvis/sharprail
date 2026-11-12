@@ -1,6 +1,6 @@
-using SharpRail.Wire;
+using Tereditor.Wire;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>What an <see cref="IsoFrame"/> is. Zero is never sent.</summary>
 public enum IsoFrameKind { None, Hello, Init, Ready, Call, Reply, Fault, OneWay, Cancel, Release, Item, End, Credit, Push, Grants, Surface, Ping, Pong }

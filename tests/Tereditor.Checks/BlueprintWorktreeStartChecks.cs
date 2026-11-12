@@ -1,14 +1,14 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Blueprint;
+using Tereditor.Checks.E2E;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Blueprint;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class BlueprintWorktreeStartChecks
 {
@@ -30,12 +30,12 @@ internal static class BlueprintWorktreeStartChecks
         }, () => new(true)));
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "WorkspaceDraftBlueprint"));
         app.Click(app.Find<Button>("WorkspaceDraftBlueprint"));
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         Find<TextBox>("Brief").Text = "  A project blueprint launched from another worktree.  ";
         app.Click(Find<Button>("BlueprintStart"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 1 && app.Window.WorkspaceRoot == project &&
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 1 && app.Window.WorkspaceRoot == project &&
             app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "Blueprint"));
         BlueprintState? State(string workspace)
         {

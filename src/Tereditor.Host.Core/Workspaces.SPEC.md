@@ -20,10 +20,10 @@ branch and the base it is measured from. Its display label is decoupled from its
 in shared host state, the branch in Git, and ordinary label renames never touch the branch.
 The first agent title of an unnamed generated managed workspace also supplies its branch slug.
 
-Two kinds are user-owned — SharpRail uses their folder but never renames, removes or reclaims them. Every
+Two kinds are user-owned — tereditor uses their folder but never renames, removes or reclaims them. Every
 project has exactly one `default` workspace whose root is the project folder itself (the main working
 tree for a Git project). A worktree the user attaches is recorded in place as `external`. Only a `managed` worktree, which
-SharpRail created, may be removed by it.
+tereditor created, may be removed by it.
 
 Git-reported absolute worktree paths are normalized with the host's path rules before
 registry lookup or removal, including Windows drive paths emitted by Git with forward slashes.
@@ -31,11 +31,11 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
 ```mermaid
 flowchart TB
     Project[Project] --> Default[Default: project folder]
-    Project --> Managed[Managed: created by SharpRail]
+    Project --> Managed[Managed: created by tereditor]
     Project --> External[External: attached existing worktree]
     Default --> Protected[Folder remains user-owned]
     External --> Protected
-    Managed --> Remove[SharpRail may remove the worktree]
+    Managed --> Remove[tereditor may remove the worktree]
     Remove --> Branch[Branch remains in Git]
 ```
 
@@ -69,7 +69,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
   [language SPEC](Language/SPEC.md).
 - A workspace created this way (or from the UI) inherits its project's Air Context enablement, the Default
   workspace's state, and starts indexing in the background when the project is enabled; see the
-  [Air Context SPEC](../SharpRail.Plugins.AirContext/SPEC.md).
+  [Air Context SPEC](../Tereditor.Plugins.AirContext/SPEC.md).
 - `set_title` (`title`) sits beside it and titles the calling terminal's tab (whitespace collapsed, 60
   characters, at least one letter or digit). The title is host state per terminal
   (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal
@@ -86,8 +86,8 @@ forgetting removes its row while leaving the checkout in place. The Default work
   workspace, an external worktree, another project's workspace and an unknown path are refused; the branch
   is kept.
 - `owned_process_report` (`pid`, optional `description`) and `owned_process_release` (`pid`) let any agent that uses the
-  SharpRail MCP hand SharpRail a long-running process it started (dev server, watcher, `run_in_background` command), so
-  that closing SharpRail or the terminal does not leave it behind. They are tools of the Processes plugin (enabled by default; [its SPEC](../SharpRail.Plugins.Processes/SPEC.md)) and are absent while it is disabled. Only a process
+  tereditor MCP hand tereditor a long-running process it started (dev server, watcher, `run_in_background` command), so
+  that closing tereditor or the terminal does not leave it behind. They are tools of the Processes plugin (enabled by default; [its SPEC](../Tereditor.Plugins.Processes/SPEC.md)) and are absent while it is disabled. Only a process
   an agent reports is ever stopped. The tools refuse pid 1 and below, the host itself and any terminal's shell, a pid
   that is not live, and a process of another user; the registry and its stopping rules are in
   [Terminals SPEC](Terminals.SPEC.md#owned-processes). The `plugin.processes.owned-processes` prompt section tells agents to report
@@ -97,7 +97,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
   `state.json` and published to clients as `WorkspaceCreators`) only for that call; a workspace made any other way has none, and the entry goes when the workspace leaves the registry, so a reused path starts without one. The tool refuses, changing nothing, unless the caller is a Claude Code or Codex
   terminal whose agent record names a session id and whose plugin offers a revival, and the target is a registered,
   existing, non-Default workspace of the same project, other than the caller's, that this same terminal created, and no
-  other process has the session open (a live lock of another SharpRail, or a process outside the caller's own tab that
+  other process has the session open (a live lock of another tereditor, or a process outside the caller's own tab that
   names the id; Plugins.SPEC, Terminals). Its
   description and the `core.workspace-emigrate` prompt section allow it only when the user explicitly asked for a new
   workspace and the agent is certain it will not touch the original one again.
@@ -164,21 +164,21 @@ forgetting removes its row while leaving the checkout in place. The Default work
   numeric suffix; without a name the workspace takes the next `workspace-N`. The location is
   `<main worktree>-worktrees/<branch>`. Removal keeps the branch, so both must be free. The record's base
   is creation provenance — the picked ref, or the project's current branch when none was picked.
-- A created worktree gets no files: SharpRail creates nothing in a project's `.sharprail` except the committed
+- A created worktree gets no files: tereditor creates nothing in a project's `.tereditor` except the committed
   configuration it writes on an explicit save. Agent scratch space (PR bodies, screenshots) lives in the host's state
   directory, `<state>/scratch/<project>-<hash>/<workspace directory name>` (`WorktreePaths.WorkspaceScratchDirectory`), created
-  by the agent plugins when a terminal starts, exported as `SHARPRAIL_SCRATCH_DIR` and passed to Claude Code and Codex
+  by the agent plugins when a terminal starts, exported as `TEREDITOR_SCRATCH_DIR` and passed to Claude Code and Codex
   with `--add-dir`.
 - After a managed create the project's configured ignored paths are cloned in the background
   (`WorkspaceClone`). The rules live in the project's own committed, user- and agent-editable
-  `.sharprail/workspace.toml`, read from the source (Default) checkout at creation time (TOML via
+  `.tereditor/workspace.toml`, read from the source (Default) checkout at creation time (TOML via
   Tomlyn, 64 KiB cap): `version = 1` and a `[clone]` table with `include` and `exclude` string arrays.
   Unknown keys are ignored, so the format grows only by new optional keys; an incompatible change would
-  ship as a new file (`workspace_v2.toml`) that the newer SharpRail migrates into only on an explicit
+  ship as a new file (`workspace_v2.toml`) that the newer tereditor migrates into only on an explicit
   write, leaving the old file untouched, and readers prefer the highest version they understand. The
-  host only reads this file: it writes nothing into `.sharprail/` and never creates a `.gitignore`
+  host only reads this file: it writes nothing into `.tereditor/` and never creates a `.gitignore`
   there (the directory holds shareable configuration only, apart from the opt-in headless run log in
-  `.sharprail/runs/`; projects that keep it out of Git use `.git/info/exclude`). Patterns are slash-separated, root-relative globs: `*` and `?` stay in one
+  `.tereditor/runs/`; projects that keep it out of Git use `.git/info/exclude`). Patterns are slash-separated, root-relative globs: `*` and `?` stay in one
   segment, `**` spans segments, a pattern without `/` matches that name at any depth, one with `/` is
   anchored at the root; `exclude` wins over `include`; absolute, `..` and `.git` patterns are skipped.
   Without the file (or with a malformed, unversioned or unsupported one) nothing is cloned; a bad file
@@ -190,7 +190,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
   extents are shared on btrfs and XFS and the tree is copied elsewhere, still in the background). Existing target paths are never replaced and every
   refusal (non-APFS, another volume, other platforms, a failed `cp`, Git errors) is silent: creation never waits on or
   fails because of it. Savings exist only at creation; edits to the file affect later workspaces only.
-  The SharpRail repo lists `**/obj` and `**/bin`; its build caches are machine-wide, not cloned. Check mode `--workspace-clone`.
+  The tereditor repo lists `**/obj` and `**/bin`; its build caches are machine-wide, not cloned. Check mode `--workspace-clone`.
   The clone starts before the workspace's language servers, and a server starting in that workspace
   waits for it (at most 30 s, `LanguageLimits.CloneWait`): Roslyn started before `obj` arrives restores
   and design-time builds the whole solution itself instead of reusing the Default checkout's outputs.

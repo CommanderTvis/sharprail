@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.AirContext.UI.AirContextPane" x:ClassModifier="internal">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.AirContext.UI.AirContextPane" x:ClassModifier="internal">
   <StackPanel x:Name="AirContextSection" Spacing="8">
     <StackPanel Orientation="Horizontal" Spacing="8">
       <ContentControl x:Name="ContextBrand" VerticalAlignment="Center" />

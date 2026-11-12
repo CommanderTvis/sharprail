@@ -1,6 +1,6 @@
 ---
 name: spec-graph
-description: "Use when locating, reading, creating, updating, or validating project specs, or when work is governed by or may alter a documented boundary, contract, invariant, behavior, or architecture decision, in a project that keeps a SharpRail spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs."
+description: "Use when locating, reading, creating, updating, or validating project specs, or when work is governed by or may alter a documented boundary, contract, invariant, behavior, or architecture decision, in a project that keeps a tereditor spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs."
 ---
 
 # Spec graph

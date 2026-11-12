@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal interface ITerminalProcess : IAsyncDisposable
 {

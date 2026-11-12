@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal sealed class HttpRequestProbe : IObserver<DiagnosticListener>, IObserver<KeyValuePair<string, object?>>, IDisposable
 {

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 internal sealed record ScopedPath(ClaudeConfigScope Scope, string Path);
 

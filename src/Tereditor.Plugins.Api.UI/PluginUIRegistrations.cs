@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.Api.UI;
+namespace Tereditor.Plugins.Api.UI;
 
 /// <summary>
 /// The arguments a registered file viewer's control is created with (W7). The viewer follows later changes with

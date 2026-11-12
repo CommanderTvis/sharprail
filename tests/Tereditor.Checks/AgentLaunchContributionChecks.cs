@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Codex;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Codex;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The agent launch seam in isolation: ordering, replacement, quoting and the custom-command guard of
 // AgentLaunchComposition, and its use by the Codex launch line.
@@ -25,7 +25,7 @@ internal static class AgentLaunchContributionChecks
         Equal(AgentLaunchComposition.Apply("claude.exe a", "claude", [Wrap("w")], true), "w claude.exe a", "a .exe suffix still names the agent");
 
         // Ordering: non-replacing wrappers outermost first, then the first replacer, then arguments in order, first variable wins.
-        var first = new AgentLaunchContribution { Wrapper = ["outer"], Arguments = ["--a"], Environment = new Dictionary<string, string> { ["X"] = "1", ["SHARPRAIL_X"] = "no", ["bad name"] = "no" } };
+        var first = new AgentLaunchContribution { Wrapper = ["outer"], Arguments = ["--a"], Environment = new Dictionary<string, string> { ["X"] = "1", ["TEREDITOR_X"] = "no", ["bad name"] = "no" } };
         var second = new AgentLaunchContribution { Wrapper = ["inner"], Arguments = ["--b"], Environment = new Dictionary<string, string> { ["X"] = "2", ["Y"] = "two words" } };
         Equal(AgentLaunchComposition.Apply("codex go", "codex", [first, Replace("run", "--"), second, Replace("ignored", "--")]),
             "X=1 Y='two words' outer inner run -- --a --b go", "wrappers, then the first replacer, then arguments; first variable wins; reserved names dropped");
@@ -39,7 +39,7 @@ internal static class AgentLaunchContributionChecks
 
         // The Codex line applies contributions to its executable only, under its own prefixes.
         Equal(CodexLaunch.Line("codex", new(false, false) { Resume = true, ResumeSessionId = "abc", Contributions = [Replace("central", "run", "codex", "--")] }), "central run codex -- resume abc", "the Codex line routes through a replacer");
-        Equal(CodexLaunch.Line("codex", new(false, false) { UiLaunch = true, Contributions = [Wrap("w")] }), "SHARPRAIL_UI_LAUNCH=codex w codex", "SharpRail's own prefix stays outermost");
+        Equal(CodexLaunch.Line("codex", new(false, false) { UiLaunch = true, Contributions = [Wrap("w")] }), "TEREDITOR_UI_LAUNCH=codex w codex", "tereditor's own prefix stays outermost");
         Equal(CodexLaunch.Line("my-codex --x", new(false, false) { Contributions = [Replace("central", "run", "codex", "--")] }), "my-codex --x", "a custom Codex command is not wrapped");
         Console.WriteLine("PASS agent launch contributions: ordering, replacement, quoting and the custom-command guard");
     }

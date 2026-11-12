@@ -6,7 +6,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>
 /// Draws every text box's caret itself, <see cref="LayoutRoles.CaretGap"/> clear of the text's layout end (the advance, so a glyph's ink never reaches it; bearings only add) at the end of the text.

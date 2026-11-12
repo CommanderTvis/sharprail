@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>The way a host with a client asks its user a question: MCP elicitation. Unsupported when the client did not advertise it.</summary>
 internal interface IConsentPrompt
@@ -91,7 +91,7 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
     private async Task StartQuietlyAsync(LanguageServer server)
     {
         try { await start!(server, CancellationToken.None); }
-        catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine($"sharprail-headless: starting {server.Id} failed: {error.Message}"); }
+        catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine($"tereditor-headless: starting {server.Id} failed: {error.Message}"); }
     }
 
     /// <summary>A language tool that refuses, with the terms, a call needing a server whose terms are not accepted.</summary>
@@ -161,12 +161,12 @@ internal sealed class LanguageConsentTools(LanguageConsent consent, IConsentProm
             try { reply = await prompt.AskAsync(consent.ElicitationRequest(server), token); }
             catch (Exception error) when (error is not OperationCanceledException)
             {
-                Console.Error.WriteLine($"sharprail-headless: the terms prompt for {server.Id} failed: {error.Message}");
+                Console.Error.WriteLine($"tereditor-headless: the terms prompt for {server.Id} failed: {error.Message}");
                 return false;
             }
             if (LanguageConsent.ElicitationAnswers(server, reply) is not { } answers) return false;
             var (accepted, message) = await consent.AcceptAsync(server, consent.PinnedHash(server), server.Spec.Version, answers, "prompt", token);
-            if (!accepted) { Console.Error.WriteLine("sharprail-headless: " + message); return false; }
+            if (!accepted) { Console.Error.WriteLine("tereditor-headless: " + message); return false; }
             declined.TryRemove(server.Id, out _);
             return true;
         }

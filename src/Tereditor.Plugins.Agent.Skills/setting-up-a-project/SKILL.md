@@ -1,6 +1,6 @@
 ---
 name: setting-up-a-project
-description: "Use only when the user explicitly asks to set up, onboard, initialize, or spec a project as a SharpRail spec graph. Never on your own initiative, and not for ordinary work — in a project with specs or without."
+description: "Use only when the user explicitly asks to set up, onboard, initialize, or spec a project as a tereditor spec graph. Never on your own initiative, and not for ordinary work — in a project with specs or without."
 ---
 
 # Setting up a project — dispatcher
@@ -9,7 +9,7 @@ The single entry point for turning a project into a spec graph. Figure out which
 follow the matching skill — don't improvise the flow yourself.
 
 This runs only on the user's request: a project without specs needs no spec workflow. It needs
-SharpRail's `spec_*` tools; when the session has none (it runs outside SharpRail, or the spec plugin is
+tereditor's `spec_*` tools; when the session has none (it runs outside tereditor, or the spec plugin is
 disabled), say so in one line and stop.
 
 ## 1. Detect

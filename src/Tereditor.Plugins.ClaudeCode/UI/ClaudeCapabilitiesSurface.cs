@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>What Claude can reach: MCP servers, plugins, skills, subagents, hooks and marketplaces, each with its source and switches.</summary>
 internal sealed class ClaudeCapabilitiesSurface(ClaudeConfigPanel pane, IReadOnlyList<ClaudeCapability> capabilities)

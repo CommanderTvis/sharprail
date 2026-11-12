@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Css;
+namespace Tereditor.Plugins.Lsp.Css;
 
 /// <summary>The CSS (VS Code) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class CssPlugin() : LanguageServerPlugin(Id)
@@ -18,7 +18,7 @@ public sealed class CssPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Css.dll"
+        Host = "Tereditor.Plugins.Lsp.Css.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

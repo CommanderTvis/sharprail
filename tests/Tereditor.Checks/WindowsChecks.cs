@@ -15,17 +15,17 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Scintilla;
-using SharpRail.UI;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Scintilla;
+using Tereditor.UI;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class WindowsChecks
 {
@@ -83,7 +83,7 @@ internal static class WindowsChecks
         await using (var local = new PtyTerminalService(shell: WindowsProcesses.DefaultShell()))
         {
             local.McpEndpoint = "http://127.0.0.1:1";
-            local.EnvironmentContributor = _ => new Dictionary<string, string> { ["SHARPRAIL_WINDOWS_CHECK"] = "λ😀", ["sharprail_token"] = "must-not-leak" };
+            local.EnvironmentContributor = _ => new Dictionary<string, string> { ["TEREDITOR_WINDOWS_CHECK"] = "λ😀", ["tereditor_token"] = "must-not-leak" };
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
         }
         await using var app = RemoteServer.Create(workspace, IPAddress.Loopback, 0, "windows-check-token", Path.Combine(root, "windows-host-state"));
@@ -109,13 +109,13 @@ internal static class WindowsChecks
         await screen.Ready;
         await screen.Command("Write-Output ('READY_' + 'λ😀')");
         await screen.Contains("READY_λ😀");
-        await screen.Command("Write-Output ('PID_' + $PID); Write-Output ('CWD_' + ((Get-Location).Path -eq '" + workspace.Replace("'", "''", StringComparison.Ordinal) + "')); Write-Output ('TOKEN_' + [string]::IsNullOrEmpty($env:SHARPRAIL_TOKEN))");
+        await screen.Command("Write-Output ('PID_' + $PID); Write-Output ('CWD_' + ((Get-Location).Path -eq '" + workspace.Replace("'", "''", StringComparison.Ordinal) + "')); Write-Output ('TOKEN_' + [string]::IsNullOrEmpty($env:TEREDITOR_TOKEN))");
         var pid = int.Parse(await screen.Match("PID_([0-9]+)"));
         await screen.Contains("CWD_True");
         await screen.Contains("TOKEN_True");
         if (mode == "local")
         {
-            await screen.Command("Write-Output ('ENV_' + $env:SHARPRAIL_WINDOWS_CHECK)");
+            await screen.Command("Write-Output ('ENV_' + $env:TEREDITOR_WINDOWS_CHECK)");
             await screen.Contains("ENV_λ😀");
         }
         await first.ResizeAsync(113, 37);

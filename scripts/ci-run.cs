@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 // Runs a command in a GitHub Actions step and, when it fails, says why on the run page: an annotation with the first
-// error lines and the step summary with the log's tail. The output is also kept in $RUNNER_TEMP/sharprail-ci/ for the
+// error lines and the step summary with the log's tail. The output is also kept in $RUNNER_TEMP/tereditor-ci/ for the
 // job's diagnostics artifact. Outside GitHub Actions it just runs the command.
 // Usage: scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "<step title>" <command> [arguments...]
 // (a leading `--` before the command is dropped). The pinned SDK is needed to run this file, so the workflows start it through mise.
@@ -19,7 +19,7 @@ if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
     catch (TaskFailure failure) { Console.Error.WriteLine(failure.Message); return failure.Code; }
 }
 
-var directory = Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP") is { Length: > 0 } temp ? temp : Path.GetTempPath(), "sharprail-ci");
+var directory = Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP") is { Length: > 0 } temp ? temp : Path.GetTempPath(), "tereditor-ci");
 Directory.CreateDirectory(directory);
 var log = Path.Combine(directory, $"{Regex.Replace(title, "[^A-Za-z0-9]", "-")}-{Environment.ProcessId}.log");
 var code = Tee(command, log);

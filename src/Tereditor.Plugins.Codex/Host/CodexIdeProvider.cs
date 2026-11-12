@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Codex.Host.IdeBridge;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Codex.Host.IdeBridge;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// Joins the IPC transport to the plugin's request/reply channel: each Codex request asks connected apps for a fresh
@@ -78,7 +78,7 @@ internal sealed class CodexIdeProvider : IDisposable
             CodexIdeContext? answer;
             try { answer = await request.Done.Task.WaitAsync(Deadline); }
             catch (TimeoutException) { answer = request.Fallback; }
-            if (answer is null) throw new InvalidOperationException("No SharpRail window is showing this workspace");
+            if (answer is null) throw new InvalidOperationException("No tereditor window is showing this workspace");
             var cwd = Unix.RealPath(root);
             var worktree = Unix.RealPath(target.Path);
             string PathFor(string path) => Path.IsPathRooted(path) ? path : Path.GetRelativePath(cwd, Path.GetFullPath(path, worktree));

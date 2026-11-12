@@ -1,11 +1,11 @@
 using System.Net;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Like Ghostty (wait-after-command = false), a catalogued tab closes for every client when its shell exits, unless the
 // host setting keeps it or the shell exited abnormally: within 250 ms, with any code on macOS and a non-zero one elsewhere.

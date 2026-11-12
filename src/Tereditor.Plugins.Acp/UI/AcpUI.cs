@@ -3,12 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>The ACP plugin's UI half (Early support): the chat document and the button that starts a chat with one of the configured agents.</summary>
 public sealed class AcpUI : PluginUIModule

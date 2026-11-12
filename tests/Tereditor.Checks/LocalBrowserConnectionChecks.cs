@@ -2,13 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class LocalBrowserConnectionChecks
 {

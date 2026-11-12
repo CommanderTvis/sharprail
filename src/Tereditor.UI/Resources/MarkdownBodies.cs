@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>The rendered Markdown view of a file; a reload keeps the reader's place.</summary>
 internal sealed class MarkdownPreviewBody : Decorator, IResourceBody, IDisposable

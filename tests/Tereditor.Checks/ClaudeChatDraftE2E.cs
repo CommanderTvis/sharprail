@@ -4,15 +4,15 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.ClaudeCode;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.ClaudeCode;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Two chat views of one host, the way a desktop and a phone attach to it: each with its own client id and subscription over the real Claude
@@ -62,7 +62,7 @@ internal static class ClaudeChatDraftE2E
         foreach (var (name, path) in new Dictionary<string, string>
         {
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
         })
         {

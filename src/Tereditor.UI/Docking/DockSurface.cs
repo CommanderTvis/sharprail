@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 /// <summary>The default arrangement when tabs in Projects are shown together.</summary>
 public sealed record CenterTabsMode(string DefaultPaneDirection);

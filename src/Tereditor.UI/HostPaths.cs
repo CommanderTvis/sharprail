@@ -1,4 +1,4 @@
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 internal static class HostPaths
 {

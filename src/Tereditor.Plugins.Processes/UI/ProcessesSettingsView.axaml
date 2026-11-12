@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Processes.UI.ProcessesSettingsView" x:ClassModifier="internal"
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Processes.UI.ProcessesSettingsView" x:ClassModifier="internal"
             Name="SettingsProcesses" Spacing="16">
   <StackPanel.Styles>
     <Style Selector="TextBlock">

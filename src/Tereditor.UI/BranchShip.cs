@@ -6,14 +6,14 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The header's Remote segment (ThinkRail #771): the segment turns the

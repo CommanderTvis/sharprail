@@ -1,22 +1,22 @@
 # Real language-server integration
 
-This suite is explicitly opt-in. It is not registered in SharpRail.Checks or the full gate.
-It launches the standalone host with SHARPRAIL_HEADLESS_MCP=1, sends prewritten MCP calls,
+This suite is explicitly opt-in. It is not registered in Tereditor.Checks or the full gate.
+It launches the standalone host with TEREDITOR_HEADLESS_MCP=1, sends prewritten MCP calls,
 and uses the production language provisioners. No AI process, graphical app or fake LSP is involved.
 
-Build Release first, then run `node tests/SharpRail.Language.Integration/run.mjs --all`.
+Build Release first, then run `node tests/Tereditor.Language.Integration/run.mjs --all`.
 Use `--server typescript` to select one provider. Project revisions and scenarios live in corpus.json.
-Repositories and managed servers are cached under $SHARPRAIL_CACHE_DIR/lsp-validation; reports are written under
+Repositories and managed servers are cached under $TEREDITOR_CACHE_DIR/lsp-validation; reports are written under
 artifacts/lsp-validation. Dependencies may be downloaded by project package managers/build importers.
 The runner never accepts license agreements. Missing prerequisites or user acceptance are BLOCKED,
 not PASS. Nonzero exit status means at least one selected case failed or was blocked.
 
 ## Headless host
 
-Set `SHARPRAIL_ROOT` to the absolute project directory, `SHARPRAIL_STATE_DIR` to an
-isolated persistent directory, `SHARPRAIL_TOKEN` to a private random value,
-`SHARPRAIL_BIND=127.0.0.1`, `SHARPRAIL_PORT=54124`, and `SHARPRAIL_HEADLESS_MCP=1`.
-Run `dotnet src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll`.
+Set `TEREDITOR_ROOT` to the absolute project directory, `TEREDITOR_STATE_DIR` to an
+isolated persistent directory, `TEREDITOR_TOKEN` to a private random value,
+`TEREDITOR_BIND=127.0.0.1`, `TEREDITOR_PORT=54124`, and `TEREDITOR_HEADLESS_MCP=1`.
+Run `dotnet src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll`.
 POST JSON-RPC MCP requests to `http://127.0.0.1:54124/mcp` with
 `Authorization: Bearer <token>`. `initialize`, `tools/list`, and `tools/call` use the
 same three language tools as agent terminals. The root is the default workspace;
@@ -52,7 +52,7 @@ the machine's SDK selection. The JDK is the repository's pinned Temurin 21
 host as JAVA_HOME and ignores any machine JDK manager. Set JAVA_HOME to run against
 another JDK. IntelliJ/Kotlin's project JDK is separate from its bundled server runtime. No IntelliJ acceptance record is created or imported by this suite.
 
-`node tests/SharpRail.Language.Integration/check.mjs` validates the manifest without
+`node tests/Tereditor.Language.Integration/check.mjs` validates the manifest without
 network, server launch or downloads. Diagnostic-probe cases temporarily append a
 known syntax error to their downloaded fixture file and restore the original bytes
 in `finally`; this verifies an actual analyzer response when a provider does not
@@ -72,7 +72,7 @@ See [RESULTS.md](RESULTS.md) for the recorded run and explicit coverage limits.
 
 ## Shared semantic caches
 
-`node tests/SharpRail.Language.Integration/shared-cache.mjs --inventory` classifies all
+`node tests/Tereditor.Language.Integration/shared-cache.mjs --inventory` classifies all
 18 catalog servers before a cache claim is made. It distinguishes a semantic index from
 downloads, compiler artifacts and process memory. The native opt-in probes use two Git
 worktrees on different branches, warm one workspace, restart in the other and compare
@@ -80,11 +80,11 @@ cache records against an independently cold run. They also prove branch diagnost
 post-edit invalidation. Run one or more with:
 
 ```sh
-node tests/SharpRail.Language.Integration/shared-cache.mjs --server go,dart
+node tests/Tereditor.Language.Integration/shared-cache.mjs --server go,dart
 ```
 
 The probes require an already built Release host. Dart additionally requires
-`SHARPRAIL_LSP_COMMAND_DART` to name the exact provider executable. Kotlin and Metals
+`TEREDITOR_LSP_COMMAND_DART` to name the exact provider executable. Kotlin and Metals
 are deliberately marked `manual`: their native shared-index stores require a compatible
 imported Gradle/Maven or BSP project respectively, and a package download or Coursier
 artifact must never turn them into a passing semantic-cache result. clangd is also

@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>
 /// The spec dialect's UI half: the Specs side tool, the graph read kept current for the active workspace (driven from

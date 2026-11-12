@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Input;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 /// <summary>The command modifier of the running platform, read from Avalonia's platform hotkey configuration.</summary>
 public static class PlatformCommand

@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// Limits on running language servers (see SPEC "Server limits"): an idle timeout, a memory budget across every server, a count cap per

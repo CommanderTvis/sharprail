@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The terminals' memory guard: limit calculation, the per-terminal state machine with a fake clock, sampler and killer (warning, stop,
@@ -144,7 +144,7 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(10, "zsh", 9.5), P(11, "node", 9.2), P(12, "git", 0.5));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11"]), "The largest descendant, not the shell, is asked to stop: " + string.Join(",", fake.Signals));
-            Require(events[0].Text == "SharpRail stopped node (11) at 9.2 GB: terminal memory limit 8 GB", "The notice text: " + events[0].Text);
+            Require(events[0].Text == "tereditor stopped node (11) at 9.2 GB: terminal memory limit 8 GB", "The notice text: " + events[0].Text);
             Require(guard.UsageOf("s")!.Value.State == GuardState.Terminating, "The terminal is Terminating.");
             advance(TimeSpan.FromSeconds(9)); guard.Tick(targets);
             Require(fake.Signals.Count == 1, "Nothing more happens within the grace period.");
@@ -199,7 +199,7 @@ internal static class TerminalMemoryGuardChecks
         // The host's own pid and a pid below another terminal are never victims of this terminal.
         {
             var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
-            fake.Set(10, P(1, "sharprail", 20), P(11, "node", 5));
+            fake.Set(10, P(1, "tereditor", 20), P(11, "node", 5));
             guard.Tick([new("s", "t", 10)]);
             Require(fake.Signals.SequenceEqual(["TERM 11"]), "The host process is never a victim: " + string.Join(",", fake.Signals));
         }
@@ -281,7 +281,7 @@ internal static class TerminalMemoryGuardChecks
                 guard.Tick([new("real", "Real", shell.Id)]);
                 await Task.Delay(100);
             }
-            Require(events[0].Text.StartsWith("SharpRail stopped perl (", StringComparison.Ordinal) && events[0].Text.EndsWith("terminal memory limit 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
+            Require(events[0].Text.StartsWith("tereditor stopped perl (", StringComparison.Ordinal) && events[0].Text.EndsWith("terminal memory limit 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
             while (sampler.Tree(shell.Id).Any(process => process.Name == "perl") && DateTime.UtcNow < deadline) { guard.Tick([new("real", "Real", shell.Id)]); sampler.Refresh(); await Task.Delay(100); }
             sampler.Refresh();
             Require(sampler.Tree(shell.Id).All(process => process.Name != "perl"), "The runaway child is still running.");
@@ -294,11 +294,11 @@ internal static class TerminalMemoryGuardChecks
     private static async Task RealTerminal()
     {
         if (Perl() is not { } perl) { Console.WriteLine("SKIP terminal memory guard PTY: no perl."); return; }
-        var directory = Directory.CreateTempSubdirectory("sharprail-guard").FullName;
+        var directory = Directory.CreateTempSubdirectory("tereditor-guard").FullName;
         try
         {
             await using var pty = new PtyTerminalService("/bin/sh", terminalMemory: () => """{"perTerminalMb":100,"graceSeconds":1}""") { GuardInterval = TimeSpan.FromMilliseconds(200) };
-            var tab = new SharpRail.Plugins.Api.TerminalRef(directory, "guard-tab");
+            var tab = new Tereditor.Plugins.Api.TerminalRef(directory, "guard-tab");
             var attached = await pty.AttachAsync(new(PtyTerminalService.SessionFor(tab), directory, "client", 100, 30) { TabKey = tab.TabKey });
             var text = new StringBuilder(Encoding.UTF8.GetString(attached.Replay.Span));
             _ = Task.Run(async () =>
@@ -317,7 +317,7 @@ internal static class TerminalMemoryGuardChecks
                 }
             }
             await attached.WriteAsync(Encoding.UTF8.GetBytes($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' &\r"));
-            await Await("SharpRail stopped perl (", "the stop notice in the terminal");
+            await Await("tereditor stopped perl (", "the stop notice in the terminal");
             await attached.WriteAsync(Encoding.UTF8.GetBytes("echo SHELL_ALIVE_$((6*7))\r"));
             await Await("SHELL_ALIVE_42", "the shell to answer after the guard acted");
             Require(pty.MemoryGuard!.Events().Any(e => e.Kind == GuardEventKind.Stopped), "The Processes pane has no event for the stop.");

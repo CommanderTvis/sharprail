@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>Failures a client reacts to specifically. Change writes name theirs with <see cref="ChangeFailure"/>.</summary>
 public enum HostErrorCode

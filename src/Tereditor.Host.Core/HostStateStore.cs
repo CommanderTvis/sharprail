@@ -5,12 +5,12 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.AirContext.Host;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.AirContext.Host;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The host's shared state: persisted to <c>state.json</c> in its directory (or kept in memory
@@ -33,7 +33,7 @@ public sealed partial class HostStateStore : IHostStateService
         // Air Context's enabled workspaces, as the file kept them before it became a plugin; read once to migrate, never written.
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public List<string>? ContextWorkspaces { get; set; }
-        public List<string> SharprailExcludeDeclined { get; set; } = [];
+        public List<string> TereditorExcludeDeclined { get; set; } = [];
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageHidden { get; set; } = [];
@@ -64,8 +64,8 @@ public sealed partial class HostStateStore : IHostStateService
     private readonly Dictionary<string, TerminalRef> workspaceCreators = [];
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<bool>> emigrationAnswers = new(StringComparer.Ordinal);
 
-    /// <summary>Which agent sessions this host and every other SharpRail process on the machine have open.</summary>
-    public SharpRail.Host.Core.Plugins.AgentSessionOwnership AgentSessions { get; init; } = new();
+    /// <summary>Which agent sessions this host and every other tereditor process on the machine have open.</summary>
+    public Tereditor.Host.Core.Plugins.AgentSessionOwnership AgentSessions { get; init; } = new();
 
     /// <summary>The host's terminals, ended when their project closes.</summary>
     public PtyTerminalService? Terminals
@@ -162,7 +162,7 @@ public sealed partial class HostStateStore : IHostStateService
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
                     ProjectLanguageHidden = stored.ProjectLanguageHidden ?? [],
-                    SharprailExcludeDeclined = stored.SharprailExcludeDeclined ?? [],
+                    TereditorExcludeDeclined = stored.TereditorExcludeDeclined ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     ProjectLabels = stored.ProjectLabels ?? [],
                     UnreadWorkspaces = stored.UnreadWorkspaces ?? [],
@@ -534,7 +534,7 @@ public sealed partial class HostStateStore : IHostStateService
                 WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
                 ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
                 ProjectLanguageHidden = snapshot.ProjectLanguageHidden.ToDictionary(),
-                SharprailExcludeDeclined = snapshot.SharprailExcludeDeclined.ToList(),
+                TereditorExcludeDeclined = snapshot.TereditorExcludeDeclined.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 ProjectLabels = snapshot.ProjectLabels.ToDictionary(),
                 UnreadWorkspaces = snapshot.UnreadWorkspaces.ToDictionary(),
@@ -615,7 +615,7 @@ public sealed partial class HostStateStore : IHostStateService
         var normalized = value with
         {
             Revision = 0,
-            SharprailExcludeDeclined = value.SharprailExcludeDeclined.Where(item => item is not null && ValidPath(item)).Distinct().Order(StringComparer.Ordinal).ToArray(),
+            TereditorExcludeDeclined = value.TereditorExcludeDeclined.Where(item => item is not null && ValidPath(item)).Distinct().Order(StringComparer.Ordinal).ToArray(),
             Settings = value.Settings with
             {
                 ThemeMode = value.Settings.ThemeMode is "fixed" ? "fixed" : "system",
@@ -862,16 +862,16 @@ public sealed partial class HostStateStore : IHostStateService
                 else if (targets.GetValueOrDefault(key) == GitRefs.Require(value)) return current;
                 else targets[key] = value;
                 return current with { WorkspaceDiffBases = targets };
-            case "sharprail-exclude-declined":
+            case "tereditor-exclude-declined":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
-                return current.SharprailExcludeDeclined.Contains(key) ? current : current with { SharprailExcludeDeclined = [.. current.SharprailExcludeDeclined, key] };
+                return current.TereditorExcludeDeclined.Contains(key) ? current : current with { TereditorExcludeDeclined = [.. current.TereditorExcludeDeclined, key] };
             case "project-open":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
                 if (current.Projects.Contains(key) && !current.RecentProjects.Contains(key)) return current;
                 // A linked worktree of an open project is that project's workspace, never a second project.
                 var owner = current.Workspaces.FirstOrDefault(workspace => workspace.Path == key && workspace.ProjectRoot != key)?.ProjectRoot ?? ProjectPaths.LinkedWorktreeOwner(key);
                 if (owner is not null && owner != key && current.Projects.Contains(owner))
-                    throw new HostException(HostErrorCode.AlreadyOpen, $"This folder is already open in SharpRail as a workspace: {key}");
+                    throw new HostException(HostErrorCode.AlreadyOpen, $"This folder is already open in tereditor as a workspace: {key}");
                 var opened = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 return current with
                 {

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal sealed record FixtureManifest(string Commit, string Tree, string BundleSha256, Dictionary<string, string> Files);
 internal sealed record Artifact(string Commit, string GitStatus, string Rid, string Sdk, string BuiltAt, Dictionary<string, string> Sha256, string Runtime = "");

@@ -2,7 +2,7 @@
 // (tailscale/manifest.json names it), kept in Cache Storage per build, and run with Go's wasm_exec.js. The node's identity
 // lives in IndexedDB; sign-out wipes it. Nothing here touches the DOM, so the checks run it under node with fakes.
 
-const lockName = 'sharprail-tailscale-node';
+const lockName = 'tereditor-tailscale-node';
 
 // A synchronous map for Go's state store, written through to an asynchronous backend in order.
 export function createStateStore(backend) {
@@ -18,7 +18,7 @@ export function createStateStore(backend) {
   };
 }
 
-export function indexedDbBackend(indexedDB, name = 'sharprail-tailscale') {
+export function indexedDbBackend(indexedDB, name = 'tereditor-tailscale') {
   let database;
   const open = () => database ??= new Promise((resolve, reject) => {
     const request = indexedDB.open(name, 1);
@@ -97,7 +97,7 @@ async function readCached(manifest) {
 
 const parse = json => {
   const manifest = JSON.parse(json);
-  return { ...manifest, cacheName: `sharprail-tailscale-${manifest.build}` };
+  return { ...manifest, cacheName: `tereditor-tailscale-${manifest.build}` };
 };
 
 export async function manifest() {
@@ -136,7 +136,7 @@ async function startNode(manifest, hostname) {
       resolve(Boolean(lock));
       return lock ? new Promise(() => {}) : undefined;
     }));
-    if (!held) throw new Error('Tailscale is already running in another SharpRail tab. Close that tab, or use it.');
+    if (!held) throw new Error('Tailscale is already running in another tereditor tab. Close that tab, or use it.');
   }
   const { bytes, execText } = await readCached(manifest);
   if (!globalThis.Go) {
@@ -148,7 +148,7 @@ async function startNode(manifest, hostname) {
   const go = new globalThis.Go();
   const { instance } = await WebAssembly.instantiate(bytes, go.importObject);
   go.run(instance).catch(error => console.error('Tailscale stopped:', error));
-  const created = globalThis.sharprailTailscale({ stateStorage: store, hostname });
+  const created = globalThis.tereditorTailscale({ stateStorage: store, hostname });
   if (created instanceof Error) throw created;
   node = created;
   node.start();

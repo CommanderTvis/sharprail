@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Blueprint.UI;
+namespace Tereditor.Plugins.Blueprint.UI;
 
 internal sealed partial class BlueprintStartFields : UserControl
 {

@@ -5,7 +5,7 @@
      blank: bool = false,
  
 -    _padding: u22 = 0,
-+    /// SharpRail: the command line of a command that exited non-zero (OSC 133 D), badged in the gutter.
++    /// tereditor: the command line of a command that exited non-zero (OSC 133 D), badged in the gutter.
 +    command_failed: bool = false,
  
 +    _padding: u21 = 0,
@@ -27,7 +27,7 @@
          try self.terminal.semanticPrompt(cmd);
      }
  
-+    /// SharpRail: a command that exited non-zero marks its command line (the prompt row above its output).
++    /// tereditor: a command that exited non-zero marks its command line (the prompt row above its output).
 +    fn markFailedCommand(self: *StreamHandler, code: u8) void {
 +        if (code == 0) return;
 +        var pin = self.terminal.screens.active.cursor.page_pin.*;

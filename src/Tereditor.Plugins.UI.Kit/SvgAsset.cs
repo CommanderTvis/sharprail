@@ -6,7 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Svg.Skia;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Draws SVG bytes, such as a plugin's <c>asset:</c> icon, at a square size while attached. An unreadable document

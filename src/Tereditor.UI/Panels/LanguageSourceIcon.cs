@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal static class LanguageSourceIcon
 {

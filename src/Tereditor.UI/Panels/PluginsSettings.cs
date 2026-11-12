@@ -7,12 +7,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// Settings › Plugins: one card per roster entry, grouped under a heading per category, with its switch, Retry on a failed

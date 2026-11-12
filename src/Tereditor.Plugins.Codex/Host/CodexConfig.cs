@@ -7,7 +7,7 @@ using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Serialization;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// Codex's layered config.toml (project when trusted, user, system), its AGENTS.md chain, the status hooks in
@@ -114,7 +114,7 @@ public static partial class CodexConfig
 
     public static bool HooksInstalled() => ReadHooksFile()["hooks"] is JsonObject hooks && HookEvents.All(name => HasOurHook(hooks[name]));
 
-    /// <summary>Whether Codex's own trust record names hooks.json; SharpRail never writes it, that review is the user's.</summary>
+    /// <summary>Whether Codex's own trust record names hooks.json; tereditor never writes it, that review is the user's.</summary>
     public static bool HooksTrusted()
     {
         var state = ReadToml(LayerPath(CodexScope.User, "")).Table["hooks"] is JsonObject hooks && hooks["state"] is JsonObject trusted ? trusted : [];
@@ -149,7 +149,7 @@ public static partial class CodexConfig
     private static void WriteAtomic(string path, string content)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temporary = $"{path}.sharprail-{Environment.ProcessId}";
+        var temporary = $"{path}.tereditor-{Environment.ProcessId}";
         File.WriteAllText(temporary, content);
         File.Move(temporary, path, overwrite: true);
     }

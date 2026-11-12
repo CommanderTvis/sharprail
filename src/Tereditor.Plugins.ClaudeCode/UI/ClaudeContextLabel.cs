@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The Context surface's header label: "CONTEXT" where the row offers room for it, "CTX" where it does not. Both

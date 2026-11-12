@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>Binds a server's <see cref="LanguageServerSpec.PrimeWorkspaceAsync"/> to the checkouts and its per-workspace state directories.</summary>
 internal sealed record LanguagePrime(string Source, string Target, string SourceState, string TargetState) : ILanguageServerPrime

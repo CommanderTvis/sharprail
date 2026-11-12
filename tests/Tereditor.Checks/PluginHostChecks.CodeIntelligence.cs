@@ -1,9 +1,9 @@
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Code Intelligence is a plugin: off, the UI has no language feature and every plugin that requires it is unavailable; on again, all return.</summary>
 internal static partial class PluginHostChecks
@@ -51,7 +51,7 @@ internal static partial class PluginHostChecks
         Require(off.Single(entry => entry.Id == CodeIntelligence).Status == PluginStatus.Disabled, "Off: Code Intelligence is disabled.");
         var blocked = off.Where(entry => entry.DependsOn.Contains(CodeIntelligence)).ToArray();
         Require(blocked.Length == expected.Length - 1 && blocked.All(entry => entry.Status == PluginStatus.Disabled), "Off: switching Code Intelligence off switches off every plugin that requires it.");
-        Require(SharpRail.UI.Plugins.PluginRegistry.ActiveDependents(CodeIntelligence, on).Count == expected.Length - 1, "A disable of Code Intelligence cascades to every dependent in the roster (Air Context is not part of this fixture).");
+        Require(Tereditor.UI.Plugins.PluginRegistry.ActiveDependents(CodeIntelligence, on).Count == expected.Length - 1, "A disable of Code Intelligence cascades to every dependent in the roster (Air Context is not part of this fixture).");
         await composed.Enable("lsp-css");
         var refused = await composed.Row("lsp-css");
         Require(refused is { Status: PluginStatus.Refused, Reason: "depends on code-intelligence, which is off" }, "Off: enabling a dependent is refused, saying what it requires: " + refused.Reason);
@@ -69,7 +69,7 @@ internal static partial class PluginHostChecks
         Require(again.Single(entry => entry.Id == CodeIntelligence).Status == PluginStatus.Active, "Back on: Code Intelligence runs.");
         Require(again.Where(entry => entry.DependsOn.Contains(CodeIntelligence)).All(entry => entry.Status == PluginStatus.Active),
             "Back on: the dependents the switch-off turned off return with it, and the one enabled meanwhile stays on.");
-        Require(SharpRail.UI.Plugins.PluginRegistry.ToEnable("lsp-css", off).SequenceEqual([CodeIntelligence]), "Enabling a plugin that requires a disabled one turns the base on with it.");
+        Require(Tereditor.UI.Plugins.PluginRegistry.ToEnable("lsp-css", off).SequenceEqual([CodeIntelligence]), "Enabling a plugin that requires a disabled one turns the base on with it.");
         LanguageSupport.Update(again);
         session.SetLanguageAvailable(LanguageSupport.Available);
         Require(LanguageSupport.Available && LanguageSupport.Serves("site.css") && session.IsToolAvailable("lsp"), "Back on: the language features and the Language tool return.");

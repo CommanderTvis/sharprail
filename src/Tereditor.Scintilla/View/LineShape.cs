@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace SharpRail.Scintilla.View;
+namespace Tereditor.Scintilla.View;
 
 /// <summary>One logical item of a screen line: same font, or a fixed-width representation (width &gt; 0) or a tab (width -1).</summary>
 internal readonly record struct ShapeItem(int Start, int End, FontSpec Font, float Width);
@@ -12,7 +12,7 @@ internal readonly record struct ShapeCluster(int Start, int End, float Left, flo
 internal readonly record struct ShapeInterval(float Left, float Right);
 
 /// <summary>
-/// A screen line after bidi reordering and HarfBuzz shaping (a managed rewrite of the former native SharpRail layout bridge, not Scintilla code).
+/// A screen line after bidi reordering and HarfBuzz shaping (a managed rewrite of the former native tereditor layout bridge, not Scintilla code).
 /// Immutable and cached by <see cref="LineShaper"/>.
 /// </summary>
 internal sealed class LineShape

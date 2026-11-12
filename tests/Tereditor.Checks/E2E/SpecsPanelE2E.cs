@@ -2,14 +2,14 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
-/// <summary>SharpRail checks for the spec-aware Welcome cards.</summary>
+/// <summary>tereditor checks for the spec-aware Welcome cards.</summary>
 internal static class SpecsPanelE2E
 {
     internal static void Run(string root)
@@ -41,7 +41,7 @@ internal static class SpecsPanelE2E
         app.Click(cta);
         var dialog = Dialog(app, "NewWorkspaceDialog");
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
 
         File.WriteAllText(Path.Combine(bare, "SPEC.md"), "---\nid: goal\ntype: goal-and-requirements\ntitle: Goal\n---\n");
         Until(() => HasWelcome(app) && Text(app.Find<Button>("WelcomeCta")).Contains("Create workspace", StringComparison.Ordinal));
@@ -49,7 +49,7 @@ internal static class SpecsPanelE2E
             "Once the project has a durable spec, Welcome returns to Create workspace and Work in project folder.");
         File.Delete(Path.Combine(bare, "SPEC.md"));
         Until(() => HasWelcome(app) && Text(app.Find<Button>("WelcomeCta")).Contains("Set up project", StringComparison.Ordinal));
-        Console.WriteLine("PASS SharpRail: Welcome leads with Set up project until the project has a durable spec, and follows the worktree");
+        Console.WriteLine("PASS tereditor: Welcome leads with Set up project until the project has a durable spec, and follows the worktree");
     }
 
 }

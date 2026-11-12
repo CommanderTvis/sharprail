@@ -5,14 +5,14 @@ using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.UI.Rendering;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.UI.Rendering;
+
+namespace Tereditor.Checks;
 
 /// <summary>Markdown images in SVG: the figure draws, and a picture that cannot is replaced by a visible reason.</summary>
 internal static class MarkdownImageChecks

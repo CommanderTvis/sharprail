@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The script a POSIX terminal runs when it starts with a program instead of a prompt. The user's own shell runs it
@@ -12,10 +12,10 @@ internal static class TerminalProgram
     public static string Script(string shell, string program)
     {
         var self = "'" + shell.Replace("'", "'\\''", StringComparison.Ordinal) + "'";
-        // fish has no $? and a different conditional; every other shell SharpRail meets reads POSIX syntax.
+        // fish has no $? and a different conditional; every other shell tereditor meets reads POSIX syntax.
         var status = Path.GetFileName(shell) == "fish"
-            ? "set -l sharprail_status $status\ntest $sharprail_status -eq 0; or printf '\\r\\n[exited with status %s]\\r\\n' $sharprail_status"
-            : "sharprail_status=$?\n[ \"$sharprail_status\" -eq 0 ] || printf '\\r\\n[exited with status %s]\\r\\n' \"$sharprail_status\"";
+            ? "set -l tereditor_status $status\ntest $tereditor_status -eq 0; or printf '\\r\\n[exited with status %s]\\r\\n' $tereditor_status"
+            : "tereditor_status=$?\n[ \"$tereditor_status\" -eq 0 ] || printf '\\r\\n[exited with status %s]\\r\\n' \"$tereditor_status\"";
         return program + "\n" + status + "\nexec " + self + " -i\n";
     }
 }

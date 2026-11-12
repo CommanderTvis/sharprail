@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>A frontmatter value: exactly one of text, a sequence of scalars or a one-level mapping.</summary>
 public sealed record FrontmatterProperty(string Key, string? Text = null, IReadOnlyList<string>? Items = null,

@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Python;
+namespace Tereditor.Plugins.Lsp.Python;
 
 /// <summary>The Python (Pyright) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class PythonPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class PythonPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Python.dll"
+        Host = "Tereditor.Plugins.Lsp.Python.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

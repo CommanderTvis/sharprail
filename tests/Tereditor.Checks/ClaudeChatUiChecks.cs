@@ -12,25 +12,25 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.UI.Chat;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.Terminal;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.UI.Chat;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Claude Code chat view against a scripted client: bounded realization, streaming, nesting, permissions, chips, menus and the mode switch.</summary>
 internal static class ClaudeChatUiChecks
 {
-    private static readonly ChatAgent TestAgent = SharpRail.Plugins.ClaudeCode.UI.Chat.ClaudeChat.Agent(() => Task.FromResult(SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current));
+    private static readonly ChatAgent TestAgent = Tereditor.Plugins.ClaudeCode.UI.Chat.ClaudeChat.Agent(() => Task.FromResult(Tereditor.Plugins.ClaudeCode.UI.PermissionModeSource.Current));
 
     private const string Workspace = "ws", Chat = "chat-1";
 
@@ -180,7 +180,7 @@ internal static class ClaudeChatUiChecks
         try
         {
             var answers = 0;
-            const string owner = "is open in pid 8432 (started 24 minutes ago), which SharpRail did not start.";
+            const string owner = "is open in pid 8432 (started 24 minutes ago), which tereditor did not start.";
             var row = terminal.FindControl<Control>("TerminalResumeOffer")!;
             var holder = terminal.FindControl<ContentControl>("TerminalResumeOfferDismiss")!;
             var cross = (Button)holder.Content!;
@@ -308,7 +308,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat();
         chat.Snapshot.Add(Item(new ChatUserItem("u1", 1, "Hello")));
         var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
-        var document = new CompanionDocument("claude-code", new SharpRail.Plugins.Api.UI.CompanionHost(Workspace, Chat), view);
+        var document = new CompanionDocument("claude-code", new Tereditor.Plugins.Api.UI.CompanionHost(Workspace, Chat), view);
         var window = new Window { Width = 1000, Height = 700, Content = document, Background = Ui.Surface };
         window.Show();
         try
@@ -372,11 +372,11 @@ internal static class ClaudeChatUiChecks
         Is(Tool("mcp__web_tools__fetch", new { url = "https://docs.example.com/x/y" }), "Web Tools [fetch]", "docs.example.com");
         Is(Tool("mcp__srv__t", new { text = new string('q', 50) }), "Srv [t]", new string('q', 30) + "\u2026");
         Is(Tool("mcp__srv__t", new { query = new string('q', 50), text = "ignored" }), "Srv [t]", new string('q', 40) + "\u2026");
-        Is(Tool("mcp__plugin_sharprail_sharprail__lsp_navigate", new { operation = "references", query = "ChatView", workspace = "/very/long/path" }), "SharpRail [LSP navigate]", "references ChatView");
-        Is(Tool("mcp__plugin_sharprail_sharprail__lsp_diagnostics", new { paths = new[] { "a.cs", "b.cs" }, workspace = "/w" }), "SharpRail [LSP diagnostics]", "a.cs (+1 more)");
-        Is(Tool("mcp__sharprail__context_search", new { query = "tool cards" }), "SharpRail [Context search]", "tool cards");
-        Is(Tool("mcp__plugin:sharprail:sharprail__set_title", new { title = "Fix cards" }), "SharpRail [Set title]", "Fix cards");
-        Require(!ToolCards.InText(Tool("mcp__plugin_sharprail_sharprail__lsp_navigate", new { query = "x", workspace = "/w" })).Contains("workspace"), "SharpRail IN text hides workspace.");
+        Is(Tool("mcp__plugin_tereditor_tereditor__lsp_navigate", new { operation = "references", query = "ChatView", workspace = "/very/long/path" }), "tereditor [LSP navigate]", "references ChatView");
+        Is(Tool("mcp__plugin_tereditor_tereditor__lsp_diagnostics", new { paths = new[] { "a.cs", "b.cs" }, workspace = "/w" }), "tereditor [LSP diagnostics]", "a.cs (+1 more)");
+        Is(Tool("mcp__tereditor__context_search", new { query = "tool cards" }), "tereditor [Context search]", "tool cards");
+        Is(Tool("mcp__plugin:tereditor:tereditor__set_title", new { title = "Fix cards" }), "tereditor [Set title]", "Fix cards");
+        Require(!ToolCards.InText(Tool("mcp__plugin_tereditor_tereditor__lsp_navigate", new { query = "x", workspace = "/w" })).Contains("workspace"), "tereditor IN text hides workspace.");
         Is(Tool("mcp__claude-in-chrome__navigate", new { url = "https://a.example/b" }), "Claude in Chrome [Navigate]", "a.example");
         Is(Tool("Mystery", new { a = 1 }, summary: "sum"), "Mystery", "sum");
         Require(ToolCards.InText(Tool("Mystery", new { a = 1 })).Contains("\n") && ToolCards.InText(Tool("Agent", new { prompt = "P" })) == "P" && ToolCards.InText(Tool("Bash", new { command = "c" })) == "c", "IN is pretty JSON, the agent's prompt, or the command.");
@@ -499,8 +499,8 @@ internal static class ClaudeChatUiChecks
 
             // Rewind: the dialog checks the code, then summarises, with Never mind.
             view.Activate(view.Transcript.Row("u")!, ChatHitKind.Rewind);
-            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatRewindDialog")));
-            var rewind = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatRewindDialog"));
+            E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatRewindDialog")));
+            var rewind = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatRewindDialog"));
             string Summary() => rewind.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "DialogExplanation").Text ?? "";
             E2eWorkspace.Until(() => Summary().Contains("1 line will be removed and 3 lines will be added across 2 files:", StringComparison.Ordinal));
             Require(rewind.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "ChatRewindCancel" && Equals((button.Content as TextBlock)?.Text ?? button.Content, "Never mind")) &&
@@ -687,9 +687,9 @@ internal static class ClaudeChatUiChecks
         var original = Ui.Theme;
         try
         {
-            foreach (var theme in SharpRail.UI.Rendering.Themes.All.Select(candidate => candidate.Id))
+            foreach (var theme in Tereditor.UI.Rendering.Themes.All.Select(candidate => candidate.Id))
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(theme));
                 var header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/project", Advisor = "opus", Chrome = true };
                 var chat = new FakeChat { Header = header };
                 chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, header));
@@ -702,7 +702,7 @@ internal static class ClaudeChatUiChecks
                     Frame(window); Frame(window); Frame(window);
                     var panel = view.GetVisualDescendants().OfType<WrapPanel>().First(candidate => candidate.Name == "ChatChips");
                     var strip = ((ISolidColorBrush)panel.Background!).Color;
-                    Require(strip == SharpRail.UI.Terminal.TerminalTheme.Colors().Background, $"{theme}: the strip behind the chips is the terminal view's default background.");
+                    Require(strip == Tereditor.UI.Terminal.TerminalTheme.Colors().Background, $"{theme}: the strip behind the chips is the terminal view's default background.");
                     var chips = panel.Children.OfType<Control>().Where(chip => chip.IsVisible && chip.Name is { } name && name.StartsWith("TerminalAgentFact_", StringComparison.Ordinal)).ToList();
                     Require(chips.Count >= 3, $"{theme}: the fact and picker chips are in the strip ({chips.Count}).");
                     foreach (var chip in chips)
@@ -727,7 +727,7 @@ internal static class ClaudeChatUiChecks
             }
             // The strip under a terminal (the environment chips) paints the colour the terminal itself paints, in every theme and for a custom palette.
             var custom = original with { Id = "custom-strip", Colors = new Dictionary<string, Avalonia.Media.Color?>(original.Colors) { ["sidebar"] = Avalonia.Media.Color.Parse("#123456") } };
-            foreach (var theme in SharpRail.UI.Rendering.Themes.All.Concat([custom]))
+            foreach (var theme in Tereditor.UI.Rendering.Themes.All.Concat([custom]))
             {
                 Ui.Apply(theme);
                 using var terminal = new TerminalView(_ => new FileDropChecks.RecordingTerminal(), new("/tmp", "strip-probe", "", "strip-client"));
@@ -738,7 +738,7 @@ internal static class ClaudeChatUiChecks
                 {
                     Frame(window); Frame(window);
                     var strip = (terminal.Accessories.Background as ISolidColorBrush)?.Color;
-                    Require(strip == SharpRail.UI.Terminal.TerminalTheme.Colors().Background, $"{theme.Id}: the strip under the terminal is the colour the terminal paints.");
+                    Require(strip == Tereditor.UI.Terminal.TerminalTheme.Colors().Background, $"{theme.Id}: the strip under the terminal is the colour the terminal paints.");
                 }
                 finally { window.Close(); }
             }
@@ -1149,7 +1149,7 @@ internal static class ClaudeChatUiChecks
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=");
-        var file = Path.Combine(Path.GetTempPath(), "sharprail-paste-" + Guid.NewGuid().ToString("N")[..8] + ".png");
+        var file = Path.Combine(Path.GetTempPath(), "tereditor-paste-" + Guid.NewGuid().ToString("N")[..8] + ".png");
         File.WriteAllBytes(file, png);
         try
         {
@@ -1192,13 +1192,13 @@ internal static class ClaudeChatUiChecks
 
             // Nothing usable: the note says what the clipboard had, so the next failure can be told apart.
             Await(clipboard.ClearAsync());
-            Await(Avalonia.Input.Platform.ClipboardExtensions.SetValueAsync(clipboard, Avalonia.Input.DataFormat.CreateStringApplicationFormat("sharprail-test"), "x"));
+            Await(Avalonia.Input.Platform.ClipboardExtensions.SetValueAsync(clipboard, Avalonia.Input.DataFormat.CreateStringApplicationFormat("tereditor-test"), "x"));
             view.Input.Text = "";
             Frame(window);
             Await(view.PasteAttachments());
             var note = view.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "ChatPasteNote");
             try { E2eWorkspace.Until(() => note.IsVisible); } catch (InvalidOperationException) { Console.WriteLine("paste notes: note '" + note.Text + "' visible " + note.IsVisible + " " + string.Join("|", notes) + " formats: " + string.Join(",", Avalonia.Input.Platform.ClipboardExtensions.GetDataFormatsAsync(clipboard).GetAwaiter().GetResult().Select(format => format.Identifier)) + " attachments " + view.Attachments.Count + " text '" + view.Input.Text + "'"); throw; }
-            Require(note.Text!.StartsWith("Nothing to paste. The clipboard has: ", StringComparison.Ordinal) && note.Text.Contains("sharprail-test", StringComparison.Ordinal), "A paste of nothing usable says so and what the clipboard held: " + note.Text);
+            Require(note.Text!.StartsWith("Nothing to paste. The clipboard has: ", StringComparison.Ordinal) && note.Text.Contains("tereditor-test", StringComparison.Ordinal), "A paste of nothing usable says so and what the clipboard held: " + note.Text);
             var command = view.BuildPlusMenu(new Flyout()).GetVisualDescendants().OfType<Button>().First(button => button.Name == "ChatCommandMenu");
             Require(ToolTip.GetTip(command) as string == "Show command menu (/)" && command.GetVisualDescendants().OfType<TextBlock>().All(text => text.Text != "/"), "The command menu button is an icon with its tooltip, not a bare slash.");
 
@@ -1610,7 +1610,7 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
-    private sealed class MemoryZoomStore : SharpRail.Plugins.Api.UI.IPluginPreference
+    private sealed class MemoryZoomStore : Tereditor.Plugins.Api.UI.IPluginPreference
     {
         private string? value;
         public string? Get() => value;
@@ -1961,7 +1961,7 @@ internal static class ClaudeChatUiChecks
         for (var index = 0; index < Count; index++)
         {
             Await(app.Window.OpenPluginDocumentAsync(app.Root, "fixture-doc", "t" + index, "T" + index));
-            app.Window.WidthSaver(new SharpRail.Plugins.Api.UI.CompanionHost(app.Root, "t" + index));
+            app.Window.WidthSaver(new Tereditor.Plugins.Api.UI.CompanionHost(app.Root, "t" + index));
             var diff = new DockTab("diff:working::f" + index, "f" + index + " · Diff", "diff", "f" + index, Scope: "working");
             app.Window.Layout.Open(diff, keep: true);
             app.Window.DiffGuard(diff, app.Root + ":" + diff.Id);
@@ -2418,7 +2418,7 @@ internal static class ClaudeChatUiChecks
         brush is null || ReferenceEquals(brush, Ui.Hover) || ReferenceEquals(brush, Ui.Selected) || brush is ISolidColorBrush { Color.A: 0 };
 
     // Every popup of the chat is one visual system in both themes: one surface, transparent lists and rows with only the two washes, equal insets, nothing past
-    // the container, text that reads. Set SHARPRAIL_POPUP_SHOTS to a folder to also write each popup as a PNG.
+    // the container, text that reads. Set TEREDITOR_POPUP_SHOTS to a folder to also write each popup as a PNG.
     private static void PopupLook()
     {
         ChatMode[] modes = [new("default", "Manual", "Claude will ask for approval before making each edit"), new("acceptEdits", "Edit automatically", "Claude will edit your selected text or the whole file without asking, and a long description is cut to one line"), new("plan", "Plan", "Claude will explore the code and present a plan before editing")];
@@ -2437,7 +2437,7 @@ internal static class ClaudeChatUiChecks
             new("c", "A rather long conversation title that must be cut with an ellipsis inside its row", Iso(now.AddDays(-2))) { StartedIn = "chat" },
             new("d", "Last month", Iso(now.AddDays(-30))), new("e", "Older still", Iso(now.AddDays(-60)))
         };
-        var shots = Environment.GetEnvironmentVariable("SHARPRAIL_POPUP_SHOTS");
+        var shots = Environment.GetEnvironmentVariable("TEREDITOR_POPUP_SHOTS");
         var original = Ui.Theme;
         var hosts = new List<Window>();
         try
@@ -2445,7 +2445,7 @@ internal static class ClaudeChatUiChecks
             Frame(window); Frame(window);
             foreach (var theme in new[] { "dark", "light" })
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(theme));
                 window.Background = Ui.Surface;
                 if (shots is not null) Console.WriteLine($"tokens {theme}: " + string.Join(" ", new (string, IBrush)[] { ("Workspace", Ui.Workspace), ("Surface", Ui.Surface), ("Sidebar", Ui.Sidebar), ("Header", Ui.Header), ("Elevated", Ui.Elevated), ("ControlFill", Ui.ControlFill), ("Hover", Ui.Hover), ("Selected", Ui.Selected), ("Border", Ui.BorderBrush), ("ControlBorder", Ui.ControlBorder) }.Select(pair => pair.Item1 + "=" + ((ISolidColorBrush)pair.Item2).Color)));
                 var flyout = new Flyout();
@@ -2516,15 +2516,15 @@ internal static class ClaudeChatUiChecks
     }
 
     // The composer is one calm bubble: a raised surface with the only border and radius, a borderless input in every state, plain footer controls.
-    // Set SHARPRAIL_POPUP_SHOTS to a folder to also write the composer in each state as a PNG.
+    // Set TEREDITOR_POPUP_SHOTS to a folder to also write the composer in each state as a PNG.
     private static void ComposerLook()
     {
-        var shots = Environment.GetEnvironmentVariable("SHARPRAIL_POPUP_SHOTS");
+        var shots = Environment.GetEnvironmentVariable("TEREDITOR_POPUP_SHOTS");
         var original = Ui.Theme;
         ChatSelection? selected = new("README.md", 10, 20, true);
         foreach (var theme in new[] { "dark", "light" })
         {
-            Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+            Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(theme));
             foreach (var state in new[] { "idle", "typing", "running", "chips" })
             {
                 var chat = new FakeChat { Header = new ChatHeader(state == "running" ? ChatStatus.Running : ChatStatus.Idle) { Model = "sonnet", Models = [new("sonnet", "Sonnet 5.5")], Effort = "medium", PermissionMode = "default", PermissionModes = [new("default", "Manual", "Ask before each edit")], Cwd = "/work/project", Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5 } } };
@@ -2576,21 +2576,21 @@ internal static class ClaudeChatUiChecks
     {
         // A selection in a plugin's own document (a Visualize drawing's file, outside the open editors) is what the chat carries, until a real editor takes over.
         var source = new ChatDocuments.SelectionSource();
-        var drawing = new SharpRail.Plugins.Api.UI.EditorRef("visualize:w:t", "w", "/state/visualize/abc.md", SharpRail.Plugins.Api.UI.EditorKind.File, false);
-        var file = new SharpRail.Plugins.Api.UI.EditorRef("w:notes", "w", "notes.txt", SharpRail.Plugins.Api.UI.EditorKind.File, false);
-        bool Listed(SharpRail.Plugins.Api.UI.EditorRef editor) => editor.Id == file.Id;
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(3, 1, 5, 1, "First paragraph\n")), Listed);
+        var drawing = new Tereditor.Plugins.Api.UI.EditorRef("visualize:w:t", "w", "/state/visualize/abc.md", Tereditor.Plugins.Api.UI.EditorKind.File, false);
+        var file = new Tereditor.Plugins.Api.UI.EditorRef("w:notes", "w", "notes.txt", Tereditor.Plugins.Api.UI.EditorKind.File, false);
+        bool Listed(Tereditor.Plugins.Api.UI.EditorRef editor) => editor.Id == file.Id;
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(drawing, new(3, 1, 5, 1, "First paragraph\n")), Listed);
         Require(source.Document("w") is { Path: "/state/visualize/abc.md", StartLine: 3, EndLine: 5, HasRange: true } && source.Document("other") is null,
             "A selection in a plugin's document is the chat's selection, with its file and lines, in its own workspace.");
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, null), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(drawing, null), Listed);
         Require(source.Document("w") is null, "Collapsing the selection clears it.");
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(file, new(1, 1, 1, 4, "note")), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(file, new(1, 1, 1, 4, "note")), Listed);
         Require(source.Document("w") is null, "A selection in a real editor takes over.");
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorLifecycleEvent(file, SharpRail.Plugins.Api.UI.EditorLifecycle.Activated), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 2, 1, "again")), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorLifecycleEvent(file, Tereditor.Plugins.Api.UI.EditorLifecycle.Activated), Listed);
         Require(source.Document("w") is null, "Activating a real editor takes over.");
-        source.Observe(new SharpRail.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 1, 1, "quote") { Mapped = false }), Listed);
+        source.Observe(new Tereditor.Plugins.Api.UI.EditorSelectionEvent(drawing, new(1, 1, 1, 1, "quote") { Mapped = false }), Listed);
         Require(source.Document("w") is null, "Text that maps to no source lines is not offered as lines.");
         Console.WriteLine("PASS chat selection: a plugin document's selection is the chat's until a real editor takes over");
     }
@@ -2836,14 +2836,14 @@ internal static class ClaudeChatUiChecks
         Require(!text.Contains("tmp", StringComparison.Ordinal) && text.EndsWith("3.png", StringComparison.Ordinal), $"A marker on a line of its own leaves Markdown paragraphs intact and draws no path ('{text}').");
 
         // The replay of a stored transcript gives the raw marker text in the item; the bubble then shows the chip.
-        var directory = Path.Combine(Path.GetTempPath(), "sharprail-chat-marker-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), "tereditor-chat-marker-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
         {
             var file = Path.Combine(directory, "s.jsonl");
             File.WriteAllLines(file, [JsonSerializer.Serialize(new { type = "user", uuid = "r-u", message = new { role = "user", content = $"fix it [Image: source: {path}]" } })]);
-            var folder = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatFolder();
-            SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(folder, file, null, CancellationToken.None);
+            var folder = new Tereditor.Plugins.ClaudeCode.Host.Chat.ChatFolder();
+            Tereditor.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(folder, file, null, CancellationToken.None);
             var replayed = folder.Items.OfType<ChatUserItem>().Single();
             Require(replayed.Text == $"fix it [Image: source: {path}]" && Shown(replayed, out _, out _) == "fix it|3.png", "A replayed prompt keeps its marker in the item and shows it as a chip.");
         }
@@ -3040,13 +3040,13 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => transcript.Item("perm") is ChatPermissionItem { Decision: ChatPermissionDecision.Allowed });
             Require(chat.Calls.Contains(ChatContract.Answer.Name), "Answering calls the host.");
 
-            // Diffs open in SharpRail's own view from the tool input, with paths under the chat's directory made workspace-relative.
+            // Diffs open in tereditor's own view from the tool input, with paths under the chat's directory made workspace-relative.
             view.Activate(transcript.Row("perm")!, ChatHitKind.OpenDiff);
             chat.Push(Item(new ChatToolItem("edit", 7, "Edit", JsonSerializer.SerializeToElement(new { file_path = "/work/project/src/B.cs", old_string = "a", new_string = "b" }), ChatToolState.Done) { FilePath = "/work/project/src/B.cs" }));
             Frame(window);
             view.Activate(transcript.Row("edit")!, ChatHitKind.OpenDiff);
             Require(diffs.Select(request => request.Path).SequenceEqual(["", "src/B.cs"]) && diffs[1].Propose is null,
-                "A finished edit card opens SharpRail's diff of the file's changes, relative to the workspace.");
+                "A finished edit card opens tereditor's diff of the file's changes, relative to the workspace.");
             chat.Push(Item(new ChatPermissionItem("perm2", 8, "req-2", "Edit", JsonSerializer.SerializeToElement(new { file_path = "/work/project/src/C.cs", old_string = "a", new_string = "b" }))));
             Frame(window);
             view.Activate(transcript.Row("perm2")!, ChatHitKind.OpenDiff);
@@ -3097,20 +3097,20 @@ internal static class ClaudeChatUiChecks
             // A subagent's thread opens in a dialog and follows the live transcript.
             view.ShowThread("task");
             Frame(window);
-            Require(view.ThreadTranscript is { } thread && thread.Rows.Select(row => row.Id).SequenceEqual(["act:c1", "c3"]) && SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatSubagentThread")),
+            Require(view.ThreadTranscript is { } thread && thread.Rows.Select(row => row.Id).SequenceEqual(["act:c1", "c3"]) && Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatSubagentThread")),
                 "The subagent dialog lists the thread's own items at the top level, its reads and searches grouped.");
             chat.Push(Item(new ChatToolItem("c4", 21, "Glob", JsonSerializer.SerializeToElement(new { pattern = "*" }), ChatToolState.Running) { ParentId = "task" }));
             Frame(window);
             Require(view.ThreadTranscript!.Rows.Count == 3, "The dialog follows the thread while it is open.");
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
+            foreach (var owned in Tereditor.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
 
             // A clipped output opens in full in a dialog; one the wire cut is fetched first.
             chat.Push(Item(new ChatToolItem("long", 23, "Bash", JsonSerializer.SerializeToElement(new { command = "big" }), ChatToolState.Done) { Output = new string('o', 400), OutputTruncated = true }));
             Frame(window);
             view.Activate(transcript.Row("long")!, ChatHitKind.OpenText, "out");
-            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatToolText")));
-            Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatToolText")).GetVisualDescendants().OfType<TextBox>().Any(box => box.Name == "ChatToolFullText" && box.Text == "full output"), "The full output opens in a dialog after it is fetched.");
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
+            E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatToolText")));
+            Require(Tereditor.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatToolText")).GetVisualDescendants().OfType<TextBox>().Any(box => box.Name == "ChatToolFullText" && box.Text == "full output"), "The full output opens in a dialog after it is fetched.");
+            foreach (var owned in Tereditor.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
 
             // The model chip changes only once the header confirms it.
             chat.ModelGate = new TaskCompletionSource<ChatHeader>();
@@ -3165,7 +3165,7 @@ internal static class ClaudeChatUiChecks
             var slash = view.Menu.Items.Cast<object>().Select(item => item.ToString()!).ToList();
             var sectionsShown = slash.Where(line => ChatView.SlashSections.Contains(line)).ToList();
             Require(sectionsShown.SequenceEqual(["Context", "Model", "Slash Commands", "Support"]) && slash.Count(line => line.StartsWith('/')) == 3 && slash.Any(line => line.StartsWith("Attach file\u2026", StringComparison.Ordinal)),
-                "A slash lists every command, skill and plugin command under the extension's sections, in its order, after the built-in actions SharpRail can do: " + string.Join(" | ", slash));
+                "A slash lists every command, skill and plugin command under the extension's sections, in its order, after the built-in actions tereditor can do: " + string.Join(" | ", slash));
             view.Input.Text = "/rev"; view.Input.CaretIndex = 4;
             E2eWorkspace.Until(() => view.Menu.ItemCount == 3);
             Require(view.Menu.SelectedIndex == 1, "The selection starts on the first command, not on a section title.");

@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Codex.UI.CodexSettingsList" x:ClassModifier="internal">
+       xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Codex.UI.CodexSettingsList" x:ClassModifier="internal">
   <Border Name="CodexProjectTrust" Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
     <TextBlock x:Name="TrustText" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
   </Border>

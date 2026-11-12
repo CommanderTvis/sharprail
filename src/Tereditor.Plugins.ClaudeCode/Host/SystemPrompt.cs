@@ -1,23 +1,23 @@
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>
-/// The system prompt every session SharpRail starts appends with <c>--append-system-prompt-file</c>: that it runs in a
-/// SharpRail workspace rather than a bare shell, then the sections the host and enabled plugins contribute (which tools to
-/// reach for, where worktrees go, ...), less those the project turns off in <c>.sharprail/instructions.toml</c>. The host
+/// The system prompt every session tereditor starts appends with <c>--append-system-prompt-file</c>: that it runs in a
+/// tereditor workspace rather than a bare shell, then the sections the host and enabled plugins contribute (which tools to
+/// reach for, where worktrees go, ...), less those the project turns off in <c>.tereditor/instructions.toml</c>. The host
 /// regenerates the files on every activation and for every terminal it starts; they are never the user's to edit.
 /// </summary>
 internal static class SystemPrompt
 {
     private const string Header = """
-        # You are running inside SharpRail
+        # You are running inside tereditor
 
-        This is a SharpRail workspace terminal, not a bare shell; the user sees your files, editor, diff and terminals.
+        This is a tereditor workspace terminal, not a bare shell; the user sees your files, editor, diff and terminals.
 
         """;
 
-    private const string ToolsIntro = "Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n";
+    private const string ToolsIntro = "Prefer available tereditor MCP tools; disabled plugins may hide tools:\n\n";
 
     /// <summary>
     /// The header, each enabled plugin's tool guidance as list items, and the sections the host and the plugins contribute
@@ -33,18 +33,18 @@ internal static class SystemPrompt
 
     /// <summary>
     /// The host state directory. The plugin API hands a plugin no raw state path, so this repeats the host's rule:
-    /// <c>SHARPRAIL_STATE_DIR</c>, else <c>~/.sharprail</c>.
+    /// <c>TEREDITOR_STATE_DIR</c>, else <c>~/.tereditor</c>.
     /// </summary>
     public static string StateDirectory() =>
-        Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR") is { Length: > 0 } configured ? configured : Path.Combine(ClaudeEnvironment.Home(), ".sharprail");
+        Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR") is { Length: > 0 } configured ? configured : Path.Combine(ClaudeEnvironment.Home(), ".tereditor");
 
     public static string FilePath() => Path.Combine(StateDirectory(), ClaudeCodeContract.Id, "thinkrail-prompt-claude.md");
 
-    // The hash of the text SharpRail last wrote. A file that no longer matches it was edited by hand, which earlier
+    // The hash of the text tereditor last wrote. A file that no longer matches it was edited by hand, which earlier
     // versions honoured; those edits are kept aside once (IgnoredEditsPath) and the file is regenerated.
-    private static string StampPath() => FilePath() + ".sharprail-default";
+    private static string StampPath() => FilePath() + ".tereditor-default";
 
-    /// <summary>Where the user's earlier hand edits of the shared file are kept once SharpRail stopped using them.</summary>
+    /// <summary>Where the user's earlier hand edits of the shared file are kept once tereditor stopped using them.</summary>
     public static string IgnoredEditsPath() => Path.Combine(Path.GetDirectoryName(FilePath())!, "thinkrail-prompt-claude.custom.md");
 
     /// <summary>The kept copy of earlier hand edits, or null when there were none.</summary>
@@ -79,7 +79,7 @@ internal static class SystemPrompt
         if (!File.Exists(path) && File.Exists(legacy))
         {
             File.Move(legacy, path);
-            if (File.Exists(legacy + ".sharprail-default")) File.Move(legacy + ".sharprail-default", StampPath());
+            if (File.Exists(legacy + ".tereditor-default")) File.Move(legacy + ".tereditor-default", StampPath());
         }
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var text = Compose(tools, sections);

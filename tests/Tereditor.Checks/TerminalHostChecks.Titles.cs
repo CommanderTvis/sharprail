@@ -1,11 +1,11 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // OSC 0/2 titles: the host follows them in a shell's output and shares them as the weakest tab title, under an agent's
 // set_title and a user rename, with local and remote clients alike.
@@ -26,7 +26,7 @@ internal static partial class TerminalHostChecks
             spinner == "Foo ✳ bar" && scanner.Scan("\e]0;✳Foo\a"u8, out var glued) && glued == "✳Foo",
             "Only a leading status glyph and its space leave a program title.");
         Require(scanner.Scan("\e]2;cancelled\x18\e]2;kept\a"u8, out var kept) && kept == "kept", "CAN abandons a sequence.");
-        var stored = Path.Combine(Path.GetTempPath(), "sharprail-stored-titles-" + Guid.NewGuid().ToString("N"));
+        var stored = Path.Combine(Path.GetTempPath(), "tereditor-stored-titles-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(stored);
         try
         {

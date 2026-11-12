@@ -1,11 +1,11 @@
 using Avalonia.Controls;
 
-using SharpRail.UI.State;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ReloadNavigationE2E
 {
@@ -48,7 +48,7 @@ internal static class ReloadNavigationE2E
         using (app = new E2eWorkspace(project, openFiles: false, startPath: profile.Data.Windows[0].LastProject))
         {
             Until(() => HasWelcome(app));
-            Require(!app.Window.WorkspaceMounted && WelcomeTitle(app) == "SharpRail", "A missing project falls back to the clean Welcome.");
+            Require(!app.Window.WorkspaceMounted && WelcomeTitle(app) == "tereditor", "A missing project falls back to the clean Welcome.");
         }
         Console.WriteLine("PASS upstream reload-navigation.spec.ts: missing chat, workspace, and project fall back to the nearest valid location");
     }

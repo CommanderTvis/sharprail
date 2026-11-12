@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SharpRail.Plugins.Codex.Host.IdeBridge;
+namespace Tereditor.Plugins.Codex.Host.IdeBridge;
 
 /// <summary>What the bridge needs of a path's metadata: its type and permission bits, owner and identity.</summary>
 internal readonly record struct UnixStat(uint Mode, uint Uid, ulong Inode, ulong Device)

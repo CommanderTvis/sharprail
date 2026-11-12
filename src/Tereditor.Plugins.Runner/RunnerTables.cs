@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>The member tables this runner was generated with, which the host compares in the handshake.</summary>
 internal static class RunnerTables

@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 public static class SpecLinks
 {

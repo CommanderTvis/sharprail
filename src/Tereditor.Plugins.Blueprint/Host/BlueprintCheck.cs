@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Blueprint.Host;
+namespace Tereditor.Plugins.Blueprint.Host;
 
 internal sealed record BlueprintCheckParams
 {

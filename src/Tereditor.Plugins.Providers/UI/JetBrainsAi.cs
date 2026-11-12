@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Providers.UI;
+namespace Tereditor.Plugins.Providers.UI;
 
 /// <summary>
 /// JetBrains AI for Pi in a browser tab: the guide, the disclaimer and the token command, from the ThinkRail tab host. The

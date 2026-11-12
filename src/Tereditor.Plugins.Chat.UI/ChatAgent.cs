@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>Who a chat view talks to: the words it uses for the agent, the document it lives in and the permission modes the agent offers.</summary>
 internal sealed record ChatAgent(string Name, string Short, string Scheme, string Icon)

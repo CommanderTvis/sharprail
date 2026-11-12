@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class TerminalFileLinkChecks
 {
@@ -136,9 +136,9 @@ internal static class TerminalFileLinkChecks
             var session = Wait(host.AttachAsync(new("highlights", directory, "file-link-highlights"), timeout.Token).AsTask());
             var output = Task.Run(async () => { await foreach (var unused in session.ReadAsync(timeout.Token)) { } });
             var opened = new List<Ghostty.Avalonia.TerminalLink>();
-            var launch = new SharpRail.UI.Terminal.TerminalLaunch(directory, "highlights", directory, "client")
+            var launch = new Tereditor.UI.Terminal.TerminalLaunch(directory, "highlights", directory, "client")
             { OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; } };
-            using var backend = new SharpRail.UI.Terminal.SkiaTerminal(launch, host);
+            using var backend = new Tereditor.UI.Terminal.SkiaTerminal(launch, host);
             var view = (Ghostty.Avalonia.GhosttySkiaView)backend.Child!;
             Require(view.ResolveHighlightedLinks is not null, "Bare file names need a visible-link resolver without a commit resolver.");
             const string text = "Read DEVELOPMENT.md and ./DEVELOPMENT.md, not NOTES.md 1.13.0 github.com e.g. done. Inner.md";
@@ -180,8 +180,8 @@ internal static class TerminalFileLinkChecks
         var workspace = app.Window.WorkspaceRoot;
         app.FileRow("notes.txt");
         Wait(app.Window.OpenTerminalLinkAsync(workspace, new(0, 1, Path.Combine(workspace, "styles"), 0, 0, true)));
-        var tree = app.Find<SharpRail.Plugins.UI.Kit.DrawnTree>("FilesTree");
-        E2E.E2eWorkspace.Until(() => tree.SelectedItem is SharpRail.Plugins.UI.Kit.DrawnTreeEntry { Id: "styles" });
+        var tree = app.Find<Tereditor.Plugins.UI.Kit.DrawnTree>("FilesTree");
+        E2E.E2eWorkspace.Until(() => tree.SelectedItem is Tereditor.Plugins.UI.Kit.DrawnTreeEntry { Id: "styles" });
         Wait(app.Window.OpenTerminalLinkAsync(workspace, new(0, 1, Path.Combine(workspace, "notes.txt"), 0, 0, false)));
         E2E.E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path == "notes.txt"));
         Console.WriteLine("PASS terminal folder link: a folder in the workspace is selected in Files and a file still opens");
@@ -193,12 +193,12 @@ internal static class TerminalFileLinkChecks
         var directory = Path.Combine(root, "project");
         var sibling = Path.Combine(root, "sibling");
         var home = Path.Combine(root, "home");
-        foreach (var folder in new[] { "docs/screenshots", "scripts", "src/SharpRail.Host.Core", "tests/SharpRail.Checks" })
+        foreach (var folder in new[] { "docs/screenshots", "scripts", "src/Tereditor.Host.Core", "tests/Tereditor.Checks" })
             Directory.CreateDirectory(Path.Combine(directory, folder));
         Directory.CreateDirectory(sibling);
         Directory.CreateDirectory(Path.Combine(home, ".claude"));
-        foreach (var file in new[] { "AGENTS.md", "README.md", "STATUS.md", "SharpRail.slnx", "mise.toml", "DEVELOPMENT.md", "ARCHITECTURE.md", "global.json",
-                     "docs/agent-reference.md", "scripts/benchmark.mjs", "src/SharpRail.Host.Core/Workspaces.SPEC.md", "tests/SharpRail.Checks/Program.cs" })
+        foreach (var file in new[] { "AGENTS.md", "README.md", "STATUS.md", "Tereditor.slnx", "mise.toml", "DEVELOPMENT.md", "ARCHITECTURE.md", "global.json",
+                     "docs/agent-reference.md", "scripts/benchmark.mjs", "src/Tereditor.Host.Core/Workspaces.SPEC.md", "tests/Tereditor.Checks/Program.cs" })
             File.WriteAllText(Path.Combine(directory, file), string.Concat(Enumerable.Repeat("line\n", 30)));
         File.WriteAllText(Path.Combine(sibling, "Other.cs"), "other");
         File.WriteAllText(Path.Combine(home, ".claude", "CLAUDE.md"), "home");
@@ -208,10 +208,10 @@ internal static class TerminalFileLinkChecks
         var external = Path.Combine(sibling, "Other.cs");
         string[] lines =
         [
-            "\e[1m●\e[0m Read \e[1mAGENTS.md\e[0m, README.md, STATUS.md, SharpRail.slnx and mise.toml",
+            "\e[1m●\e[0m Read \e[1mAGENTS.md\e[0m, README.md, STATUS.md, Tereditor.slnx and mise.toml",
             "  \e[2m⎿\e[0m  See docs/agent-reference.md and scripts/benchmark.mjs, also ./DEVELOPMENT.md",
-            "  Spec \e[36msrc/SharpRail.Host.Core/Workspaces.SPEC.md\e[39m with tests/SharpRail.Checks/Program.cs",
-            "  At tests/SharpRail.Checks/Program.cs:10 and src/SharpRail.Host.Core/Workspaces.SPEC.md:5:3",
+            "  Spec \e[36msrc/Tereditor.Host.Core/Workspaces.SPEC.md\e[39m with tests/Tereditor.Checks/Program.cs",
+            "  At tests/Tereditor.Checks/Program.cs:10 and src/Tereditor.Host.Core/Workspaces.SPEC.md:5:3",
             "  \e[34mdocs/agent-reference.md:20\e[0m and ~/.claude/CLAUDE.md",
             "  " + absolute, "  " + json, "  " + external,
             "  Directories src/ docs/screenshots scripts/ and missing NOTES.md src/Absent.cs"
@@ -227,13 +227,13 @@ internal static class TerminalFileLinkChecks
         (string, string, int, int)[] expected =
         [
             ("AGENTS.md", In("AGENTS.md"), 1, 1), ("README.md", In("README.md"), 1, 1), ("STATUS.md", In("STATUS.md"), 1, 1),
-            ("SharpRail.slnx", In("SharpRail.slnx"), 1, 1), ("mise.toml", In("mise.toml"), 1, 1),
+            ("Tereditor.slnx", In("Tereditor.slnx"), 1, 1), ("mise.toml", In("mise.toml"), 1, 1),
             ("docs/agent-reference.md", In("docs/agent-reference.md"), 1, 1), ("scripts/benchmark.mjs", In("scripts/benchmark.mjs"), 1, 1),
             ("./DEVELOPMENT.md", In("DEVELOPMENT.md"), 1, 1),
-            ("src/SharpRail.Host.Core/Workspaces.SPEC.md", In("src/SharpRail.Host.Core/Workspaces.SPEC.md"), 1, 1),
-            ("tests/SharpRail.Checks/Program.cs", In("tests/SharpRail.Checks/Program.cs"), 1, 1),
-            ("tests/SharpRail.Checks/Program.cs:10", In("tests/SharpRail.Checks/Program.cs"), 10, 1),
-            ("src/SharpRail.Host.Core/Workspaces.SPEC.md:5:3", In("src/SharpRail.Host.Core/Workspaces.SPEC.md"), 5, 3),
+            ("src/Tereditor.Host.Core/Workspaces.SPEC.md", In("src/Tereditor.Host.Core/Workspaces.SPEC.md"), 1, 1),
+            ("tests/Tereditor.Checks/Program.cs", In("tests/Tereditor.Checks/Program.cs"), 1, 1),
+            ("tests/Tereditor.Checks/Program.cs:10", In("tests/Tereditor.Checks/Program.cs"), 10, 1),
+            ("src/Tereditor.Host.Core/Workspaces.SPEC.md:5:3", In("src/Tereditor.Host.Core/Workspaces.SPEC.md"), 5, 3),
             ("docs/agent-reference.md:20", In("docs/agent-reference.md"), 20, 1),
             ("~/.claude/CLAUDE.md", Path.Combine(home, ".claude", "CLAUDE.md"), 1, 1),
             (absolute, absolute, 1, 1), (json, json, 1, 1), (external, external, 1, 1)
@@ -266,10 +266,10 @@ internal static class TerminalFileLinkChecks
         var previousLaunch = Ghostty.Avalonia.TerminalLinkLauncher.Launch;
         Ghostty.Avalonia.TerminalLinkLauncher.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
         Environment.SetEnvironmentVariable("HOME", scenario.Home);
-        SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.UI.Rendering.Themes.All[0]);
+        Tereditor.Plugins.UI.Kit.Ui.Apply(Tereditor.UI.Rendering.Themes.All[0]);
         await using var host = new PtyTerminalService(shell: scenario.Script);
         await using var loopback = new LoopbackServer(host);
-        var local = new SharpRail.UI.Terminal.LoopbackTerminals(new LocalTerminalAdapter(host), loopback);
+        var local = new Tereditor.UI.Terminal.LoopbackTerminals(new LocalTerminalAdapter(host), loopback);
         const string token = "renderer-links-token";
         await using var server = RemoteServer.Create(scenario.Directory, IPAddress.Loopback, 0, token, terminals: host);
         await server.StartAsync();
@@ -277,10 +277,10 @@ internal static class TerminalFileLinkChecks
         {
             var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
             using var remote = new RemoteTerminalAdapter(address, token);
-            var connection = new SharpRail.UI.Terminal.RemoteTerminalConnection(address, token, remote);
-            await Renderer("Metal texture (local)", SharpRail.UI.Terminal.TerminalBackends.Ghostty(local, () => SharpRail.UI.Terminal.TerminalRenderers.Texture));
-            await Renderer("Skia (local)", SharpRail.UI.Terminal.TerminalBackends.Ghostty(local, () => SharpRail.UI.Terminal.TerminalRenderers.Skia));
-            await Renderer("Metal texture (remote relay)", SharpRail.UI.Terminal.TerminalBackends.Ghostty(connection, () => SharpRail.UI.Terminal.TerminalRenderers.Texture));
+            var connection = new Tereditor.UI.Terminal.RemoteTerminalConnection(address, token, remote);
+            await Renderer("Metal texture (local)", Tereditor.UI.Terminal.TerminalBackends.Ghostty(local, () => Tereditor.UI.Terminal.TerminalRenderers.Texture));
+            await Renderer("Skia (local)", Tereditor.UI.Terminal.TerminalBackends.Ghostty(local, () => Tereditor.UI.Terminal.TerminalRenderers.Skia));
+            await Renderer("Metal texture (remote relay)", Tereditor.UI.Terminal.TerminalBackends.Ghostty(connection, () => Tereditor.UI.Terminal.TerminalRenderers.Texture));
         }
         finally
         {
@@ -293,10 +293,10 @@ internal static class TerminalFileLinkChecks
         await UnderlinesFollowFrames(window);
         Console.WriteLine("PASS agent terminal links in Metal (local and relay) and Skia: bare, ./, relative, :line, :line:col, absolute, external and ~/ files underlined exactly; directories and missing names plain; activation opens line/column");
 
-        async Task Renderer(string name, SharpRail.UI.Terminal.TerminalFactory factory)
+        async Task Renderer(string name, Tereditor.UI.Terminal.TerminalFactory factory)
         {
             var opened = new List<Ghostty.Avalonia.TerminalLink>();
-            var launch = new SharpRail.UI.Terminal.TerminalLaunch(scenario.Directory, "agent-" + Guid.NewGuid().ToString("N"), Path.Combine(root, "clipboard"), "client")
+            var launch = new Tereditor.UI.Terminal.TerminalLaunch(scenario.Directory, "agent-" + Guid.NewGuid().ToString("N"), Path.Combine(root, "clipboard"), "client")
             { OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; } };
             using var backend = factory(launch);
             window.Width = 1400; window.Height = 900;
@@ -351,7 +351,7 @@ internal static class TerminalFileLinkChecks
                 opened.RemoveAt(1);
                 return result;
             }
-            var spec = scenario.Lines[3].IndexOf("src/SharpRail.Host.Core/Workspaces.SPEC.md:5:3", StringComparison.Ordinal);
+            var spec = scenario.Lines[3].IndexOf("src/Tereditor.Host.Core/Workspaces.SPEC.md:5:3", StringComparison.Ordinal);
             Click(Cell(spec + 5, 3 * 3 + 1) ?? throw new InvalidOperationException(name + " has no cell geometry."), Avalonia.Input.KeyModifiers.None);
             Require(await Opened("a plain click on an underlined file") is { Line: 5, Column: 3 } clicked && clicked.Path == scenario.Expected[11].Path,
                 name + " plain click opened the wrong place.");

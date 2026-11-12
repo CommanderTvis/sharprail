@@ -7,16 +7,16 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Api;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Api;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Settings › Plugins with a long roster (every language server is its own plugin): scrolling realizes only the cards
 // near the viewport, a host broadcast mid-scroll neither recreates cards nor moves the scroll, and toggles still work.
@@ -241,7 +241,7 @@ internal static class PluginsSettingsScrollChecks
         };
         try
         {
-            var manifests = SharpRail.Host.Core.Plugins.BuiltinPlugins.All.Select(item => item.Manifest).ToArray();
+            var manifests = Tereditor.Host.Core.Plugins.BuiltinPlugins.All.Select(item => item.Manifest).ToArray();
             var panel = new StackPanel();
             // The user wants Air Gateway without an icon anywhere, so it is the one builtin allowed to declare none.
             const string Iconless = "air-gateway";
@@ -270,9 +270,9 @@ internal static class PluginsSettingsScrollChecks
             var airMark = PluginIcons.Resolve(air.Icon, null, Ui.Muted);
             Require(air.Icon.Length == 0 && air.Assets is null && !airMark.GetVisualDescendants().OfType<Image>().Any() && airMark is Border { Width: 16, Height: 16 },
                 "Air Gateway declares no icon, and its Settings row and Plugins card keep an empty slot of the icon size.");
-            foreach (var (manifest, host) in SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries.Where(entry => entry.Host is SharpRail.Plugins.Api.Host.LanguageServerPlugin))
+            foreach (var (manifest, host) in Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries.Where(entry => entry.Host is Tereditor.Plugins.Api.Host.LanguageServerPlugin))
             {
-                var server = (SharpRail.Plugins.Api.Host.LanguageServerPlugin)host!;
+                var server = (Tereditor.Plugins.Api.Host.LanguageServerPlugin)host!;
                 var file = Path.Combine(AppContext.BaseDirectory, "plugins", manifest.Id, manifest.Assets ?? "", manifest.Icon["asset:".Length..]);
                 Require(server.Spec.Icon is { } mark && File.Exists(file) && File.ReadAllBytes(file).AsSpan().SequenceEqual(mark.Data),
                     $"{manifest.Id}'s plugin icon must be the mark Code Intelligence shows for {server.Spec.Name}.");

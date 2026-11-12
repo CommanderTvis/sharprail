@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintControlView">
+             x:Class="Tereditor.Plugins.Blueprint.UI.BlueprintControlView">
   <Border x:Name="Frame" CornerRadius="4" BorderThickness="1" Padding="12,8" Margin="0,12">
     <Grid x:Name="Layout" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
       <StackPanel x:Name="Heading" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

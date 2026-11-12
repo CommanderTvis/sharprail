@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The one editor-event stream: the code editor, the Markdown preview and plugins' own documents report into it,

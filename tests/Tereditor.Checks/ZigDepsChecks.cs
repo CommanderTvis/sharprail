@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Fails when scripts/zig-deps.lock (the pinned mirror of the Zig packages hosted on neither github.com nor deps.files.ghostty.org) no longer matches the

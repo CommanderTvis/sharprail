@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>What the state store keeps on disk: forward-compatible settings, theme normalization and the installation identity.</summary>
 internal static class StateStoreChecks

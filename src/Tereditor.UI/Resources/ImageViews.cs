@@ -7,13 +7,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Rendering;
-
 using SkiaSharp;
 
-namespace SharpRail.UI.Resources;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Rendering;
+
+namespace Tereditor.UI.Resources;
 
 internal sealed record ImageViewState(bool Fit, double Zoom);
 internal sealed record ImageDiffState(string Mode, double Position);

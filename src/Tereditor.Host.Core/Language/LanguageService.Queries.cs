@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 public sealed partial class LanguageService
 {

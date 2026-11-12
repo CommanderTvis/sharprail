@@ -46,7 +46,7 @@ toast); the item is absent over tags, remote-tracking labels and the rest of the
 deleted from the graph.
 
 - `BranchGraphUI` registers `GraphPanel` under the manifest's tool. Its project is the one owning the panel's own workspace in the
-  projection's `Workspaces`, not `ContextProjectId`: SharpRail's projection follows the active window, while
+  projection's `Workspaces`, not `ContextProjectId`: tereditor's projection follows the active window, while
   each fork web client has its own, so this keeps a graph in a background window on its project. Workspace revision changes reread history from the tip. A project change resets history.
   Late reads after a newer refresh or detach are discarded.
 - Workspaces of the same repository reuse the graph, its rows and scroll position without rereading
@@ -80,11 +80,11 @@ deleted from the graph.
 
 ## Checks and remaining gates
 
-`tests/SharpRail.Checks/BranchGraphChecks.cs` runs through `--branch-graph`, `--plugins` and the full runner.
+`tests/Tereditor.Checks/BranchGraphChecks.cs` runs through `--branch-graph`, `--plugins` and the full runner.
 Parser and lane checks translate the fork's fixtures: control stripping, fields, page cropping, worktree pairing,
 straight/branched/merged/orphan histories, lane caps and carried pages.
 
-Set `SHARPRAIL_TEST_GIT_SOURCE` to the fork clone containing
+Set `TEREDITOR_TEST_GIT_SOURCE` to the fork clone containing
 `refs/remotes/origin/claude-code-integration-plugin-api` for real Git checks. These fetch existing history
 and create refs/worktrees in an isolated fixture; they create no commits and never alter signing configuration.
 Local and WebSocket RPC host checks cover pagination, refs, worktrees, patches and errors. UI checks cover windowing,

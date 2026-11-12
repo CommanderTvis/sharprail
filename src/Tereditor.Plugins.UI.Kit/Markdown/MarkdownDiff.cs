@@ -5,7 +5,7 @@ using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// Merges two Markdown sources into one document whose changed words are wrapped in

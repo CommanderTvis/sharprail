@@ -4,7 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 /// <summary>A diagnostic underline in UTF-8 document byte offsets. Severity is 1 (error) through 4 (hint).</summary>
 public sealed record ScintillaDiagnostic(int Offset, int Length, int Severity, string Message = "");

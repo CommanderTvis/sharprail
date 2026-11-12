@@ -4,7 +4,7 @@ using System.Text;
 
 using Microsoft.Win32.SafeHandles;
 
-namespace SharpRail.Plugins.Isolation.Native;
+namespace Tereditor.Plugins.Isolation.Native;
 
 /// <summary>Win32 entry points of the channel and the runner process: the named pipe, the handle list and the job.</summary>
 [SupportedOSPlatform("windows")]

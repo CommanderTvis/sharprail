@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.ClaudeCode;
+namespace Tereditor.Plugins.ClaudeCode;
 
 public static class ClaudeCodeManifest
 {

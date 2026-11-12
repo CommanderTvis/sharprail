@@ -9,10 +9,10 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.Scintilla;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.Scintilla;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Find in rendered text or an editor: Mod+F opens it, Enter / Shift+Enter step with wrap, a count shows

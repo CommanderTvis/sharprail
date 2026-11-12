@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Review.Host;
+namespace Tereditor.Plugins.Review.Host;
 
 /// <summary>The host half: the branch and the number of changed files of a workspace, through the host's Git runner.</summary>
 public sealed class ReviewHost : PluginHostModule

@@ -1,6 +1,6 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
-/// <summary>Whether a plugin ships with SharpRail or was installed by the user.</summary>
+/// <summary>Whether a plugin ships with tereditor or was installed by the user.</summary>
 public enum PluginOrigin
 {
     /// <summary>Referenced by the host and the app and listed in their builtin arrays.</summary>
@@ -91,7 +91,7 @@ public sealed record TerminalAgentRecord(string Kind, string Command)
     /// <summary>The latest effort level reported by this session, for resuming it.</summary>
     public string? Effort { get; init; }
 
-    /// <summary>Whether the detected process came from a SharpRail UI launch; null when its origin is unknown.</summary>
+    /// <summary>Whether the detected process came from a tereditor UI launch; null when its origin is unknown.</summary>
     public bool? LaunchedByUi { get; init; }
 }
 
@@ -144,7 +144,7 @@ public enum HostKind
 }
 
 /// <summary>
-/// Whether a plugin works in headless SharpRail. A builtin plugin must state it, so a new plugin forces a conscious choice;
+/// Whether a plugin works in headless tereditor. A builtin plugin must state it, so a new plugin forces a conscious choice;
 /// an external plugin that does not is treated as <see cref="No"/>.
 /// </summary>
 public enum HeadlessSupport

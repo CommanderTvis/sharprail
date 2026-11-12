@@ -2,10 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.PluginFixture;
+namespace Tereditor.PluginFixture;
 
 public sealed record FixtureSettings { public string Greeting { get; set; } = "hello"; }
 public sealed record EchoParams(string Text);
@@ -18,8 +18,8 @@ public static class FixtureContract
 {
     public static readonly PluginManifest Manifest = new("fixture", "Fixture", "puzzle-2-line", "1.0.0", PluginApi.Generation, 1)
     {
-        Host = "SharpRail.PluginFixture.Host.dll",
-        Ui = "SharpRail.PluginFixture.UI.dll",
+        Host = "Tereditor.PluginFixture.Host.dll",
+        Ui = "Tereditor.PluginFixture.UI.dll",
         Assets = "assets",
         Contributes = new()
         {
@@ -58,7 +58,7 @@ public sealed class FixtureHost : PluginHostModule
             : new PluginHttpResponse(404)));
         context.Tool(new PluginTool<EchoParams>("fixture_echo", "Fixture echo", "Echoes its text back.",
             (arguments, _, _) => ValueTask.FromResult(new PluginToolResult(arguments.Text))));
-        context.TerminalEnvironment(_ => new Dictionary<string, string> { ["SHARPRAIL_FIXTURE"] = "1" });
+        context.TerminalEnvironment(_ => new Dictionary<string, string> { ["TEREDITOR_FIXTURE"] = "1" });
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 

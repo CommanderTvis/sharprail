@@ -9,11 +9,11 @@ using Avalonia.VisualTree;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Two Metal terminals stream output at a fixed rate for a fixed time, one shown and one hidden, and the run reports
@@ -27,7 +27,7 @@ internal static class NativeFramePumpBenchmark
 
     public static async Task Run(Window window)
     {
-        var seconds = int.TryParse(Environment.GetEnvironmentVariable("SHARPRAIL_FRAME_PUMP_SECONDS"), out var configured) ? configured : 20;
+        var seconds = int.TryParse(Environment.GetEnvironmentVariable("TEREDITOR_FRAME_PUMP_SECONDS"), out var configured) ? configured : 20;
         await InProcess(window, seconds);
         await Hosted(window, seconds);
     }
@@ -74,7 +74,7 @@ internal static class NativeFramePumpBenchmark
     // The app's path: an embedded host's PTYs streaming a fixed-rate producer through the direct Metal backend.
     private static async Task Hosted(Window window, int seconds)
     {
-        SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.UI.Rendering.Themes.All[0]);
+        Tereditor.Plugins.UI.Kit.Ui.Apply(Tereditor.UI.Rendering.Themes.All[0]);
         var root = CheckRoot.Create("frame-pump");
         Directory.CreateDirectory(root);
         try

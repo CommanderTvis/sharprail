@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
-        xmlns:local="using:SharpRail.UI.Panels"
-        x:Class="SharpRail.UI.Panels.SettingsView"
+        xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+        xmlns:local="using:Tereditor.UI.Panels"
+        x:Class="Tereditor.UI.Panels.SettingsView"
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
   <UserControl.Resources>
@@ -126,14 +126,14 @@
         <Border x:Name="HostConnectSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
           <StackPanel Spacing="8">
             <TextBlock Text="Connect to another host" Classes="settings-heading" />
-            <TextBlock Text="Use another computer’s projects and terminals by connecting to its SharpRail host over Tailscale." Classes="settings-description" />
+            <TextBlock Text="Use another computer’s projects and terminals by connecting to its tereditor host over Tailscale." Classes="settings-description" />
             <Button x:Name="HostTailscaleConnect" Content="Connect to a Tailscale host" HorizontalAlignment="Left" />
           </StackPanel>
         </Border>
         <Border x:Name="HostShareSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
           <StackPanel Spacing="8">
             <TextBlock x:Name="HostShareHeading" Text="Share this app as a host" Classes="settings-heading" />
-            <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
+            <TextBlock x:Name="HostDescription" Text="Let other tereditor clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
             <StackPanel x:Name="HostControls" Spacing="8">
               <Border Classes="settings-row">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -362,7 +362,7 @@
         <TextBlock Text="Bell" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What a terminal bell (BEL) does." Classes="settings-description" />
         <CheckBox x:Name="BellTitle" Content="Mark the tab with a bell until you view it" />
-        <CheckBox x:Name="BellAttention" Content="Request attention while SharpRail is in the background (bounces the Dock icon on macOS)" />
+        <CheckBox x:Name="BellAttention" Content="Request attention while tereditor is in the background (bounces the Dock icon on macOS)" />
         <CheckBox x:Name="BellSystem" Content="Play the system alert sound" />
         <TextBlock Text="When the shell exits" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What a terminal tab does when its shell ends, by exit, Ctrl-D or otherwise. A shell that fails to start, or exits abnormally within moments of starting, always keeps its tab to show why. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
@@ -375,7 +375,7 @@
           <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
         </Border>
         <TextBlock Text="Memory guard" Classes="settings-heading" Margin="0,16,0,0" />
-        <TextBlock Text="SharpRail's own out-of-memory killer for programs started in terminals. It samples every terminal's processes every few seconds and warns at 80% of a limit. Above it, SharpRail asks the largest process to stop, kills it after the grace period and, if the terminal is still over, everything below the shell. The shell and the terminal stay, with a notice. It also steps in when the system is short of memory. It samples, so a program that allocates faster than that can overshoot. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
+        <TextBlock Text="tereditor's own out-of-memory killer for programs started in terminals. It samples every terminal's processes every few seconds and warns at 80% of a limit. Above it, tereditor asks the largest process to stop, kills it after the grace period and, if the terminal is still over, everything below the shell. The shell and the terminal stay, with a notice. It also steps in when the system is short of memory. It samples, so a program that allocates faster than that can overshoot. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
         <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Stop programs that use too much memory" Classes="settings-label" />
@@ -395,7 +395,7 @@
           <TextBox x:Name="TerminalMemoryProtect" PlaceholderText="for example postgres, my-database" />
         </Border>
         <TextBlock Text="Shell integration" Classes="settings-heading" Margin="0,16,0,0" />
-        <TextBlock Text="Load SharpRail's shell integration into zsh and bash (fish 4 marks its own prompts). It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
+        <TextBlock Text="Load tereditor's shell integration into zsh and bash (fish 4 marks its own prompts). It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
         <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Shell integration" Classes="settings-label" />
@@ -404,7 +404,7 @@
         </Border>
         <StackPanel x:Name="TerminalSecureInputSection" Spacing="8" Margin="0,16,0,0">
           <TextBlock Text="Secure keyboard entry" Classes="settings-heading" />
-          <TextBlock Text="While a focused terminal asks for a password (sudo, ssh, gpg), macOS keeps other apps from reading your keystrokes, and a lock shows in the terminal. It turns off when the prompt ends, the terminal loses focus or SharpRail is in the background. Global hotkeys of other apps do not work meanwhile. A preference of this app." Classes="settings-description" TextWrapping="Wrap" />
+          <TextBlock Text="While a focused terminal asks for a password (sudo, ssh, gpg), macOS keeps other apps from reading your keystrokes, and a lock shows in the terminal. It turns off when the prompt ends, the terminal loses focus or tereditor is in the background. Global hotkeys of other apps do not work meanwhile. A preference of this app." Classes="settings-description" TextWrapping="Wrap" />
           <Border Classes="settings-row">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Text="Secure input for password prompts (macOS)" Classes="settings-label" />
@@ -417,7 +417,7 @@
     <DataTemplate x:Key="NotificationsPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Notifications" Classes="settings-heading" />
-        <TextBlock Text="Get a desktop notification when a terminal needs you: an agent asks a question, finishes, or fails. Notifications only appear while no SharpRail window is focused. Shared by every client of this host." Classes="settings-description" />
+        <TextBlock Text="Get a desktop notification when a terminal needs you: an agent asks a question, finishes, or fails. Notifications only appear while no tereditor window is focused. Shared by every client of this host." Classes="settings-description" />
         <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Enable notifications" Classes="settings-label" />

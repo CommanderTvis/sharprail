@@ -14,10 +14,10 @@ one today; the seams below are what a second agent protocol (the Agent Client Pr
 
 ## Boundary
 
-- `SharpRail.Plugins.Chat` owns `ChatContract` (items, header, push kinds, the methods and the `chatUpdates` state channel) and `Ack`.
+- `Tereditor.Plugins.Chat` owns `ChatContract` (items, header, push kinds, the methods and the `chatUpdates` state channel) and `Ack`.
   It depends only on the Plugin API. A plugin lists `ChatContract.Methods` and `ChatContract.Updates` in its own `PluginContract`, so
   every method keeps the plugin's id as its namespace on the wire.
-- `SharpRail.Plugins.Chat.UI` owns `ChatView`, the transcript list, composer, pickers and dialogs (internal; visible to the Claude Code
+- `Tereditor.Plugins.Chat.UI` owns `ChatView`, the transcript list, composer, pickers and dialogs (internal; visible to the Claude Code
   UI project and the checks), `ChatDocuments` (registering a plugin's chat document, opening chats) and `ChatAgent`.
 - A `ChatAgent` is how a plugin describes itself to the view: display and short name, document scheme, icon, the terminal agent kind (so a
   session a terminal already runs is not resumed in a chat), a help link, the end of the "host has no chat handler" message, effort levels,
@@ -29,7 +29,7 @@ one today; the seams below are what a second agent protocol (the Agent Client Pr
 
 ## Semantics
 
-The semantics of the records and the view are those of the Claude Code chat (`src/SharpRail.Plugins.ClaudeCode/SPEC.md`, "Chat mode"
+The semantics of the records and the view are those of the Claude Code chat (`src/Tereditor.Plugins.ClaudeCode/SPEC.md`, "Chat mode"
 sections). A host that cannot do something the contract offers (queue editing, send-now on a queued message, rewind, fork, permission requests) answers that method with
 an error and never produces the items that would make the view offer it: without the header flag `CanSendQueuedNow` there is no Send now button, with no message `Uuid` there are no rewind or fork buttons, and
 with no permission or question items there is nothing to approve. The view's wording is neutral where it cannot know the agent
@@ -91,7 +91,7 @@ record's `Attachments` stays null (reserved for path-only attachments later).
 
 ## Serving another agent protocol (ACP)
 
-The ACP plugin (`src/SharpRail.Plugins.Acp/SPEC.md`, Early support) implements this mapping; the gaps listed below are the ones it lives with.
+The ACP plugin (`src/Tereditor.Plugins.Acp/SPEC.md`, Early support) implements this mapping; the gaps listed below are the ones it lives with.
 
 An ACP agent needs no view change: its plugin supplies a `ChatAgent` and a host half that serves `ChatContract` over the ACP connection
 (stdio JSON-RPC to the agent process). The mapping:
@@ -125,7 +125,7 @@ workspace, never by the view.
   audio have no record. Tool diffs (`Diff` content) reach the card only as `FilePath`, not as old and new text.
 - Tool kinds: tool cards pick their layout by Claude Code tool name (Bash, Edit, Read, Grep, ExitPlanMode...). An ACP tool has a `kind`
   (read, edit, execute, search, fetch...) but its own title; the card falls back to the generic layout until the kind drives it.
-- SharpRail's own MCP tools (server `plugin_sharprail_sharprail`, `sharprail` or `plugin:sharprail:sharprail`) read "SharpRail [LSP navigate]" with a short line from the call's input (operation and query, first path, search query, title, id, description); the long `workspace` argument is never shown, in the header or the expanded IN row.
+- tereditor's own MCP tools (server `plugin_tereditor_tereditor`, `tereditor` or `plugin:tereditor:tereditor`) read "tereditor [LSP navigate]" with a short line from the call's input (operation and query, first path, search query, title, id, description); the long `workspace` argument is never shown, in the header or the expanded IN row.
 - Header fields that only Claude Code has (`Chrome`, `ChatQuestionItem`'s AskUserQuestion shape, rewind and fork by message uuid,
   `StopTask`) are simply never set by another host; ACP has no equivalent of rewind or fork except `session/fork` where offered.
 - Session list: `ChatSessionInfo` has id, title and time, which fits `session/list`; paging and `cwd` filtering are not modelled.

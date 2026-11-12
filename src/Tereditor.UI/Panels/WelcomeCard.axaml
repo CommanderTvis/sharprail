@@ -1,6 +1,6 @@
 <Button xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="SharpRail.UI.Panels.WelcomeCard"
+        x:Class="Tereditor.UI.Panels.WelcomeCard"
         Width="220" Height="150" Padding="16" CornerRadius="4" BorderThickness="1"
         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
   <Grid RowDefinitions="*,Auto">

@@ -1,6 +1,6 @@
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 internal static class FileTypeIcons
 {
@@ -76,7 +76,7 @@ internal static class FileTypeIcons
         lock (Assets)
         {
             if (Assets.TryGetValue(name, out var bytes)) return bytes;
-            using var stream = typeof(FileTypeIcons).Assembly.GetManifestResourceStream("SharpRail.Plugins.UI.Kit.FileIcons." + name + ".svg");
+            using var stream = typeof(FileTypeIcons).Assembly.GetManifestResourceStream("Tereditor.Plugins.UI.Kit.FileIcons." + name + ".svg");
             if (stream is null) return Assets[name] = null;
             using var buffer = new MemoryStream();
             stream.CopyTo(buffer);

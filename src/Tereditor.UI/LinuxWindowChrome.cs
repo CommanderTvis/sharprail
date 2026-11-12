@@ -5,19 +5,19 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>The window manager facts that decide whether Linux draws its own window frame.</summary>
-/// <param name="Override"><c>SHARPRAIL_WINDOW_DECORATIONS</c>: <c>system</c>, <c>client</c> or unset for automatic.</param>
+/// <param name="Override"><c>TEREDITOR_WINDOW_DECORATIONS</c>: <c>system</c>, <c>client</c> or unset for automatic.</param>
 /// <param name="Desktop"><c>XDG_CURRENT_DESKTOP</c>, a colon-separated list such as <c>ubuntu:GNOME</c>.</param>
 /// <param name="Display"><c>DISPLAY</c>: the X11 or XWayland connection the windowing backend uses.</param>
 /// <param name="Setting">The host's window decorations setting: empty or <c>auto</c>, <c>client</c> or <c>system</c>.</param>
 public readonly record struct LinuxSession(string? Override, string? Desktop, string? Display, string? Setting = null)
 {
     public static LinuxSession FromEnvironment() => new(
-        Environment.GetEnvironmentVariable("SHARPRAIL_WINDOW_DECORATIONS"),
+        Environment.GetEnvironmentVariable("TEREDITOR_WINDOW_DECORATIONS"),
         Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"),
         Environment.GetEnvironmentVariable("DISPLAY"));
 }
@@ -63,7 +63,7 @@ public static class LinuxWindowChrome
 
     /// <summary>What the Settings row says while the environment override decides; empty when it does not.</summary>
     public static string OverrideNote(LinuxSession session) => ActiveOverride(session) is { } choice
-        ? $"SHARPRAIL_WINDOW_DECORATIONS={choice} is set in this app’s environment and overrides this choice."
+        ? $"TEREDITOR_WINDOW_DECORATIONS={choice} is set in this app’s environment and overrides this choice."
         : "";
 
     /// <summary>Whether this process draws the Linux window frame itself ever: the X11 backend runs on Linux but not Android.</summary>

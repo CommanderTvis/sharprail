@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.State;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>One toast: compiled XAML bound to the <see cref="Toast"/>, with the button wiring the queue needs.</summary>
 internal sealed partial class ToastCard : Border

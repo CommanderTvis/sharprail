@@ -1,5 +1,5 @@
 // The tab host's disk: the runtime's Emscripten file system, saved to IndexedDB and exposed to isomorphic-git.
-const DATABASE = 'sharprail-tabhost';
+const DATABASE = 'tereditor-tabhost';
 const STORE = 'entries';
 const SAVE_EVERY_MS = 1500;
 

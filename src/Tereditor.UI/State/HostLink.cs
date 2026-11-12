@@ -2,15 +2,15 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
-namespace SharpRail.UI.State;
+namespace Tereditor.UI.State;
 
 /// <summary>
 /// What a serving app shows as a QR code and a client scans: the address to reach the host at and its session
-/// token, as <c>sharprail://connect?host=…&amp;token=…</c>.
+/// token, as <c>tereditor://connect?host=…&amp;token=…</c>.
 /// </summary>
 public static class HostLink
 {
-    private const string Prefix = "sharprail://connect?";
+    private const string Prefix = "tereditor://connect?";
 
     public static string Format(string address, string token) =>
         $"{Prefix}host={Uri.EscapeDataString(address)}&token={Uri.EscapeDataString(token)}";

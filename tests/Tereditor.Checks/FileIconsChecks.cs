@@ -1,11 +1,11 @@
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class FileIconsChecks
 {
@@ -71,7 +71,7 @@ internal static partial class FileIconsChecks
         Require(FileTypeIcons.Key("", "a", directory: true).Length == 0 && FileTypeIcons.Key("colored", "a", directory: true).Length == 0 && FileTypeIcons.Key("material", "a", directory: true) == "material/folder",
             "Only the Material style draws folder icons.");
         var assembly = typeof(FileTypeIcons).Assembly;
-        var embedded = assembly.GetManifestResourceNames().Count(name => name.StartsWith("SharpRail.Plugins.UI.Kit.FileIcons.material.", StringComparison.Ordinal));
+        var embedded = assembly.GetManifestResourceNames().Count(name => name.StartsWith("Tereditor.Plugins.UI.Kit.FileIcons.material.", StringComparison.Ordinal));
         Require(embedded == FileIconTable.Material.Count && embedded is > 100 and < 160, $"Exactly the table's Material icons are embedded, got {embedded}.");
         foreach (var name in FileIconTable.Material)
         {

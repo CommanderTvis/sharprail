@@ -1,13 +1,13 @@
 # Asset provenance
 
-SharpRail's own code is licensed under the PolyForm Shield License 1.0.0 (`LICENSE.md`; scope and trademark
+tereditor's own code is licensed under the PolyForm Shield License 1.0.0 (`LICENSE.md`; scope and trademark
 exclusions in `NOTICE`). This file records everything that is not that: derived, ported, bundled and
 interoperability-only material. Files derived from third-party code also carry a `Derived from` comment naming
 the upstream, its license and the text in `licenses/`; formats that cannot hold comments (JSON, SVG, binary) are
 named here instead.
 
 Material from ThinkRail (Copyright 2026 JetBrains s.r.o., Apache-2.0, `licenses/Thinkrail-Apache-2.0.txt`) stays
-under Apache-2.0. Every ThinkRail-derived file named below was modified for SharpRail: translated from
+under Apache-2.0. Every ThinkRail-derived file named below was modified for tereditor: translated from
 TypeScript to C#, renamed, or reworked for its tools. The upstream repository has no `NOTICE` file.
 
 
@@ -42,7 +42,7 @@ The alternative Skia terminal uses libghostty-vt from the same repository, pinne
 to commit 59c2dc032aba42aa5064bf206cc27286add3e9d8 (MIT). Its C shim and Avalonia
 controls live in src/Ghostty.Avalonia; the Ghostty license is included there.
 The zsh and bash shell-integration scripts the terminal host injects (shell-integration/) are
-SharpRail's own, written for SharpRail, and are not third-party code.
+tereditor's own, written for tereditor, and are not third-party code.
 Ghostty's shell-integration scripts (`share/ghostty`, partly GPL-3.0 as derived from kitty) are not
 shipped; of Ghostty's resources only its terminfo entries (MIT) are.
 
@@ -50,41 +50,41 @@ The Skia terminal adapts rendering and output-scheduling designs from
 [RoyalTerminal](https://github.com/royalapplications/RoyalTerminal/tree/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f),
 Copyright (c) 2026 Royal Apps, MIT. The retained framebuffer, dirty-row updates,
 ASCII batching, text-blob caches and bounded UI output slices are implemented
-for SharpRail's existing Ghostty/host boundary. Pinned source links are in
+for tereditor's existing Ghostty/host boundary. Pinned source links are in
 [src/Ghostty.Avalonia/README.md](src/Ghostty.Avalonia/README.md#skia-rendering-design);
 the original notice is in
 [src/Ghostty.Avalonia/licenses/RoyalTerminal-MIT.txt](src/Ghostty.Avalonia/licenses/RoyalTerminal-MIT.txt)
 and accompanies build/publish outputs.
 
 The visual layout follows Thinkrail's original-workspace.png and current
-workspace specification. The "TR" monogram (`brand.png`) and scripts/window-probe.m were written by SharpRail's
-author in the fork's `apps/native` prototype (commit 8229ed8c6) and are licensed as SharpRail; the monogram
+workspace specification. The "TR" monogram (`brand.png`) and scripts/window-probe.m were written by tereditor's
+author in the fork's `apps/native` prototype (commit 8229ed8c6) and are licensed as tereditor; the monogram
 remains a ThinkRail mark (see `NOTICE`). The custom file-diff icon is ThinkRail's
 `apps/web/public/custom-icons/file-diff-line.svg` (Apache-2.0; licenses/Thinkrail-Apache-2.0.txt).
 
-The workflow skills in src/SharpRail.Plugins.Agent.Skills are adapted from Thinkrail's
+The workflow skills in src/Tereditor.Plugins.Agent.Skills are adapted from Thinkrail's
 packages/pi-thinkrail-workflow/skills, and spec-graph from packages/spec-graph/skills/spec-graph (Apache 2.0;
-licenses/Thinkrail-Apache-2.0.txt): the text was changed to name SharpRail and the tools Claude Code and Codex
+licenses/Thinkrail-Apache-2.0.txt): the text was changed to name tereditor and the tools Claude Code and Codex
 sessions have, and large parts remain near-verbatim.
 
-The Claude Code plugin's hook scripts and test (`src/SharpRail.Plugins.ClaudeCode/assets/marketplace/claude-plugin/`,
+The Claude Code plugin's hook scripts and test (`src/Tereditor.Plugins.ClaudeCode/assets/marketplace/claude-plugin/`,
 `hooks.json`, `on-*.sh`, `report-status.sh`, `build-payload.sh` and the hook test) are adapted from the fork's
-`packages/plugin-claude-code` plugin payload (Apache 2.0): SharpRail's endpoints and tool names replace the
+`packages/plugin-claude-code` plugin payload (Apache 2.0): tereditor's endpoints and tool names replace the
 originals, and much of the shell remains near-verbatim.
 
 Mermaid diagrams are laid out by Merman 0.7.0 (https://github.com/Latias94/merman,
 MIT OR Apache-2.0): its released macOS merman-ffi static library is linked into
-libSharpRailMermaid, its released Android merman-ffi shared libraries
-(merman-android-v0.7.0.aar) ship as libSharpRailMermaid.so, and its SVG is drawn with Svg.Skia (MIT) and Svg.Custom (MS-PL, licenses/MS-PL.txt). Merman's Rust crate
+libTereditorMermaid, its released Android merman-ffi shared libraries
+(merman-android-v0.7.0.aar) ship as libTereditorMermaid.so, and its SVG is drawn with Svg.Skia (MIT) and Svg.Custom (MS-PL, licenses/MS-PL.txt). Merman's Rust crate
 dependencies retain their licenses; licenses/Merman-Crates.txt lists each crate
 with its license. Three crates (cssparser, dtoa-short, selectors) are MPL-2.0 and linked unmodified;
 see licenses/Copyleft-Components.md and licenses/MPL-2.0.txt.
 
-The theme manifests in src/SharpRail.UI/Assets/Themes and `theme.schema.json` are adapted from
+The theme manifests in src/Tereditor.UI/Assets/Themes and `theme.schema.json` are adapted from
 Thinkrail's apps/web/src/themes/bundled (Apache 2.0; licenses/Thinkrail-Apache-2.0.txt): a few values differ from the
 originals.
 
-The 78 core SVG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0 and may not be
+The 78 core SVG icons in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0 and may not be
 extracted as a standalone icon set. They use the original paths from
 @remixicon/react 4.9.0, including the server glyph for Host settings. The alias map is
 Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's
@@ -98,7 +98,7 @@ Geist Book uses the reference native prototype's weight-370 NativeText face;
 its family metadata was renamed to register alongside the other Geist faces. It is a Modified Version under the
 SIL Open Font License; neither OFL declares a Reserved Font Name.
 JetBrains Mono Regular came from the reference's bundled font assets.
-Their SIL Open Font Licenses are in src/SharpRail.Plugins.UI.Kit/Assets/Fonts and are
+Their SIL Open Font Licenses are in src/Tereditor.Plugins.UI.Kit/Assets/Fonts and are
 included in the published app's Resources directory.
 
 Markdown parsing uses Markdig (BSD-2-Clause). The license texts of the shipped NuGet packages are in `licenses/`:
@@ -132,11 +132,11 @@ See licenses/React-Resizable-Panels.txt; no JavaScript runtime is bundled.
 
 The code editor is a managed C# port of parts of Scintilla 5.6.7 (Copyright 1998-2021 Neil
 Hodgson and contributors; no Lexilla code). See licenses/Scintilla.txt, the same text as
-src/SharpRail.Scintilla/licenses/Scintilla.txt. Core/ (SplitVector, Partitioning, RunStyles, CellBuffer, UndoHistory,
+src/Tereditor.Scintilla/licenses/Scintilla.txt. Core/ (SplitVector, Partitioning, RunStyles, CellBuffer, UndoHistory,
 ContractionState, Decoration, CharClassify, LineAnnotation, Selection, Document) and Editing/KeyMap are close
 translations of the upstream files they name; Editing/Editor and View/EditView, ViewStyle and ScintillaMessage are
-trimmed adaptations; tests/SharpRail.Checks/ScintillaCore ports Scintilla's test/unit. Text shaping, bidi and the
-Avalonia control are SharpRail's own.
+trimmed adaptations; tests/Tereditor.Checks/ScintillaCore ports Scintilla's test/unit. Text shaping, bidi and the
+Avalonia control are tereditor's own.
 The editor's drawing uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
 and Svg.Skia share in this app;
 SkiaSharp, Skia, HarfBuzzSharp and HarfBuzz retain their NuGet package licenses. No Cocoa Scintilla view
@@ -187,7 +187,7 @@ in the embedded grammar resources. Supplementary grammar files under the UI kit'
   syntaxes/Scala.tmLanguage.json (MIT; licenses/ScalaGrammar.txt).
 
 The Scala grammar descends from the Scala TextMate bundles that scala/vscode-scala-syntax is based on.
-`gitattributes.json` is SharpRail's own grammar, written for this project.
+`gitattributes.json` is tereditor's own grammar, written for this project.
 Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore grammar.
 
 - TOML: tamasfe/taplo, commit 08f343be02ce1b20296470396a42f0fa47820449,
@@ -198,13 +198,13 @@ Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore gramm
 The optional IntelliJ language-service adapter uses published catalog metadata and protocol
 conventions from [JetBrains/intellij-lsp.nvim](https://github.com/JetBrains/intellij-lsp.nvim),
 revision 77dc3e118a381e59f0d0b3e368e4b3a088280ab7, Copyright 2026 JetBrains s.r.o., Apache 2.0.
-SharpRail independently implements these conventions in C#; no Neovim runtime is included.
+tereditor independently implements these conventions in C#; no Neovim runtime is included.
 See `licenses/intellij-lsp.nvim.LICENSE.txt` and `licenses/intellij-lsp.nvim.NOTICE.md`.
 The proprietary JetBrains server is a separate product and is not bundled or licensed by this notice.
 
 
 Optional JetBrains Context uses an unmodified, separately downloaded proprietary CLI.
-SharpRail ships its adapter only; no Context binary or proprietary source is bundled.
+tereditor ships its adapter only; no Context binary or proprietary source is bundled.
 The actual user must accept the selected artifact's applicable CLI EAP and AI terms.
 Public integration documentation at https://github.com/JetBrains/context is a protocol
 reference, not a license to redistribute the CLI.
@@ -212,7 +212,7 @@ reference, not a license to redistribute the CLI.
 
 The IntelliJ IDEA product icon is an unmodified asset
 from https://www.jetbrains.com/company/brand/ and its published downloads. Used to identify
-SharpRail's integrations under the JetBrains Brand Guidelines, not as SharpRail branding.
+tereditor's integrations under the JetBrains Brand Guidelines, not as tereditor branding.
 Copyright © 2026 JetBrains s.r.o. IntelliJ IDEA and the IntelliJ IDEA logo are trademarks of JetBrains s.r.o.
 
 Code Intelligence language icons preserve the original colors of Material Icon Theme v5.38.1
@@ -237,11 +237,11 @@ presentation does not imply affiliation with either vendor.
 
 The Android client embeds Tailscale v1.104.1 (`tsnet`, BSD-3-Clause) and its Go
 runtime. Source, pinned module checksums and the Tailscale license are under
-`src/SharpRail.Android/Tailscale.Native`. The native build stages the Go license
+`src/Tereditor.Android/Tailscale.Native`. The native build stages the Go license
 and module license notices into the APK's `assets/licenses/tailscale` directory.
 The browser client downloads, on request, a WebAssembly build of Tailscale v1.104.1 (BSD-3-Clause) adapted from
 upstream `cmd/tsconnect`, with its Go runtime and Go's `wasm_exec.js`. Source, pinned module checksums and the
-Tailscale license are under `src/SharpRail.Browser/Tailscale.Wasm`; the build serves the Go license and the
+Tailscale license are under `src/Tereditor.Browser/Tailscale.Wasm`; the build serves the Go license and the
 module license notices beside the module under `tailscale/licenses`.
 Tailscale is a trademark of Tailscale Inc.; this integration does not imply endorsement.
 
@@ -251,9 +251,9 @@ license texts in `licenses/Ghostty-Dependencies.txt`. FreeType is used under the
 (`licenses/FreeType-FTL.txt`). The Linux AppImage runtime statically links libfuse (LGPL-2.1,
 `licenses/LGPL-2.1.txt`); see `licenses/Copyleft-Components.md`.
 
-Interoperability. SharpRail talks to tools through their public protocols (Language Server Protocol, MCP, JSON-RPC,
+Interoperability. tereditor talks to tools through their public protocols (Language Server Protocol, MCP, JSON-RPC,
 the Claude Code and Codex CLIs' stream and hook formats, the JetBrains Context and intellij-lsp.nvim conventions).
-The IDE bridge in `src/SharpRail.Plugins.ClaudeCode/Host/IdeBridge` implements the MCP/JSON-RPC shapes a `claude` CLI
+The IDE bridge in `src/Tereditor.Plugins.ClaudeCode/Host/IdeBridge` implements the MCP/JSON-RPC shapes a `claude` CLI
 expects from an IDE, which Anthropic does not document; as the source comment states, they were read off the CLI
 itself and Anthropic's VS Code and JetBrains extensions, and the checks pin them. The Env plugins' JSON formats come
 from the tools' documentation.
@@ -262,6 +262,6 @@ The ACP plugin's `assets/acp.svg` is the Agent Client Protocol logomark from its
 (https://agentclientprotocol.com/brand), recoloured to currentColor on a square canvas; see NOTICE.
 
 Bun 1.4.4 (https://github.com/oven-sh/bun, MIT License; its release also carries the notices of the libraries linked into it,
-among them JavaScriptCore under the LGPL-2.1) is not bundled. SharpRail downloads the official release archive for the platform
+among them JavaScriptCore under the LGPL-2.1) is not bundled. tereditor downloads the official release archive for the platform
 on first use into its managed cache, after checking its pinned SHA-256, and starts it as a separate program to run the JavaScript
 language servers and the ACP plugin's npx agents.

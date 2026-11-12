@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
   </ItemGroup>

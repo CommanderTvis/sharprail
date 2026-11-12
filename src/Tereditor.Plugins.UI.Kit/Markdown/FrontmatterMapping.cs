@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 internal sealed class FrontmatterMapping : UserControl
 {

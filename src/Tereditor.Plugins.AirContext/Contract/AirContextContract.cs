@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.AirContext;
+namespace Tereditor.Plugins.AirContext;
 
 /// <summary>User-interface-only installation status, terms review or explicit consent followed by download. Never exposed to agent tools.</summary>
 public sealed record ContextConsentRequest(string Operation = "review", string ArtifactId = "", string TermsSha256 = "");
@@ -51,8 +51,8 @@ public static class AirContextContract
         Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.AirContext.Host.dll",
-        Ui = "SharpRail.Plugins.AirContext.UI.dll"
+        Host = "Tereditor.Plugins.AirContext.Host.dll",
+        Ui = "Tereditor.Plugins.AirContext.UI.dll"
     };
 }
 

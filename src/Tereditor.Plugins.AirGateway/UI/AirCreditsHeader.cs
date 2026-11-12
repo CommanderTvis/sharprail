@@ -6,11 +6,11 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.AirGateway.UI;
+namespace Tereditor.Plugins.AirGateway.UI;
 
 /// <summary>What the header item shows: nothing, the credits, or a warning with its reason in the tooltip.</summary>
 internal sealed record AirCreditsShown(bool Visible, string Text = "", string Tip = "", bool Warning = false);

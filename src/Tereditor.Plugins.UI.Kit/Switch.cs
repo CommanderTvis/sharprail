@@ -6,7 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>A labelled switch whose caller owns the checked state and handles requests to change it.</summary>
 public sealed partial class Switch : Button

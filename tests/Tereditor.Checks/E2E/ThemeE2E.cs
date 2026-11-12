@@ -7,13 +7,13 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ThemeE2E
 {
@@ -161,7 +161,7 @@ internal static class ThemeE2E
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "README.md"), "# clients\n");
         const string token = "theme-clients";
-        var server = SharpRail.Host.Remote.RemoteServer.Create(directory, System.Net.IPAddress.Loopback, 0, token);
+        var server = Tereditor.Host.Remote.RemoteServer.Create(directory, System.Net.IPAddress.Loopback, 0, token);
         Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
         try
         {

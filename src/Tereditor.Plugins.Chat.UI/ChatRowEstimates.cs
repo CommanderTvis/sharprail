@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// Heights guessed from a row's content before it has been laid out, after ThinkRail's rowHeightEstimates: lines of prose at a

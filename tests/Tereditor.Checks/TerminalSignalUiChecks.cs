@@ -1,16 +1,16 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Notifications;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Terminal;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Notifications;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Programs' signals in the workbench: OSC 9;4 progress on terminal tabs and in Projects, OSC 9/777 notifications
@@ -73,7 +73,7 @@ internal static class TerminalSignalUiChecks
         // An agent's terminal wears its agent's status, not the agent CLI's OSC 9;4 working bar, on every surface;
         // a plain shell beside it keeps its bar, and an error still shows.
         TerminalProgressStrip[] Strips() => [.. app.Window.GetLogicalDescendants().OfType<TerminalProgressStrip>()];
-        var agentRef = new SharpRail.Plugins.Api.TerminalRef(workspace, a);
+        var agentRef = new Tereditor.Plugins.Api.TerminalRef(workspace, a);
         app.State!.SetTerminalAgent(agentRef, new("claude", "/usr/bin/false"));
         Until(() => app.Workbench.State.Current.TerminalAgents.Any(agent => agent.Terminal == agentRef));
         View(a).Run("printf '\\033]9;4;3\\007'");
@@ -159,11 +159,11 @@ internal static class TerminalSignalUiChecks
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         T Named<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-        Require(Named<SharpRail.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled").IsChecked && Named<CheckBox>("BellSystem").IsChecked == true &&
+        Require(Named<Tereditor.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled").IsChecked && Named<CheckBox>("BellSystem").IsChecked == true &&
             Named<CheckBox>("BellTitle").IsChecked == false, "Settings show the host's terminal notification and bell choices.");
         Named<CheckBox>("BellTitle").IsChecked = true;
         Until(() => app.State.Current.Settings.BellFeatures == "system,title", "a bell box changes the host's bell features");
-        app.Click(Named<SharpRail.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled"), freshGesture: false);
+        app.Click(Named<Tereditor.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled"), freshGesture: false);
         Until(() => !app.State.Current.Settings.TerminalNotificationsEnabled, "the switch turns program notifications off");
         settings.Close();
 

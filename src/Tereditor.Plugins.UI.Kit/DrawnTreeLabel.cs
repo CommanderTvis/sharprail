@@ -5,7 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.VisualTree;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 internal sealed class DrawnTreeLabel : Decorator
 {

@@ -14,7 +14,7 @@ Upstream: packages/plugin-ui/SPEC.md @ 4737df6d (CommanderTvis fork)
 ## Responsibility
 
 The primitives, Markdown renderer, code editor frame and diagram view every plugin's UI half needs, moved out
-of `SharpRail.UI/Rendering` so a plugin can render UI without reaching into the app's state, host, themes
+of `Tereditor.UI/Rendering` so a plugin can render UI without reaching into the app's state, host, themes
 catalogue, workbench or panels. The app uses the same controls from here; there is one copy. In this commit
 the project is created empty with this spec, and the controls move into it as listed below.
 
@@ -93,7 +93,7 @@ The parameterless constructor, bindable label/state and change-request event sup
 layouts; the convenience constructor supplies the same contract from code. Programmatic state updates
 publish toggle automation changes without requesting another update.
 
-- Owns, in `SharpRail.Plugins.UI.Kit`:
+- Owns, in `Tereditor.Plugins.UI.Kit`:
   - Shared theme brushes, interface and code fonts, live theme updates, colour composition
     and primitive controls. All consumers use the same palette and control factories.
   - Semantic typography and layout roles are generated from the app’s authored design files.
@@ -111,7 +111,7 @@ publish toggle automation changes without requesting another update.
   - `ScopedSetting` provides configuration scope/source rows and their filter toolbar;
     `SettingValueDialog` composes typed setting values, with either a closed set of choices or open
     suggestions shown as chips over a text field that accepts any value. Agent account and terminal components
-    live in `SharpRail.Plugins.Agent.UI`, which depends on this kit.
+    live in `Tereditor.Plugins.Agent.UI`, which depends on this kit.
   - `SvgAsset` can tint `currentColor` from a shared solid brush and reloads on theme changes while
     attached. Mounted icons with identical byte-array assets and tint share a parsed SVG; the last
     detach releases it. This avoids repeated parsing during tree scrolling without retaining a cache
@@ -123,7 +123,7 @@ publish toggle automation changes without requesting another update.
     never mounted controls. The prototype brand mark remains raster until its original vector is available.
     Workbench tree expanders use the same original chevron mask, rotated when expanded, in their
     existing compact slot; stock Fluent's thin stretched chevrons do not substitute for the icon set.
-  - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
+  - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://Tereditor.Plugins.UI.Kit/Assets/…`.
 - Owns Markdown preview and source views, frontmatter presentation, links and the heading outline.
   Markdown panes below 640 logical pixels hide Split and fall back from Split to Preview, including restored views.
   The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
@@ -144,9 +144,9 @@ publish toggle automation changes without requesting another update.
   and edited-preview replacement request following after layout; preview scrolling never moves the source
   caret. Disabling following preserves independent scrolling through edits and mode changes.
   Cursor tracking does not change the source ranges reported for selections in the preview.
-- Owns, in `SharpRail.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
+- Owns, in `Tereditor.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
   line styles).
-- Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
+- Owns, in `Tereditor.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
   full-screen diagram rendering, pan and zoom). The full-screen viewer claims trackpad magnify gestures
   and clamps their scale through `ZoomGesture`.
   `MermaidRenderer` removes the implicit "/" root row that Mermaid's tree view (and Merman 0.7, matching it)
@@ -162,9 +162,9 @@ publish toggle automation changes without requesting another update.
   in the Visualize card, Markdown preview and their full-screen viewers.
 - Public API analyzers validate declarations against committed API baselines during compilation.
 - Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
-  `SharpRail.Scintilla`. The Merman native library stays copied by the app's project (the Android project packages the release's
+  `Tereditor.Scintilla`. The Merman native library stays copied by the app's project (the Android project packages the release's
   `.so` per ABI under the same name); the kit binds it by name.
-- Forbidden: any `SharpRail.Host.*` project, `SharpRail.UI`, and the plugin API assemblies. A parameter or
+- Forbidden: any `Tereditor.Host.*` project, `Tereditor.UI`, and the plugin API assemblies. A parameter or
   callback replaces every reach the moved code had: `MarkdownPreview` takes an image reader
   (`Func<string, CancellationToken, ValueTask<byte[]?>>`) instead of `IProjectServices`, a spec-link resolver
   instead of the workspace spec catalog, and its line width and bound instead of `Preferences`; `LineWidths`
@@ -271,7 +271,7 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 
 ## What moved, mapped from the fork
 
-| fork `@thinkrail/plugin-ui` | SharpRail |
+| fork `@thinkrail/plugin-ui` | tereditor |
 | --- | --- |
 | shadcn primitives: `button`, `dialog`, `dropdown-menu`, `context-menu`, `tooltip`/`IconTooltip` | `Ui.Button`/`Ui.IconButton` (tooltip and automation name from one string), `DialogWindow`, `Ui.Menu` items in Avalonia `ContextMenu`s |
 | `popover`, `resizable`, `command`, `textarea` | absent: Avalonia's own `Popup`, `GridSplitter`, `TextBox`; the command palette is the app's `SearchDialog` |
@@ -285,8 +285,8 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 | `SvgAsset` | `SvgAsset`, a control drawing SVG bytes through Svg.Skia, used for `asset:` icons |
 | `./markdown`: `Markdown`, `FrontmatterProperties`, frontmatter parsing, alerts, heading ids | `Markdown.MarkdownPreview`, `MarkdownDocumentView`, `MarkdownProperties`, `Frontmatter`, `MarkdownLink` |
 | `./markdown`: `CodeBlock`, `highlightCode`, Shiki theme | absent as separate pieces: code blocks are part of `MarkdownPreview`'s minimal tinting |
-| `./editor`: `MonacoEditor`, `monacoSetup`, `editorFont`, `editorWrapping` | `Editor.EditorFrame` over `SharpRail.Scintilla`; `CodeDocumentView`, which binds host saving, stays in the app |
-| `./editor`: review gutter and widgets | absent: SharpRail has no review commenting |
+| `./editor`: `MonacoEditor`, `monacoSetup`, `editorFont`, `editorWrapping` | `Editor.EditorFrame` over `Tereditor.Scintilla`; `CodeDocumentView`, which binds host saving, stays in the app |
+| `./editor`: review gutter and widgets | absent: tereditor has no review commenting |
 | `./visualization`: `MermaidView`, `PanZoomView`, `renderMermaid`, `zoomGesture` | `Visualization.MermaidRenderer`, `MermaidDialog` |
 | `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent for now: the fork's visualize tool card is an AI chat surface not ported yet |
 | `ToolFileLink` | absent: a chat tool card's file link |

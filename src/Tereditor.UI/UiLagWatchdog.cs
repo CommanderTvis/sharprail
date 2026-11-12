@@ -2,9 +2,9 @@ using System.Diagnostics;
 
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Tells a stalled UI thread from a stuck pane: a background timer posts a no-op to the UI thread every second and logs a WARN line

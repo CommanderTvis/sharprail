@@ -1,8 +1,8 @@
 {
   "Preferences": {
-    "Theme": "sharprail-dark",
+    "Theme": "tereditor-dark",
     "ThemeMode": "fixed",
-    "SystemThemePair": { "Light": "sharprail-light", "Dark": "sharprail-dark" },
+    "SystemThemePair": { "Light": "tereditor-light", "Dark": "tereditor-dark" },
     "FileLineWidth": 100,
     "FileLineWidthBounded": false,
     "MarkdownLineWidth": 80,

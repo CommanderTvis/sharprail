@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>
 /// The host's process facts and the owned-process registry, lent to the plugin that manages agent processes (H27). Every member reads

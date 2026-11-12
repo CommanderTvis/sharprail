@@ -5,10 +5,10 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.AirContext.UI;
+namespace Tereditor.Plugins.AirContext.UI;
 
 /// <summary>A workspace's retained, redacted Context output, refreshed while open.</summary>
 internal sealed partial class LogsWindow : Window

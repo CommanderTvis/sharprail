@@ -6,7 +6,7 @@ using Avalonia.Media;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// What a rendered diff shows: which top-level blocks of the merged document changed, which items of its changed

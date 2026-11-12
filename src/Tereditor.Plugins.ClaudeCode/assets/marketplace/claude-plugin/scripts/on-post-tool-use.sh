@@ -11,7 +11,7 @@ INPUT=$(cat)
 
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
 
-# TodoWrite rewrites the whole plan, so the report carries the whole plan — SharpRail renders it under
+# TodoWrite rewrites the whole plan, so the report carries the whole plan — tereditor renders it under
 # the terminal. Any other tool says nothing about todos and the last reported plan stands.
 if [ "$TOOL_NAME" = "TodoWrite" ]; then
 	TODOS=$(echo "$INPUT" | jq -c '[.tool_input.todos[]? | {content, status} + (if .activeForm then {activeForm} else {} end)]' 2>/dev/null)

@@ -6,9 +6,9 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell, CopyCode, Tip }
 
@@ -731,7 +731,7 @@ internal sealed class ChatRowLayout : IDisposable
     }
 
     /// <summary>
-    /// A review verdict read from a SharpRail review tool's output (the MCP <c>request_review</c> call), after upstream's RequestReviewCard:
+    /// A review verdict read from a tereditor review tool's output (the MCP <c>request_review</c> call), after upstream's RequestReviewCard:
     /// a one-line summary and the findings' comments. Null when the output is not a verdict, and the card is an ordinary tool card.
     /// </summary>
     internal static (string Summary, IReadOnlyList<string> Findings)? ReviewVerdict(string toolName, string? output)

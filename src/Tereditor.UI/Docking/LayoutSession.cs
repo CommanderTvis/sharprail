@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 public sealed partial class LayoutSession
 {

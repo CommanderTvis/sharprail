@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Editor;
+namespace Tereditor.UI.Editor;
 
 /// <summary>What the user decided when a save found the file changed on disk.</summary>
 internal enum SaveConflictChoice { Cancel, Compare, Overwrite, Reload }

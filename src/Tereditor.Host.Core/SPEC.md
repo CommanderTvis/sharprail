@@ -58,7 +58,7 @@ tokenization and remains independent of the editor/UI.
 - Owns filesystem access, project sessions, shared state, Git operations, bounded child processes,
   terminal sessions and their recorded output, and the raw-terminal support used by the relay.
 - Public operations follow the host abstraction contracts; implementation helpers stay internal.
-- Allowed deps: `SharpRail.Host.Abstractions`, `SharpRail.Plugins.Api.Host`, the .NET base library, the
+- Allowed deps: `Tereditor.Host.Abstractions`, `Tereditor.Plugins.Api.Host`, the .NET base library, the
   `git` executable and libc.
 - Forbidden: any UI, Avalonia, Protocol, Remote or Client reference; any AI/agent dependency.
 
@@ -82,11 +82,11 @@ and external-file reads; it does not reach into a window.
 ## Starting and stopping the host
 
 The desktop app composes one shared state store, terminal service and plugin runtime, plus a project
-session for each window. Its state defaults to `~/.sharprail`. Local terminal renderers call the
+session for each window. Its state defaults to `~/.tereditor`. Local terminal renderers call the
 terminal service directly. The separate loopback server supplies MCP and plugin routes, starting
 before the first shell or when a plugin first needs its URL.
 
-The remote server composes the same services under `SHARPRAIL_STATE_DIR`. Each request's root header
+The remote server composes the same services under `TEREDITOR_STATE_DIR`. Each request's root header
 selects its project session; bearer authentication protects the five RPC services. Workspace removal
 ends that workspace's shells. Server shutdown disposes the plugin runtime before the remaining host
 services. Changes flow back through state snapshots and terminal attachments, never UI callbacks.
@@ -117,7 +117,7 @@ Invalid input is rejected atomically; Core never tokenizes text.
   [Terminals.SPEC.md](Terminals.SPEC.md)): an explicit working directory, its own session, closed input,
   captured output, a wall-clock budget and, for Git, `LC_ALL=C` so diagnostics are parseable. Expiry and
   cancellation kill the child's whole process group. Launching an editor is the one unbounded spawn.
-- User shells receive the host environment minus `SHARPRAIL_TOKEN`, with `TERM=xterm-256color`,
+- User shells receive the host environment minus `TEREDITOR_TOKEN`, with `TERM=xterm-256color`,
   `COLORTERM=truecolor` and a UTF-8 locale when none is configured (without one, line editing is
   byte-oriented and a backspace over a multi-byte character corrupts the line).
 - No process isolation: a fault in Core is a fault of its composer. Separate processes sharing a state
@@ -137,11 +137,11 @@ Invalid input is rejected atomically; Core never tokenizes text.
   a launcher that opts in (the fork's `resolveShellEnv: true`, passed by its dev, CLI and desktop launchers). An
   embedder or test that does not opt in keeps the environment it was given: with the import on by default a
   test process copied the developer's login environment, provider API keys included, and later suites spent
-  real tokens. SharpRail's launchers would opt in the same way, and the host should read `${VAR}` references in
+  real tokens. tereditor's launchers would opt in the same way, and the host should read `${VAR}` references in
   configuration the user copies from vendor docs from the imported environment.
   Reuse the `PATH` probe: a marker-delimited, NUL-separated environment ignores shell startup chatter,
   with interactive login first and a login-only retry. Existing process variables win; exclude `PATH`,
-  `PWD`, `OLDPWD`, `SHLVL`, `_` and SharpRail's own `SHARPRAIL_*` controls. Imported exports become
+  `PWD`, `OLDPWD`, `SHLVL`, `_` and tereditor's own `TEREDITOR_*` controls. Imported exports become
   available to the host and its children, including secrets the user's shell exports.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
@@ -161,8 +161,8 @@ or shutdown. No language process runs in a client UI or requires a local RPC hop
 
 ## Workspace Context integration
 
-The host owns [optional Context search](../SharpRail.Plugins.AirContext/SPEC.md): consent-guarded pinned
-provisioning, explicit workspace enablement, automatic SharpRail agent-launch indexing,
+The host owns [optional Context search](../Tereditor.Plugins.AirContext/SPEC.md): consent-guarded pinned
+provisioning, explicit workspace enablement, automatic tereditor agent-launch indexing,
 managed processes/logs and workspace-bound semantic MCP tools. Local and remote clients
 share the implementation. No global agent setup or vendor watcher controls are invoked.
 The module spec records account/cache sharing, current artifact assumptions and the

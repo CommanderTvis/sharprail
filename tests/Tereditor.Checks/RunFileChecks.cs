@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Running a script with plain `dotnet run` in a directory with a project passes the script to the project and recurses into its build; a tracked file

@@ -26,7 +26,7 @@ The plugin owns everything an agent or the user can reach:
 
 - The `owned_process_report` and `owned_process_release` MCP tools (`context.Tool`; they moved out of `WorkspaceMcpTools` and `McpRoute`, names and wording unchanged).
 - The prompt section, now `plugin.processes.owned-processes` (it was `core.owned-processes`). A project that listed the old id in
-  `.sharprail/instructions.toml` should list the new one; the old id is then an unknown id, which is kept and ignored. The section follows the host's own text
+  `.tereditor/instructions.toml` should list the new one; the old id is then an unknown id, which is kept and ignored. The section follows the host's own text
   instead of preceding the `parallel-tasks` section.
 - The registry switch: activation calls `ManageOwned(true)`, which also sweeps the records of dead hosts (the sweep moved here from the terminal service's constructor);
   disposal calls `ManageOwned(false)`.

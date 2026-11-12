@@ -14,14 +14,14 @@ using Avalonia.VisualTree;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Skia renderer: libghostty-vt state drawn by Avalonia's Skia, with real headless input and pixels.
 internal static class GhosttySkiaChecks
@@ -186,7 +186,7 @@ internal static class GhosttySkiaChecks
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
         var window = new Window { Width = 240, Height = 160, Content = view };
         var opened = new List<TerminalLink>();
-        TerminalLink Link(string text) => new(text.IndexOf("abcdef12", StringComparison.Ordinal), 8, "sharprail-commit:abcdef12", 1, 1, false);
+        TerminalLink Link(string text) => new(text.IndexOf("abcdef12", StringComparison.Ordinal), 8, "tereditor-commit:abcdef12", 1, 1, false);
         Task<IReadOnlyList<TerminalLink>> Resolve(string text, CancellationToken token) =>
             Task.FromResult<IReadOnlyList<TerminalLink>>(text.Contains("abcdef12", StringComparison.Ordinal) ? [Link(text)] : []);
         view.ResolveFileLinks = Resolve;

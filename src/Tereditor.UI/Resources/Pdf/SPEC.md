@@ -21,7 +21,7 @@ zoom in, reset), pinch and Command- or Control-wheel zoom, and a reload whenever
 
 ## Core composition
 
-`SharpRail.UI/Resources/Pdf` owns the viewer, compiled XAML, selection layer and PDFium engine.
+`Tereditor.UI/Resources/Pdf` owns the viewer, compiled XAML, selection layer and PDFium engine.
 The resource registry offers PDF preview ahead of the binary file card. Ordinary file tabs and
 persisted legacy PDF viewer tabs use this same registry. No PDF plugin manifest, module, contract
 or assembly remains. External file viewers retain their existing override behavior.
@@ -38,12 +38,12 @@ fallback must remain selectable, and old viewer-kind tabs must restore into the 
 
 ## Rendering: PDFium, not pdf.js, PDFKit or a native view
 
-The fork renders with pdf.js because a browser `<iframe>` hides the macOS pinch from the page. SharpRail has no
+The fork renders with pdf.js because a browser `<iframe>` hides the macOS pinch from the page. tereditor has no
 browser, so the choice is between macOS's PDFKit and a managed binding to a cross-platform renderer:
 
 - PDFKit's `PDFView` is a native `NSView`. Embedding it would need the Ghostty bridge's native-control path, which
   cannot run in the headless checks (so the fork's e2e could not be translated), and it would leave Linux, where
-  SharpRail's CI runs the checks, with no viewer at all. Rasterizing through CoreGraphics' `CGPDFDocument` avoids
+  tereditor's CI runs the checks, with no viewer at all. Rasterizing through CoreGraphics' `CGPDFDocument` avoids
   the view but has no text extraction, so selection would need PDFKit through the Objective-C runtime anyway.
 - PDFium, the renderer Chrome uses, through its C API: page rasterization at any scale into a buffer Avalonia draws,
   and per-character text with boxes for a selection layer, on macOS and Linux alike, in-process and headless. The
@@ -88,7 +88,7 @@ not shift the selection geometry.
 - Zoom: the toolbar steps by `ZoomGesture.ScaleStep`; a Command- or Control-wheel and a trackpad pinch
   (`PointerTouchPadGestureMagnify`) zoom continuously, clamped by `ZoomGesture.Clamp`. These come from the kit's
   `Visualization.ZoomGesture`, the counterpart of the fork kit's `zoomGesture` (`clampZoomScale`,
-  `zoomScaleForWheel`, `isZoomGesture`, `ZOOM_SCALE_STEP`), added to the kit with this plugin since SharpRail's kit
+  `zoomScaleForWheel`, `isZoomGesture`, `ZOOM_SCALE_STEP`), added to the kit with this plugin since tereditor's kit
   had no shared zoom math. The preview claims bubbling pinch gestures over its pages and toolbar so they never change application zoom.
 - The live scale stretches the pixels rasterized last; the pages are rasterized again once the scale holds still
   for 120 ms (`PDF_RASTER_SETTLE_MS`), so a continuous pinch never asks for a render per event. A rasterization
@@ -103,7 +103,7 @@ not shift the selection geometry.
 
 ## Checks
 
-`tests/SharpRail.Checks/PdfPreviewChecks.cs`, run by the full suite, `-- --plugins` and `-- --pdf-preview`, with the fork's
+`tests/Tereditor.Checks/PdfPreviewChecks.cs`, run by the full suite, `-- --plugins` and `-- --pdf-preview`, with the fork's
 minimal one-page fixture generated with correct offsets for each text:
 
 - drawn portrait pages at 1× and 2× backing density: all four corner landmarks remain visible on both

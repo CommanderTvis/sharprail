@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>One process of a terminal's tree. <see cref="Started"/> tells a reused pid from the process it replaced.</summary>
 internal readonly record struct GuardedProcess(int Pid, string Name, long Bytes, long Started);
@@ -142,7 +142,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     if (!alive) { Settle(watch); goto default; }
                     var victim = tree.First(process => Same(process, watch.Victim));
                     killer.Kill(victim);
-                    Raise(target, GuardEventKind.Killed, $"SharpRail killed {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: it did not stop within {setting.GraceSeconds} s ({reason})");
+                    Raise(target, GuardEventKind.Killed, $"tereditor killed {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: it did not stop within {setting.GraceSeconds} s ({reason})");
                     watch.State = GuardState.Killing;
                     break;
                 }
@@ -152,7 +152,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     var rest = tree.Where(process => !setting.Protects(process.Name)).ToArray();
                     // Children first, so a parent cannot restart what was just ended.
                     foreach (var process in rest.OrderByDescending(process => process.Pid)) killer.Kill(process);
-                    Raise(target, GuardEventKind.TreeKilled, $"SharpRail killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}): the terminal stayed over its limit ({reason})");
+                    Raise(target, GuardEventKind.TreeKilled, $"tereditor killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}): the terminal stayed over its limit ({reason})");
                     Settle(watch);
                     break;
                 }
@@ -161,7 +161,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     if (over && Victim(tree, setting) is { } victim)
                     {
                         killer.Terminate(victim);
-                        Raise(target, GuardEventKind.Stopped, $"SharpRail stopped {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: {reason}");
+                        Raise(target, GuardEventKind.Stopped, $"tereditor stopped {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: {reason}");
                         watch.State = GuardState.Terminating;
                         watch.Victim = victim;
                         watch.Deadline = now + TimeSpan.FromSeconds(setting.GraceSeconds);
@@ -174,7 +174,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                         if (!watch.ProtectedReported)
                         {
                             watch.ProtectedReported = true;
-                            Raise(target, GuardEventKind.Protected, $"{target.Name} uses {Size(bytes)}, over its limit ({reason}), but {largest} is protected: SharpRail will not stop it");
+                            Raise(target, GuardEventKind.Protected, $"{target.Name} uses {Size(bytes)}, over its limit ({reason}), but {largest} is protected: tereditor will not stop it");
                         }
                     }
                     else if (bytes >= limit * WarnAt && watch.State == GuardState.Ok)

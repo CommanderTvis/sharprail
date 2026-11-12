@@ -4,13 +4,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.ClaudeCode.UI;
+using Tereditor.Checks.E2E;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.ClaudeCode.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Context surface's <c>/context</c> baseline: the report parser, the runner, the appended prompt difference, its triggers, live usage and the table rows.</summary>
 internal static class ClaudeContextChecks

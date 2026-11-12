@@ -3,10 +3,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>Explicit host-authenticated language and enabled-plugin MCP access without a terminal or agent process.</summary>
 public static class HeadlessLanguageMcp

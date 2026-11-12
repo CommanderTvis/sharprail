@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>What a client connected through Tailscale may not turn off, since doing so would cut its own connection.</summary>
 public static class TailscaleDependence

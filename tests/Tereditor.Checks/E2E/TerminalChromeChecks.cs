@@ -6,11 +6,11 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class TerminalChromeChecks
 {
@@ -198,7 +198,7 @@ internal static class TerminalChromeChecks
         var presenter = button.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
             .Single(item => item.Name == "PART_ContentPresenter");
         var original = Ui.Theme;
-        foreach (var theme in SharpRail.UI.Rendering.Themes.All)
+        foreach (var theme in Tereditor.UI.Rendering.Themes.All)
         {
             Ui.Apply(theme);
             app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();

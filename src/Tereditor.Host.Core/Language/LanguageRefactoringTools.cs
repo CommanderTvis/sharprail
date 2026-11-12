@@ -2,9 +2,9 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>The MCP tools that change code through a language server: code actions, rename and format. See Refactoring.SPEC.md.</summary>
 internal static class LanguageRefactoringTools

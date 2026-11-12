@@ -1,4 +1,4 @@
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// How many lines a workspace title may take in the Projects rail. A project's list shares one budget, so its rows do not

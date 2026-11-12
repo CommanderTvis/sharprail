@@ -16,14 +16,14 @@ The plugin id is `lsp-intellij`; it ships enabled. Its host half is a `LanguageS
 the catalog, its sessions stop and its saved settings are kept. Implementation: IntelliJ Java and Kotlin · JetBrains · requires a JetBrains license (a free 30-day trial per build, then an IntelliJ IDEA Ultimate subscription).
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 The plugin owns the pinned distribution (SHA-256 per platform, JetBrains hosts only, bounded and traversal-safe
 extraction), its terms review (the EULA bytes and a fingerprint of the whole installation) and the acknowledged
 launcher (`--stdio --system-path <session directory> --eula <hash prefix>`, launcher debugging variables removed).
 It replaces `java` and `kotlin` when chosen, accepts an installation directory, project JDK and build importer,
 refuses overrides and its protocol arguments in configured ones, reads `jar:`/`jrt:` sources through the public
-`decompile` command, and treats every server exit alike (the released build is licensed through the protocol, not an exit code). A build directory marked `.expired` by an older SharpRail carries its own build number, so the marker never applies to the current build, which installs beside it. The Kotlin plugin keeps its own copy
+`decompile` command, and treats every server exit alike (the released build is licensed through the protocol, not an exit code). A build directory marked `.expired` by an older tereditor carries its own build number, so the marker never applies to the current build, which installs beside it. The Kotlin plugin keeps its own copy
 of the shared JVM initialization.
 
 
@@ -37,7 +37,7 @@ The server licenses itself over `jetbrains/licensing/*` requests and the `jetbra
 advertises `experimental.licensingUi`, which makes the server push whole states and stop its own warnings; it also accepts
 `window/showDocument` for the sign-in page). A build has a free 30-day trial, then needs an IntelliJ IDEA Ultimate
 subscription, an activation code or a license server. The license store belongs to the operating-system user and only the
-server writes it; SharpRail never reads or writes it. The plugin tracks the last state per session, publishes a projection
+server writes it; tereditor never reads or writes it. The plugin tracks the last state per session, publishes a projection
 (`kind`: `licensed`, `session-expired`, `grace`, `parked`, `unlicensed` or `authenticating`, with the message, source, days left,
 valid-through date, grace deadline, account, license server, subscriptions, a notice and the sign-in page) and, while
 `parked`, `unlicensed` or `authenticating`, holds language answers with "No active license. Activate a license to use Java and
@@ -56,7 +56,7 @@ in the browser of the machine running the UI.
 
 Offline activation code (headless): a directory or file mounted at `/license`, or named by `INTELLIJ_SERVER_LICENSE_FILE`, is taken as input before launch: the downloaded zip (its entry "for 2018.2 or later" only), the extracted text files, or one bare file. The shape is checked (licence id, three base64 parts, JSON starting with `licenseId`); a directory with several licences uses the one that includes IntelliJ IDEA, else reports the ids as ambiguous. The chosen code is written to a private file in the launch's session directory (under the cache, never into the mount) and only that path is set as `INTELLIJ_SERVER_LICENSE_FILE` for the server, which reads it into memory (its documented semantics); `INTELLIJ_SERVER_LICENSE` and `JETBRAINS_LICENSE_SERVER` win and the mount is then ignored. The licence id, a kind (`provided`, `expired`, `invalid`, `ambiguous`, `unreadable`, `unchecked`, `overridden`) and a sentence are published as `mountedLicense` and added to the hold message; the code, the file names and the account never appear in a message, argument or log. An expired-looking licence is still handed over. Not verified against a real server.
 
-Without a window (headless) the server exists only when the environment asks for it (`SHARPRAIL_PREFETCH`); the host downloads the pinned archive, shows the full terms from it, and asks for the same agreement with a tool, a prompt or an environment variable; the plugin pins the SHA-256 of the terms file of its archives for that. Headless never starts the trial and never signs in: it needs a license from the environment or the server's discovery, and an unlicensed server is superseded by the previous one (the unlicensed hold message names those routes there).
+Without a window (headless) the server exists only when the environment asks for it (`TEREDITOR_PREFETCH`); the host downloads the pinned archive, shows the full terms from it, and asks for the same agreement with a tool, a prompt or an environment variable; the plugin pins the SHA-256 of the terms file of its archives for that. Headless never starts the trial and never signs in: it needs a license from the environment or the server's discovery, and an unlicensed server is superseded by the previous one (the unlicensed hold message names those routes there).
 
 First-start consent: the terms review asks the region (`europe`, `africa`, `americas`, `apac`, `china`, `middle_east`,
 `oceania`) and data sharing (`full`, `anonymous`, `none`), unanswered until chosen. The launch passes them as
@@ -65,10 +65,10 @@ First-start consent: the terms review asks the region (`europe`, `africa`, `amer
 ## Superseded builds
 
 When a managed build installs and passes its checksum, older managed builds of the same platform beside it, and their
-`.expired` markers left by earlier SharpRail versions, are removed in the background. A user-selected installation
+`.expired` markers left by earlier tereditor versions, are removed in the background. A user-selected installation
 directory, the installed build, other platforms and any build a session of this process still runs from (known by its
 session directory) are kept; a deletion that fails is ignored and retried at the next install. A session of another
-SharpRail process on the same machine is not known, so its build can be removed.
+tereditor process on the same machine is not known, so its build can be removed.
 
 ## Primed index in new workspaces
 

@@ -17,15 +17,15 @@ using Avalonia.VisualTree;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class UiChecks
 {
@@ -84,7 +84,7 @@ internal static class UiChecks
     internal static void RunWorkspaceSuites(string root)
     {
         Gate.Case("context-consent-ui", () => AirContextChecks.Ui(root));
-        Gate.Case("sharprail-exclude-ui", () => SharprailExcludeChecks.Ui(root));
+        Gate.Case("tereditor-exclude-ui", () => TereditorExcludeChecks.Ui(root));
         Gate.Case("language-editor", () => LanguageChecks.UiChecks(root));
         Gate.Case("ProjectsE2E", () => E2E.ProjectsE2E.Run(root));
         Gate.Case("windows-ui", () => WindowsChecks.RunUi(root));
@@ -341,7 +341,7 @@ internal static class UiChecks
             "Activating a rail entry did not show its tool and press it.");
         Require(Find<DrawnTree>(window, "FilesTree").Items.Count >= 3, "File tree is empty.");
         var filesTree = Find<DrawnTree>(window, "FilesTree");
-        var readmeNode = filesTree.Rows.Single(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "README.md" });
+        var readmeNode = filesTree.Rows.Single(item => item.Tag is Tereditor.Host.Abstractions.ProjectFile { Path: "README.md" });
         var readmeRow = E2E.E2eWorkspace.TreeRow(filesTree, readmeNode.Id);
         Click(window, readmeRow);
         var selectedFileRow = filesTree.ContainerFromItem(readmeNode)!.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First();

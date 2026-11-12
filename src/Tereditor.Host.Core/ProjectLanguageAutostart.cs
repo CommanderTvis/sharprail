@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class HostStateStore
 {

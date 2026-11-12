@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Recent terminal output for attaching clients, following upstream's output recorder. A fresh view gets a
 // bounded snapshot of the main screen: raw bytes, never the alternate screen and never a mode sequence

@@ -1,6 +1,6 @@
-using SharpRail.UI.Notifications;
+using Tereditor.UI.Notifications;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 internal sealed class BrowserNotifier : IDesktopNotifier
 {

@@ -4,11 +4,11 @@ using System.Text.Json;
 
 using Avalonia.Controls;
 
-using SharpRail.UI.Panels;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // A headless app controlled over stdin by the real Chromium journey. No test HTTP routes are exposed.
 internal static class LocalBrowserApprovalFixture

@@ -8,11 +8,11 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.PluginFixture.Outsider;
+namespace Tereditor.PluginFixture.Outsider;
 
 /// <summary>The outsider's own settings: how often it was activated and clicked, and the greeting its asset gave.</summary>
 public sealed record OutsiderSettings

@@ -5,20 +5,20 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class WorkspaceTabsE2E
 {
     internal static void Run(string root)
     {
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))
         {
-            Console.WriteLine("SKIP upstream workspace-tabs: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream workspace-tabs: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         DocumentIsolation(Repository(root, "workspace-tabs-documents", source));
@@ -59,7 +59,7 @@ internal static class WorkspaceTabsE2E
         var path = Path.Combine(root, name);
         Git(root, "clone", "--no-local", "--depth=1", "--no-checkout", new Uri(Path.GetFullPath(source)).AbsoluteUri, path);
         Git(path, "sparse-checkout", "init", "--cone");
-        Git(path, "sparse-checkout", "set", ".sharprail-test-only");
+        Git(path, "sparse-checkout", "set", ".tereditor-test-only");
         Git(path, "checkout", "HEAD");
         return path;
     }
@@ -81,8 +81,8 @@ internal static class WorkspaceTabsE2E
         var project = app.Window.ProjectRoot;
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddWorkspace" && button.IsEnabled));
         app.Click(app.Find<Button>("AddWorkspace"));
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
         Settle(100);
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"));
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot != project && app.Find<TextBlock>("BranchLabel").Text == name);

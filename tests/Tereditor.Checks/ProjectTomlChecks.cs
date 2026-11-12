@@ -1,12 +1,12 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Codex.Host;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Codex.Host;
 
 using Tomlyn;
 using Tomlyn.Model;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// TOML read through generated Tomlyn metadata means what the reflection reader made of it: representative project files
@@ -70,10 +70,10 @@ internal static class ProjectTomlChecks
             [projects."/Users/someone/project"]
             trust_level = "trusted"
 
-            [mcp_servers.sharprail]
-            command = "sharprail"
+            [mcp_servers.tereditor]
+            command = "tereditor"
             args = ["mcp", "--workspace", "/Users/someone/project"]
-            env = { SHARPRAIL_TOKEN = "secret" }
+            env = { TEREDITOR_TOKEN = "secret" }
             startup_timeout_sec = 20.5
 
             [profiles.fast]

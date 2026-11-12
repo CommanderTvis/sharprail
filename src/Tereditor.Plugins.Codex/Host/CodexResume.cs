@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// The editable command a revived Codex tab is offered: the configured invocation with its supported options kept,
@@ -35,8 +35,8 @@ public static partial class CodexResume
 
     private static string? Invocation(string command, string? model = null, string? effort = null)
     {
-        // SharpRail's own instructions are regenerated from the current setting, never carried over.
-        var appended = CodexLaunch.HasSharpRailPrompt(command);
+        // tereditor's own instructions are regenerated from the current setting, never carried over.
+        var appended = CodexLaunch.HasTereditorPrompt(command);
         if (appended) command = command[(CodexLaunch.PromptLaunchPrefix.Length + 1)..];
         if (command.StartsWith(CodexLaunch.UiLaunchPrefix + " ", StringComparison.Ordinal)) command = command[(CodexLaunch.UiLaunchPrefix.Length + 1)..];
         var tokens = new List<string>();
@@ -91,7 +91,7 @@ public static partial class CodexResume
     /// </summary>
     public static string? Command(string command, string? sessionId, bool mcp, bool windows, string? permissionMode, string? home = null,
         bool appendSystemPrompt = false, bool uiLaunch = false, string? model = null, string? effort = null,
-        IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution>? contributions = null, bool fresh = false, CodexDaemonMode? daemon = null)
+        IReadOnlyList<Tereditor.Plugins.Api.AgentLaunchContribution>? contributions = null, bool fresh = false, CodexDaemonMode? daemon = null)
     {
         if (Invocation(command, model, effort) is not { } invocation) return null;
         return CodexLaunch.Line(invocation, new(mcp, windows)
@@ -117,7 +117,7 @@ public static partial class CodexResume
     [GeneratedRegex(@"^\w+=")]
     private static partial Regex Assignment();
 
-    [GeneratedRegex("""^['"]?mcp_servers\.(?:sharprail|thinkrail)\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check|lsp_navigate|lsp_diagnostics|lsp_status|lsp_code_actions|lsp_rename|lsp_format|context_search|context_status|context_index)\.approval_mode)=""")]
+    [GeneratedRegex("""^['"]?mcp_servers\.(?:tereditor|thinkrail)\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check|lsp_navigate|lsp_diagnostics|lsp_status|lsp_code_actions|lsp_rename|lsp_format|context_search|context_status|context_index)\.approval_mode)=""")]
     private static partial Regex McpOverride();
 
     [GeneratedRegex("""^['"]?developer_instructions=""")]

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using VersOne.Epub;
 using VersOne.Epub.Options;
 
-namespace SharpRail.Plugins.Epub.Host;
+namespace Tereditor.Plugins.Epub.Host;
 
 /// <summary>A parsed package: the converted book and its byte resources by package path.</summary>
 internal sealed record ConvertedBook(EpubBook Book, IReadOnlyDictionary<string, byte[]> Resources);

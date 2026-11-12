@@ -4,13 +4,13 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// What the window gives a repo hosting plugin's UI (W28): the branch status it already follows, the host calls its pull

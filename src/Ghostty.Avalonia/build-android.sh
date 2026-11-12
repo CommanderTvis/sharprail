@@ -25,7 +25,7 @@ ndk="${ANDROID_NDK_HOME:-$("$project/../../scripts/tool" android-ndk)}"
 [ -f "$ndk/source.properties" ] || { echo "No Android NDK at $ndk; run scripts/mise install with MISE_ENV=android." >&2; exit 1; }
 . "$project/../../scripts/lock.sh"
 . "$project/../../scripts/native-cache.sh"
-work="$(sharprail_cache_dir)/ghostty-avalonia"
+work="$(tereditor_cache_dir)/ghostty-avalonia"
 mkdir -p "$work/results"
 work="$(cd "$work" && pwd -P)"
 

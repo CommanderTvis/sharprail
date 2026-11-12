@@ -1,9 +1,9 @@
 using System.Net;
 using System.Security.Cryptography;
 
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>In-memory browser approvals owned by one embedded listener generation.</summary>
 public sealed class LocalBrowserConnections(Func<string, CancellationToken, Task<bool>> confirm) : IDisposable

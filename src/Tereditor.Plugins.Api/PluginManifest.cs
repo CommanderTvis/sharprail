@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// The static description of a plugin: identity, versioning, its two entry assemblies, and what it declares
@@ -17,7 +17,7 @@ namespace SharpRail.Plugins.Api;
 public sealed record PluginManifest(string Id, string Label, string Icon, string Version, int ApiGeneration, int WireVersion)
 {
     /// <summary>The manifest file an external plugin ships at the root of its directory.</summary>
-    public const string FileName = "sharprail-plugin.json";
+    public const string FileName = "tereditor-plugin.json";
 
     /// <summary>One sentence on what the plugin does, shown under its label in Settings.</summary>
     public string? Description { get; init; }
@@ -46,7 +46,7 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     public IReadOnlyList<HostKind> UnavailableOn { get; set; } = [];
 
     /// <summary>
-    /// Whether the plugin works in headless SharpRail, which has no window, terminal or agent of its own. A headless host
+    /// Whether the plugin works in headless tereditor, which has no window, terminal or agent of its own. A headless host
     /// runs only plugins that say <see cref="HeadlessSupport.Yes"/>, and refuses a dependent of a plugin it does not run.
     /// A builtin plugin must state it, so the default <see cref="HeadlessSupport.Undeclared"/> fails a check.
     /// </summary>
@@ -85,7 +85,7 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     public PluginContributions Contributes { get; set; } = new();
 
     /// <summary>
-    /// Agent resources the ThinkRail manifest format declares for pi sessions. SharpRail has no in-process
+    /// Agent resources the ThinkRail manifest format declares for pi sessions. tereditor has no in-process
     /// agent, so the block is parsed for compatibility and otherwise ignored.
     /// </summary>
     public PluginPiBlock? Pi { get; init; }
@@ -101,7 +101,7 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
 /// <param name="WireVersion">The exact wire version the dependency must be running.</param>
 public sealed record PluginDependency(string Id, int WireVersion);
 
-/// <summary>The ThinkRail manifest's pi block, read so a shared manifest parses; SharpRail does not act on it.</summary>
+/// <summary>The ThinkRail manifest's pi block, read so a shared manifest parses; tereditor does not act on it.</summary>
 public sealed record PluginPiBlock
 {
     /// <summary>Extension entries for pi's resource loader.</summary>

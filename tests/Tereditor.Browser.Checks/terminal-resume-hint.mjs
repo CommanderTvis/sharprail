@@ -6,15 +6,15 @@ import { fileURLToPath } from 'node:url';
 import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const assets = process.env.SHARPRAIL_BROWSER_ASSETS_ROOT ?? root;
+const assets = process.env.TEREDITOR_BROWSER_ASSETS_ROOT ?? root;
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import(path.join(assets, 'src/SharpRail.Browser/node_modules/playwright/index.mjs'));
-const vendor = path.join(assets, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle/vendor');
+const { chromium } = await import(path.join(assets, 'src/Tereditor.Browser/node_modules/playwright/index.mjs'));
+const vendor = path.join(assets, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle/vendor');
 const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://localhost').pathname;
     if (url === '/') { response.end('<!doctype html><body><button id="other">Other input</button></body>'); return; }
-    const file = url.startsWith('/vendor/') ? path.join(vendor, url.slice(8)) : path.join(root, 'src/SharpRail.Browser/wwwroot', url.slice(1));
+    const file = url.startsWith('/vendor/') ? path.join(vendor, url.slice(8)) : path.join(root, 'src/Tereditor.Browser/wwwroot', url.slice(1));
     response.setHeader('Content-Type', file.endsWith('.wasm') ? 'application/wasm' : file.endsWith('.js') ? 'text/javascript' : 'application/octet-stream');
     response.end(await fs.readFile(file));
   } catch { response.statusCode = 404; response.end(); }
@@ -27,7 +27,7 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await page.evaluate(async () => {
     globalThis.bridge = await import('/restty-bridge.js');
-    const events = await import('/sharprail.js');
+    const events = await import('/tereditor.js');
     globalThis.messages = [];
     events.registerEvents(message => {
       if (!message.startsWith('restty:')) return;

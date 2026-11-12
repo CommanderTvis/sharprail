@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>
 /// Keeps the account usage fresh without anyone asking: <c>claude -p /usage</c> starts no model turn and spends no tokens, so

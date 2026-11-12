@@ -4,9 +4,9 @@ using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class MarkdownLinksE2E
 {

@@ -7,12 +7,12 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Upstream's rendered Markdown diff cases. The reference merges in a web worker and watches browser
@@ -24,7 +24,7 @@ internal static class RenderedDiffE2E
     {
         if (Source is not { } source)
         {
-            Console.WriteLine("SKIP upstream rendered Markdown diff: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream rendered Markdown diff: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         Toggle(root, source);

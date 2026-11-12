@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>The one bounded runner for prompt-free children: every Git, <c>gh</c> call goes through it.</summary>
 /// <remarks>

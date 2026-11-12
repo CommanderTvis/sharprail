@@ -13,7 +13,7 @@
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="HarfBuzzSharp" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
     <Content Include="licenses/RoyalTerminal-MIT.txt" Link="licenses/RoyalTerminal-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
@@ -33,8 +33,8 @@
   <ItemGroup Condition="'$(GhosttyWindowsRid)' != ''">
     <Content Include="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll" Link="GhosttyAvaloniaVt.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup Condition="'$(SharpRailLinuxRid)' != ''">
-    <Content Include="$(GhosttyNativeCache)/$(SharpRailLinuxRid)/libGhosttyAvaloniaVt.so" Link="libGhosttyAvaloniaVt.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  <ItemGroup Condition="'$(TereditorLinuxRid)' != ''">
+    <Content Include="$(GhosttyNativeCache)/$(TereditorLinuxRid)/libGhosttyAvaloniaVt.so" Link="libGhosttyAvaloniaVt.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Native libraries are MSBuild targets: they rebuild when a source, the recipe or the lockfile is newer than the output. -->
   <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(GhosttyWindowsRid)' != '' and '$(DesignTimeBuild)' != 'true'"
@@ -42,18 +42,18 @@
           Outputs="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll">
     <Exec Command="$(MiseRun) powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(GhosttyNativeCache)&quot;" />
   </Target>
-  <Target Name="BuildGhosttyLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(SharpRailLinuxRid)' != '' and '$(DesignTimeBuild)' != 'true'"
+  <Target Name="BuildGhosttyLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(TereditorLinuxRid)' != '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-linux.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
-          Outputs="$(GhosttyNativeCache)/$(SharpRailLinuxRid)/libGhosttyAvaloniaVt.so">
-    <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-linux.sh&quot; &quot;$(SharpRailLinuxRid)&quot; &quot;$(GhosttyNativeCache)&quot;" />
+          Outputs="$(GhosttyNativeCache)/$(TereditorLinuxRid)/libGhosttyAvaloniaVt.so">
+    <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-linux.sh&quot; &quot;$(TereditorLinuxRid)&quot; &quot;$(GhosttyNativeCache)&quot;" />
   </Target>
-  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
+  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-native.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
           Outputs="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib;$(GhosttyNativeCache)/libGhosttyAvaloniaVt.dylib">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; &quot;$(RuntimeIdentifier)&quot; &quot;$(GhosttyNativeCache)&quot;" />
   </Target>
   <!-- Declared apart from the build so that an up-to-date build still packages the libraries. -->
-  <Target Name="IncludeGhosttyNative" DependsOnTargets="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
+  <Target Name="IncludeGhosttyNative" DependsOnTargets="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == ''">
     <ItemGroup>
       <GhosttyResources Include="$(GhosttyNativeCache)/resources/**/*" />
       <Content Include="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib" Link="libGhosttyAvaloniaView.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

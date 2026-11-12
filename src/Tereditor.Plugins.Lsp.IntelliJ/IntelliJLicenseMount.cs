@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 /// <summary>What became of a licence directory or file: a kind, the licence id (never the code or the account) and a sentence for the user.</summary>
 /// <param name="Kind"><c>provided</c>, <c>expired</c> (still provided), <c>invalid</c>, <c>ambiguous</c>, <c>unreadable</c>, <c>unchecked</c> or <c>overridden</c>.</param>

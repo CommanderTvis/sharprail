@@ -3,11 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 /// <summary>
 /// The Git Graph side tool: the project's branches drawn as commit history, lane-laid, paged and windowed. Clicking a

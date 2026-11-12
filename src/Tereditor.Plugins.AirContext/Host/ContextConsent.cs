@@ -5,9 +5,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.AirContext;
+using Tereditor.Plugins.AirContext;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 internal sealed class ContextConsent(string storage, HttpClient http, ContextBundle bundle)
 {

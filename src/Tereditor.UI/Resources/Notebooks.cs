@@ -7,9 +7,9 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>An output is text, or one raster picture; markup outputs are named, never drawn.</summary>
 internal sealed record NotebookOutput(string Text, byte[]? Picture, bool IsError);

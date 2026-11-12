@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>
 /// A line diff, so an edit can be read before it is written. The point is spotting what an edit removed: a generated

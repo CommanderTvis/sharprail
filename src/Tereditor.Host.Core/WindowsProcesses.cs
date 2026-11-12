@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal static class WindowsProcesses
 {

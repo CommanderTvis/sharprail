@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Resources.Pdf;
+namespace Tereditor.UI.Resources.Pdf;
 
 /// <summary>One page read by a platform's PDFium runtime, with boxes as x, y, width, height.</summary>
 internal sealed record PdfPlatformPage(double Width, double Height, string Text, double[][] Boxes);

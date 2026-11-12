@@ -1,6 +1,6 @@
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Linux file-manager reveal: URI building, command selection, AppImage environment cleaning and per-platform wording.</summary>
 internal static class FileManagerChecks

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>
 /// The host's side of an external plugin's UI half, as a client reaches it: the plugin runs in its one process on the

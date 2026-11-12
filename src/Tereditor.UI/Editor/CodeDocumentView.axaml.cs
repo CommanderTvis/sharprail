@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Scintilla;
+using Tereditor.Host.Abstractions;
+using Tereditor.Scintilla;
 
-namespace SharpRail.UI.Editor;
+namespace Tereditor.UI.Editor;
 
 internal sealed partial class CodeDocumentView : UserControl, IDisposable
 {

@@ -3,9 +3,9 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 /// <summary>The client-local bootstrap, usable before any host plugin context exists.</summary>
 public sealed class TailscaleClient : IDisposable
@@ -59,7 +59,7 @@ public sealed class TailscaleClient : IDisposable
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeout.CancelAfter(TimeSpan.FromSeconds(2));
                 var uri = await bootstrap(peer.Address, timeout.Token);
-                using var reply = await http.GetAsync(new Uri(uri, "sharprail"), timeout.Token);
+                using var reply = await http.GetAsync(new Uri(uri, "tereditor"), timeout.Token);
                 reply.EnsureSuccessStatusCode();
                 var info = await reply.Content.ReadFromJsonAsync(PluginJson.TypeInfo<TailscaleHostInfo>(), timeout.Token);
                 return info is null ? null : new TailscalePeer(info.Name, peer.Address);
@@ -79,8 +79,8 @@ public sealed class TailscaleClient : IDisposable
         progress?.Invoke("Approve this device on the host in Settings › Tailscale. Compare code " + Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(pairing.Token)))[..8].ToUpperInvariant() + ".");
         while (true)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(uri, "sharprail/pair"));
-            request.Headers.Add("X-SharpRail-Pairing", pairing.Token);
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(uri, "tereditor/pair"));
+            request.Headers.Add("X-tereditor-Pairing", pairing.Token);
             using var response = await http.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
             var reply = await response.Content.ReadFromJsonAsync(PluginJson.TypeInfo<TailscalePairReply>(), cancellationToken) ?? throw new IOException("The host sent an empty pairing reply.");

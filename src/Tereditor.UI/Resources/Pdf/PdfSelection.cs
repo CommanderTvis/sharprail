@@ -2,7 +2,7 @@ using System.Text;
 
 using Avalonia;
 
-namespace SharpRail.UI.Resources.Pdf;
+namespace Tereditor.UI.Resources.Pdf;
 
 internal sealed class PdfSelection
 {

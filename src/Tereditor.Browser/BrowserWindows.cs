@@ -13,7 +13,7 @@ using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>Hosts the shared workbench's windows and dialogs in browser surfaces.</summary>
 internal sealed class BrowserWindows : IWindowingPlatform
@@ -213,7 +213,7 @@ internal sealed class BrowserWindow : IWindowImpl
         }, DispatcherPriority.Loaded);
     }
 
-    public void SetTitle(string? title) => BrowserInterop.SetTitle(id, title ?? "SharpRail");
+    public void SetTitle(string? title) => BrowserInterop.SetTitle(id, title ?? "tereditor");
     public void SetEnabled(bool enabled) => BrowserInterop.EnableWindow(id, enabled);
     public void SetWindowDecorations(WindowDecorations enabled) { }
     public void SetIcon(IWindowIconImpl? icon) { }

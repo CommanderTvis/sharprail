@@ -6,13 +6,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>The reveal action in the Files tree and Project Home menus: present with the platform's label on a local host, absent on a remote one.</summary>
 internal static class FileRevealE2E
@@ -46,7 +46,7 @@ internal static class FileRevealE2E
 
                 // The workspace menu is built by the window for a Projects row and the header; build it directly, as both do.
                 var menu = new ContextMenu();
-                var record = new SharpRail.Host.Abstractions.WorkspaceRecord("w", workspace, SharpRail.Host.Abstractions.WorkspaceKinds.Default, workspace, "main", "main");
+                var record = new Tereditor.Host.Abstractions.WorkspaceRecord("w", workspace, Tereditor.Host.Abstractions.WorkspaceKinds.Default, workspace, "main", "main");
                 app.Window.AddWorkspaceActions(menu, record);
                 Require(menu.Items.OfType<MenuItem>().Any(item => item.Name == "WorkspaceCopyPath") &&
                     (menu.Items.OfType<MenuItem>().Any(item => item.Name == "WorkspaceReveal")) == !remote, "Project Home's workspace menu offers reveal only for a local host.");

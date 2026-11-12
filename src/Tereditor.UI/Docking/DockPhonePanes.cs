@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 // A tab group on a phone shows one member at a time under a strip of chips. Which member is the phone's own choice,
 // kept here and never sent to the host: the shared layout keeps every member, its direction and weights, and the

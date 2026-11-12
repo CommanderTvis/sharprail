@@ -12,7 +12,7 @@ tags: [plugins, security]
 
 ## Responsibility
 
-The `SharpRail.PluginRunner` executable. The host starts it with its channel (descriptor 3, or `--channel <handle>`
+The `Tereditor.PluginRunner` executable. The host starts it with its channel (descriptor 3, or `--channel <handle>`
 on Windows) and it exits when the channel ends. It marks the channel close-on-exec (or not inheritable) first, so
 nothing it starts holds it.
 
@@ -22,7 +22,7 @@ nothing it starts holds it.
   could not. Each client context the host lends gets its own activation through the generated proxy: one-ways
   `Activate` makes on it are kept and answered in the activation's reply, settings arrive as mirrors and reach
   `OnSettings` observers, `ReadAssetAsync` reads inside the assets directory, and the log goes to standard error.
-  The plugin's code runs on the Avalonia UI thread of `RunnerPlatform`: SharpRail's remote platform backend
+  The plugin's code runs on the Avalonia UI thread of `RunnerPlatform`: tereditor's remote platform backend
   (`RemotePlatform`) with Skia's CPU raster, set up on the main thread, with Fluent, the kit's styles and the theme a client pushed. A factory runs
   only when the host opens a surface for it (`surface.open`); `SurfaceRenderer` shows its control in its own
   top-level, renders it on a timer while the client has taken the last frame, diffs 64-pixel tiles, sends
@@ -56,7 +56,7 @@ nothing it starts holds it.
   Each input event runs the dispatcher's pending jobs and renders before and after it, as Avalonia's
   headless platform did, so what one event changed is drawn before the next.
   Client messages run through one queue in arrival order, because applying input runs the dispatcher's pending
-  jobs. With `SHARPRAIL_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render
+  jobs. With `TEREDITOR_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render
   and named controls' bounds.
 
 The probe modes load no plugin:
@@ -69,7 +69,7 @@ The probe modes load no plugin:
   lends: registrations, a notification, a preference, settings, a mirrored read and pending members. Its factories
   make no control, since the probe has no Avalonia platform; the surface they answer names their arguments.
 
-The isolation generator (`SharpRailIsolation` = `runner`) writes both contexts' member tables, proxies and callback
+The isolation generator (`TereditorIsolation` = `runner`) writes both contexts' member tables, proxies and callback
 invokers into the runner, and `Hello` carries the tables' hashes (`RunnerTables.Hash`: the host context's, a dot, the
 UI context's). `PeerRuntime` connects the proxies to the channel and keeps the mirrored values. `plugin` mode
 implements `IPluginUIContextLocal` (id, logger, settings observers, assets; `OnReconnect` never fires, since the
@@ -81,8 +81,8 @@ process never reconnects) except `WatchHost`, which throws until the host projec
   (`AssemblyLoadContext`) will live here and nowhere else.
 - The only project that compiles against Avalonia's private and unstable API (`AvaloniaAccessUnstablePrivateApis`,
   AVA3001 suppressed), for the remote platform backend (Security.SPEC.md, UI halves).
-- References `SharpRail.Plugins.Isolation`, `SharpRail.Plugins.Isolation.UI`, Avalonia, and the kit and the chat
-  contract (`SharpRail.Plugins.Chat`, `SharpRail.Plugins.Chat.UI`), which it shares with the plugins it loads. The
+- References `Tereditor.Plugins.Isolation`, `Tereditor.Plugins.Isolation.UI`, Avalonia, and the kit and the chat
+  contract (`Tereditor.Plugins.Chat`, `Tereditor.Plugins.Chat.UI`), which it shares with the plugins it loads. The
   checks copy its framework-dependent build into `plugin-runner/` of their own build output; packages do not ship it
   yet. `Avalonia.Skia` and `Avalonia.HarfBuzz` draw plugin views on the remote backend; the runner does not reference
   `Avalonia.Headless`.

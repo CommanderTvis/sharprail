@@ -1,10 +1,10 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 public static class WorkspaceKinds
 {
     /// <summary>The project folder itself: user-owned, never renamed, removed or reclaimed.</summary>
     public const string Default = "default";
-    /// <summary>A worktree SharpRail created and may remove.</summary>
+    /// <summary>A worktree tereditor created and may remove.</summary>
     public const string Managed = "managed";
     /// <summary>An existing worktree attached in place: user-owned, forgotten but never mutated.</summary>
     public const string External = "external";

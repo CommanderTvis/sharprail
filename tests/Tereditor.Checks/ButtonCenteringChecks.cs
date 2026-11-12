@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Fixed-height buttons under the application's real styles centre their content vertically without a per-control setting.</summary>
 internal static class ButtonCenteringChecks

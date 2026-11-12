@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Providers;
+namespace Tereditor.Plugins.Providers;
 
 /// <summary>The agents whose model providers are managed here. Each reads its own credential store.</summary>
 public enum ProviderAgent
@@ -16,7 +16,7 @@ public enum ProviderSource
 {
     /// <summary>No credential is stored by the agent's own files.</summary>
     [JsonStringEnumMemberName("none")] None,
-    /// <summary>An API key SharpRail or the agent stored in the agent's file.</summary>
+    /// <summary>An API key tereditor or the agent stored in the agent's file.</summary>
     [JsonStringEnumMemberName("key")] Key,
     /// <summary>A sign-in managed by the agent itself (an OAuth login); not editable here.</summary>
     [JsonStringEnumMemberName("sign-in")] SignIn,
@@ -39,7 +39,7 @@ public sealed record ProviderEntry(string Id, string Name, string? EnvVar, Provi
 /// <summary>An agent's providers and the file their keys live in.</summary>
 public sealed record ProvidersReport(ProviderAgent Agent, string Location, IReadOnlyList<ProviderEntry> Providers)
 {
-    /// <summary>What the agent needs for these keys to apply, such as a launch with SharpRail's profile.</summary>
+    /// <summary>What the agent needs for these keys to apply, such as a launch with tereditor's profile.</summary>
     public string? Note { get; init; }
 }
 

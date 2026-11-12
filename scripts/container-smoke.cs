@@ -78,7 +78,7 @@ static int Smoke(string image, string tmp)
     static JsonElement? Member(JsonElement? element, string name) => element is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(name, out var member) ? member : null;
 
     var initialize = Result(1);
-    if (Member(Member(initialize, "serverInfo"), "name") is not { ValueKind: JsonValueKind.String } name || name.GetString() != "sharprail") return Fail("initialize does not name the server");
+    if (Member(Member(initialize, "serverInfo"), "name") is not { ValueKind: JsonValueKind.String } name || name.GetString() != "tereditor") return Fail("initialize does not name the server");
     if (Member(initialize, "instructions") is not { ValueKind: JsonValueKind.String } instructions || instructions.GetString()!.Length == 0) return Fail("initialize has no instructions");
     if (Member(Result(2), "tools") is not { ValueKind: JsonValueKind.Array } tools) return Fail("tools/list has no tools");
     var names = tools.EnumerateArray().Select(tool => Member(tool, "name")?.GetString()).ToList();

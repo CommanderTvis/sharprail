@@ -1,12 +1,12 @@
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>
 /// What the activity shows: the connect screen until a host answers, then the workbench as that host's client.
@@ -14,9 +14,9 @@ namespace SharpRail.UI.Android;
 /// </summary>
 public sealed class ClientSession(string filesDirectory, bool compact) : IDisposable
 {
-    private readonly string directory = Path.Combine(filesDirectory, ".sharprail");
+    private readonly string directory = Path.Combine(filesDirectory, ".tereditor");
     private readonly List<IDisposable> adapters = [];
-    private readonly EmbeddedTailscaleNetwork tailscale = new(Path.Combine(filesDirectory, ".sharprail", "tailscale-node"), networkSnapshot: AndroidTailscalePlatform.Snapshot);
+    private readonly EmbeddedTailscaleNetwork tailscale = new(Path.Combine(filesDirectory, ".tereditor", "tailscale-node"), networkSnapshot: AndroidTailscalePlatform.Snapshot);
     private AndroidTailscalePlatform? networkMonitor;
     private IDisposable? tailscaleRoute;
     private Workbench? workbench;
@@ -122,7 +122,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         var factory = TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals), () => TerminalRenderers.Skia);
         Endpoint = endpoint;
         // Sideways scrolling is a chore under a finger: lines wrap at the screen's edge whatever the line width says.
-        SharpRail.Scintilla.ScintillaEditor.WrapAlways = true;
+        Tereditor.Scintilla.ScintillaEditor.WrapAlways = true;
         workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, Touch = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];

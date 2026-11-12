@@ -6,10 +6,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null, string? InitialPrompt = null, bool OpenTerminal = false, string? Command = null, IReadOnlyList<byte[]>? Images = null, string? DefaultCommand = null);
 
@@ -46,7 +46,7 @@ public sealed class NewWorkspaceDialog
     private readonly IReadOnlyList<AgentLauncher> launchers;
     private AgentLauncher? launcher;
 
-    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
+    public Tereditor.Plugins.UI.Kit.DialogWindow Window { get; }
     /// <summary>The project the workspace will be created in; picking another one loads its branches through <see cref="LoadProject"/>.</summary>
     public string Project { get; private set; }
     /// <summary>Returns a project's branch catalogue, or null when it cannot be used; the dialog then keeps its project.</summary>

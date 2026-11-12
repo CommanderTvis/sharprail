@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>One file or directory an agent renames: its URIs, its absolute old path and whether it is a directory.</summary>
 internal sealed record RenamePair(string OldUri, string NewUri, string OldFull, bool Directory);
@@ -98,7 +98,7 @@ internal sealed partial class LanguageSession
             if (method == match || match is "workspace/did" or "$/" && method.StartsWith(match, StringComparison.Ordinal))
                 return $"{method} {why}";
         if (RawMethods.ContainsKey(method)) return null;
-        return $"{method} is not a read-only query SharpRail forwards. Allowed: {string.Join(", ", RawMethods.Keys.Order(StringComparer.Ordinal))}.";
+        return $"{method} is not a read-only query tereditor forwards. Allowed: {string.Join(", ", RawMethods.Keys.Order(StringComparer.Ordinal))}.";
     }
 
     private bool Declares(string provider) => capabilities[provider] is { } value && value.ToJsonString() != "false";

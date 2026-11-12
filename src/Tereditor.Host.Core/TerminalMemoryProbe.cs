@@ -4,9 +4,9 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>One row of the process table without its memory: <see cref="Group"/> is the session (Linux) or controlling terminal (macOS) it belongs to, 0 for none.</summary>
 internal readonly record struct ProcessEntry(int Pid, int Ppid, long Group, string Name, long Started);

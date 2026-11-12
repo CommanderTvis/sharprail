@@ -1,4 +1,4 @@
-module sharprail.local/tailscale-wasm
+module tereditor.local/tailscale-wasm
 
 go 1.27.2
 

@@ -25,7 +25,7 @@ const dotnet = process.env.DOTNET ?? 'dotnet';
 const jdk = process.env.JAVA_HOME || execFileSync('sh', [path.join(root, 'scripts/tool'), 'jdk'], { encoding: 'utf8' }).trim();
 const java = path.join(jdk, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
 const jvmEnvironment = { JAVA_HOME: jdk, PATH: path.join(jdk, 'bin') + path.delimiter + (process.env.PATH ?? ''), SDKMAN_CANDIDATES_DIR: path.join(cache, 'no-sdkman') };
-const host = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');
+const host = path.join(root, 'src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll');
 await access(host);
 const outcomes = [];
 let active;
@@ -76,7 +76,7 @@ for (const scenario of cases) {
     await mkdir(path.join(state, 'language'), { recursive: true });
     await writeFile(path.join(state, 'language/servers.json'), JSON.stringify({ [scenario.server]: { managed: !['swift', 'dart'].includes(scenario.server) } }));
     const token = randomBytes(32).toString('hex');
-    const environment = { ...projectEnvironment, SHARPRAIL_ROOT: project, SHARPRAIL_STATE_DIR: state, SHARPRAIL_BIND: '127.0.0.1', SHARPRAIL_PORT: '0', SHARPRAIL_TOKEN: token, SHARPRAIL_HEADLESS_MCP: '1', SHARPRAIL_LSP_DISABLE: '0', DOTNET_ROOT: path.dirname(dotnet) };
+    const environment = { ...projectEnvironment, TEREDITOR_ROOT: project, TEREDITOR_STATE_DIR: state, TEREDITOR_BIND: '127.0.0.1', TEREDITOR_PORT: '0', TEREDITOR_TOKEN: token, TEREDITOR_HEADLESS_MCP: '1', TEREDITOR_LSP_DISABLE: '0', DOTNET_ROOT: path.dirname(dotnet) };
     active = spawn(dotnet, [host], { cwd: root, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
     active.stdout.on('data', chunk => { log = (log + chunk).slice(-200_000); });
     active.stderr.on('data', chunk => { log = (log + chunk).slice(-200_000); });
@@ -104,7 +104,7 @@ for (const scenario of cases) {
       return value;
     }
     captureLogs = () => call('lsp_status', { operation: 'logs', server: scenario.server });
-    await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'sharprail-functional-tests', version: '1' } });
+    await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'tereditor-functional-tests', version: '1' } });
     const tools = await rpc('tools/list');
     if (!tools.tools.some(tool => tool.name === 'lsp_navigate')) throw Error('Production language MCP tools missing');
     const catalog = await call('lsp_status', { operation: 'catalog' });

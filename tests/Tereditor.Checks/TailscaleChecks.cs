@@ -6,22 +6,22 @@ using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.Host;
-using SharpRail.Plugins.Tailscale.UI;
-using SharpRail.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.Host;
+using Tereditor.Plugins.Tailscale.UI;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class TailscaleChecks
 {
@@ -253,7 +253,7 @@ internal static class TailscaleChecks
             try { await TailscaleClient.BootstrapAsync(host, CancellationToken.None); throw new Exception("Unsafe bootstrap address accepted: " + host); }
             catch (IOException) { }
         }
-        try { await TailscaleClient.BootstrapAsync("sharprail-pairing-test.invalid", CancellationToken.None); throw new Exception("Unknown bootstrap hostname accepted."); }
+        try { await TailscaleClient.BootstrapAsync("tereditor-pairing-test.invalid", CancellationToken.None); throw new Exception("Unknown bootstrap hostname accepted."); }
         catch (IOException error)
         {
             Require(error.InnerException is SocketException && error.Message.Contains("Turn on Tailscale", StringComparison.Ordinal) &&
@@ -266,8 +266,8 @@ internal static class TailscaleChecks
         public readonly List<string> Tokens = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Require(request.Method == HttpMethod.Post && request.RequestUri?.AbsolutePath == "/sharprail/pair", "The client uses the bootstrap pairing route.");
-            Tokens.Add(request.Headers.GetValues("X-SharpRail-Pairing").Single());
+            Require(request.Method == HttpMethod.Post && request.RequestUri?.AbsolutePath == "/tereditor/pair", "The client uses the bootstrap pairing route.");
+            Tokens.Add(request.Headers.GetValues("X-tereditor-Pairing").Single());
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(reply(Tokens.Count), options: PluginJson.Options) });
         }
     }
@@ -277,7 +277,7 @@ internal static class TailscaleChecks
         private readonly HttpMessageInvoker pairing = new(new PairingHandler(_ => new("approved", "http://100.70.1.2:54123/")));
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == "/sharprail" &&
+            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == "/tereditor" &&
                 network.Peers.FirstOrDefault(peer => peer.Address == request.RequestUri.Host) is { } found)
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new TailscaleHostInfo(found.Name), options: PluginJson.Options) });
             return pairing.SendAsync(request, cancellationToken);
@@ -401,16 +401,16 @@ internal static class TailscaleChecks
         async Task<TailscaleStatus> Status() => PluginJson.Convert<TailscaleStatus>(await runtime.CallAsync(new("tailscale", "status", new TailscaleStatusParams(), "fixture"), timeout.Token));
         while (!(await Status()).Detail.StartsWith("Ready", StringComparison.Ordinal)) await Task.Delay(20, timeout.Token);
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false }) { BaseAddress = new Uri($"http://127.0.0.1:{bootstrapPort}/") };
-        var discovery = await http.GetStringAsync("sharprail", timeout.Token);
+        var discovery = await http.GetStringAsync("tereditor", timeout.Token);
         Require(discovery.Contains("fixture.tailnet.ts.net", StringComparison.Ordinal) && !discovery.Contains("token", StringComparison.OrdinalIgnoreCase), "Discovery reveals only the host name.");
         network.Allow = false;
-        using (var denied = await http.GetAsync("sharprail", timeout.Token)) Require(denied.StatusCode == HttpStatusCode.Forbidden, "Unverified identities cannot even discover the host.");
+        using (var denied = await http.GetAsync("tereditor", timeout.Token)) Require(denied.StatusCode == HttpStatusCode.Forbidden, "Unverified identities cannot even discover the host.");
         network.Allow = true;
         var token = TailscaleClient.NewPairing("fixture").Token;
         async Task<TailscalePairReply> Pair()
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, "sharprail/pair");
-            request.Headers.Add("X-SharpRail-Pairing", token);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "tereditor/pair");
+            request.Headers.Add("X-tereditor-Pairing", token);
             using var response = await http.SendAsync(request, timeout.Token);
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<TailscalePairReply>(PluginJson.Options, timeout.Token))!;
@@ -461,9 +461,9 @@ internal static class TailscaleChecks
         try { await paired.GetHandshakeAsync(timeout.Token); throw new Exception("Revoked token authenticated."); }
         catch (RpcException error) when (error.StatusCode == StatusCode.Unauthenticated) { }
         var freshToken = TailscaleClient.NewPairing("fixture").Token;
-        using (var request = new HttpRequestMessage(HttpMethod.Post, "sharprail/pair"))
+        using (var request = new HttpRequestMessage(HttpMethod.Post, "tereditor/pair"))
         {
-            request.Headers.Add("X-SharpRail-Pairing", freshToken);
+            request.Headers.Add("X-tereditor-Pairing", freshToken);
             using var reply = await http.SendAsync(request, timeout.Token);
             reply.EnsureSuccessStatusCode();
         }

@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Go;
+namespace Tereditor.Plugins.Lsp.Go;
 
 /// <summary>The Go (gopls) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class GoPlugin() : LanguageServerPlugin(Id)
@@ -22,7 +22,7 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Go.dll"
+        Host = "Tereditor.Plugins.Lsp.Go.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

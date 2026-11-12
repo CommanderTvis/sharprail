@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>One registration, tagged with the plugin that made it.</summary>
 public sealed record PluginRow<T>(string PluginId, T Value);
@@ -185,9 +185,9 @@ public sealed class PluginRegistry
     }
 
     /// <summary>The keymap actions of the active plugins in registration order, as the keymap model sees them (id <c>pluginId:Id</c>, defaults per platform).</summary>
-    public IReadOnlyList<SharpRail.Host.Abstractions.KeymapAction> ActiveKeymapActions() =>
-        [.. KeymapActions.Where(row => active.Contains(row.PluginId)).Select(row => new SharpRail.Host.Abstractions.KeymapAction(
-            SharpRail.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), row.Value.Title, row.Value.Group, row.PluginId, Label(row.PluginId), row.Value.Mac, row.Value.Other))];
+    public IReadOnlyList<Tereditor.Host.Abstractions.KeymapAction> ActiveKeymapActions() =>
+        [.. KeymapActions.Where(row => active.Contains(row.PluginId)).Select(row => new Tereditor.Host.Abstractions.KeymapAction(
+            Tereditor.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), row.Value.Title, row.Value.Group, row.PluginId, Label(row.PluginId), row.Value.Mac, row.Value.Other))];
 
     /// <summary>Re-evaluates a plugin's predicates: readers of the predicate tables refresh what they render.</summary>
     public void Invalidate(string pluginId) => Raise(PluginTables.Predicates);

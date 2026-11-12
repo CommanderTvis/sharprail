@@ -7,7 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Keeps tooltips quiet while content scrolls under a still pointer (wheel, trackpad or scrollbar thumb drag): every row that

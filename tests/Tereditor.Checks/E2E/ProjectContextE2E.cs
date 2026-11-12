@@ -6,10 +6,10 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ProjectContextE2E
 {
@@ -18,7 +18,7 @@ internal static class ProjectContextE2E
         using var git = new IsolatedGit(Path.Combine(root, "project-context-git"));
         var directory = Path.Combine(root, "project-context");
         using var app = OpenFixtureProject(directory);
-        // SharpRail regression: the selected project is highlighted as one rounded row, chevron and add button included.
+        // tereditor regression: the selected project is highlighted as one rounded row, chevron and add button included.
         var highlight = Controls(app).OfType<Border>().Single(border => border.Name == "ProjectHighlight" && Equals(border.Tag, app.Root));
         Require(highlight.Child is Grid { Name: "ProjectRow" } && highlight.Background is Avalonia.Media.ISolidColorBrush { Color: var fill } &&
             fill == Ui.Hover.Color && highlight.CornerRadius.TopLeft > 0 &&
@@ -27,7 +27,7 @@ internal static class ProjectContextE2E
         var workspace = CreateWorkspaceViaDialog(app);
         app.Window.Layout.NewTerminal(app.Center);
         Until(() => app.Terminals.StartedIn(workspace) > 0);
-        var terminalViews = Controls(app).OfType<SharpRail.UI.Terminal.TerminalView>().ToArray();
+        var terminalViews = Controls(app).OfType<Tereditor.UI.Terminal.TerminalView>().ToArray();
         Require(terminalViews.Length > 0, "The workspace has a live terminal view before closing its project.");
         var started = app.Terminals.StartedIn(workspace);
         var fixture = app.Root;
@@ -109,7 +109,7 @@ internal static class ProjectContextE2E
         app.Click(Entry(fixture, "ProjectMenuCreateWorkspace"), freshGesture: false);
         var dialog = Dialog(app, "NewWorkspaceDialog");
         Press(dialog, Avalonia.Input.Key.Escape);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(fixture).IsFocused);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(fixture).IsFocused);
 
         var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
         AddProject(app, "Open project", second);
@@ -129,10 +129,10 @@ internal static class ProjectContextE2E
         var cancel = confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Cancel");
         Until(() => cancel.IsFocused);
         app.Click(cancel);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
         CloseChoice(second);
         Press(Dialog(app), Avalonia.Input.Key.Escape);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
         // A second window of the app observes the shared project list.
         using var observer = app.NewWindow();
         Until(() => observer.Window.AtProjectHome && HasWelcome(observer) && WelcomeTitle(observer) == "second-project");
@@ -149,7 +149,7 @@ internal static class ProjectContextE2E
         renameInput.Text = "Second   project";
         Until(() => renameInput.IsFocused);
         Press(renameInput, Avalonia.Input.Key.Enter);
-        try { Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any()); }
+        try { Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any()); }
         catch (InvalidOperationException) { throw new InvalidOperationException("Rename dialog stayed: " + string.Join(" | ", rename.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text))); }
         bool Shown(E2eWorkspace client, string text) => Controls(client).OfType<Button>()
             .Any(button => button.Name == "ProjectName" && Equals(button.Tag, second) && AutomationProperties.GetName(button) == text);
@@ -169,9 +169,9 @@ internal static class ProjectContextE2E
         CloseChoice(fixture);
         confirm = Dialog(app);
         app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Close project"));
-        Until(() => !Controls(app).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(app) && WelcomeTitle(app) == "SharpRail");
+        Until(() => !Controls(app).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(app) && WelcomeTitle(app) == "tereditor");
         Until(() => app.Find<Button>("AddProjectMenu").IsFocused);
-        Until(() => !Controls(observer).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(observer) && WelcomeTitle(observer) == "SharpRail");
+        Until(() => !Controls(observer).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(observer) && WelcomeTitle(observer) == "tereditor");
         Require(terminalViews.All(view => view.Backend is null), "Closing a project disposes its cached terminal views in inactive workspaces.");
 
         var add = app.Find<Button>("AddProjectMenu");
@@ -189,7 +189,7 @@ internal static class ProjectContextE2E
         reopen.GetAwaiter().GetResult();
         GoProjectHome(app);
 
-        // SharpRail regression: a project whose folder was deleted closes without the confirmation.
+        // tereditor regression: a project whose folder was deleted closes without the confirmation.
         var deleted = IsolatedGit.Repository(Path.Combine(directory, "deleted-project"));
         AddProject(app, "Open project", deleted);
         Until(() => app.Window.ProjectRoot == deleted && Listed(app, deleted));
@@ -197,7 +197,7 @@ internal static class ProjectContextE2E
         Directory.Delete(deleted, recursive: true);
         CloseChoice(deleted);
         Until(() => !Listed(app, deleted));
-        Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "Closing a project whose folder is gone does not ask for confirmation.");
+        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "Closing a project whose folder is gone does not ask for confirmation.");
         Console.WriteLine("PASS project context actions: close/reopen retains repositories and saved tabs across clients and releases terminals");
     }
 }

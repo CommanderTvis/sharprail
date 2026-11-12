@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The memory guard's limits (host setting <c>terminal-memory</c>, JSON, see Terminals SPEC "Memory guard"): <see cref="PerTerminalMb"/> caps

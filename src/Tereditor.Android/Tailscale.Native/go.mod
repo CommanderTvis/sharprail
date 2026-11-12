@@ -1,4 +1,4 @@
-module sharprail.local/tailscale-android
+module tereditor.local/tailscale-android
 
 go 1.27.2
 

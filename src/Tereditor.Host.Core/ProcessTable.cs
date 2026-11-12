@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>One live (non-zombie) process of the machine's process table. Elapsed and Tty are empty on Windows.</summary>
 internal sealed record ProcessRow(int Pid, int Ppid, TimeSpan? Elapsed, string Tty, string Arguments);

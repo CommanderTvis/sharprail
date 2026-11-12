@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class ProjectChecks
 {
@@ -57,30 +57,30 @@ internal static class ProjectChecks
         await local.OpenProjectAsync(fixture);
     }
 
-    // The project's .sharprail holds committed config beside local, ignored state; Files shows both like any directory.
-    private static async Task CheckSharprailDirectory(IProjectServices local, IProjectServices remote, string fixture)
+    // The project's .tereditor holds committed config beside local, ignored state; Files shows both like any directory.
+    private static async Task CheckTereditorDirectory(IProjectServices local, IProjectServices remote, string fixture)
     {
-        var folder = Path.Combine(fixture, "sharprail-fixture");
-        Directory.CreateDirectory(Path.Combine(folder, ".sharprail"));
-        E2E.IsolatedGit.Repository(folder, (".sharprail/workspace.toml", "clone = []\n"), (".gitignore", ".sharprail/context/\n"));
-        Directory.CreateDirectory(Path.Combine(folder, ".sharprail", "context"));
-        File.WriteAllText(Path.Combine(folder, ".sharprail", "context", "TASK.md"), "local");
+        var folder = Path.Combine(fixture, "tereditor-fixture");
+        Directory.CreateDirectory(Path.Combine(folder, ".tereditor"));
+        E2E.IsolatedGit.Repository(folder, (".tereditor/workspace.toml", "clone = []\n"), (".gitignore", ".tereditor/context/\n"));
+        Directory.CreateDirectory(Path.Combine(folder, ".tereditor", "context"));
+        File.WriteAllText(Path.Combine(folder, ".tereditor", "context", "TASK.md"), "local");
         Directory.CreateDirectory(Path.Combine(folder, ".tools"));
         foreach (var host in new[] { local, remote })
         {
             await host.OpenProjectAsync(folder);
             var top = await host.ListFilesAsync("");
-            Require(top.Any(file => file.Name == ".sharprail" && file.IsDirectory && !file.GitIgnored), "Files must show the project's .sharprail directory.");
+            Require(top.Any(file => file.Name == ".tereditor" && file.IsDirectory && !file.GitIgnored), "Files must show the project's .tereditor directory.");
             Require(!top.Any(file => file.Name is ".git" or ".tools"), "Files must keep hiding .git and .tools.");
-            var inside = await host.ListFilesAsync(".sharprail");
+            var inside = await host.ListFilesAsync(".tereditor");
             Require(inside.Any(file => file.Name == "workspace.toml" && !file.GitIgnored) &&
-                inside.Any(file => file.Name == "context" && file.GitIgnored), "Files must list .sharprail's shared config and mark its ignored local state.");
-            Require((await host.SearchAsync("clone = []")).Hits.Any(hit => hit.Path == ".sharprail/workspace.toml"), "Search must cover .sharprail config.");
+                inside.Any(file => file.Name == "context" && file.GitIgnored), "Files must list .tereditor's shared config and mark its ignored local state.");
+            Require((await host.SearchAsync("clone = []")).Hits.Any(hit => hit.Path == ".tereditor/workspace.toml"), "Search must cover .tereditor config.");
             await host.OpenProjectAsync(fixture);
         }
-        File.WriteAllText(Path.Combine(folder, ".sharprail", "workspace.toml"), "clone = [\"x\"]\n");
+        File.WriteAllText(Path.Combine(folder, ".tereditor", "workspace.toml"), "clone = [\"x\"]\n");
         await local.OpenProjectAsync(folder);
-        Require((await local.GetGitAsync()).Changes.Any(change => change.Path == ".sharprail/workspace.toml"), "Changed view must show a modified workspace.toml.");
+        Require((await local.GetGitAsync()).Changes.Any(change => change.Path == ".tereditor/workspace.toml"), "Changed view must show a modified workspace.toml.");
         await local.OpenProjectAsync(fixture);
     }
 
@@ -113,7 +113,7 @@ internal static class ProjectChecks
             try { await remote.ListFilesAsync("no-such-folder"); throw new InvalidOperationException("Missing folder listed."); }
             catch (DirectoryNotFoundException) { }
             await CheckIgnoredFiles(local, remote, fixture);
-            await CheckSharprailDirectory(local, remote, fixture);
+            await CheckTereditorDirectory(local, remote, fixture);
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");
@@ -138,9 +138,9 @@ internal static class ProjectChecks
                     async () => await host.SaveFileAsync(new(fixture, ".git/config", "[core]\n", "[user]\n")), async () => await host.ReadContentBytesAsync(".GIT/config", null)
                 })
                     try { await act(); throw new InvalidOperationException($"The {name} host reached into Git's own directory."); }
-                    catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException && error.Message.Contains("Git's own directory", StringComparison.Ordinal)) { }
+                    catch (Exception error) when (error is UnauthorizedAccessException or Tereditor.Host.Protocol.RpcException && error.Message.Contains("Git's own directory", StringComparison.Ordinal)) { }
                 try { await host.ReadFileAsync("absent/leaf.txt"); throw new InvalidOperationException("A missing file was read."); }
-                catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or SharpRail.Host.Protocol.RpcException && !error.Message.Contains("outside", StringComparison.Ordinal)) { }
+                catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or Tereditor.Host.Protocol.RpcException && !error.Message.Contains("outside", StringComparison.Ordinal)) { }
             }
             Directory.Delete(Path.Combine(fixture, ".git"), recursive: true);
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
@@ -159,10 +159,10 @@ internal static class ProjectChecks
                 await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt")));
                 Require(File.Exists(Path.Combine(fixture, folder, "a.txt")), label + " create-file must make an empty file inside its folder.");
                 try { await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt"))); throw new InvalidOperationException(label + " create overwrote a file."); }
-                catch (Exception error) when (error is IOException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is IOException or Tereditor.Host.Protocol.RpcException) { }
                 await File.WriteAllTextAsync(Path.Combine(fixture, folder, "b.txt"), "kept\n");
                 try { await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "b.txt"))); throw new InvalidOperationException(label + " rename replaced a file."); }
-                catch (Exception error) when (error is IOException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is IOException or Tereditor.Host.Protocol.RpcException) { }
                 await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "c.txt")));
                 Require(File.Exists(Path.Combine(fixture, folder, "c.txt")) && !File.Exists(Path.Combine(fixture, folder, "a.txt")) &&
                     await File.ReadAllTextAsync(Path.Combine(fixture, folder, "b.txt")) == "kept\n", label + " rename must move only its own file.");
@@ -170,7 +170,7 @@ internal static class ProjectChecks
                 {
                     var refused = false;
                     try { await service.ApplyFileActionAsync(escape); }
-                    catch (Exception error) when (error is UnauthorizedAccessException or InvalidOperationException or SharpRail.Host.Protocol.RpcException) { refused = true; }
+                    catch (Exception error) when (error is UnauthorizedAccessException or InvalidOperationException or Tereditor.Host.Protocol.RpcException) { refused = true; }
                     Require(refused, $"{label} {escape.Kind} accepted \"{escape.Path}\".");
                 }
                 try { await service.ReadFileAsync(Path.Combine(folder, "gone.txt")); throw new InvalidOperationException(label + " read a missing file."); }
@@ -188,9 +188,9 @@ internal static class ProjectChecks
             catch (IOException error) { Require(GitDetail(error.Message, broken), $"Git probe failure detail was lost: {error.Message}"); }
             await remote.OpenProjectAsync(broken);
             try { await remote.GetGitAsync(); throw new InvalidOperationException("Remote Git probe failure was hidden."); }
-            catch (SharpRail.Host.Protocol.RpcException error)
+            catch (Tereditor.Host.Protocol.RpcException error)
             {
-                Require(error.StatusCode == SharpRail.Host.Protocol.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
+                Require(error.StatusCode == Tereditor.Host.Protocol.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
                     "Remote Git probe failure detail differs.");
             }
             var unborn = Path.Combine(fixture, "unborn-git");
@@ -204,7 +204,7 @@ internal static class ProjectChecks
                     await host.ApplyGitActionAsync(new("create-worktree", unborn + "-worktree", "first", "HEAD"));
                     throw new InvalidOperationException("A worktree was cut from a repository with no commits.");
                 }
-                catch (Exception error) when (error is InvalidOperationException or SharpRail.Host.Protocol.RpcException &&
+                catch (Exception error) when (error is InvalidOperationException or Tereditor.Host.Protocol.RpcException &&
                     error.Message.Contains("no commits yet", StringComparison.Ordinal))
                 { }
                 Require(!Directory.Exists(unborn + "-worktree"), "An unborn repository must be refused before Git mutates anything.");
@@ -216,16 +216,16 @@ internal static class ProjectChecks
             var pendingChange = watching.MoveNextAsync().AsTask();
             await server.StopAsync(shutdownTimeout.Token);
             try { Require(!await pendingChange, "A file stream must finish when the host stops."); }
-            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode is SharpRail.Host.Protocol.StatusCode.Cancelled or SharpRail.Host.Protocol.StatusCode.Unavailable) { }
+            catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode is Tereditor.Host.Protocol.StatusCode.Cancelled or Tereditor.Host.Protocol.StatusCode.Unavailable) { }
             Console.WriteLine("PASS remote shutdown releases an active filesystem subscription");
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS project/files local and WebSocket RPC parity, traversal and cancellation");
 
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))
         {
-            Console.WriteLine("SKIP git/worktree integration: set SHARPRAIL_TEST_GIT_SOURCE to an existing repository with a commit.");
+            Console.WriteLine("SKIP git/worktree integration: set TEREDITOR_TEST_GIT_SOURCE to an existing repository with a commit.");
             return;
         }
         await CheckGit(source, fixture + "-git");
@@ -293,7 +293,7 @@ internal static class ProjectChecks
         // Reuse existing commits in a disposable clone. This harness never makes or signs commits.
         await Git(parent, "clone", "--no-local", "--depth=2", "--no-checkout", new Uri(Path.GetFullPath(source)).AbsoluteUri, root);
         await Git(root, "sparse-checkout", "init", "--cone");
-        await Git(root, "sparse-checkout", "set", ".sharprail-test-only");
+        await Git(root, "sparse-checkout", "set", ".tereditor-test-only");
         await Git(root, "checkout", "HEAD");
         var host = new ProjectServices(root);
         await host.OpenProjectAsync(root);
@@ -325,7 +325,7 @@ internal static class ProjectChecks
         await File.WriteAllTextAsync(Path.Combine(root, unusual), "Untracked content\n");
         snapshot = await host.ApplyGitActionAsync(new("unstage", unusual));
         Require(snapshot.Changes.Any(change => change.Path == unusual && change.IndexStatus == "?"), "Unstaging failed.");
-        var branch = "sharprail-check-" + Guid.NewGuid().ToString("N")[..8];
+        var branch = "tereditor-check-" + Guid.NewGuid().ToString("N")[..8];
         var worktree = root + "-worktree";
         snapshot = await host.ApplyGitActionAsync(new("create-worktree", worktree, branch));
         Require(snapshot.Worktrees.Any(tree => tree.Path == worktree && tree.Branch == branch), "Worktree creation/listing failed.");
@@ -391,7 +391,7 @@ internal static class ProjectChecks
                 remoteBranches.DefaultBase == localBranches.DefaultBase &&
                 (localBranches.Local.Contains(localBranches.DefaultBase) || localBranches.Remote.Any(branch => branch.Ref == localBranches.DefaultBase)) &&
                 remoteBranches.SuggestedPath == localBranches.SuggestedPath && remoteBranches.SuggestedBranch == localBranches.SuggestedBranch &&
-                Path.GetDirectoryName(Path.GetDirectoryName(localBranches.SuggestedPath)) == Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR")!, "worktrees"),
+                Path.GetDirectoryName(Path.GetDirectoryName(localBranches.SuggestedPath)) == Path.Combine(Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR")!, "worktrees"),
                 $"Remote branch catalog differs: {localBranches.DefaultBase} {localBranches.SuggestedPath} {root}.");
             var originalRemoteHead = (await Git(root, "symbolic-ref", "refs/remotes/origin/HEAD")).Trim();
             await Git(root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/missing-default");
@@ -410,7 +410,7 @@ internal static class ProjectChecks
                     await service.OpenInEditorAsync("vscode", Path.GetTempPath());
                     throw new InvalidOperationException("An editor opened a path outside the project's workspaces.");
                 }
-                catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is UnauthorizedAccessException or Tereditor.Host.Protocol.RpcException) { }
             }
             Require(await remote.GetDiffAsync(unusual, "uncommitted") == UntrackedDiff(unusual) &&
                 await remote.GetDiffAsync(unusual, "uncommitted") == await host.GetDiffAsync(unusual, "uncommitted"),
@@ -474,7 +474,7 @@ internal static class ProjectChecks
         Require(committed.All(name => current.Changes.Any(change => change.Path == name)),
             "Comparison must include local committed changes since the fork as well as working changes.");
         var behind = root + "-fork";
-        await host.ApplyGitActionAsync(new("create-worktree", behind, "sharprail-fork", fork));
+        await host.ApplyGitActionAsync(new("create-worktree", behind, "tereditor-fork", fork));
         await Git(root, "branch", "feature/tree/local", fork);
         await Git(root, "remote", "add", "tree/remote", root);
         await Git(root, "update-ref", "refs/remotes/tree/remote/feature/tree/local", fork);
@@ -517,8 +517,8 @@ internal static class ProjectChecks
                 catch (IOException) { }
             }
             finally { await File.WriteAllBytesAsync(indexPath, index); }
-            Require((await localCatalog.ListCommitsAsync("sharprail-missing-target")).Count == 0 &&
-                (await remote.ListCommitsAsync("sharprail-missing-target")).Count == 0,
+            Require((await localCatalog.ListCommitsAsync("tereditor-missing-target")).Count == 0 &&
+                (await remote.ListCommitsAsync("tereditor-missing-target")).Count == 0,
                 "An unresolved catalog range must return the reference's empty list.");
             using (var canceled = new CancellationTokenSource())
             {

@@ -4,10 +4,10 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Isolation.UI;
+namespace Tereditor.Plugins.Isolation.UI;
 
 /// <summary>
 /// An external plugin's UI half as a client holds it: the plugin runs in its own process on the host, and this module

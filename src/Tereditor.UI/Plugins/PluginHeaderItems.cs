@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The trailing end of a window's header where active plugins' items sit (W24). It follows the registry while shown,

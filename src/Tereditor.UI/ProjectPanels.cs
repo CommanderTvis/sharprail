@@ -9,10 +9,10 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -173,7 +173,7 @@ public sealed partial class WorkbenchWindow
     }
 
     // Each platform's file manager has its own name, and the wrong one reads as a bug.
-    private static readonly string RevealLabel = SharpRail.Host.Core.FileManagerReveal.Label(OperatingSystem.IsMacOS(), OperatingSystem.IsWindows());
+    private static readonly string RevealLabel = Tereditor.Host.Core.FileManagerReveal.Label(OperatingSystem.IsMacOS(), OperatingSystem.IsWindows());
 
     private ContextMenu FileActions(ProjectFile file, Action expand)
     {

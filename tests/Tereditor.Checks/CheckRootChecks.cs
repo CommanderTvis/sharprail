@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Checks of <see cref="CheckRoot"/>: where fixtures live and that every way a run can end leaves nothing behind.</summary>
 internal static class CheckRootChecks

@@ -10,7 +10,7 @@ parent: group-plugins-agents
 
 Basic ("Early support") integration of the omp coding agent (https://omp.sh). Disabled by default. The manifest
 declares `Support = early`, which Settings › Plugins shows as an "Early support" badge on the card; the side tool and
-Settings › omp wear the same badge. Host and UI talk only through the plugin contract (wire version 1). SharpRail never
+Settings › omp wear the same badge. Host and UI talk only through the plugin contract (wire version 1). tereditor never
 installs omp: it runs the `omp` the host finds on PATH (or the configured command).
 
 Facts below come from omp's docs: CLI https://omp.sh/docs/cli, context files https://omp.sh/docs/context-files,
@@ -21,43 +21,43 @@ No real omp run backs them; the checks use a fixture `omp`.
 ## Acceptance contract
 
 - Launch line (`OmpLaunch.Line`, shared by the launcher, the start action and the revive prefill):
-  `[SHARPRAIL_UI_LAUNCH=omp] omp [--profile sharprail] [--session-dir <dir>] [-r <file> | -c] [--model <m>]
+  `[TEREDITOR_UI_LAUNCH=omp] omp [--profile tereditor] [--session-dir <dir>] [-r <file> | -c] [--model <m>]
   [--approval-mode <mode>] [--advisor] [--no-lsp] [--append-system-prompt <text>] [@image…] [prompt]`.
   Other plugins' launch contributions wrap the executable word as for the other agents.
-- Settings: command (default `omp`), model, approval mode, advisor, "Give sessions SharpRail's tools" (default on) and
+- Settings: command (default `omp`), model, approval mode, advisor, "Give sessions tereditor's tools" (default on) and
   "Use omp's own code intelligence" (default off). Model and approval mode are free text with suggestions: the
   `--approval-mode` values `omp --help` lists (omp 18.12.6: `always-ask`, `always-ask-cached`, `write`, `yolo`), and
   for `--model` the built-in roles as `@role`
   plus the example selectors from the roles page. Blank values pass no flag, leaving omp's configuration in charge.
-- MCP: omp has no per-launch MCP flag or config-file variable. Launches with MCP on use the omp profile `sharprail`,
-  whose `~/.omp/profiles/sharprail/agent/mcp.json` SharpRail owns and rewrites whole (atomically, only when it
-  differs) on activation, on settings changes and for each terminal: one `sharprail` HTTP server whose URL is
+- MCP: omp has no per-launch MCP flag or config-file variable. Launches with MCP on use the omp profile `tereditor`,
+  whose `~/.omp/profiles/tereditor/agent/mcp.json` tereditor owns and rewrites whole (atomically, only when it
+  differs) on activation, on settings changes and for each terminal: one `tereditor` HTTP server whose URL is
   `${THINKRAIL_MCP_URL}`. omp expands `${VAR}` when it loads the file, so one static file serves every terminal's own
   MCP endpoint. The profile replaces omp's global scope: it has its own sign-in, settings, sessions, caches and
-  user-level context files. The pane says so; users run `/login` once in a SharpRail omp tab, use provider API key
-  variables, turn MCP off to launch with their default profile and no SharpRail tools, or press "Use my omp sign-in in
-  SharpRail" (Settings › omp points to it).
+  user-level context files. The pane says so; users run `/login` once in a tereditor omp tab, use provider API key
+  variables, turn MCP off to launch with their default profile and no tereditor tools, or press "Use my omp sign-in in
+  tereditor" (Settings › omp points to it).
 - Setup wizard: a fresh profile would show omp's first-run setup wizard even with provider keys exported. When MCP is
   on, the host (once per command per host run, in the background, never blocking a launch; one 10 s bound; honoring
-  `SHARPRAIL_OMP_HOME` and the plugin's command) runs `omp --profile sharprail config get startup.setupWizard` and, only
+  `TEREDITOR_OMP_HOME` and the plugin's command) runs `omp --profile tereditor config get startup.setupWizard` and, only
   when it is `true` and `config get setupVersion` is `0` (never completed), `config set startup.setupWizard false`.
   A completed wizard, a user who re-enabled it, a missing omp or any failure leaves the profile alone (a log line only).
   Governed launches use Central's proxy key; ungoverned ones need `/login` or the sign-in import button.
 - Sign-in import: the button shows only while omp is installed and MCP is on, and runs only when pressed, never
   automatically. The host (off the UI thread, one run at a time, 60 s bound) pipes `omp auth export` (default profile;
-  an inherited `OMP_PROFILE` is removed) into `omp --profile sharprail auth import -` (syntax from `omp auth --help`,
-  omp 18.12.6: export writes JSON to stdout, `-` reads stdin). The credentials stream process to process: SharpRail
+  an inherited `OMP_PROFILE` is removed) into `omp --profile tereditor auth import -` (syntax from `omp auth --help`,
+  omp 18.12.6: export writes JSON to stdout, `-` reads stdin). The credentials stream process to process: tereditor
   never writes them to disk or logs and never sends them to clients; the result carries only success or the first
   error line, at most 160 characters with token-like runs masked. The button is disabled while running and the pane
   shows progress, then the result. Any authenticated client may trigger it; it changes the host's own omp profile.
-  `SHARPRAIL_OMP_HOME` also becomes omp's `HOME` for these runs, so checks never touch the real `~/.omp`.
-- Code intelligence: by default launches pass `--no-lsp`, so sessions use SharpRail's shared language servers through
+  `TEREDITOR_OMP_HOME` also becomes omp's `HOME` for these runs, so checks never touch the real `~/.omp`.
+- Code intelligence: by default launches pass `--no-lsp`, so sessions use tereditor's shared language servers through
   the `lsp_*` MCP tools instead of starting omp's own; the setting keeps omp's servers. The pane says which applies.
-  A possible follow-up is bridging omp's `lsp.json` to SharpRail's servers with a proxy command, so omp's built-in
+  A possible follow-up is bridging omp's `lsp.json` to tereditor's servers with a proxy command, so omp's built-in
   `lsp` tool reaches the shared servers.
 - Sessions: omp cannot take a caller-chosen session id. Each UI launch gets its own session folder,
-  `--session-dir "$SHARPRAIL_OMP_SESSIONS/<32-hex id>"`, where the host sets `SHARPRAIL_OMP_SESSIONS` in every
-  terminal to `<plugin state>/sessions` under `~/.sharprail`. The agent record's session id is that folder name, read
+  `--session-dir "$TEREDITOR_OMP_SESSIONS/<32-hex id>"`, where the host sets `TEREDITOR_OMP_SESSIONS` in every
+  terminal to `<plugin state>/sessions` under `~/.tereditor`. The agent record's session id is that folder name, read
   from the process arguments. Revival resumes the folder's newest `*.jsonl` with `-r <file>`, or starts again in the
   folder when none was saved; the generic launcher's resume continues with `-c` in the folder. The host offers the
   revival and runs it only on Resume (Host Plugins.SPEC, Terminals); the hook's `Fresh` command starts in the same
@@ -79,7 +79,7 @@ No real omp run backs them; the checks use a fixture `omp`.
   itself unavailable with the same hint.
 - Agent detection: a 2.5 s process poll (a copy of the Codex plugin's) records an `omp` descendant of a tab's shell
   as an `omp` agent record and clears it when the process leaves; zombie (`Z`) rows are skipped. A record of another
-  agent kind is left alone. The search does not descend through another SharpRail app (process name `SharpRail.UI`/`SharpRail`), so an agent in a nested SharpRail's terminals never marks the outer tab; a SharpRail run as `dotnet SharpRail.UI.dll` is not recognised by name. If an omp build runs under another process name (for example its runtime's), it is not
+  agent kind is left alone. The search does not descend through another tereditor app (process name `Tereditor.UI`/`tereditor`), so an agent in a nested tereditor's terminals never marks the outer tab; a tereditor run as `dotnet Tereditor.UI.dll` is not recognised by name. If an omp build runs under another process name (for example its runtime's), it is not
   detected; this is not verified against a real install.
 - Air Gateway can govern omp (its `omp` switch, with Central chosen): Central's `central run` (1.13.0) has no omp
   agent, so Air Gateway contributes Central's Pi wire as `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY` and a proxy start
@@ -94,7 +94,7 @@ No real omp run backs them; the checks use a fixture `omp`.
 
 ## Not yet
 
-Hook-based status (running/blocked/done), account and usage, SharpRail's appended instructions (so no generated
+Hook-based status (running/blocked/done), account and usage, tereditor's appended instructions (so no generated
 instructions file) and skills, IDE
 context, and a settings editor for omp's `config.yml` are out of this basic integration.
 

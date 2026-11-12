@@ -5,11 +5,11 @@ using System.Text.Json;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 // Where a relay reaches the host's terminal sessions, and the same sessions for busy checks and closing.
 public sealed record RemoteTerminalConnection(Uri Endpoint, string Token, ITerminalService Terminals);
@@ -19,7 +19,7 @@ public static class TerminalRelay
 {
     public const string Argument = "--terminal-relay";
     // Names a private file with the endpoint and token; the token never appears in argv.
-    public const string ConnectionVariable = "SHARPRAIL_TERMINAL_RELAY";
+    public const string ConnectionVariable = "TEREDITOR_TERMINAL_RELAY";
     // Prefixes the status file of a shell that exited; any other status is a start failure.
     internal const string ExitStatus = "exit:";
     internal const string PrefillReadySuffix = ".resume-ready";
@@ -30,7 +30,7 @@ public static class TerminalRelay
 
     internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "", bool Yield = false, string? Program = null, string? DirectoryFrom = null);
 
-    internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
+    internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "tereditor-relay-" + Environment.UserName);
 
     [UnsupportedOSPlatform("windows")]
     internal static string PrivateDirectory()
@@ -93,7 +93,7 @@ public static class TerminalRelay
             {
                 if (TerminalDevice.TryGetSize(1, out var width, out var height)) _ = session.ResizeAsync(width, height).AsTask();
             });
-            var input = new Thread(() => Pump(session)) { IsBackground = true, Name = "SharpRail relay input" };
+            var input = new Thread(() => Pump(session)) { IsBackground = true, Name = "tereditor relay input" };
             input.Start();
             try
             {

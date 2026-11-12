@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 internal sealed record ScopedDocument(ClaudeConfigOrigin Origin, JsonObject Data);
 

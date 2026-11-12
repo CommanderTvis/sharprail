@@ -94,7 +94,7 @@ function volume(FS) {
   };
 }
 
-const AUTHOR = { name: 'SharpRail', email: 'tab@sharprail.local' };
+const AUTHOR = { name: 'tereditor', email: 'tab@tereditor.local' };
 const GIT_USAGE = [
   'git in the Playground is isomorphic-git; supported:',
   '  init, clone <https-url> [dir], status [-s], add <path…|.|-A>, rm <path…>, commit [-a] -m <message>,',

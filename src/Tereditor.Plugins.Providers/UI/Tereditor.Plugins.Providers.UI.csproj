@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="SharpRail.Checks" />
-    <ProjectReference Include="../SharpRail.Plugins.Providers.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
+    <ProjectReference Include="../Tereditor.Plugins.Providers.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
     <PackageReference Include="Avalonia" />
   </ItemGroup>
 </Project>

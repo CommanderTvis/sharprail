@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <Optimize>true</Optimize>
-    <!-- The desktop app, the remote host and headless SharpRail turn NativeAOT on (NativeAot.props); everything else publishes JIT. -->
+    <!-- The desktop app, the remote host and headless tereditor turn NativeAOT on (NativeAot.props); everything else publishes JIT. -->
     <PublishAot>false</PublishAot>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishSingleFile>false</PublishSingleFile>
@@ -16,7 +16,7 @@
     <!--
       Where this checkout's copies of the Ghostty.Avalonia native libraries go (the Android project reads them too). The
       pinned sources, Zig caches and content-keyed builds they are copied from live in the machine-wide cache
-      ($SHARPRAIL_CACHE_DIR/ghostty-avalonia, see src/Ghostty.Avalonia/build-native.sh).
+      ($TEREDITOR_CACHE_DIR/ghostty-avalonia, see src/Ghostty.Avalonia/build-native.sh).
     -->
     <GhosttyNativeCache>$(MSBuildThisFileDirectory)src/Ghostty.Avalonia/obj/native</GhosttyNativeCache>
     <!--
@@ -24,12 +24,12 @@
       cross-compiles them), or from a Linux x64 or arm64 host building without one. Empty everywhere else, which keeps the macOS and
       Windows native targets as they were; linux-x64 and linux-arm64 are built.
     -->
-    <SharpRailLinuxRid Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">$(RuntimeIdentifier)</SharpRailLinuxRid>
-    <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'">linux-x64</SharpRailLinuxRid>
-    <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">linux-arm64</SharpRailLinuxRid>
+    <TereditorLinuxRid Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">$(RuntimeIdentifier)</TereditorLinuxRid>
+    <TereditorLinuxRid Condition="'$(TereditorLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'">linux-x64</TereditorLinuxRid>
+    <TereditorLinuxRid Condition="'$(TereditorLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">linux-arm64</TereditorLinuxRid>
     <!-- The C compiler of the small Linux helper programs: the pinned Zig against glibc 2.31, as for the NativeAOT link (NativeAot.props). -->
-    <SharpRailLinuxCc Condition="'$(SharpRailLinuxRid)' == 'linux-x64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=x86_64-linux-gnu</SharpRailLinuxCc>
-    <SharpRailLinuxCc Condition="'$(SharpRailLinuxRid)' == 'linux-arm64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=aarch64-linux-gnu</SharpRailLinuxCc>
+    <TereditorLinuxCc Condition="'$(TereditorLinuxRid)' == 'linux-x64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=x86_64-linux-gnu</TereditorLinuxCc>
+    <TereditorLinuxCc Condition="'$(TereditorLinuxRid)' == 'linux-arm64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=aarch64-linux-gnu</TereditorLinuxCc>
     <!-- Recipes that need the manifest's pins ([env] in mise.toml, tools) run under the checkout's pinned mise. -->
     <MiseRun Condition="'$(OS)' != 'Windows_NT'">sh &quot;$(MSBuildThisFileDirectory)scripts/mise&quot; x --</MiseRun>
     <MiseRun Condition="'$(OS)' == 'Windows_NT'">&quot;$(MSBuildThisFileDirectory)scripts\mise.cmd&quot; x --</MiseRun>
@@ -40,7 +40,7 @@
       `scripts/mise run restore:update`. The lock holds one target per RuntimeIdentifiers entry, so the RIDs the
       packages publish with are listed here and a `publish -r <rid>` restore stays inside the lock.
       EXCLUDED from locking (RestorePackagesWithLockFile=false in their project file, each with its reason there):
-      SharpRail.Android and SharpRail.Browser, whose restores resolve workload packs and per-RID runtime packs.
+      Tereditor.Android and Tereditor.Browser, whose restores resolve workload packs and per-RID runtime packs.
     -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>
@@ -56,10 +56,10 @@
     <!--
       Everything under src/ except the Android and Browser heads, the plugin runner (the one JIT process, which loads
       plugin assemblies) and the isolation generator (a compiler component) is NativeAOT code: the trim, AOT and single-file analyzers run on every build, so any IL2xxx or
-      IL3xxx fails it (src/SharpRail.Plugins.Api/Security.SPEC.md, NativeAOT section).
+      IL3xxx fails it (src/Tereditor.Plugins.Api/Security.SPEC.md, NativeAOT section).
     -->
-    <SharpRailAotAnalyzed Condition="'$(SharpRailAotAnalyzed)' == '' and $([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/').StartsWith('src/')) and '$(MSBuildProjectName)' != 'SharpRail.Android' and '$(MSBuildProjectName)' != 'SharpRail.Browser' and '$(MSBuildProjectName)' != 'SharpRail.Plugins.Runner' and '$(MSBuildProjectName)' != 'SharpRail.Plugins.Isolation.Generator'">true</SharpRailAotAnalyzed>
-    <IsAotCompatible Condition="'$(SharpRailAotAnalyzed)' == 'true'">true</IsAotCompatible>
+    <TereditorAotAnalyzed Condition="'$(TereditorAotAnalyzed)' == '' and $([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/').StartsWith('src/')) and '$(MSBuildProjectName)' != 'Tereditor.Android' and '$(MSBuildProjectName)' != 'Tereditor.Browser' and '$(MSBuildProjectName)' != 'Tereditor.Plugins.Runner' and '$(MSBuildProjectName)' != 'Tereditor.Plugins.Isolation.Generator'">true</TereditorAotAnalyzed>
+    <IsAotCompatible Condition="'$(TereditorAotAnalyzed)' == 'true'">true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="System.Runtime.TieredCompilation" Value="true" />

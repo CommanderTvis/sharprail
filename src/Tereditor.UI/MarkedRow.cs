@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>What a child of a <see cref="MarkedRow"/> is.</summary>
 internal enum RowRole

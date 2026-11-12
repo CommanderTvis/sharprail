@@ -2,10 +2,10 @@
   "Settings": {
     "FileTypeIconsEnabled": false,
     "FileTypeIconStyle": "colored",
-    "Theme": "sharprail-dark",
+    "Theme": "tereditor-dark",
     "ThemeMode": "fixed",
-    "SystemLight": "sharprail-light",
-    "SystemDark": "sharprail-dark",
+    "SystemLight": "tereditor-light",
+    "SystemDark": "tereditor-dark",
     "FileLineWidth": 100,
     "FileLineWidthBounded": false,
     "MarkdownLineWidth": 80,
@@ -77,7 +77,7 @@
       "LastOpened": 1770000000000
     }
   ],
-  "SharprailExcludeDeclined": [
+  "TereditorExcludeDeclined": [
     "$ROOT/project"
   ],
   "WorkspaceLanguages": {

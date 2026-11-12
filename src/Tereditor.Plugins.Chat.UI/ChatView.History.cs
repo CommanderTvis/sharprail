@@ -4,9 +4,9 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {

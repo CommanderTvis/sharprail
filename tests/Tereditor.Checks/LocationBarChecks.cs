@@ -8,14 +8,14 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The header's captioned Project and Branch segments, after upstream's shell/locationBar unit tests.</summary>
 internal static class LocationBarChecks
@@ -57,7 +57,7 @@ internal static class LocationBarChecks
         Require(Shown(app, "ProjectSegment") && !Shown(app, "BranchSegment"),
             "Project Home shows the Project segment and no Branch segment.");
         Require(Label(app, "ProjectLabel") == "sample-project", "Project Home names the project.");
-        var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
+        var captions = app.Find<Tereditor.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
         Require(captions.SequenceEqual(["Project", "Branch", "Remote"]), "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
         Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
@@ -106,7 +106,7 @@ internal static class LocationBarChecks
         var confirm = Dialog(app);
         Require(Text(confirm).Contains(workspace, StringComparison.Ordinal), "The Remove dialog names the workspace it was opened for.");
         _ = app.Window.OpenProjectHomeAsync(app.Root);
-        Until(() => app.Window.AtProjectHome && SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0);
+        Until(() => app.Window.AtProjectHome && Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0);
         Settle();
         Require(Directory.Exists(workspace) && WorktreePaths(app).Contains(workspace),
             "A Remove dialog dismissed by a workspace change removes nothing.");

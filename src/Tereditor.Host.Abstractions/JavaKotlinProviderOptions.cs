@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>Which Java / Kotlin provider choices exist while their plugins are enabled, and which one is in effect.</summary>
 public static class JavaKotlinProviderOptions

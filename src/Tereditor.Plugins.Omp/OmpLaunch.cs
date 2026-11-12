@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Omp;
+namespace Tereditor.Plugins.Omp;
 
 public sealed record OmpLaunchOptions
 {
@@ -31,12 +31,12 @@ public sealed record OmpLaunchOptions
 /// <summary>The launch line, shared by the launcher and the host's revive prefill. Flags are omp's documented ones (https://omp.sh/docs/cli).</summary>
 public static partial class OmpLaunch
 {
-    /// <summary>The profile whose <c>mcp.json</c> SharpRail owns; see https://omp.sh/docs/mcp.</summary>
-    public const string Profile = "sharprail";
+    /// <summary>The profile whose <c>mcp.json</c> tereditor owns; see https://omp.sh/docs/mcp.</summary>
+    public const string Profile = "tereditor";
     /// <summary>The host-owned folder holding one session directory per launch, set in every terminal by the host.</summary>
-    public const string SessionsVariable = "SHARPRAIL_OMP_SESSIONS";
+    public const string SessionsVariable = "TEREDITOR_OMP_SESSIONS";
     /// <summary>A command-scoped marker distinguishing UI launches from commands typed into a terminal.</summary>
-    public const string UiLaunchPrefix = "SHARPRAIL_UI_LAUNCH=omp";
+    public const string UiLaunchPrefix = "TEREDITOR_UI_LAUNCH=omp";
     public const string InstallUrl = "https://omp.sh/";
 
     /// <summary>The <c>--approval-mode</c> values <c>omp --help</c> lists (omp 18.12.6).</summary>

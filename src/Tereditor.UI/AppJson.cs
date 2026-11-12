@@ -2,13 +2,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Source-generated JSON metadata for everything the app persists or compares as JSON. Its

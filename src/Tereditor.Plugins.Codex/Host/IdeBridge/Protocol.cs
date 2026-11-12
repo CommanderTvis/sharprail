@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Codex.Host.IdeBridge;
+namespace Tereditor.Plugins.Codex.Host.IdeBridge;
 
 /// <summary>
 /// One connection speaking Codex's IPC framing: JSON objects behind a four-byte little-endian length. A frame over the

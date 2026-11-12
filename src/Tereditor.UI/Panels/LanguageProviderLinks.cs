@@ -3,9 +3,9 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal static class LanguageProviderLinks
 {

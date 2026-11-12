@@ -1,8 +1,8 @@
 using System.Globalization;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>Wording the Code Intelligence pane and Settings share, so the two always say the same thing.</summary>
 internal static class LanguageNotes

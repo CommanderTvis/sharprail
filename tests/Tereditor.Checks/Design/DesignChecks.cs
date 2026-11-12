@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks.Design;
+namespace Tereditor.Checks.Design;
 
 /// <summary>
 /// The design-system gate: generated output matches its authored source, and the UI's XAML and C# name
@@ -52,7 +52,7 @@ internal static partial class DesignChecks
     private static List<SourceFile> Sources(string root)
     {
         var ui = DesignSources.Ui(root);
-        var kit = Path.Combine(root, "src", "SharpRail.Plugins.UI.Kit");
+        var kit = Path.Combine(root, "src", "Tereditor.Plugins.UI.Kit");
         var files = new[] { ui, kit }.SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
             .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith(".axaml", StringComparison.Ordinal))
             .Select(path => (Physical: path, Relative: Path.GetRelativePath(directory, path).Replace('\\', '/'), Kit: directory == kit)))

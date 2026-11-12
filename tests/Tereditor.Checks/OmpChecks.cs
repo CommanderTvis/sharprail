@@ -9,18 +9,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.AirGateway;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Omp;
-using SharpRail.Plugins.Omp.Host;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.AirGateway;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Omp;
+using Tereditor.Plugins.Omp.Host;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The omp plugin: the launch line (profile, session folder, model, approval mode, advisor, --no-lsp), the context-file
 // resolution with nested, cycle-safe @-imports and the offers, the profile's MCP file, the version probe against a
@@ -81,7 +81,7 @@ internal static class OmpChecks
         File.WriteAllText(Path.Combine(bin, "central"), "#!/bin/sh\necho \"CENTRAL=$*\" >> \"" + record + "\"\n");
         foreach (var name in new[] { "omp", "central" }) File.SetUnixFileMode(Path.Combine(bin, name), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var settings = new AirSettings { Source = AirSources.Central };
-        using var missing = new SharpRail.Plugins.AirGateway.Host.AirGatewayRuntime(new(home, bin), () => settings, _ => { });
+        using var missing = new Tereditor.Plugins.AirGateway.Host.AirGatewayRuntime(new(home, bin), () => settings, _ => { });
         Require(missing.PiWire() is null && missing.Contribution(OmpManifest.Id) is { Wrapper: [AirLaunch.PiMissingCommand], ReplacesExecutable: true },
             "governed omp without Central's Pi integration is blocked");
         Require((await missing.StatusAsync(false, default)).Agents.Single(agent => agent.Id == OmpManifest.Id).Launch!.Contains("run `central add pi`", StringComparison.Ordinal),
@@ -124,7 +124,7 @@ internal static class OmpChecks
     private static void Launch()
     {
         var plain = OmpLaunch.Line("", new() { Mcp = false });
-        Require(plain == "omp --no-lsp", "a bare launch defaults to SharpRail's code intelligence: " + plain);
+        Require(plain == "omp --no-lsp", "a bare launch defaults to tereditor's code intelligence: " + plain);
         var full = OmpLaunch.Line("omp", new()
         {
             UiLaunch = true,
@@ -136,7 +136,7 @@ internal static class OmpChecks
             InitialPrompt = "fix it",
             Images = ["/tmp/a.png"]
         });
-        Require(full == "SHARPRAIL_UI_LAUNCH=omp omp --profile sharprail --session-dir \"$SHARPRAIL_OMP_SESSIONS/0123456789abcdef0123456789abcdef\" " +
+        Require(full == "TEREDITOR_UI_LAUNCH=omp omp --profile tereditor --session-dir \"$TEREDITOR_OMP_SESSIONS/0123456789abcdef0123456789abcdef\" " +
             "--model anthropic/claude-opus-4-6:high --approval-mode write --advisor --no-lsp --append-system-prompt 'be brief' @/tmp/a.png 'fix it'",
             "the launch carries the profile, session folder, model, approval mode, advisor and --no-lsp: " + full);
         Require(OmpLaunch.SessionIdOf(full) == "0123456789abcdef0123456789abcdef", "the session folder is read back from the arguments");
@@ -144,7 +144,7 @@ internal static class OmpChecks
         Require(own == "omp", "omp's own code intelligence drops --no-lsp: " + own);
         var resume = OmpLaunch.Line("omp", new() { Mcp = false, SessionDirectory = "/s/abc", ResumePath = "/s/abc/x.jsonl", InitialPrompt = "ignored" });
         Require(resume == "omp --session-dir /s/abc -r /s/abc/x.jsonl --no-lsp", "a resume names the session file and drops the opening prompt: " + resume);
-        Require(OmpLaunch.Line("omp", new() { Windows = true, SessionId = "0123456789abcdef0123456789abcdef", UiLaunch = true }) == "omp --profile sharprail --no-lsp",
+        Require(OmpLaunch.Line("omp", new() { Windows = true, SessionId = "0123456789abcdef0123456789abcdef", UiLaunch = true }) == "omp --profile tereditor --no-lsp",
             "Windows launches keep omp's own session store and no POSIX marker");
         Require(OmpLaunch.ApprovalModes.SequenceEqual(["always-ask", "always-ask-cached", "write", "yolo"]) && OmpLaunch.ModelSuggestions.Contains("@smol"), "the documented values are suggested");
     }
@@ -155,7 +155,7 @@ internal static class OmpChecks
         var project = Path.Combine(root, "work", "project");
         Directory.CreateDirectory(Path.Combine(project, "docs"));
         Directory.CreateDirectory(Path.Combine(project, ".claude"));
-        Directory.CreateDirectory(Path.Combine(home, ".omp", "profiles", "sharprail", "agent"));
+        Directory.CreateDirectory(Path.Combine(home, ".omp", "profiles", "tereditor", "agent"));
         File.WriteAllText(Path.Combine(project, "AGENTS.md"), "# Project\n\n@docs/a.md\nmail me at someone@example.test\n```\n@docs/fenced.md\n```\nsee `@docs/inline.md`\n");
         File.WriteAllText(Path.Combine(project, "docs", "a.md"), "A\n@b.md\n");
         File.WriteAllText(Path.Combine(project, "docs", "b.md"), "B\n@a.md\n@missing.md\n");
@@ -163,12 +163,12 @@ internal static class OmpChecks
         File.WriteAllText(Path.Combine(project, "docs", "inline.md"), "never\n");
         File.WriteAllText(Path.Combine(project, ".claude", "CLAUDE.md"), "shadowed by AGENTS.md\n");
         File.WriteAllText(Path.Combine(root, "work", "AGENTS.md"), "ancestor\n");
-        File.WriteAllText(Path.Combine(home, ".omp", "profiles", "sharprail", "agent", "AGENTS.md"), "user\n");
+        File.WriteAllText(Path.Combine(home, ".omp", "profiles", "tereditor", "agent", "AGENTS.md"), "user\n");
 
         var snapshot = OmpContext.Resolve(project, home, profile: true);
         string Rows() => string.Join(" | ", snapshot.Files.Select(file => $"{file.Label}:{file.Scope}:{file.Provider}:{file.Depth}{(file.Shadowed ? ":shadowed" : "")}{(file.Cycle ? ":cycle" : "")}"));
         var labels = snapshot.Files.Select(file => file.Label).ToList();
-        Require(labels.IndexOf("~/.omp/profiles/sharprail/agent/AGENTS.md") == 0, "the profile's user file comes first: " + Rows());
+        Require(labels.IndexOf("~/.omp/profiles/tereditor/agent/AGENTS.md") == 0, "the profile's user file comes first: " + Rows());
         Require(labels.IndexOf(Path.Combine(root, "work", "AGENTS.md")) < labels.IndexOf("AGENTS.md"), "an ancestor comes before the launch directory: " + Rows());
         var agents = snapshot.Files.Single(file => file.Label == "AGENTS.md");
         Require(agents is { Provider: "native", Depth: 0, Shadowed: false, Scope: OmpContextScope.Project } && agents.Tokens == (agents.Bytes + 3) / 4, "the project AGENTS.md wins natively: " + Rows());
@@ -201,8 +201,8 @@ internal static class OmpChecks
     {
         OmpHost.WriteProfileMcp(root);
         var path = OmpHost.ProfileMcpPath(root);
-        Require(path == Path.Combine(root, ".omp", "profiles", "sharprail", "agent", "mcp.json"), "the profile's MCP file path: " + path);
-        var server = JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("mcpServers").GetProperty("sharprail");
+        Require(path == Path.Combine(root, ".omp", "profiles", "tereditor", "agent", "mcp.json"), "the profile's MCP file path: " + path);
+        var server = JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("mcpServers").GetProperty("tereditor");
         Require(server.GetProperty("type").GetString() == "http" && server.GetProperty("url").GetString() == "${THINKRAIL_MCP_URL}",
             "the server's URL is each terminal's own, expanded by omp");
         File.WriteAllText(path, "{}");
@@ -217,7 +217,7 @@ internal static class OmpChecks
         var fake = FakeOmp(root);
         string Home(string name) { var h = Path.Combine(root, name); Directory.CreateDirectory(h); return h; }
         string Calls(string h) => File.Exists(Path.Combine(h, "config-calls.txt")) ? File.ReadAllText(Path.Combine(h, "config-calls.txt")) : "";
-        string Wizard(string h) => File.ReadAllText(Path.Combine(h, ".omp", "profiles", "sharprail", "wizard")).Trim();
+        string Wizard(string h) => File.ReadAllText(Path.Combine(h, ".omp", "profiles", "tereditor", "wizard")).Trim();
 
         var fresh = Home("fresh");
         Require(await OmpHost.SkipSetupWizardAsync(fake, fresh) == "set" && Wizard(fresh) == "false", "a never-completed wizard is turned off");
@@ -225,8 +225,8 @@ internal static class OmpChecks
         Require(await OmpHost.SkipSetupWizardAsync(fake, fresh) != "set" && !Calls(fresh)[calls.Length..].Contains("set startup", StringComparison.Ordinal), "a second preparation does not set it again");
 
         var done = Home("done");
-        Directory.CreateDirectory(Path.Combine(done, ".omp", "profiles", "sharprail"));
-        File.WriteAllText(Path.Combine(done, ".omp", "profiles", "sharprail", "version"), "3\n");
+        Directory.CreateDirectory(Path.Combine(done, ".omp", "profiles", "tereditor"));
+        File.WriteAllText(Path.Combine(done, ".omp", "profiles", "tereditor", "version"), "3\n");
         Require(await OmpHost.SkipSetupWizardAsync(fake, done) != "set" && !Calls(done).Contains("set startup", StringComparison.Ordinal), "a completed wizard (setupVersion > 0) is left alone");
 
         var failing = Home("failing");
@@ -255,8 +255,8 @@ internal static class OmpChecks
         Require(snapshot.FindDescendant(10, ["omp"]) is { Pid: 12 }, "a live omp under the shell is found and a zombie one skipped");
         var zombie = new ProcessSnapshot(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10     1 Ss   zsh\n  11    10 Z    omp\n")));
         Require(zombie.FindDescendant(10, ["omp"]) is null, "an exited, unreaped omp keeps no agent");
-        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "SharpRail.UI"), new(40, 30, "zsh"), new(50, 40, "omp")]);
-        Require(nested.FindDescendant(10, ["omp"]) is null && nested.FindDescendant(30, ["omp"]) is { Pid: 50 }, "omp below an inner SharpRail app is not the outer tab's agent");
+        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "Tereditor.UI"), new(40, 30, "zsh"), new(50, 40, "omp")]);
+        Require(nested.FindDescendant(10, ["omp"]) is null && nested.FindDescendant(30, ["omp"]) is { Pid: 50 }, "omp below an inner tereditor app is not the outer tab's agent");
     }
 
     private static void Sessions(string root)
@@ -303,7 +303,7 @@ internal static class OmpChecks
             Settings(new { command = fake, model = "@smol", approvalMode = "write", advisor = true });
             _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(OmpManifest.Id, true));
             E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(OmpManifest.Id));
-            Require(app.Workbench.PluginLoader.Registry.Roster.Single(entry => entry.Id == OmpManifest.Id).Support == SharpRail.Plugins.Api.PluginSupportLevels.Early,
+            Require(app.Workbench.PluginLoader.Registry.Roster.Single(entry => entry.Id == OmpManifest.Id).Support == Tereditor.Plugins.Api.PluginSupportLevels.Early,
                 "the roster carries the Early support level over the wire");
 
             app.Window.Layout.RestoreTool(OmpManifest.ContextTool);
@@ -311,7 +311,7 @@ internal static class OmpChecks
             var panel = Find<Control>(app.Window, "OmpPanel").Single();
             E2eWorkspace.Until(() => Find<TextBlock>(panel, "OmpVersion").Single().Text == "v9.8.7");
             Require(Find<Border>(panel, "OmpEarlyBadge").Single().IsEffectivelyVisible, "the pane wears the Early badge");
-            Require(Find<TextBlock>(panel, "OmpCodeIntelligence").Single().Text!.Contains("SharpRail", StringComparison.Ordinal), "the pane says sessions use SharpRail's code intelligence");
+            Require(Find<TextBlock>(panel, "OmpCodeIntelligence").Single().Text!.Contains("tereditor", StringComparison.Ordinal), "the pane says sessions use tereditor's code intelligence");
             Require(Find<TextBlock>(panel, "OmpProfileNote").Single().IsEffectivelyVisible, "the pane notes what the profile keeps apart");
             E2eWorkspace.Until(() => Find<Control>(panel, "OmpContextRow").Count >= 3);
             var rows = Find<Control>(panel, "OmpContextRow");
@@ -326,18 +326,18 @@ internal static class OmpChecks
             Require(File.Exists(OmpHost.ProfileMcpPath(home)), "enabling writes the profile's MCP file under omp's home");
 
             // The sign-in import pipes the fixture's export into the profile's import on the host, only when pressed.
-            var imported = Path.Combine(home, ".omp", "profiles", "sharprail", "imported.json");
+            var imported = Path.Combine(home, ".omp", "profiles", "tereditor", "imported.json");
             Require(!File.Exists(imported), "the sign-in import never runs by itself");
             E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpSignIn").Single().IsEffectivelyVisible);
             var signIn = Find<Button>(panel, "OmpImportSignIn").Single();
             var signInResult = Find<TextBlock>(panel, "OmpSignInResult").Single();
             app.Click(signIn);
             E2eWorkspace.Until(() => signInResult.Text?.Contains("now works", StringComparison.Ordinal) == true && signIn.IsEnabled);
-            Require(File.ReadAllText(imported).Trim() == SignInSecret, "the default profile's export lands in the SharpRail profile");
+            Require(File.ReadAllText(imported).Trim() == SignInSecret, "the default profile's export lands in the tereditor profile");
             var leaks = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
                 .Where(file => file != imported && !file.StartsWith(Path.Combine(root, "fixture"), StringComparison.Ordinal) && new FileInfo(file).Length < 4 << 20)
                 .Where(file => { try { return File.ReadAllText(file).Contains("fixture-signin-7f3a", StringComparison.Ordinal); } catch (IOException) { return false; } }).ToList();
-            Require(leaks.Count == 0, "SharpRail persists no credentials: " + string.Join(", ", leaks));
+            Require(leaks.Count == 0, "tereditor persists no credentials: " + string.Join(", ", leaks));
             File.WriteAllText(Path.Combine(home, "fail-export"), "");
             app.Click(signIn);
             E2eWorkspace.Until(() => signInResult.Text?.Contains("exit 3", StringComparison.Ordinal) == true && signIn.IsEnabled);
@@ -364,7 +364,7 @@ internal static class OmpChecks
             app.Click(Find<Button>(app.Window, "NewOmp").First());
             E2eWorkspace.Until(() => File.Exists(argv) && File.ReadAllText(argv).Contains("--no-lsp", StringComparison.Ordinal));
             var args = File.ReadAllLines(argv);
-            Require(args.Take(2).SequenceEqual(["--profile", "sharprail"]) && args[2] == "--session-dir" &&
+            Require(args.Take(2).SequenceEqual(["--profile", "tereditor"]) && args[2] == "--session-dir" &&
                 OmpLaunch.SessionIdOf("--session-dir " + args[3]) is not null && args.Skip(4).SequenceEqual(["--model", "@smol", "--approval-mode", "write", "--advisor", "--no-lsp"]),
                 "the launch argv: " + string.Join(" ", args));
             E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true &&

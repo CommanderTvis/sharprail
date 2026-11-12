@@ -4,7 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>One listed entry: its name, the path the caller lists or returns for it, and whether it is a folder.</summary>
 public sealed record PathBrowserEntry(string Name, string Path, bool IsDirectory, bool Muted = false);
@@ -29,7 +29,7 @@ public sealed class PathBrowserDialog
     private PathBrowserFolder? shown;
     private string? homePath;
 
-    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
+    public Tereditor.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public PathBrowserDialog(string title, string start, Func<string, CancellationToken, Task<PathBrowserFolder>> list)
     {

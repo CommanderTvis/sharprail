@@ -1,14 +1,14 @@
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit.Editor;
-using SharpRail.UI.Notifications;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit.Editor;
+using Tereditor.UI.Notifications;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The app-owned composition every window shares: one host (its shared-state subscription and a
@@ -54,14 +54,14 @@ public sealed class Workbench : IDisposable
         // The plugins' keymap actions join and leave the live keymap as plugins are enabled and disabled.
         PluginRegistry.Changed += tables => { if ((tables & (PluginTables.KeymapActions | PluginTables.Active | PluginTables.Roster)) != 0) ActiveKeymap.SetPluginActions(PluginRegistry.ActiveKeymapActions()); };
         PluginLoader.Start();
-        SharpRail.Scintilla.ScintillaEditor.TextSize = profile.Data.Preferences.CodeFontSize;
-        SharpRail.Scintilla.ScintillaEditor.TextSizeChosen += RememberTextSize;
+        Tereditor.Scintilla.ScintillaEditor.TextSize = profile.Data.Preferences.CodeFontSize;
+        Tereditor.Scintilla.ScintillaEditor.TextSizeChosen += RememberTextSize;
     }
 
     // A pinch on any editor sizes them all; the size it settles on is this app's to remember.
     private void RememberTextSize()
     {
-        Profile.Data.Preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.TextSize;
+        Profile.Data.Preferences.CodeFontSize = Tereditor.Scintilla.ScintillaEditor.TextSize;
         Profile.Save();
     }
 
@@ -380,7 +380,7 @@ public sealed class Workbench : IDisposable
 
     public void Dispose()
     {
-        SharpRail.Scintilla.ScintillaEditor.TextSizeChosen -= RememberTextSize;
+        Tereditor.Scintilla.ScintillaEditor.TextSizeChosen -= RememberTextSize;
         lifetime.Cancel(); terminalCatalogStarted.TrySetCanceled();
         disposed = true;
         highlightingVersion++;

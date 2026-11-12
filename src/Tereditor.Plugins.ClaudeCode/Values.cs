@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode;
+namespace Tereditor.Plugins.ClaudeCode;
 
 /// <summary>The values both halves agree on: scopes, their wording, the hook events offered, and event → status.</summary>
 public static class ClaudeValues

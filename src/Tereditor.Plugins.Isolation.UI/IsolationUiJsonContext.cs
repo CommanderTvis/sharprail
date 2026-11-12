@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Isolation.UI;
+namespace Tereditor.Plugins.Isolation.UI;
 
 /// <summary>
 /// The by-value UI API types that cross the plugin channel, which Api.UI cannot name itself because it carries no context

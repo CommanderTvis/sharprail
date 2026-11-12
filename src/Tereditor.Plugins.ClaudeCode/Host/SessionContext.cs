@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>
 /// The launch flags that add context layers to a Claude session, read off its process command line. A process listing

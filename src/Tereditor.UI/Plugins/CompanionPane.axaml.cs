@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 internal sealed partial class CompanionPane : UserControl
 {

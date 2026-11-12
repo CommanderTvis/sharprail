@@ -1,6 +1,6 @@
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// Values the Settings composer offers for settings.json keys whose documented value set is closed. They are

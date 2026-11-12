@@ -6,16 +6,16 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class PaneRetentionChecks
 {

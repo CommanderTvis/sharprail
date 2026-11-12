@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Blueprint.UI;
+namespace Tereditor.Plugins.Blueprint.UI;
 
 internal sealed class BlueprintOpener(IPluginUIContext context, BlueprintStore store)
 {

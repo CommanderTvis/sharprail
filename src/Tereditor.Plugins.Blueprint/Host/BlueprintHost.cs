@@ -1,10 +1,10 @@
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.SpecDialect;
 
-namespace SharpRail.Plugins.Blueprint.Host;
+namespace Tereditor.Plugins.Blueprint.Host;
 
 public sealed class BlueprintHost : PluginHostModule
 {
@@ -13,7 +13,7 @@ public sealed class BlueprintHost : PluginHostModule
     public override IJsonTypeInfoResolver Json => BlueprintHostJson.Default;
 
     /// <summary>The list item about <c>blueprint_check</c> in the instructions agent plugins give sessions (H20).</summary>
-    internal const string Guidance = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.";
+    internal const string Guidance = "`blueprint_check`: you MUST call it to verify tereditor's rendered view after writing or rewriting BLUEPRINT.md.";
 
     /// <summary>Where the format specification is written, in the plugin's own directory under the state directory; null when the host has no state directory.</summary>
     internal static string? FormatPath(string? stateDirectory) =>
@@ -55,7 +55,7 @@ public sealed class BlueprintHost : PluginHostModule
         context.Method(BlueprintContract.Open, async (parameters, _, ct) =>
         {
             if (parameters.AgentId is not (BlueprintAgentId.Claude or BlueprintAgentId.Codex))
-                throw new InvalidOperationException("Blueprint authoring uses a Claude Code or Codex terminal in SharpRail.");
+                throw new InvalidOperationException("Blueprint authoring uses a Claude Code or Codex terminal in tereditor.");
             var workspace = await context.WorkspaceAsync(parameters.WorkspaceId, ct)
                 ?? throw new InvalidOperationException($"Unknown workspace: {parameters.WorkspaceId}");
             await context.WatchWorkspaceAsync(parameters.WorkspaceId, ct);

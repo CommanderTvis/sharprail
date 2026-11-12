@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.UI.Panels.AboutFields">
+             x:Class="Tereditor.UI.Panels.AboutFields">
   <StackPanel Spacing="12">
     <StackPanel Orientation="Horizontal" Spacing="12">
       <ContentControl x:Name="AboutBrand" VerticalAlignment="Center" />

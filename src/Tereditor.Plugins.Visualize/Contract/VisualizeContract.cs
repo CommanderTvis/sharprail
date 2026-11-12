@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Visualize;
+namespace Tereditor.Plugins.Visualize;
 
 /// <summary>
 /// A visualization drawn by the agent running in a terminal: the MCP <c>visualize</c> tool's live view.
@@ -68,8 +68,8 @@ public static class VisualizeContract
         Description = "Gives the terminal agent a live drawing surface.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Visualize.Host.dll",
-        Ui = "SharpRail.Plugins.Visualize.UI.dll"
+        Host = "Tereditor.Plugins.Visualize.Host.dll",
+        Ui = "Tereditor.Plugins.Visualize.UI.dll"
     };
 }
 

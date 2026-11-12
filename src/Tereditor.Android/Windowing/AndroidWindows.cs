@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Android;
 using Avalonia.Platform;
 
-namespace SharpRail.UI.Android.Windowing;
+namespace Tereditor.UI.Android.Windowing;
 
 /// <summary>
 /// Windows for Avalonia's Android backend, which has none of its own: the workbench, its dialogs and Settings are

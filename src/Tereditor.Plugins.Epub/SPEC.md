@@ -16,8 +16,8 @@ Open `.epub` files of a workspace in a reader: a table of contents beside the te
 viewport-sized pages, in-book and external links, images and the cover, and Find across the whole book. Reading
 position is not remembered between openings.
 
-Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Epub` (manifest and wire contract),
-`SharpRail.Plugins.Epub.Host` and `SharpRail.Plugins.Epub.UI`. The plugin is builtin and **disabled by default**;
+Three projects under `Contract`, `Host` and `UI`: `Tereditor.Plugins.Epub` (manifest and wire contract),
+`Tereditor.Plugins.Epub.Host` and `Tereditor.Plugins.Epub.UI`. The plugin is builtin and **disabled by default**;
 Settings › Plugins enables it. While it is disabled nothing claims `.epub` and opening one behaves as before.
 
 ## Boundary
@@ -26,7 +26,7 @@ Settings › Plugins enables it. While it is disabled nothing claims `.epub` and
   `Directory.Packages.props`), the conversion to Markdown, a small converted-book cache, and the viewer control.
 - Uses only Plugin API capabilities: the manifest's file viewer for the `epub` extension with read strategy
   `None`, `FileViewer` (W7), `ObserveFileRevision` (W14), request methods (H1/W1), and the UI kit's Markdown
-  renderer and Find bar. Nothing in `SharpRail.UI` knows the plugin beyond the builtin arrays.
+  renderer and Find bar. Nothing in `Tereditor.UI` knows the plugin beyond the builtin arrays.
 - The UI never reads the file: the host reads it under the workspace (paths that climb out are refused), so a
   remote host behaves like the embedded one.
 

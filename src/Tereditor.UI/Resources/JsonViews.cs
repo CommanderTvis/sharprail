@@ -8,9 +8,9 @@ using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 internal enum JsonChange { Unchanged, Added, Removed, Changed }
 

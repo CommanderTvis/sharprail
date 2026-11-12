@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// Asks <c>codex app-server daemon version</c> whether the shared daemon runs the CLI's own version. It only reads:

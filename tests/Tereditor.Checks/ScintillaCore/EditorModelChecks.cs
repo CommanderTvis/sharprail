@@ -1,11 +1,11 @@
 using System.Text;
 
-using SharpRail.Scintilla;
-using SharpRail.Scintilla.Editing;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks.ScintillaCore;
+using Tereditor.Scintilla;
+using Tereditor.Scintilla.Editing;
+
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Managed-only checks (no upstream suite): message semantics of the editor model, with a real typeface.</summary>
 internal static class EditorModelChecks

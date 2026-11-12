@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal static class LanguageConfigurationCatalog
 {
@@ -20,7 +20,7 @@ internal static class LanguageConfigurationCatalog
         var fields = spec.Settings;
         var source = spec.Source.Length > 0 ? spec.Source : server.Package.Length > 0 ? "npm · " + server.Package : "Host installation";
         var (website, repository, repositoryLabel) = (spec.Website, spec.Repository, spec.RepositoryLabel);
-        return new("ready", "SharpRail pins managed LSP versions so these configuration controls match the server’s configuration structure. Custom executables and servers on PATH may use another version. SDK-bundled servers follow the installed toolchain. Unset fields retain server defaults.", server.Id)
+        return new("ready", "tereditor pins managed LSP versions so these configuration controls match the server’s configuration structure. Custom executables and servers on PATH may use another version. SDK-bundled servers follow the installed toolchain. Unset fields retain server defaults.", server.Id)
         {
             Configuration = JsonSerializer.Serialize(new Description(server.Implementation, server.Version, source, website, repository, repositoryLabel, fields), HostJson.Web.Info<Description>())
         };

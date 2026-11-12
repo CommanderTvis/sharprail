@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>The agent's answer to <c>initialize</c>, reduced to what the client uses.</summary>
 internal sealed record AcpAgentInfo(int ProtocolVersion, bool LoadSession, bool Image, bool Audio, bool EmbeddedContext, IReadOnlyList<AcpAuthMethod> AuthMethods, string? Name, string? Version, bool CanListSessions, JsonObject Raw);
@@ -8,7 +8,7 @@ internal sealed record AcpAgentInfo(int ProtocolVersion, bool LoadSession, bool 
 internal sealed record AcpAuthMethod(string Id, string Name, string? Description);
 
 /// <summary>Raised when the agent speaks a protocol version this client does not.</summary>
-public sealed class AcpVersionException(int agent) : InvalidOperationException($"The agent speaks ACP version {agent}; SharpRail supports version {AcpClient.ProtocolVersion}.")
+public sealed class AcpVersionException(int agent) : InvalidOperationException($"The agent speaks ACP version {agent}; tereditor supports version {AcpClient.ProtocolVersion}.")
 {
     public int AgentVersion { get; } = agent;
 }

@@ -5,10 +5,10 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.GitHub.UI;
+namespace Tereditor.Plugins.GitHub.UI;
 
 /// <summary>Problem is pushAuth, missing or unauthenticated; the compare link is offered when the host built one.</summary>
 internal sealed record GitHubSetup(string Problem, string CompareUrl = "");
@@ -128,7 +128,7 @@ internal static class GitHubDialogs
         window.Tag = "PrSetupDialog";
         var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
         explanation.Text = pushAuth
-            ? "SharpRail pushes without a terminal, so SSH passphrase and credential prompts can't appear. Make your git auth non-interactive, then try again."
+            ? "tereditor pushes without a terminal, so SSH passphrase and credential prompts can't appear. Make your git auth non-interactive, then try again."
             : missing
                 ? "The branch was pushed, but creating the PR directly needs the GitHub CLI on the host. Install it and sign in, then Open PR creates and updates PRs in one click."
                 : "The branch was pushed, but the GitHub CLI on the host isn't signed in, so the PR can't be created directly. Sign in, then try again.";

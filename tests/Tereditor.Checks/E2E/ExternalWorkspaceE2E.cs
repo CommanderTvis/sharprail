@@ -1,12 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>The registry-backed rail: attaching and forgetting an existing worktree, background project rows and removed-workspace cleanup.</summary>
 internal static class ExternalWorkspaceE2E
@@ -46,7 +46,7 @@ internal static class ExternalWorkspaceE2E
         Git(project, "worktree", "add", "--detach", loose);
         _ = app.Window.RefreshAsync();
         Settle(600);
-        Require(!WorktreePaths(app).Any(), "A worktree made behind SharpRail is not a workspace until it is attached.");
+        Require(!WorktreePaths(app).Any(), "A worktree made behind tereditor is not a workspace until it is attached.");
 
         // A checkout made in a terminal reaches the rail through the host's registry, without a reload.
         Git(project, "switch", "-c", "moved");
@@ -58,27 +58,27 @@ internal static class ExternalWorkspaceE2E
             Text(Candidates(dialog).Single(row => Equals(row.Tag, outside))).Contains("outside-branch", StringComparison.Ordinal),
             "The chooser lists unattached worktrees by branch and path and keeps detached ones disabled.");
         app.Click(Candidates(dialog).Single(row => Equals(row.Tag, outside)));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, outside) && WorktreePaths(app).Contains(outside));
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, outside) && WorktreePaths(app).Contains(outside));
         Require(Record(app, outside).Kind == WorkspaceKinds.External && ItemText(app, outside, "WorkspaceBranch") == "outside-branch" &&
-            ItemText(app, outside, "WorkspaceName") == "outside" && !Directory.Exists(Path.Combine(outside, ".sharprail")),
+            ItemText(app, outside, "WorkspaceName") == "outside" && !Directory.Exists(Path.Combine(outside, ".tereditor")),
             "An attached worktree is an external workspace shown by its directory and branch, left untouched.");
         Until(() => app.Window.Layout.State.Workspaces.ContainsKey(outside));
 
         var menu = OpenWorkspaceMenu(app, outside);
         Require(MenuEntry(menu, "WorkspaceReveal") is { IsVisible: true } && MenuEntry(menu, "WorkspaceRename") is null &&
-            Equals(MenuEntry(menu, "WorkspaceRemove")!.Header, "Remove from SharpRail"), "An external row can be revealed and removed from SharpRail, never renamed.");
+            Equals(MenuEntry(menu, "WorkspaceRemove")!.Header, "Remove from tereditor"), "An external row can be revealed and removed from tereditor, never renamed.");
         Choose(app, menu, "WorkspaceRemove");
         var confirm = Dialog(app);
-        Require(confirm.Title == "Remove outside from SharpRail?" && Text(confirm).Contains("stay untouched", StringComparison.Ordinal),
+        Require(confirm.Title == "Remove outside from tereditor?" && Text(confirm).Contains("stay untouched", StringComparison.Ordinal),
             "Forgetting an external workspace promises to leave the checkout alone.");
-        app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Remove from SharpRail" }));
+        app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Remove from tereditor" }));
         Until(() => !WorktreePaths(app).Any() && app.Window.AtProjectHome && HasWelcome(app));
         Require(Directory.Exists(outside) && Git(project, "worktree", "list").Contains(outside, StringComparison.Ordinal) &&
-            Git(outside, "rev-parse", "--abbrev-ref", "HEAD") == "outside-branch", "Removing from SharpRail keeps the worktree and its branch.");
+            Git(outside, "rev-parse", "--abbrev-ref", "HEAD") == "outside-branch", "Removing from tereditor keeps the worktree and its branch.");
         Until(() => !app.Window.Layout.State.Workspaces.ContainsKey(outside));
         Require(!app.Workbench.Profile.Data.GitSelections.ContainsKey(outside) && !app.Window.Slot.Layout.Workspaces.ContainsKey(outside),
             "A removed workspace leaves no view or selection behind, even though it was the one shown.");
-        Console.WriteLine("PASS external workspaces: Open existing worktree attaches in place, Remove from SharpRail forgets it and drops its view");
+        Console.WriteLine("PASS external workspaces: Open existing worktree attaches in place, Remove from tereditor forgets it and drops its view");
     }
 
     private static void BackgroundProjectRows(string directory)

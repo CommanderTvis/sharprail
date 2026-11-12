@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace SharpRail.Plugins.Pi.Host;
+namespace Tereditor.Plugins.Pi.Host;
 
 /// <summary>The two ends of one Pi RPC conversation: LF-delimited JSON lines in each direction.</summary>
 public interface IPiLink : IDisposable

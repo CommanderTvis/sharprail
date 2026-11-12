@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Android.EmbeddedTailscaleView">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.UI.Android.EmbeddedTailscaleView">
   <StackPanel Spacing="12">
     <TextBlock Text="Tailscale" FontSize="20" />
-    <TextBlock Text="Sign in once, then pick a host running SharpRail's Tailscale plugin." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <TextBlock Text="Sign in once, then pick a host running tereditor's Tailscale plugin." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <TextBlock x:Name="EmbeddedStatus" Text="Starting Tailscale…" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <Button x:Name="EmbeddedLogin" Content="Sign in to Tailscale" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" IsVisible="False" />
     <Button x:Name="EmbeddedRetry" Content="Retry" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" IsVisible="False" />

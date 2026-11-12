@@ -1,9 +1,9 @@
 using System.Diagnostics;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Core;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Copy-on-write warm start of a created workspace: what is cloned, what is never touched, and the silent fallbacks.</summary>
 internal static class WorkspaceCloneChecks
@@ -42,7 +42,7 @@ internal static class WorkspaceCloneChecks
         Require((await WorkspaceClone.CloneConfiguredAsync(source, target, CancellationToken.None, (_, _) => true)).Count == 0, "No config clones nothing.");
 
         // A malformed or unversioned file reports and clones nothing.
-        var config = Path.Combine(source, ".sharprail/workspace.toml");
+        var config = Path.Combine(source, ".tereditor/workspace.toml");
         Directory.CreateDirectory(Path.GetDirectoryName(config)!);
         foreach (var bad in new[] { "= not toml [", "[clone]\ninclude = [\".tools\"]\n", "version = 2\n[clone]\n", "version = 1\nclone = 3\n", "version = 1\n[clone]\ninclude = \".tools\"\n" })
         {
@@ -56,7 +56,7 @@ internal static class WorkspaceCloneChecks
         var none = await WorkspaceClone.CloneConfiguredAsync(source, target, CancellationToken.None, (_, _) => false);
         Require(none.Count == 0, "Refused clones report nothing.");
         File.WriteAllText(config, "version = 1\n[clone]\ninclude = [\"node_modules\", \".venv\", \".tools\", \"**/obj\", \"**/bin\", \"tracked/bin\"]\nexclude = [\".venv\"]\n");
-        Require(!Directory.Exists(Path.Combine(source, ".sharprail/.gitignore")) && !File.Exists(Path.Combine(source, ".sharprail/.gitignore")), "The host writes nothing into .sharprail.");
+        Require(!Directory.Exists(Path.Combine(source, ".tereditor/.gitignore")) && !File.Exists(Path.Combine(source, ".tereditor/.gitignore")), "The host writes nothing into .tereditor.");
 
         // Fallbacks first: a refusing clone, and one that throws nothing, leave the target untouched.
         Require((await WorkspaceClone.CloneConfiguredAsync(source, target, CancellationToken.None, (_, _) => false)).Count == 0, "A refused clone reports nothing.");
@@ -73,7 +73,7 @@ internal static class WorkspaceCloneChecks
         Require(File.ReadAllText(Path.Combine(target, "node_modules/pkg/index.js")) == "module", "Non-.NET entries clone.");
         Require(File.ReadAllText(Path.Combine(target, "src/App/obj/cache.bin")) == "cache", "Cloned content matches.");
         Require(new FileInfo(Path.Combine(target, ".tools/shared")).LinkTarget == "/nonexistent-shared-store", "Symlinks are cloned as symlinks.");
-        Require(!File.Exists(Path.Combine(target, ".sharprail/workspace.toml")), "Unlisted paths are not cloned.");
+        Require(!File.Exists(Path.Combine(target, ".tereditor/workspace.toml")), "Unlisted paths are not cloned.");
         Require(File.ReadAllText(Path.Combine(target, "src/App/bin/own.txt")) == "own" && !File.Exists(Path.Combine(target, "src/App/bin/App.dll")),
             "An existing target is not overwritten or merged.");
         Require(File.ReadAllText(Path.Combine(target, "tracked/bin/keep.txt")) == "tracked\n" && IsolatedGit.Run(target, "status", "--porcelain").Trim().Length == 0,
@@ -157,10 +157,10 @@ internal static class WorkspaceCloneChecks
             var source = Path.Combine(fixture, "main");
             var target = Path.Combine(fixture, "work");
             Directory.CreateDirectory(target);
-            var spec = new SharpRail.Plugins.Lsp.IntelliJ.IntelliJPlugin().Spec;
-            var primer = SharpRail.Host.Core.Language.LanguagePrime.For(SharpRail.Host.Core.Language.LanguageServers.Wrap([spec]).Single(), storage);
-            var sourceState = Path.Combine(storage, "workspaces", SharpRail.Host.Core.Language.LanguageServers.Key(source), "intellij");
-            var targetState = Path.Combine(storage, "workspaces", SharpRail.Host.Core.Language.LanguageServers.Key(target), "intellij");
+            var spec = new Tereditor.Plugins.Lsp.IntelliJ.IntelliJPlugin().Spec;
+            var primer = Tereditor.Host.Core.Language.LanguagePrime.For(Tereditor.Host.Core.Language.LanguageServers.Wrap([spec]).Single(), storage);
+            var sourceState = Path.Combine(storage, "workspaces", Tereditor.Host.Core.Language.LanguageServers.Key(source), "intellij");
+            var targetState = Path.Combine(storage, "workspaces", Tereditor.Host.Core.Language.LanguageServers.Key(target), "intellij");
             var index = Path.Combine(sourceState, "session", "index");
             var files = new[] { "rocks/v1/CURRENT", "rocks/v1/000001.sst", "workspace-model-v2.cache" };
             foreach (var file in files)
@@ -179,11 +179,11 @@ internal static class WorkspaceCloneChecks
             await primer(source, target, default);
             Require(File.ReadAllText(Path.Combine(primed, "rocks/v1/CURRENT")) == "kept", "An existing primed index is never replaced.");
             var session = Path.Combine(targetState, "launch");
-            var options = SharpRail.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: session);
+            var options = Tereditor.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: session);
             Require(options["indexDir"]!.ToString() == Path.Combine(session, "index") && File.ReadAllText(Path.Combine(session, "index", "rocks/v1/CURRENT")) == "kept" && !Directory.Exists(primed),
                 "The first launch claims the primed index as its own indexDir.");
             var next = Path.Combine(targetState, "relaunch");
-            options = SharpRail.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: next);
+            options = Tereditor.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: next);
             Require(options["indexDir"]!.ToString() == Path.Combine(next, "index") && !Directory.Exists(Path.Combine(next, "index")), "A later launch without a primed index starts its own.");
         }
         finally { if (Directory.Exists(fixture)) Directory.Delete(fixture, true); }
@@ -200,16 +200,16 @@ internal static class WorkspaceCloneChecks
             Directory.CreateDirectory(index);
             Directory.CreateDirectory(Path.Combine(target, "native"));
             var file = Path.Combine(source, "native", "a.c");
-            var own = SharpRail.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(file);
+            var own = Tereditor.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(file);
             Require(own.StartsWith("a.c.", StringComparison.Ordinal) && own.Length == "a.c.".Length + 16 + ".idx".Length, "Shard names are the file name, a 64-bit hex digest and .idx: " + own);
             File.WriteAllBytes(Path.Combine(index, own), Shard("file://" + file, "-I" + source + "/include", "/usr/include/stdio.h", source + "-other/x.c"));
             File.WriteAllBytes(Path.Combine(index, "stray.c.0000000000000000.idx"), Shard("file://" + Path.Combine(source, "native", "stray.c")));
             File.WriteAllBytes(Path.Combine(index, "broken.c.0000000000000000.idx"), [1, 2, 3]);
-            var prime = new SharpRail.Plugins.Lsp.Clangd.ClangdPlugin().Spec.PrimeWorkspaceAsync!;
-            Func<string, string, CancellationToken, Task> primed = (from, to, token) => prime(new SharpRail.Host.Core.Language.LanguagePrime(from, to, "", ""), token);
+            var prime = new Tereditor.Plugins.Lsp.Clangd.ClangdPlugin().Spec.PrimeWorkspaceAsync!;
+            Func<string, string, CancellationToken, Task> primed = (from, to, token) => prime(new Tereditor.Host.Core.Language.LanguagePrime(from, to, "", ""), token);
             await WorkspaceClone.StartConfigured(source, target, primers: [primed]);
             var written = Directory.GetFiles(Path.Combine(target, "native", ".cache/clangd/index"));
-            var expected = Path.Combine(target, "native", ".cache/clangd/index", SharpRail.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(Path.Combine(target, "native", "a.c")));
+            var expected = Path.Combine(target, "native", ".cache/clangd/index", Tereditor.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(Path.Combine(target, "native", "a.c")));
             Require(written.SequenceEqual([expected]), "Only the shard whose name matches its own path is primed, under the target's name: " + string.Join(", ", written));
             var bytes = File.ReadAllBytes(expected);
             Require(BitConverter.ToUInt32(bytes, 4) == bytes.Length - 8, "The RIFF size covers the rewritten chunks.");

@@ -5,10 +5,10 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>
 /// Settings › ACP: one scrolling list. Installed agents (registry installs and custom ones) are pinned to the top by name, each with its update,

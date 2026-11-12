@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Processes.UI;
+namespace Tereditor.Plugins.Processes.UI;
 
 internal sealed partial class ProcessesSettingsView : StackPanel
 {

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>The one way running text names a tab: its title in typographic double quotes (“Terminal 3”), the way the app quotes other names in sentences.</summary>
 public static class TabNames

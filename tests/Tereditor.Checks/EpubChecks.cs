@@ -17,18 +17,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Epub;
-using SharpRail.Plugins.Epub.Host;
-using SharpRail.Plugins.Epub.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.UI.Panels;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Epub;
+using Tereditor.Plugins.Epub.Host;
+using Tereditor.Plugins.Epub.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.UI.Panels;
+
+namespace Tereditor.Checks;
 
 // The EPUB Reader plugin: generated EPUB 3 (nav) and EPUB 2 (NCX) fixtures converted on the host, the plugin disabled
 // by default, and once enabled the viewer's table of contents, in-book and external links, images and cover, both
@@ -141,7 +141,7 @@ internal static class EpubChecks
         {
             foreach (var name in new[] { "dark", "light" })
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(name));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(name));
                 Settle();
                 var ratio = Contrast(Ui.TextBrush.Color, Ui.Surface.Color);
                 Require(ratio >= 4.5, $"Book text is readable on the {name} theme: contrast {ratio:0.0}.");
@@ -315,8 +315,8 @@ internal static class EpubChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         var settings = window.OpenSettingsViews.Single();
-        E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card(Id) is not null);
-        var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card(Id)!;
+        E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card(Id) is not null);
+        var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card(Id)!;
         row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
         E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(Id) == enabled);
         settings.Close();

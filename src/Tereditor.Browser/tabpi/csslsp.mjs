@@ -8,9 +8,9 @@ import { getCSSLanguageService, getSCSSLanguageService, getLESSLanguageService }
 // messages (a turn of the event loop each, so an upper bound) and its JS heap where the browser reports one.
 let busy = 0;
 self.addEventListener('message', event => {
-  if (event.data?.sharprail === 'usage') {
+  if (event.data?.tereditor === 'usage') {
     event.stopImmediatePropagation();
-    self.postMessage({ sharprail: 'usage', busyMs: busy, heapBytes: performance.memory?.usedJSHeapSize ?? 0 });
+    self.postMessage({ tereditor: 'usage', busyMs: busy, heapBytes: performance.memory?.usedJSHeapSize ?? 0 });
     return;
   }
   const start = performance.now();

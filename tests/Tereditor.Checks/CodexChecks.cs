@@ -5,16 +5,16 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.Codex.Host;
-using SharpRail.Plugins.Codex.Host.IdeBridge;
-using SharpRail.Plugins.Codex.UI;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.Codex.Host;
+using Tereditor.Plugins.Codex.Host.IdeBridge;
+using Tereditor.Plugins.Codex.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Codex plugin's own logic, translated from the fork's package tests: the configuration reference, the in-place
 // TOML edit and layering, hooks, hook reports, the launch line, revival, the rollout reader, process detection, the
@@ -72,9 +72,9 @@ internal static class CodexChecks
     private static void Skills(string root)
     {
         var home = Path.Combine(root, "home");
-        var previousState = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR");
+        var previousState = Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR");
         Environment.SetEnvironmentVariable("CODEX_HOME", home);
-        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "state"));
+        Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", Path.Combine(root, "state"));
         try
         {
             var shipped = CodexSkills.ShippedRoot(null);
@@ -88,7 +88,7 @@ internal static class CodexChecks
             Require(Directory.GetDirectories(shipped).Select(Path.GetFileName).Order().SequenceEqual(
                 ["add-highlighting", "asking-user-questions", "brainstorming", "choosing-a-workflow", "importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "spec-graph", "starting-a-new-project", "writing-specs"]), "the shipped skills");
 
-            // A skill of the same name that SharpRail never wrote is the user's, as is every other skill.
+            // A skill of the same name that tereditor never wrote is the user's, as is every other skill.
             Write(Installed("shipping-a-pr/SKILL.md"), "mine\n");
             Write(Installed("my-skill/SKILL.md"), "also mine\n");
             CodexSkills.Install(shipped);
@@ -104,7 +104,7 @@ internal static class CodexChecks
             Equal(File.ReadAllText(Installed("writing-specs/SKILL.md")), "edited\n", "the user's edit survives a reinstall");
             Require(File.Exists(Installed("importing-a-codebase/SKILL.md")), "a missing file is restored");
 
-            // A later build's text replaces what SharpRail wrote and takes away what it no longer ships.
+            // A later build's text replaces what tereditor wrote and takes away what it no longer ships.
             var next = Path.Combine(root, "next");
             Write(Path.Combine(next, "setting-up-a-project", "SKILL.md"), "newer\n");
             Write(Path.Combine(next, "writing-specs", "SKILL.md"), "newer\n");
@@ -113,7 +113,7 @@ internal static class CodexChecks
             Equal(File.ReadAllText(Installed("writing-specs/SKILL.md")), "edited\n", "an edited one does not");
             Require(!Directory.Exists(Installed("importing-a-codebase")) && !Directory.Exists(Installed("starting-a-new-project")), "skills no longer shipped are removed");
 
-            // Disabling removes SharpRail's files and nothing of the user's.
+            // Disabling removes tereditor's files and nothing of the user's.
             CodexSkills.Install(shipped);
             Require(File.Exists(Installed("starting-a-new-project/SKILL.md")), "skills return with the build that ships them");
             CodexSkills.Remove();
@@ -124,10 +124,10 @@ internal static class CodexChecks
             Equal(File.ReadAllText(Installed("writing-specs/SKILL.md")), "edited\n", "the edit is still the user's after disabling and enabling");
             File.Delete(Installed("writing-specs/SKILL.md"));
             CodexSkills.Remove();
-            Require(Directory.GetDirectories(Path.Combine(home, "skills")).Length == 2 && !File.Exists(Path.Combine(root, "state", "codex", "skills.sharprail-default")),
-                "nothing of SharpRail's remains once the user's edit is gone");
+            Require(Directory.GetDirectories(Path.Combine(home, "skills")).Length == 2 && !File.Exists(Path.Combine(root, "state", "codex", "skills.tereditor-default")),
+                "nothing of tereditor's remains once the user's edit is gone");
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previousState); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", previousState); }
     }
 
     private static void ConfigDocs()
@@ -395,7 +395,7 @@ internal static class CodexChecks
     private static void LaunchShell(string directory)
     {
         Directory.CreateDirectory(directory);
-        const string instructions = "SharpRail instructions\nQuotes \" and apostrophes ' and $HOME and `date`\n";
+        const string instructions = "tereditor instructions\nQuotes \" and apostrophes ' and $HOME and `date`\n";
         static (string Value, string Url, string Line) Run(string? extra, bool append = true)
         {
             // Prints each argument NUL-terminated, then the status URL the command saw.
@@ -417,18 +417,18 @@ internal static class CodexChecks
         var plain = Run(null);
         Equal(plain.Value, instructions, "the host-encoded instructions arrive as one TOML string");
         Equal(plain.Url, "http://localhost/status/token?thinkrail_prompt=1", "the status URL is tagged");
-        Require(CodexLaunch.HasSharpRailPrompt(plain.Line), "the line says it carries SharpRail's instructions");
+        Require(CodexLaunch.HasTereditorPrompt(plain.Line), "the line says it carries tereditor's instructions");
         const string extra = "Be brief.\n\"quotes\" 'apostrophe' \\path $HOME $(exit 91) `exit 92` ✨";
         Equal(Run(extra).Value, instructions + "\n\n" + extra, "extra instructions join the same override, quotes and shell syntax intact");
         var off = Run("Be brief", append: false);
         Equal(off.Value, "Be brief", "off: the launcher's own instructions remain");
         Equal(off.Url, "http://localhost/status/token", "off: the status URL is untagged");
-        Require(!CodexLaunch.HasSharpRailPrompt(off.Line), "off: no tag");
+        Require(!CodexLaunch.HasTereditorPrompt(off.Line), "off: no tag");
         Require(!CodexLaunch.Line("codex", new(false, true) { AppendSystemPrompt = true }).Contains("developer_instructions", StringComparison.Ordinal),
             "Windows launches keep their previous behaviour");
     }
 
-    // Instructions follow a tab's CWD from the repository root, and SharpRail's launch file is listed last; fork config.test.ts.
+    // Instructions follow a tab's CWD from the repository root, and tereditor's launch file is listed last; fork config.test.ts.
     private static void InstructionScopes(string root)
     {
         var home = Path.Combine(root, "home");
@@ -468,7 +468,7 @@ internal static class CodexChecks
             "a file outside the worktree opens by its absolute path");
 
         var prompt = Path.Combine(home, "thinkrail-prompt-codex.md");
-        File.WriteAllText(prompt, "SharpRail guidance");
+        File.WriteAllText(prompt, "tereditor guidance");
         var launched = CodexConfig.Resolve(worktree, worktree, [prompt]);
         Require(launched.Instructions[^1] == new CodexInstructions(CodexInstructionsScope.Launch, prompt, 18), "the launch file follows the AGENTS chain");
         Require(CodexConfig.Resolve(worktree).Instructions.All(file => file.Scope != CodexInstructionsScope.Launch), "and appears only when given");
@@ -514,7 +514,7 @@ internal static class CodexChecks
         Equal(Command("codex", null, mcp: true, windows: true), "codex resume --last", "Windows has no MCP override");
         var refreshed = Command("codex -c 'mcp_servers.thinkrail.url=\"http://old\"'", null, mcp: true);
         Equal(refreshed, CodexLaunch.Line("codex", new(true, false) { Resume = true }), "a stale MCP override is replaced");
-        Equal(Command("codex -c 'mcp_servers.sharprail.url=\"http://old\"' -c 'mcp_servers.thinkrail.tools.set_title.approval_mode=\"approve\"'", null, mcp: true),
+        Equal(Command("codex -c 'mcp_servers.tereditor.url=\"http://old\"' -c 'mcp_servers.thinkrail.tools.set_title.approval_mode=\"approve\"'", null, mcp: true),
             refreshed, "revival replaces both current and legacy launcher-owned overrides");
         Equal(Command(refreshed ?? "", null, mcp: true), refreshed, "repeated revival does not accumulate overrides");
         Equal(Command(refreshed ?? "", null), "codex resume --last", "turning MCP off drops it");
@@ -522,7 +522,7 @@ internal static class CodexChecks
             "codex -c 'mcp_servers.thinkrail.tools.spec_create.approval_mode=\"prompt\"' resume --last",
             "revival preserves other tools' policies");
 
-        // SharpRail's instructions are regenerated from the current setting exactly once; the user's own override stays.
+        // tereditor's instructions are regenerated from the current setting exactly once; the user's own override stays.
         string? Revive(string command, bool append) => CodexResume.Command(command, null, false, false, null, home, appendSystemPrompt: append);
         var appended = CodexLaunch.Line("codex -m model", new(false, false) { AppendSystemPrompt = true, SystemPrompt = "Extra instructions" });
         var revived = Revive(appended, true);
@@ -593,9 +593,9 @@ internal static class CodexChecks
         Require(Tab("codex", "claude").RunsInsideAgent(10, "codex", "claude"), "Codex that Claude Code started leaves the tab to Claude Code");
         Require(!Tab("claude", "codex").RunsInsideAgent(10, "codex", "claude") && !Tab("codex", "bash").RunsInsideAgent(10, "codex", "claude") &&
             !Tab("bash", "claude").RunsInsideAgent(10, "codex", "claude"), "Codex is the tab's agent when nothing the record names sits above it");
-        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "SharpRail.UI"), new(40, 30, "zsh"), new(50, 40, "codex")]);
+        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "Tereditor.UI"), new(40, 30, "zsh"), new(50, 40, "codex")]);
         Require(nested.FindDescendant(10, ["codex"]) is null && nested.FindDescendant(10, ["claude"]) is { Pid: 20 } && nested.FindDescendant(30, ["codex"]) is { Pid: 50 },
-            "Codex below an inner SharpRail app is not the outer tab's agent");
+            "Codex below an inner tereditor app is not the outer tab's agent");
         Require(ProcessSnapshot.ParseRows("  10     1 /bin/zsh\n  20 10 /usr/local/bin/codex\ngarbage\n").SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(20, 10, "codex")]),
             "ps rows parse to base names");
         Require(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10 1 Ss /bin/zsh\n  20 10 Z codex\n  21 10 S+ /usr/local/bin/codex\n")).SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(21, 10, "codex")]),
@@ -971,15 +971,15 @@ internal static class CodexChecks
         var home = Path.Combine(root, "home");
         Directory.CreateDirectory(home);
         Environment.SetEnvironmentVariable("CODEX_HOME", ShortTemp("tr-cx-"));
-        var previousState = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", home);
+        var previousState = Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", home);
         try { await HostModuleIn(root, home); }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previousState); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", previousState); }
     }
 
     private static async Task HostModuleIn(string root, string home)
     {
-        // Activation writes SharpRail's developer instructions where every terminal's JSON value is read from.
+        // Activation writes tereditor's developer instructions where every terminal's JSON value is read from.
         var tagged = new FakeHostContext(root);
         var stopTagged = await new CodexHost().ActivateAsync(tagged);
         Equal(File.ReadAllText(Path.Combine(home, "codex", "thinkrail-prompt-codex.md")), CodexSystemPrompt.Text, "the instructions file is written");
@@ -997,7 +997,7 @@ internal static class CodexChecks
         Require(!File.Exists(skill), "disabling removes the workflow skills");
         // An edited file from before the agent-named file moves over; its edits are kept aside once, never over an earlier copy.
         var legacy = Path.Combine(home, "codex", "developer-instructions.md");
-        File.Move(instructions, legacy); File.Move(instructions + ".sharprail-default", legacy + ".sharprail-default");
+        File.Move(instructions, legacy); File.Move(instructions + ".tereditor-default", legacy + ".tereditor-default");
         File.SetAttributes(legacy, File.GetAttributes(legacy) & ~FileAttributes.ReadOnly);
         File.WriteAllText(legacy, "older edits\n");
         CodexSystemPrompt.Write([], []);
@@ -1005,17 +1005,17 @@ internal static class CodexChecks
             "the old instructions file moves to its agent name and is regenerated without clobbering the kept copy");
         Require(CodexSystemPrompt.Json([], ["only this"]).Contains("only this", StringComparison.Ordinal) && !CodexSystemPrompt.Json([], []).Contains("older edits", StringComparison.Ordinal),
             "every terminal's text is composed, never the edited file");
-        // Only a launch that tags its hook URL records SharpRail's instructions as the session's source.
+        // Only a launch that tags its hook URL records tereditor's instructions as the session's source.
         await tagged.Report(new { });
-        Require(!CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "an untagged report records no instructions");
+        Require(!CodexLaunch.HasTereditorPrompt(tagged.Record?.Command ?? ""), "an untagged report records no instructions");
         tagged.Record = tagged.Record! with { LaunchedByUi = true };
         await tagged.Report(new { }, appended: true);
-        Require(CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "a tagged report records them");
+        Require(CodexLaunch.HasTereditorPrompt(tagged.Record?.Command ?? ""), "a tagged report records them");
         Require(tagged.Record?.LaunchedByUi == true, "hook reports retain the separately detected UI launch origin");
         await tagged.Report(new { hook_event_name = "Stop" }, appended: true);
-        Require(CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "later reports keep them");
+        Require(CodexLaunch.HasTereditorPrompt(tagged.Record?.Command ?? ""), "later reports keep them");
         await tagged.Report(new { session_id = "manually-started-session" });
-        Require(!CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "a manually started session drops them");
+        Require(!CodexLaunch.HasTereditorPrompt(tagged.Record?.Command ?? ""), "a manually started session drops them");
         await stopTagged!();
 
         // Revival filters agent kinds and offers an editable, normalized fallback.
@@ -1050,7 +1050,7 @@ internal static class CodexChecks
             "the pushed status carries the rollout's facts");
         Require(pushes.Record is { Model: "session-model", Effort: "high" }, "rollout choices are persisted on the session record");
         Require(push.Effort == "high", "the pushed status carries the reported effort for the terminal chip");
-        var store = new SharpRail.Plugins.Codex.UI.CodexStore();
+        var store = new Tereditor.Plugins.Codex.UI.CodexStore();
         store.Apply(push);
         store.Apply(new(push.WorkspaceId, push.TabKey, CodexStatus.Done, "Stop"));
         Require(store.Session(push.WorkspaceId, push.TabKey)?.Effort == "high", "a sparse push keeps the UI half's last reported effort");

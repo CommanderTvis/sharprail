@@ -14,19 +14,19 @@
         "resolved": "18.1.0",
         "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       },
-      "sharprail.plugins.api": {
+      "tereditor.plugins.api": {
         "type": "Project"
       },
-      "sharprail.plugins.api.host": {
+      "tereditor.plugins.api.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.specdialect": {
+      "tereditor.plugins.specdialect": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       }
     },

@@ -12,9 +12,9 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The client's control for one surface of an external plugin (Security.SPEC.md, UI halves): the plugin's control
@@ -115,7 +115,7 @@ internal sealed class RemoteSurface : Decorator
     /// <summary>The kit theme a plugin's surfaces render under, as JSON with colours as <c>#aarrggbb</c>.</summary>
     internal static string ThemeJson()
     {
-        var theme = SharpRail.Plugins.UI.Kit.Ui.Theme;
+        var theme = Tereditor.Plugins.UI.Kit.Ui.Theme;
         using var buffer = new MemoryStream();
         using (var json = new Utf8JsonWriter(buffer))
         {
@@ -277,7 +277,7 @@ internal sealed class RemoteSurface : Decorator
     private void Fail(string text)
     {
         if (Child is not null) return;
-        Child = new TextBlock { Name = "PluginSurfaceFailure", Text = text, Margin = new(12), TextWrapping = TextWrapping.Wrap, Foreground = SharpRail.Plugins.UI.Kit.Ui.Muted };
+        Child = new TextBlock { Name = "PluginSurfaceFailure", Text = text, Margin = new(12), TextWrapping = TextWrapping.Wrap, Foreground = Tereditor.Plugins.UI.Kit.Ui.Muted };
         lock (gate)
         {
             main.Reset();
@@ -318,7 +318,7 @@ internal sealed class RemoteSurface : Decorator
         base.OnAttachedToVisualTree(e);
         closing.Stop();
         if (closed && Child is null) Reopen();
-        SharpRail.Plugins.UI.Kit.Ui.ThemeChanged += PushTheme;
+        Tereditor.Plugins.UI.Kit.Ui.ThemeChanged += PushTheme;
         PushTheme();
         top = TopLevel.GetTopLevel(this);
         if (top is null) return;
@@ -330,7 +330,7 @@ internal sealed class RemoteSurface : Decorator
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        SharpRail.Plugins.UI.Kit.Ui.ThemeChanged -= PushTheme;
+        Tereditor.Plugins.UI.Kit.Ui.ThemeChanged -= PushTheme;
         if (top is not null)
         {
             top.ScalingChanged -= Rescaled;
@@ -869,7 +869,7 @@ internal sealed class RemoteSurface : Decorator
                 Text = Title,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                Foreground = SharpRail.Plugins.UI.Kit.Ui.Muted,
+                Foreground = Tereditor.Plugins.UI.Kit.Ui.Muted,
             };
             var row = new DockPanel { Margin = new(8, 4), Children = { close, heading } };
             DockPanel.SetDock(close, Dock.Right);
@@ -881,8 +881,8 @@ internal sealed class RemoteSurface : Decorator
             {
                 Name = "PluginDialogFrame",
                 Child = body,
-                Background = SharpRail.Plugins.UI.Kit.Ui.Elevated,
-                BorderBrush = SharpRail.Plugins.UI.Kit.Ui.BorderBrush,
+                Background = Tereditor.Plugins.UI.Kit.Ui.Elevated,
+                BorderBrush = Tereditor.Plugins.UI.Kit.Ui.BorderBrush,
                 BorderThickness = new(1),
                 CornerRadius = new(8),
                 ClipToBounds = true,

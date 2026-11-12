@@ -6,9 +6,9 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Browser.Checks;
+namespace Tereditor.Browser.Checks;
 
 internal static partial class BrowserChecks
 {

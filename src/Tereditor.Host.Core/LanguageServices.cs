@@ -1,18 +1,18 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class HostStateStore
 {
     private LanguageService? languages;
     internal bool AllowsLanguageFile(string workspace, string path) => languages?.AllowsRead(workspace, path) == true;
     /// <summary>Where language servers keep installations, caches and per-workspace state.</summary>
-    internal string LanguageDirectory => Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language");
+    internal string LanguageDirectory => Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "tereditor-languages"), "language");
 
     /// <summary>Consent to terms by a host with no window (headless); null on the desktop, which asks in a window.</summary>
     internal LanguageConsent? LanguageConsent { get; private set; }
@@ -29,7 +29,7 @@ public sealed partial class HostStateStore
             {
                 if (languages is not null) return languages;
                 languages = new(LanguageDirectory,
-                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
+                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
                 { DeathObserved = PublishLanguageDeath, GlobalProvider = () => LanguageConsent?.Provider() ?? Current.Settings.JavaKotlinProvider, StandardWithAnyReplaced = () => LanguageConsent is not null, Consent = server => LanguageConsent?.GrantFor(server), ToolPaths = () => Current.Settings.LanguageTools, Limits = CurrentLanguageLimits };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
@@ -55,7 +55,7 @@ public sealed partial class HostStateStore
         if (!Current.Settings.LspEnabled) return null;
         ProjectLanguageCache cache;
         lock (gate)
-            cache = projectLanguages ??= new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
+            cache = projectLanguages ??= new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "tereditor-languages"), "language"),
                 (path, token) => Languages.LanguageProfile(path, token));
         return cache.Get(Path.TrimEndingDirectorySeparator(workspace));
     }

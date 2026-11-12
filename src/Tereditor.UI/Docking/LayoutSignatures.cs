@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 // What a rebuilt view depends on, written as JSON so an unchanged view is kept rather than rebuilt.
 internal sealed record PreviewGroupSignature(string Group, List<DockTab>? Tabs, string[]? Decorations, string? Selected, List<DockPane>? Panes);

@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal static class ProjectJava
 {

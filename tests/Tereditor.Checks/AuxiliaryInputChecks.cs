@@ -5,12 +5,12 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class AuxiliaryInputChecks
 {

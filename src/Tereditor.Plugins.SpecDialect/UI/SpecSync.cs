@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>Reads a workspace's graph into the store; concurrent syncs of one workspace at one file revision collapse into one read.</summary>
 public sealed class SpecSync(Func<string, ValueTask<SpecGraphSnapshot>> read, SpecStore store)

@@ -3,9 +3,9 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// The accessibility tree of one top-level of a surface (the surface, a popup or a dialog), read from the automation

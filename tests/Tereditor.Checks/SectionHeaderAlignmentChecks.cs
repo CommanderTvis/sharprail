@@ -4,14 +4,14 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI.Panels;
 
 using Path = System.IO.Path;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Under the application's real styles every collapsible section header starts at the same left edge as the content under it: the Code Intelligence Running section, the shared expander and a link-style header.</summary>
 internal static class SectionHeaderAlignmentChecks

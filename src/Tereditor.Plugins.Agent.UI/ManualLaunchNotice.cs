@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>Explains the intentionally absent launcher additions in a manually started agent session.</summary>
 public sealed partial class ManualLaunchNotice : Border

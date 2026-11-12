@@ -1,9 +1,9 @@
 using System.Diagnostics;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal sealed partial class LanguageServers
 {
@@ -31,7 +31,7 @@ internal sealed partial class LanguageServers
         if (server.Spec.Pinning == LanguageServerPinning.None && server.Spec.TermsAsync is null || allow)
         {
             if (!allow)
-                return Result("needsInstallation", "none", "", "", "", $"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the SDK and allow PATH for this server, then Retry.");
+                return Result("needsInstallation", "none", "", "", "", $"{server.Id} needs an installation: tereditor has no managed installation for it. Install the SDK and allow PATH for this server, then Retry.");
             var rejected = new List<string>();
             var found = await Task.Run(() => LanguageExecutables.FindOnPath(server.Executable, workspace, rejected), token);
             if (found is null)
@@ -40,7 +40,7 @@ internal sealed partial class LanguageServers
         }
         var platform = ManagedArtifacts.Platform();
         var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, platform));
-        var installed = Directory.Exists(root) && (File.Exists(Path.Combine(root, ".ready")) || File.Exists(Path.Combine(root, ".sharprail-artifact.json")));
+        var installed = Directory.Exists(root) && (File.Exists(Path.Combine(root, ".ready")) || File.Exists(Path.Combine(root, ".tereditor-artifact.json")));
         if (server.Spec.Pinning == LanguageServerPinning.Archive && ManagedArtifacts.Find(server, platform) is null)
             return Result("needsInstallation", "managed", "", server.Version, "", $"No verified managed artifact exists for {platform}. Allow PATH for this server or set an executable override.");
         var path2 = installed ? Executable(server, root) : root;

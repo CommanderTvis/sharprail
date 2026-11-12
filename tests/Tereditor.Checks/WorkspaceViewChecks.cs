@@ -1,6 +1,6 @@
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The layout keeps one view per workspace the host still lists: creating and removing workspaces returns the count to the live set.</summary>
 internal static class WorkspaceViewChecks

@@ -2,12 +2,12 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
+using Tereditor.Checks.E2E;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Playground's getting-started card: shown in the Default workspace and on Welcome only when the workbench is the browser's tab host.</summary>
 internal static class PlaygroundGuideChecks

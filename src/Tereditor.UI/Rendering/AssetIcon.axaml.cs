@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 internal sealed partial class AssetIcon : Grid
 {

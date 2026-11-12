@@ -1,8 +1,8 @@
 {
-	"name": "sharprail",
-	"description": "SharpRail terminal integration for Claude Code - status tracking, native notifications and workflow skills",
+	"name": "tereditor",
+	"description": "tereditor terminal integration for Claude Code - status tracking, native notifications and workflow skills",
 	"version": "0.5.0",
 	"author": {
-		"name": "SharpRail"
+		"name": "tereditor"
 	}
 }

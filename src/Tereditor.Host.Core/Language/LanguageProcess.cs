@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>What a language connection needs of whatever runs a server: framed bytes in and out, and whether it is still alive.</summary>
 public interface ILanguageProcess : IDisposable

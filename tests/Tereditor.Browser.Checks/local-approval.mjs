@@ -11,8 +11,8 @@ import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const bundle = path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle');
+const { chromium } = await import('../../src/Tereditor.Browser/node_modules/playwright/index.mjs');
+const bundle = path.join(root, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.wasm': 'application/wasm', '.css': 'text/css', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 const server = http.createServer(async (request, response) => {
   response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
@@ -29,7 +29,7 @@ const server = http.createServer(async (request, response) => {
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const address = `http://127.0.0.1:${server.address().port}`;
-const host = spawn(process.env.DOTNET ?? 'dotnet', ['tests/SharpRail.Checks/bin/Release/net10.0/SharpRail.Checks.dll', '--local-browser-fixture'], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
+const host = spawn(process.env.DOTNET ?? 'dotnet', ['tests/Tereditor.Checks/bin/Release/net10.0/Tereditor.Checks.dll', '--local-browser-fixture'], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '', last;
 host.stderr.on('data', data => { stderr += data; });
 const replies = [];
@@ -55,7 +55,7 @@ const watchdog = setTimeout(() => { console.error('Browser approval journey exce
 try {
   await until(() => last, value => value?.kind === 'ready', 'The embedded app did not start');
   const endpoint = last.endpoint;
-  browserServer = await chromium.launchServer({ channel: process.env.SHARPRAIL_BROWSER_CHANNEL ?? 'chromium', headless: true });
+  browserServer = await chromium.launchServer({ channel: process.env.TEREDITOR_BROWSER_CHANNEL ?? 'chromium', headless: true });
   browser = await chromium.connect(browserServer.wsEndpoint());
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errors = [];
@@ -66,8 +66,8 @@ try {
   await page.goto(address);
   async function exports() {
     await page.waitForFunction(() => typeof getDotnetRuntime === 'function' && !!getDotnetRuntime(0)?.getAssemblyExports);
-    await page.waitForFunction(() => document.querySelector('.sharprail-window canvas')?.width > 100);
-    await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll'); globalThis.check = exports.SharpRail.Browser.Checks.BrowserChecks; });
+    await page.waitForFunction(() => document.querySelector('.tereditor-window canvas')?.width > 100);
+    await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll'); globalThis.check = exports.Tereditor.Browser.Checks.BrowserChecks; });
   }
   await exports();
   console.log('READY browser exports and connect canvas');
@@ -118,7 +118,7 @@ try {
   await until(snapshot, value => value.length > 0, 'Approved browser did not open its workbench');
   await until(status, value => value?.Connected, 'Approved browser state did not connect');
   console.log('PASS allow opens browser workbench');
-  const saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem('sharprail:endpoint')));
+  const saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem('tereditor:endpoint')));
   assert(saved.LocalApproval && saved.Token && saved.Token !== 'local-browser-fixture-master');
   console.log('PASS browser saved temporary approval');
   const accepted = await command('status');
@@ -129,7 +129,7 @@ try {
   await until(snapshot, value => value.length > 0, 'Reload did not reuse approval');
   await until(status, value => value?.Connected, 'Reloaded browser state did not connect');
   assert.equal((await command('status')).prompts, accepted.prompts, 'Reload must not ask for approval again');
-  assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('sharprail:endpoint')).Token), saved.Token);
+  assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('tereditor:endpoint')).Token), saved.Token);
   console.log('PASS reload reuses approval');
   await command('revoke');
   await until(status, value => value?.Error?.includes('revoked'), 'Revocation did not return to the approval flow');

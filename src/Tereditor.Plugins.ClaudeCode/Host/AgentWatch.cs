@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 internal sealed record AgentWatchTarget(string WorkspaceId, string TabKey, int Pid);
 

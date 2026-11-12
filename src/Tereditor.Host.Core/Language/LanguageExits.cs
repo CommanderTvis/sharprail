@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// Explains how a language-server process ended. Exit codes, stderr and message names are reported as facts; anything inferred
@@ -23,12 +23,12 @@ internal static class LanguageExits
         var summary = new StringBuilder();
         if (stopReason is not null)
         {
-            summary.Append("Stopped by SharpRail: ").Append(stopReason).Append(" (exit code ").Append(code).Append(signal.Length > 0 ? ", " + signal : "").Append(')');
+            summary.Append("Stopped by tereditor: ").Append(stopReason).Append(" (exit code ").Append(code).Append(signal.Length > 0 ? ", " + signal : "").Append(')');
             if (failure && lastError.Length > 0) summary.Append("; last stderr line: ").Append(Clip(lastError, 160));
         }
         else
         {
-            summary.Append(code == 0 ? "Exited with code 0 on its own; SharpRail did not ask it to stop" : $"Exited with code {code}" + (signal.Length > 0 ? $" ({signal}; {meaning})" : ""));
+            summary.Append(code == 0 ? "Exited with code 0 on its own; tereditor did not ask it to stop" : $"Exited with code {code}" + (signal.Length > 0 ? $" ({signal}; {meaning})" : ""));
             if (lastError.Length > 0) summary.Append("; last stderr line: ").Append(Clip(lastError, 160));
             else summary.Append("; it wrote nothing to stderr");
         }
@@ -40,7 +40,7 @@ internal static class LanguageExits
         details.AppendLine($"Workspace: {workspace}");
         details.AppendLine($"Ended: {ended.ToString("u", CultureInfo.InvariantCulture)} (up {Duration(uptime)})");
         details.AppendLine($"Exit code: {code}" + (signal.Length > 0 ? $" ({signal})" : ""));
-        details.AppendLine(stopReason is null ? "Requested by SharpRail: no" : $"Requested by SharpRail: yes, because {stopReason}");
+        details.AppendLine(stopReason is null ? "Requested by tereditor: no" : $"Requested by tereditor: yes, because {stopReason}");
         if (stopReason is null && meaning.Length > 0) details.AppendLine("Interpretation (suspected, not confirmed): " + meaning);
         if (memoryBytes > 0) details.AppendLine($"Resident memory at last sample ({memoryAt:HH:mm:ss} UTC): {Bytes(memoryBytes)}");
         var limit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;

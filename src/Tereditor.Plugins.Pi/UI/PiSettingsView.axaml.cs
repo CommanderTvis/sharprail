@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Pi.UI;
+namespace Tereditor.Plugins.Pi.UI;
 
 /// <summary>Settings › Pi: the command and the model and thinking level a new chat starts with.</summary>
 internal sealed partial class PiSettingsView : StackPanel

@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.GitHub.UI;
+namespace Tereditor.Plugins.GitHub.UI;
 
 /// <summary>The UI half: the Review panel section (W28), and the Settings page (W4).</summary>
 public sealed class GitHubUI : PluginUIModule

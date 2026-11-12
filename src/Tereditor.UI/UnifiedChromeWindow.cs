@@ -4,11 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The window without a top bar (<see cref="UnifiedChrome"/>): the controls the bar carried move into a header on top of the Projects

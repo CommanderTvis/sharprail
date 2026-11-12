@@ -5,10 +5,10 @@ using System.Text.Json.Nodes;
 
 using Avalonia.Threading;
 
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Tailscale;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Tailscale;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>tailscale.js, imported on first use so the connect screen pays nothing until Tailscale is chosen.</summary>
 internal static partial class TailscaleInterop
@@ -80,7 +80,7 @@ internal sealed class BrowserTailscaleNetwork : ITailscaleClientNetwork
     internal static TailscaleWasmModule Module { get; } = new(Store);
 
     internal Task StartAsync(CancellationToken cancellationToken) => Module.Manifest is { } manifest
-        ? TailscaleInterop.Call(() => TailscaleInterop.Start(BrowserTailscaleStore.Json(manifest), "sharprail-browser")).WaitAsync(cancellationToken)
+        ? TailscaleInterop.Call(() => TailscaleInterop.Start(BrowserTailscaleStore.Json(manifest), "tereditor-browser")).WaitAsync(cancellationToken)
         : throw new IOException("Download Tailscale first.");
 
     internal async Task<BrowserTailscaleStatus> StatusAsync(CancellationToken cancellationToken) =>

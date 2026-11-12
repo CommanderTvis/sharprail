@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 /// <summary>
 /// Tabs of one centre group shown together as resizable panes instead of one at a time. It is metadata on the group

@@ -5,9 +5,9 @@ using System.Text;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// <c>probe echo</c>: the channel and the process with no plugin. It reports how it was started (standard input at

@@ -1,12 +1,12 @@
 using Avalonia.Input;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Platform and keyboard-layout matching for window commands and dialogs.</summary>
 public static class CommandKeys
 {
     /// <summary>The command modifier for this client's platform, including its browser keyboard.</summary>
-    public static KeyModifiers Modifier => SharpRail.Scintilla.PlatformCommand.Modifier;
+    public static KeyModifiers Modifier => Tereditor.Scintilla.PlatformCommand.Modifier;
 
     /// <summary>Matches a command letter by typed Latin symbol, with a physical-key fallback for other layouts.</summary>
     public static bool Matches(KeyEventArgs e, char letter)

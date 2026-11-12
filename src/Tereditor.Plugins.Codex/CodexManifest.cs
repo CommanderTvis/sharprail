@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Codex;
+namespace Tereditor.Plugins.Codex;
 
 public static class CodexManifest
 {
@@ -13,11 +13,11 @@ public static class CodexManifest
         Category = PluginCategories.Agents,
         // Runs the codex CLI as a process on the host's operating system, which a browser tab does not have.
         UnavailableOn = [HostKind.PureWeb],
-        Description = "Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools.",
+        Description = "Runs OpenAI Codex in the terminal with live status and tereditor's MCP tools.",
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Codex.Host.dll",
-        Ui = "SharpRail.Plugins.Codex.UI.dll",
+        Host = "Tereditor.Plugins.Codex.Host.dll",
+        Ui = "Tereditor.Plugins.Codex.UI.dll",
         Assets = "assets",
         Contributes = new() { SideTools = [new("config", "Codex", Icon, PluginToolSide.Right)] }
     };

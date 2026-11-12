@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Codex;
+namespace Tereditor.Plugins.Codex;
 
 public enum CodexValueShape
 {

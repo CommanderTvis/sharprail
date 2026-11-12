@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// Tells the server about files created, changed and deleted on disk (by agents, Git or the editor) through

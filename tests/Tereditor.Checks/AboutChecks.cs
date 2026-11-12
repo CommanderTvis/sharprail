@@ -5,10 +5,10 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.UI;
-using SharpRail.UI.Panels;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class AboutChecks
 {
@@ -27,11 +27,11 @@ internal static class AboutChecks
         var runtime = AboutInfo.Runtime();
         Require(runtime.Any(line => line.Label == "Runtime") && runtime.Any(line => line.Label == "OS") && runtime.Any(line => line.Label == "Avalonia"), "Runtime lines must name the runtime, OS and Avalonia.");
         var details = AboutInfo.Details("9.9.9-test", runtime);
-        Require(details.StartsWith("SharpRail 9.9.9-test\n", StringComparison.Ordinal) && runtime.All(line => details.Contains($"{line.Label}: {line.Value}")), "Copy details must carry the name, version and every runtime line.");
+        Require(details.StartsWith("tereditor 9.9.9-test\n", StringComparison.Ordinal) && runtime.All(line => details.Contains($"{line.Label}: {line.Value}")), "Copy details must carry the name, version and every runtime line.");
 
         var fields = new AboutFields("9.9.9-test", runtime);
         var texts = fields.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text ?? "").ToList();
-        Require(texts.Contains("SharpRail") && texts.Contains("Version 9.9.9-test") && texts.Contains(AboutInfo.Description), "The About view must show name, version and description.");
+        Require(texts.Contains("tereditor") && texts.Contains("Version 9.9.9-test") && texts.Contains(AboutInfo.Description), "The About view must show name, version and description.");
         Require(texts.Any(text => text.Contains("Runtime: .NET") && text.Contains("OS: ") && text.Contains("Avalonia: ")), "The About view must show the runtime lines.");
         Require(fields.Details == details, "The view's copy text must equal the details text.");
         var buttons = fields.GetLogicalDescendants().OfType<Button>().Select(button => button.Name).ToList();
@@ -56,11 +56,11 @@ internal static class AboutChecks
         }
         finally { LanguageProviderLinks.Launch = launch; }
 
-        // The macOS application menu: About SharpRail in place of the framework's About Avalonia.
+        // The macOS application menu: About tereditor in place of the framework's About Avalonia.
         var settings = 0;
         var menu = ApplicationMenu.AppMenu(() => { }, () => settings++);
         var headers = menu.Items.OfType<NativeMenuItem>().Where(item => item is not NativeMenuItemSeparator).Select(item => item.Header ?? "").ToList();
-        Require(headers.SequenceEqual(["About SharpRail", "Settings…"]) && menu.Items[1] is NativeMenuItemSeparator, "The application menu must hold About SharpRail, then Settings.");
+        Require(headers.SequenceEqual(["About tereditor", "Settings…"]) && menu.Items[1] is NativeMenuItemSeparator, "The application menu must hold About tereditor, then Settings.");
         var preferences = menu.Items.OfType<NativeMenuItem>().Single(item => item.Header == "Settings…");
         Require(preferences.Gesture is { } chord && chord.Equals(WindowShortcuts.Settings.Gesture), "Settings shows the window's Settings chord.");
         var gear = ApplicationMenu.Gear(16, 2);

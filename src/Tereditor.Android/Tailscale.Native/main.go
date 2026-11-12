@@ -93,7 +93,7 @@ func start(input string) error {
 		return err
 	}
 	if options.Hostname == "" {
-		options.Hostname = "sharprail-android"
+		options.Hostname = "tereditor-android"
 	}
 	username, err := secret()
 	if err != nil {

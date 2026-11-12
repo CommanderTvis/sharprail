@@ -19,9 +19,9 @@ with, so terminals, and the agents run inside them, are ready in a worktree. It 
 independent of the other providers (disabling one leaves the rest working) but not of `Env`: it registers exactly one step and `dependsOn` `Env`, so it goes off with it, and with nothing to apply it
 runs nothing and contributes nothing. There is no UI half and no setting: Settings › Plugins is the off switch. Its position in the pipeline and its chip are `Env`'s to place; the step supplies the chip data.
 
-Two projects, `Contract` (`SharpRail.Plugins.EnvJavaScript`: manifest, empty settings, the step id) and `Host`
-(`SharpRail.Plugins.EnvJavaScript.Host`). The namespace avoids `Environment`, which would shadow `System.Environment` in
-every plugin. The pipeline itself is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md), [Env](../SharpRail.Plugins.Env/SPEC.md).
+Two projects, `Contract` (`Tereditor.Plugins.EnvJavaScript`: manifest, empty settings, the step id) and `Host`
+(`Tereditor.Plugins.EnvJavaScript.Host`). The namespace avoids `Environment`, which would shadow `System.Environment` in
+every plugin. The pipeline itself is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../Tereditor.Host.Core/Plugins.SPEC.md), [Env](../Tereditor.Plugins.Env/SPEC.md).
 
 ## Behaviour
 

@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

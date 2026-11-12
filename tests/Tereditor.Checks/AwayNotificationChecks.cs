@@ -4,17 +4,17 @@ using System.Threading.Channels;
 
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Notifications;
-using SharpRail.UI.Panels;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Notifications;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Away notifications end to end without the system: the real Claude Code and Codex UI halves fold status pushes
@@ -49,9 +49,9 @@ internal static class AwayNotificationChecks
             await foreach (var payload in channel.Reader.ReadAllAsync(cancellationToken)) yield return payload;
         }
 
-        public ValueTask<IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
-        public ValueTask<IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry>> RescanAsync(CancellationToken cancellationToken = default) => inner.RescanAsync(cancellationToken);
-        public ValueTask<IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default) => inner.RetryAsync(id, cancellationToken);
+        public ValueTask<IReadOnlyList<Tereditor.Plugins.Api.PluginRosterEntry>> ListAsync(CancellationToken cancellationToken = default) => inner.ListAsync(cancellationToken);
+        public ValueTask<IReadOnlyList<Tereditor.Plugins.Api.PluginRosterEntry>> RescanAsync(CancellationToken cancellationToken = default) => inner.RescanAsync(cancellationToken);
+        public ValueTask<IReadOnlyList<Tereditor.Plugins.Api.PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default) => inner.RetryAsync(id, cancellationToken);
         public ValueTask<object?> CallAsync(PluginCallRequest request, CancellationToken cancellationToken = default) => inner.CallAsync(request, cancellationToken);
         public ValueTask<byte[]?> ReadFileAsync(string id, string path, CancellationToken cancellationToken = default) => inner.ReadFileAsync(id, path, cancellationToken);
     }
@@ -65,7 +65,7 @@ internal static class AwayNotificationChecks
     {
         var directory = Path.Combine(root, "away-notifications");
         var isolated = new Dictionary<string, string?>();
-        foreach (var name in new[] { "CLAUDE_CONFIG_DIR", "SHARPRAIL_STATE_DIR", "CODEX_HOME" })
+        foreach (var name in new[] { "CLAUDE_CONFIG_DIR", "TEREDITOR_STATE_DIR", "CODEX_HOME" })
         {
             isolated[name] = Environment.GetEnvironmentVariable(name);
             Environment.SetEnvironmentVariable(name, Directory.CreateDirectory(Path.Combine(directory, name.ToLowerInvariant())).FullName);
@@ -159,7 +159,7 @@ internal static class AwayNotificationChecks
             Claude(ClaudeCodeStatus.Failed, "stop_failure");
             Codex(CodexStatus.Done, "Stop");
         });
-        Require(several is { Title: "SharpRail", Subtitle: null, Body: "2 terminals need your attention" }, "Terminals asking together are folded into one notification: " + several);
+        Require(several is { Title: "tereditor", Subtitle: null, Body: "2 terminals need your attention" }, "Terminals asking together are folded into one notification: " + several);
 
         app.State.ChangeAsync([HostStateChange.Setting("notifications", "false")]).AsTask().GetAwaiter().GetResult();
         Until(() => !app.Workbench.State.Current.Settings.NotificationsEnabled);
@@ -203,8 +203,8 @@ internal static class AwayNotificationChecks
         settings.Close();
 
         // The packaged gate runs inside the bundle, where the system does accept the bridge.
-        if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("SHARPRAIL_PACKAGED_APP") is null)
-            Require(System.Runtime.InteropServices.NativeLibrary.TryLoad("SharpRailNotifications", typeof(MacNotifier).Assembly, null, out _) &&
+        if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("TEREDITOR_PACKAGED_APP") is null)
+            Require(System.Runtime.InteropServices.NativeLibrary.TryLoad("TereditorNotifications", typeof(MacNotifier).Assembly, null, out _) &&
                 !MacNotifier.Create().Bundled, "The bridge loads, and tells a process without a bundle identifier that it cannot post through User Notifications.");
     }
 }

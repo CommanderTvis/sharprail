@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>What a tool run for a workspace environment step produced.</summary>
 /// <param name="exitCode">The exit code, or null when the tool could not start or did not finish within its deadline.</param>

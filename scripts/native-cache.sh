@@ -1,14 +1,14 @@
 #!/bin/sh
-# Sourced by the native build scripts that keep finished builds in the machine-wide cache ($SHARPRAIL_CACHE_DIR, which
+# Sourced by the native build scripts that keep finished builds in the machine-wide cache ($TEREDITOR_CACHE_DIR, which
 # mise.toml defines; the fallback here is the same path). A result is a directory named by a key that hashes everything
 # its build reads, so checkouts on different branches each keep their own and a new worktree reuses one. Results are
 # built in `<result>.partial` and published by rename, and a checkout's copy replaces each output by rename, so neither a
 # concurrent reader nor an interrupted build ever sees a half-written library. Callers source scripts/lock.sh too and hold
 # acquire_lock on the cache entry while they write.
 
-# sharprail_cache_dir: prints the cache root, creating it on first use; on macOS a new root is excluded from Time Machine.
-sharprail_cache_dir() {
-  _cache_root="${SHARPRAIL_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/sharprail}"
+# tereditor_cache_dir: prints the cache root, creating it on first use; on macOS a new root is excluded from Time Machine.
+tereditor_cache_dir() {
+  _cache_root="${TEREDITOR_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/tereditor}"
   if [ ! -d "$_cache_root" ]; then
     mkdir -p "$_cache_root"
     [ "$(uname -s)" != Darwin ] || tmutil addexclusion "$_cache_root" >/dev/null 2>&1 || true

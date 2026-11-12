@@ -1,9 +1,9 @@
 using System.Net.Sockets;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Client;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class RpcTransportChecks
 {

@@ -3,9 +3,9 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>
 /// The layered keys as the kit's scoped setting rows. A value of an editable type opens the shared value dialog (in

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>The wording and wire shapes of the extension's permission card: what each tool asks, the rewritten "don't ask again" answer, and the replies.</summary>
 internal static class ChatPermissions

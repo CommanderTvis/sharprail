@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>A JSON-RPC error answer from the peer, or one this side sends back.</summary>
 public sealed class AcpException(int code, string message) : Exception(message)

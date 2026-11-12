@@ -1,5 +1,5 @@
 #!/bin/sh
-# Code-intelligence reminders for Claude Code sessions SharpRail starts, including subagents (plugin hooks fire for
+# Code-intelligence reminders for Claude Code sessions tereditor starts, including subagents (plugin hooks fire for
 # their tool calls too, and SubagentStart reaches the subagent that never sees the appended system prompt).
 #
 #   code-intel.sh session    SessionStart: a short reminder naming lsp_navigate and lsp_diagnostics.
@@ -10,19 +10,19 @@
 #                            CODE_INTEL_EVERY-th code-symbol search) with a counter under $TMPDIR.
 #
 # POSIX sh and awk only (no jq), so it runs wherever Claude Code runs hooks (sh on macOS/Linux, Git Bash on
-# Windows). Silent without SharpRail's MCP server (THINKRAIL_MCP_URL), where the tools it names do not exist.
+# Windows). Silent without tereditor's MCP server (THINKRAIL_MCP_URL), where the tools it names do not exist.
 
 [ -n "${THINKRAIL_MCP_URL:-}" ] || exit 0
 
-# The session's appended prompt (SHARPRAIL_CLAUDE_PROMPT_FILE) names this project's servers and a real example; the
+# The session's appended prompt (TEREDITOR_CLAUDE_PROMPT_FILE) names this project's servers and a real example; the
 # reminder repeats those, or stays generic before the host has read the project's languages.
 SERVERS=''; EXAMPLE=''
-if [ -r "${SHARPRAIL_CLAUDE_PROMPT_FILE:-}" ]; then
-	SERVERS=$(awk '/^This project.s language servers/ { on = 1; next } on && /^- `/ { sub(/^- `/, ""); sub(/`.*/, ""); printf "%s%s", (n++ ? ", " : ""), $0; next } on { exit }' "$SHARPRAIL_CLAUDE_PROMPT_FILE" 2>/dev/null)
-	EXAMPLE=$(awk '/^Examples in this project/ { getline; sub(/^- `/, ""); sub(/`.*/, ""); gsub(/": /, "\":"); gsub(/, "/, ",\""); print; exit }' "$SHARPRAIL_CLAUDE_PROMPT_FILE" 2>/dev/null)
+if [ -r "${TEREDITOR_CLAUDE_PROMPT_FILE:-}" ]; then
+	SERVERS=$(awk '/^This project.s language servers/ { on = 1; next } on && /^- `/ { sub(/^- `/, ""); sub(/`.*/, ""); printf "%s%s", (n++ ? ", " : ""), $0; next } on { exit }' "$TEREDITOR_CLAUDE_PROMPT_FILE" 2>/dev/null)
+	EXAMPLE=$(awk '/^Examples in this project/ { getline; sub(/^- `/, ""); sub(/`.*/, ""); gsub(/": /, "\":"); gsub(/, "/, ",\""); print; exit }' "$TEREDITOR_CLAUDE_PROMPT_FILE" 2>/dev/null)
 fi
 [ -n "$EXAMPLE" ] || EXAMPLE='{"operation":"references","query":"TypeName","workspace":"<absolute path>"}'
-REMINDER="SharpRail code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. $EXAMPLE (also definition, implementation, hover; symbols/symbolBody with a path).${SERVERS:+ Servers for this project: $SERVERS.} grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Run lsp_diagnostics with paths on every edited file before reporting. Pass the absolute workspace to every SharpRail tool."
+REMINDER="tereditor code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. $EXAMPLE (also definition, implementation, hover; symbols/symbolBody with a path).${SERVERS:+ Servers for this project: $SERVERS.} grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Run lsp_diagnostics with paths on every edited file before reporting. Pass the absolute workspace to every tereditor tool."
 
 context() {
 	# $1 event name, $2 text without double quotes or backslashes needing more than the escaping below.
@@ -123,7 +123,7 @@ KIND=${REST%%"$TAB"*}; CWD=${REST#*"$TAB"}
 
 # Rate limit: the first code-symbol search of each session/agent, then every CODE_INTEL_EVERY-th.
 EVERY=${CODE_INTEL_EVERY:-5}
-DIR=${CODE_INTEL_STATE:-${TMPDIR:-/tmp}/sharprail-code-intel}
+DIR=${CODE_INTEL_STATE:-${TMPDIR:-/tmp}/tereditor-code-intel}
 KEY=$(printf '%s' "$KEY" | tr -c 'A-Za-z0-9_-' '_')
 mkdir -p "$DIR" 2>/dev/null
 COUNT=0
@@ -133,5 +133,5 @@ COUNT=$((COUNT + 1))
 printf '%s\n' "$COUNT" >"$DIR/$KEY" 2>/dev/null
 [ $(((COUNT - 1) % EVERY)) -eq 0 ] || exit 0
 
-context PreToolUse "Advisory (SharpRail): \"$NAME\" looks like a code symbol. Text search misses implementations, overloads, partial classes and generated or platform-specific code; lsp_navigate answers this semantically: {\"operation\":\"$KIND\",\"query\":\"$NAME\",\"workspace\":\"$CWD\"}$( [ "$KIND" = references ] && printf ' (or definition, implementation)'). Keep grep for literals, config and docs."
+context PreToolUse "Advisory (tereditor): \"$NAME\" looks like a code symbol. Text search misses implementations, overloads, partial classes and generated or platform-specific code; lsp_navigate answers this semantically: {\"operation\":\"$KIND\",\"query\":\"$NAME\",\"workspace\":\"$CWD\"}$( [ "$KIND" = references ] && printf ' (or definition, implementation)'). Keep grep for literals, config and docs."
 exit 0

@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Project path resolution and inspection, equal through the embedded host and a real WebSocket RPC host.</summary>
 internal static class ProjectPathChecks
@@ -39,9 +39,9 @@ internal static class ProjectPathChecks
         if (OperatingSystem.IsWindows())
             Require(ProjectPaths.Resolve(@"~\repo", home) == Path.Combine(home, "repo") && ProjectPaths.DirectoryIdentity("C:/Users/me/repo/") == @"C:\Users\me\repo" &&
                 ProjectPaths.DirectoryIdentity(@"C:\") == @"C:\", "Windows spells a directory one way whatever git printed.");
-        Require(SharpRail.UI.HostPaths.Parent("src/auth/login.ts") == "src/auth" && SharpRail.UI.HostPaths.Parent("top.txt") == "" &&
-            SharpRail.UI.HostPaths.Join("src", @"auth\new.ts") == "src/auth/new.ts" && SharpRail.UI.HostPaths.Join("", "a/b.md") == "a/b.md" &&
-            SharpRail.UI.HostPaths.IsUnder("src/auth/x", "src") && !SharpRail.UI.HostPaths.IsUnder("srcx/a", "src") && !SharpRail.UI.HostPaths.IsUnder("Src/a", "src"),
+        Require(Tereditor.UI.HostPaths.Parent("src/auth/login.ts") == "src/auth" && Tereditor.UI.HostPaths.Parent("top.txt") == "" &&
+            Tereditor.UI.HostPaths.Join("src", @"auth\new.ts") == "src/auth/new.ts" && Tereditor.UI.HostPaths.Join("", "a/b.md") == "a/b.md" &&
+            Tereditor.UI.HostPaths.IsUnder("src/auth/x", "src") && !Tereditor.UI.HostPaths.IsUnder("srcx/a", "src") && !Tereditor.UI.HostPaths.IsUnder("Src/a", "src"),
             "Workspace-relative paths join and split with '/' only, case-sensitively.");
         var stateDirectory = Path.Combine(root, "path-state");
         Directory.CreateDirectory(stateDirectory);
@@ -105,12 +105,12 @@ internal static class ProjectPathChecks
                     try { await host.ListHostDirectoryAsync(locked); throw new InvalidOperationException($"The {name} host listed an unreadable folder."); }
                     catch (UnauthorizedAccessException) { }
                 try { await host.ListHostDirectoryAsync("relative/path"); throw new InvalidOperationException($"The {name} host listed a relative path."); }
-                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
                 foreach (var act in new Func<Task>[] { async () => await host.InspectProjectPathAsync("relative/path"), async () => await host.OpenProjectAsync("relative/path") })
                     try { await act(); throw new InvalidOperationException($"The {name} host accepted a relative project path."); }
-                    catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException && error.Message.Contains("must be absolute or start with ~/", StringComparison.Ordinal)) { }
-                try { await host.OpenProjectAsync("~/sharprail-absent-" + Guid.NewGuid().ToString("N")); throw new InvalidOperationException("A missing home folder opened."); }
-                catch (Exception error) when (error is DirectoryNotFoundException or SharpRail.Host.Protocol.RpcException &&
+                    catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException && error.Message.Contains("must be absolute or start with ~/", StringComparison.Ordinal)) { }
+                try { await host.OpenProjectAsync("~/tereditor-absent-" + Guid.NewGuid().ToString("N")); throw new InvalidOperationException("A missing home folder opened."); }
+                catch (Exception error) when (error is DirectoryNotFoundException or Tereditor.Host.Protocol.RpcException &&
                     error.Message.Contains(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), StringComparison.Ordinal))
                 { }
             }

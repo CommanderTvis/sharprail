@@ -6,12 +6,12 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.State;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class WorkspaceActionsE2E
 {

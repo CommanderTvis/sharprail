@@ -36,8 +36,8 @@ While content scrolls under a still pointer (wheel, trackpad or scrollbar drag) 
 
 ## Responsibilities and boundaries
 
-With `SHARPRAIL_PERFORMANCE=1`, the first workspace open emits monotonic startup milestones
-as `SHARPRAIL_PERF` JSON lines. Layout is distinct from initial file and Git data completion;
+With `TEREDITOR_PERFORMANCE=1`, the first workspace open emits monotonic startup milestones
+as `TEREDITOR_PERF` JSON lines. Layout is distinct from initial file and Git data completion;
 `workspace-ready` covers those two refreshes, excludes background statistics and spec scans,
 and reports errors rather than treating a failed refresh as successful readiness. First content
 rendering records a composition batch completed on the render thread, not physical screen
@@ -64,7 +64,7 @@ the UI must never become a second authority for host-owned settings. No backgrou
 | Plugins | Add panels, commands and document views | [UI plugins](Plugins/SPEC.md) |
 
 Resource renderers and away notifications are described below. Shared controls, including dialogs,
-Markdown, editor frames and diagrams, belong to the [UI kit](../SharpRail.Plugins.UI.Kit/SPEC.md).
+Markdown, editor frames and diagrams, belong to the [UI kit](../Tereditor.Plugins.UI.Kit/SPEC.md).
 The docking model has no dependency on panels, host services or persistence; the window supplies
 its content. Persistence knows only the layout data it saves. Application composition and checks
 are the only external consumers of the window implementation.
@@ -72,7 +72,7 @@ are the only external consumers of the window implementation.
 ## Startup
 
 Startup restores a usable window before expensive panel reads finish. It resolves the remote
-endpoint (`SHARPRAIL_REMOTE`), profile directory (`SHARPRAIL_PROFILE`, default `~/.sharprail`)
+endpoint (`TEREDITOR_REMOTE`), profile directory (`TEREDITOR_PROFILE`, default `~/.tereditor`)
 and initial root, reads the profile, migrates local host state and composes the shared services.
 It opens one window per saved entry: the first at the initial root, the others at their remembered
 locations. Relay mode (`--terminal-relay`) bypasses the UI entirely.
@@ -111,8 +111,8 @@ mounted) and while that call runs; the target's tab strips and "Loading workspac
 if the call takes longer than 100 ms, or at once when nothing is mounted yet. A fast switch therefore goes
 straight from one workspace to the next without a loading frame. Documents and terminals return with the
 bodies retained under their workspace key; file listing, Git, watchers, language-server requests and the
-open documents' revalidation start only after the first frame. `SHARPRAIL_PERFORMANCE=1` prints one
-`SHARPRAIL_SWITCH` line per switch with each step's milliseconds since the request.
+open documents' revalidation start only after the first frame. `TEREDITOR_PERFORMANCE=1` prints one
+`TEREDITOR_SWITCH` line per switch with each step's milliseconds since the request.
 
 `--workspace-switch` measures this against a project of about 3,000 tracked files over five commits, with
 specs and three extra workspaces that each have two documents and a terminal tab open. It fails if the
@@ -146,7 +146,7 @@ A quit closing several windows asks once.
 
 On Linux, `LinuxWindowChrome.cs` decides per window, at open and on every host broadcast that changes `window-decorations`,
 whether the header is the title bar. `UseClientDecorations(LinuxSession)` is pure: with no `DISPLAY` the answer is system; the
-`SHARPRAIL_WINDOW_DECORATIONS` environment variable (`system` or `client`) wins next; then the host setting (`client`, `system`, or empty
+`TEREDITOR_WINDOW_DECORATIONS` environment variable (`system` or `client`) wins next; then the host setting (`client`, `system`, or empty
 for automatic); automatic requires `XDG_CURRENT_DESKTOP` to name GNOME, KDE, X-Cinnamon, Budgie, Pantheon, UNITY, Deepin, COSMIC or XFCE and
 none of the tiling managers (i3, sway, Hyprland, bspwm, awesome, dwm, river, niri, qtile, xmonad, herbstluftwm, leftwm, spectrwm);
 anything else keeps the system title bar. `Program` allows `X11PlatformOptions.EnableDrawnDecorations` for the whole Linux process, which
@@ -194,7 +194,7 @@ this, so no menu or dropdown places itself.
 
 On macOS the native menu bar is installed before the first window opens. Every item is only a second way into
 something the window already does, and calls what that primary path calls; a command with no primary path gets no
-item. The application menu holds About SharpRail and Settings… (⌘,, the window's Preferences chord, acting only when
+item. The application menu holds About tereditor and Settings… (⌘,, the window's Preferences chord, acting only when
 a workbench window is key) and keeps the platform's own items (Services, Hide, Hide Others, Show All, Quit).
 
 A workbench window gets:
@@ -212,7 +212,7 @@ A workbench window gets:
   (ready or initializing) server, the condition the context menu applies; the menu follows focus and the editor's
   in-memory answers and never asks the host. Planned editor refactoring entries (Show Context Actions, Refactor This,
   Rename, Optimize Imports and the Refactor submenu, with their chords) are specified in
-  [Refactoring.SPEC.md](../SharpRail.Host.Core/Language/Refactoring.SPEC.md).
+  [Refactoring.SPEC.md](../Tereditor.Host.Core/Language/Refactoring.SPEC.md).
 - View: Zoom In ⌘+, Zoom Out ⌘−, Actual Size ⌘0 (the zoom chords' commands).
 - Window: Minimize, Zoom, Host Settings… (Settings › Host), Connect to a Tailscale Host… (the same client launch as
   Settings › Host's button; a failure shows as a toast), Bring All to Front.
@@ -243,7 +243,7 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
   plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
   A 1 px line in the border colour closes the header block, and the project list starts right below it.
   Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
-- The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About SharpRail; the right tool bar holds only the tools. The Mac menu's Settings gear is a thin outline drawn as a black-on-transparent template image, never a solid fill.
+- The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About tereditor; the right tool bar holds only the tools. The Mac menu's Settings gear is a thin outline drawn as a black-on-transparent template image, never a solid fill.
 
 Everything else about those controls is as described in Location bar; the moved controls keep their names.
 
@@ -262,11 +262,11 @@ host state: it shows what the window already knows and calls the same methods as
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there). It has
   no Add project item; the Projects rail's plus and Project Home add projects. Choosing a project opens its Project Home. With no
-  project the segment reads `SharpRail`.
+  project the segment reads `tereditor`.
 - The workspace has no cell here: the Projects rail names the active workspace, switches and creates, and its
   rows carry the workspace actions (Copy absolute path, Copy link for the active one, Open in, Copy name, Reveal in file
   manager, Rename for a managed workspace, and Remove worktree… or, for an
-  attached one, Remove from SharpRail).
+  attached one, Remove from tereditor).
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
   untracked files will be permanently lost. Cancel has focus; only an explicit Delete anyway action
   retries with force. The committed branch remains, locked worktrees still refuse, and other deletion
@@ -282,7 +282,7 @@ host state: it shows what the window already knows and calls the same methods as
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
 - The branch's sync state (ThinkRail #771, `BranchShip.cs`) is the Remote block beside the Branch block, inside the Branch segment, with its own Remote caption; in the rail the two are equal columns that never change, the Remote block holding its column even without a status, and its controls are built once so a git or status refresh edits only the text, brush or visibility that changed and writes nothing for an unchanged value. A workspace switch inside a repository keeps both blocks in place while the facts load (the last branch and status seen in the run show at once, otherwise an empty block), so the status area never changes size, and in the rail the Branch segment's room stays reserved where there is no branch (Project Home, a folder that is not a repository), so switching between projects moves nothing, and in the top bar the Project and Branch segments have fixed widths (names truncated with an ellipsis, the full name in a tooltip) that do not depend on the active project, still yielding in the same order when the window narrows; the busy line, an overlay on the content's top edge, shows only after `StatusBusyDelay` (400 ms) and never for a status already known. It shows whenever the host reports a
   branch status. PULL REQUEST (ThinkRail #776) is not core: it is the location item of the repo hosting provider that
-  owns the remote (Plugin API W28; today [GitHub](../SharpRail.Plugins.GitHub/SPEC.md)), absent without one, and the two
+  owns the remote (Plugin API W28; today [GitHub](../Tereditor.Plugins.GitHub/SPEC.md)), absent without one, and the two
   together turn the status into the branch's next step through one rule (`ShipActions`: the sync step first, the
   provider's after it). The sync state reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync (the
   shell-inert `git pull --rebase origin <branch>` to copy; never a force push). Pushing a branch that is its own
@@ -311,8 +311,8 @@ The resource registry chooses how to display a file or a diff. A renderer declar
 matches (file-name globs, MIME type with a `type/*` wildcard, and whether the content is text) and its rank;
 a resource is described by its path and the host's content metadata, with the MIME type falling back to the
 extension when the host names none. It offers the matching renderers that support the intent (view
-or diff) by descending rank, always ending in the required fallback: `sharprail/code` for text and
-`sharprail/binary` for bytes. A registry without the fallback for an intent throws rather than showing
+or diff) by descending rank, always ending in the required fallback: `tereditor/code` for text and
+`tereditor/binary` for bytes. A registry without the fallback for an intent throws rather than showing
 nothing. That ordered list is both the dispatch order and the document's view toggle; a single candidate
 shows no toggle.
 
@@ -359,16 +359,16 @@ including projects that are not currently open, so removed checkouts leave the P
 
 ### Keymap
 
-A keymap maps action ids to at most two chords. The built-in ids (`KeymapActions`) are the window commands (Settings, OpenProject, NewWorkspace, NewWindow, SearchWorkspace, Back, Forward, Refresh, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, UndoClose, RedoClose) and the editor's language actions (GoToDeclaration, GoToTypeDeclaration, GoToImplementation, FindUsages, ShowQuickFixes, DocumentSymbols, WorkspaceProblems, LanguageServerStatus, LanguageServerStart, LanguageServerStop); plugins add more (below). The model is pure and lives in `SharpRail.Host.Abstractions` (`Keymaps.cs`) so the host can validate it and no UI type leaks into the host.
+A keymap maps action ids to at most two chords. The built-in ids (`KeymapActions`) are the window commands (Settings, OpenProject, NewWorkspace, NewWindow, SearchWorkspace, Back, Forward, Refresh, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, UndoClose, RedoClose) and the editor's language actions (GoToDeclaration, GoToTypeDeclaration, GoToImplementation, FindUsages, ShowQuickFixes, DocumentSymbols, WorkspaceProblems, LanguageServerStatus, LanguageServerStart, LanguageServerStop); plugins add more (below). The model is pure and lives in `Tereditor.Host.Abstractions` (`Keymaps.cs`) so the host can validate it and no UI type leaks into the host.
 
 - A chord is spelled `Mod+Shift+N`: modifiers in the order Mod, Ctrl, Alt, Shift, Meta, then a key token (letters, digits, F1-F24, Left, Comma, Plus, OpenBracket and the like). `Mod` is the command key: Command on macOS, Control elsewhere, so one preset means the same on every platform; the platform's own spelling (Meta on macOS, Ctrl elsewhere) folds into it, while Ctrl on macOS and Windows/Linux Meta stay themselves. People see chords as symbols on macOS (⇧⌘N) and words elsewhere (Ctrl+Shift+N).
-- Exactly one built-in preset exists, `IntelliJ`: read-only, undeletable, and its name is taken. It holds the IntelliJ IDEA keymap for the commands SharpRail has in two variants, the macOS keymap on macOS and Default for Windows/Linux on every other platform (Browser and Android with a keyboard included). Where IntelliJ has no chord for a command the previous SharpRail chord stays; where IntelliJ's chord would reach a terminal (Alt+1 for the Project panel, so Ctrl+1) or the desktop (Ctrl+Alt+Arrow) the previous chord stays.
+- Exactly one built-in preset exists, `IntelliJ`: read-only, undeletable, and its name is taken. It holds the IntelliJ IDEA keymap for the commands tereditor has in two variants, the macOS keymap on macOS and Default for Windows/Linux on every other platform (Browser and Android with a keyboard included). Where IntelliJ has no chord for a command the previous tereditor chord stays; where IntelliJ's chord would reach a terminal (Alt+1 for the Project panel, so Ctrl+1) or the desktop (Ctrl+Alt+Arrow) the previous chord stays.
 - A custom preset is a name and a JSON document `{"version":1,"bindings":{"Id":["Mod+O"]}}`. Creating one duplicates a preset's resolved bindings for the creating platform. An action the document does not list keeps IntelliJ's chords; one listed with no chords is unbound. Ids, chord spellings and members this build does not know are kept untouched across edits.
 - Names are trimmed, non-empty and unique (case-insensitively), and never IntelliJ. The active preset is a name; empty, IntelliJ or a name that is gone resolve to IntelliJ.
 - Binding a chord that another action of the same preset uses is a conflict that names the other action and changes nothing until the user chooses Reassign, which takes the chord from it. A chord a terminal or the system needs (Ctrl+C, D, R, L, U, A, E, K, Ctrl+Shift+C/V off macOS; Ctrl+C, D, R, Z, L, U and Cmd+C, V, X, A, K, Q, W, H, M on macOS; plain character keys; Alt+F4) is refused outright, never assigned silently.
 - Matching is exact on modifiers. The active keymap reaches `WindowShortcuts` when the host snapshot arrives; open windows pick it up at once, menu key equivalents are re-set in place, no control tree is rebuilt and focus does not move. Editor, terminal, quit and close chords are not part of the keymap (editor cursor keys are the native editor's fixed table; Mod+W/Q and the terminal-reserved chords are the platform's).
 - Groups. Built-in actions sit in top-level groups by area: General, Navigation, View, Tabs and windows, Language. A plugin's actions form one group each, named by the plugin, listed under a Plugins section after the built-in groups.
-- Language actions are the editor's language-server operations. They run in the focused editor (the request goes to the host, so Start / Retry works without a running server); the context menu lists them while a server runs; the Edit menu, the macOS menu bar, the editor context menu and tooltips show their active first chord and follow keymap changes in place. IntelliJ defaults (macOS / Windows and Linux): Go to Declaration Cmd+B and F12 / Ctrl+B and F12, Go to Type Declaration Cmd+Shift+B / Ctrl+Shift+B, Go to Implementation Cmd+Alt+B / Ctrl+Alt+B, Find Usages Alt+F7 and Shift+F12, Show Quick Fixes Alt+Enter, Document Symbols Cmd+F12 / Ctrl+F12. Workspace Problems (IntelliJ Alt+6 would reach terminals), Language Server Status and Start/Stop have no default. Toggle left panel is Cmd+1 / Ctrl+1 (IntelliJ's Alt+1 would reach terminals), so Ctrl+B is free for Go to Declaration; a saved preset that already binds a chord keeps it, and a default never takes a chord the preset binds. IntelliJ has editor Rename, Reformat and Comment chords, but SharpRail has no such editor commands, so there are no actions for them.
+- Language actions are the editor's language-server operations. They run in the focused editor (the request goes to the host, so Start / Retry works without a running server); the context menu lists them while a server runs; the Edit menu, the macOS menu bar, the editor context menu and tooltips show their active first chord and follow keymap changes in place. IntelliJ defaults (macOS / Windows and Linux): Go to Declaration Cmd+B and F12 / Ctrl+B and F12, Go to Type Declaration Cmd+Shift+B / Ctrl+Shift+B, Go to Implementation Cmd+Alt+B / Ctrl+Alt+B, Find Usages Alt+F7 and Shift+F12, Show Quick Fixes Alt+Enter, Document Symbols Cmd+F12 / Ctrl+F12. Workspace Problems (IntelliJ Alt+6 would reach terminals), Language Server Status and Start/Stop have no default. Toggle left panel is Cmd+1 / Ctrl+1 (IntelliJ's Alt+1 would reach terminals), so Ctrl+B is free for Go to Declaration; a saved preset that already binds a chord keeps it, and a default never takes a chord the preset binds. IntelliJ has editor Rename, Reformat and Comment chords, but tereditor has no such editor commands, so there are no actions for them.
 - Not in the keymap, by decision: text-editing keys (the native editor's table), terminal passthrough, platform chords (Mod+W/Q, copy and paste), chat composer keys (Enter, Shift+Tab mode cycling, Esc, history), find-in-document (Mod+F), save (Mod+S), tab and dock drag keys, tree and list navigation, and context-menu keys. These are widget-local conventions rather than commands, and rebinding them risks the terminal and text-field keys the keymap refuses.
 - Plugin actions. A plugin contributes keymap actions through the Plugin API (W29, `IPluginUIContext.KeymapAction` with a `KeymapActionRegistration`): a local id, which the keymap namespaces as `pluginId:localId`, a title, a group name, default chords for macOS and for other platforms (or none) and the command to run. While the plugin is enabled the actions are registered, listed on the page, bindable and conflict-checked against every other action; they take their defaults from the IntelliJ preset, and a custom preset that does not list one inherits the default. Disabling the plugin removes the actions from the live keymap and the page; the stored bindings stay in the preset (ids this build cannot resolve are carried untouched), the page lists them as plugin not available when a preset holds any, and enabling the plugin again restores them. Stored chords of an absent plugin never conflict with live actions. A plugin action's chord is dispatched by the window after the built-in commands, so a built-in command always wins.
 
@@ -470,19 +470,19 @@ adding only what a client alone knows: focus, a collection window, the system ch
   them together after one collection window (1 s).
 - The decision is taken at the flush. A request is dropped when its terminal's tab is gone or its plugin
   says the attention is no longer needed; nothing is shown when the host's `NotificationsEnabled` setting
-  is off or the app is focused. One rule, as in the fork: a focused SharpRail window (or a dialog of one)
+  is off or the app is focused. One rule, as in the fork: a focused tereditor window (or a dialog of one)
   never notifies, whichever workspace or tab it shows, because the tab's status mark is already in view.
 - One surviving terminal shows the plugin's title, its workspace label as the subtitle and the plugin's
-  body, under an id per terminal so a later one replaces it. Several show one notification titled "SharpRail" that
+  body, under an id per terminal so a later one replaces it. Several show one notification titled "tereditor" that
   says "N terminals need your attention".
 - Activating a notification brings forward the window holding the tab, switches it to that workspace and
   selects its tab group. For several terminals it goes to the latest; the
-  fork opens its session switcher there, which SharpRail does not have.
+  fork opens its session switcher there, which tereditor does not have.
 - Delivery is behind `IDesktopNotifier`, which the composition root supplies (`Workbench.Notifier`) the way
   it supplies the terminal factory; a workbench without one, as in every headless check that does not
   pass a recording one, raises nothing. `MacNotifier` and `LinuxNotifier` are the channels. Inside the app bundle it posts
   through User Notifications (`Native/Notifications.m`, built by `scripts/build-notifications.cs` (run by the UI project's `BuildNotifications` target) into
-  `libSharpRailNotifications.dylib`): the system attributes it to SharpRail, asks for permission on the
+  `libTereditorNotifications.dylib`): the system attributes it to tereditor, asks for permission on the
   first notification or when the Settings toggle is turned on, and reports the click. The system refuses
   that API to a process without a bundle identifier, so a run from source (`scripts/mise run dev`) falls back to
   AppleScript's `display notification`: the banner appears under Script Editor's name, needs no permission
@@ -496,7 +496,7 @@ adding only what a client alone knows: focus, a collection window, the system ch
 ## Program progress, notifications and bells
 
 Ghostty's terminal signals for every terminal, whichever renderer draws it. The host reads them from live output
-([Terminals.SPEC.md](../SharpRail.Host.Core/Terminals.SPEC.md#terminal-signals)) and the workbench subscribes once
+([Terminals.SPEC.md](../Tereditor.Host.Core/Terminals.SPEC.md#terminal-signals)) and the workbench subscribes once
 (`ITerminalCatalogService.WatchSignalsAsync`), so remote clients and watchers see the same; a host without signals
 leaves tabs plain.
 
@@ -512,7 +512,7 @@ leaves tabs plain.
   Terminals without an agent record keep every report.
 - Bell: `bell-features` as in Ghostty. `title` shows a bell icon beside the tab title until the terminal gains
   focus or is on screen when its window activates (Ghostty prepends 🔔 to the title until focus); `attention`
-  bounces the Dock once (`NSInformationalRequest`) while no SharpRail window is active; `system` plays the alert
+  bounces the Dock once (`NSInformationalRequest`) while no tereditor window is active; `system` plays the alert
   sound. Every bell also marks a hidden phone chip. A bell in a focused, visible terminal only plays the sound.
 - Program notifications (OSC 9, OSC 777;notify, OSC 99) go through `AttentionNotifications` when
   `terminal-notifications` is on: shown unless the terminal is on screen in an active window (Ghostty's
@@ -523,7 +523,7 @@ leaves tabs plain.
   pending program notification for it in the collection window, a program notification arriving after it is
   dropped, and so is a bell's attention request. Agent tabs otherwise notify like any terminal, so Codex's
   `tui.notification_method = osc9` notifies from a background tab. Claude Code's plugin reports by POST, not
-  OSC 777; SharpRail does not change what either CLI emits.
+  OSC 777; tereditor does not change what either CLI emits.
 - `--terminal-signals` covers the host parser, the timeout, local and remote streams and exit, then the
   workbench: tab and Projects progress through a real shell, notifications in and out of view, OSC 99 chunks,
   agent dedupe, bells, the Settings › Terminal controls and exit clearing; `--drawers` covers chips.
@@ -594,9 +594,9 @@ The About screen (`AboutInfo`, `Panels/AboutFields`) shows the brand icon, name,
 (runtime, OS and architecture, Avalonia, renderer), the repository, ThinkRail and Report an issue (new-issue page) links, a license summary, Third-party notices
 and Copy details (version and runtime lines as plain text). It reads assembly attributes and the runtime only, with no network,
 telemetry or UI-thread I/O; Third-party notices looks for the shipped `THIRD-PARTY-NOTICES.md` on a worker and falls back to the
-repository copy. The version is the assembly informational version: the packaging tasks pass `SharpRailBuildStamp`
+repository copy. The version is the assembly informational version: the packaging tasks pass `TereditorBuildStamp`
 (`YYYYMMDD-<short commit>`, as the nightly names its builds), giving `0.2.0+<stamp>`; a local build reads `dev`.
-On macOS the application menu's first item is "About SharpRail", followed by Settings…, set from `App.Initialize` (`ApplicationMenu.SetApplicationMenu`):
+On macOS the application menu's first item is "About tereditor", followed by Settings…, set from `App.Initialize` (`ApplicationMenu.SetApplicationMenu`):
 Avalonia fills an application menu that is still unset when the platform builds the menu bar with its own "About Avalonia".
 Elsewhere About is Settings › About. The dialog closes with Escape or the close chord. Checks: `--about`.
 
@@ -606,13 +606,13 @@ Elsewhere About is Settings › About. The dialog closes with Escape or the clos
 can open that client in a separate app instance, preserving the local host. A remembered host name and
 client token live in a `tailscale-client` subdirectory of the active profile, isolating the dedicated
 client instance from the embedded host's profile; bootstrap resolves the current endpoint before connecting.
-See [Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+See [Tailscale](../Tereditor.Plugins.Tailscale/SPEC.md).
 
 ## Browser composition
 
 The browser client compiles these shared sources and XAML, like Android, and composes only remote host
 adapters. Desktop host-serving composition is excluded with `BROWSER`. Workbench behavior remains
-shared; browser surfaces, persistence and native WASM adapters belong to `../SharpRail.Browser/SPEC.md`.
+shared; browser surfaces, persistence and native WASM adapters belong to `../Tereditor.Browser/SPEC.md`.
 Core Settings has no GitHub page: the `GitHub` plugin contributes it (W4) and reads authentication from its host half; credentials and the `gh` process stay on the host.
 
 Restored tabs stay visible in Projects while host routing is pending, under an entry derived from the
@@ -771,13 +771,13 @@ subfolder, even inside a project, offers neither. A file row keeps the nearest e
 the in-memory project snapshot Files already refreshes off the UI thread (`ProjectsAt`), so opening the menu does no I/O.
 
 The Files tree menu shows icons on exactly New file, New folder, Copy path, Copy absolute path, Delete and plugin file actions that
-bring their own mark (the Claude mention). The icons come from the [menu action icon registry](../SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md); the
+bring their own mark (the Claude mention). The icons come from the [menu action icon registry](../Tereditor.Plugins.UI.Kit/ActionIcons/SPEC.md); the
 other rows have none, and the menu's shared icon column keeps all labels aligned.
 
 The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement, Index now,
 Stop and Logs; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,
-automatic SharpRail agent-launch indexing and reuse of the CLI's JetBrains login/cache.
-New workspaces stay disabled. Sign in opens a SharpRail-owned host terminal; no
+automatic tereditor agent-launch indexing and reuse of the CLI's JetBrains login/cache.
+New workspaces stay disabled. Sign in opens a tereditor-owned host terminal; no
 credentials pass through UI configuration. Context controls are compact when disabled.
 Host state broadcasts/polling reconcile enablement and runtime state; errors and login
 requirements remain inline. Logs use the owned log window and remain workspace-scoped.

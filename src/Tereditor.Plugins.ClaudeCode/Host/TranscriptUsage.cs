@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>
 /// A session's token spending, read forward from its own transcript. Claude Code writes one assistant line per content

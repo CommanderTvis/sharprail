@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>One registry entry as the settings list shows it.</summary>
 /// <param name="Agent">The registry entry.</param>

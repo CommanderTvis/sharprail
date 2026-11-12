@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.CSharp;
+namespace Tereditor.Plugins.Lsp.CSharp;
 
 /// <summary>The C# (Roslyn) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
@@ -22,7 +22,7 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.CSharp.dll"
+        Host = "Tereditor.Plugins.Lsp.CSharp.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()
@@ -42,7 +42,7 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         Pinning = LanguageServerPinning.NuGet,
         Dependencies = [new("dotnet", ".NET SDK", "Install a .NET SDK from https://dot.net, or set DOTNET_ROOT.", HomeVariable: "DOTNET_ROOT")],
         PinningDescription = "Managed and pinned: exact version and a SHA-512 per NuGet package (tool and runtime pack) verified before a local-feed install; NuGet signature verification also applies.",
-        Settings = [Init("Automatic project loading limit", "autoLoadProjects", "integer", minimum: 0, help: "Maximum projects to load automatically; 0 disables automatic loading. SharpRail defaults to 500.")],
+        Settings = [Init("Automatic project loading limit", "autoLoadProjects", "integer", minimum: 0, help: "Maximum projects to load automatically; 0 disables automatic loading. tereditor defaults to 500.")],
         IsProjectManifest = file =>
         {
             var name = Path.GetFileName(file);
@@ -54,7 +54,7 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         InstallAsync = InstallAsync,
         ConfigureLaunch = (installation, launch) =>
         {
-            // Roslyn ships with server GC, which sizes heaps per core; workstation GC with conserve-memory cut one SharpRail.slnx server from
+            // Roslyn ships with server GC, which sizes heaps per core; workstation GC with conserve-memory cut one Tereditor.slnx server from
             // ~830 to ~515 MiB physical footprint without changing answers. A value the user exported is kept.
             launch.Environment.TryAdd("DOTNET_gcServer", "0");
             launch.Environment.TryAdd("DOTNET_GCConserveMemory", "7");

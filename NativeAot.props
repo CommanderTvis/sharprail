@@ -1,7 +1,7 @@
 <Project>
   <!--
-    The desktop app and the remote host publish as NativeAOT in every package, and headless SharpRail in its image; they are the
-    projects that import this file, and nothing else is NativeAOT (src/SharpRail.Plugins.Api/Security.SPEC.md, NativeAOT section). Packages carry neither the native symbol files nor the
+    The desktop app and the remote host publish as NativeAOT in every package, and headless tereditor in its image; they are the
+    projects that import this file, and nothing else is NativeAOT (src/Tereditor.Plugins.Api/Security.SPEC.md, NativeAOT section). Packages carry neither the native symbol files nor the
     PDB, XML and runtimeconfig.json files of referenced projects a publish would otherwise copy beside the binary.
   -->
   <PropertyGroup>
@@ -24,7 +24,7 @@
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">
     <ExtraLinkerArg Include="--strip-all" />
   </ItemGroup>
-  <Target Name="SharpRailAotPublishNativeOnly" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(PublishAot)' == 'true'">
+  <Target Name="TereditorAotPublishNativeOnly" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(PublishAot)' == 'true'">
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb' or $([System.String]::Copy('%(Filename)%(Extension)').EndsWith('.runtimeconfig.json'))" />
     </ItemGroup>

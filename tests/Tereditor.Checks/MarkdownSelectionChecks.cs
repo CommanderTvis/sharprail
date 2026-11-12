@@ -9,9 +9,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class MarkdownSelectionChecks
 {
@@ -27,9 +27,9 @@ internal static class MarkdownSelectionChecks
 
     internal static void LinkDiffLayout()
     {
-        const string url = "https://github.com/CommanderTvis/sharprail/blob/324D8E9Daea0a0c0c05903d023455363f39688b/src/SharpRail.Browser/README.md";
-        var before = "SharpRail is a [browser client](target.md) and I am writing this article in it. Avalonia draws the controls.";
-        var after = "SharpRail is at [" + url + "](target.md). Avalonia workbench, Android and browser clients keep files, Git and terminals together.";
+        const string url = "https://github.com/CommanderTvis/tereditor/blob/324D8E9Daea0a0c0c05903d023455363f39688b/src/Tereditor.Browser/README.md";
+        var before = "tereditor is a [browser client](target.md) and I am writing this article in it. Avalonia draws the controls.";
+        var after = "tereditor is at [" + url + "](target.md). Avalonia workbench, Android and browser clients keep files, Git and terminals together.";
         foreach (var width in new[] { 300, 600 })
             foreach (var size in new[] { 14d, 24d })
                 foreach (var source in new[] { after, MarkdownDiff.Merge(before, after), MarkdownDiff.Merge("", after), MarkdownDiff.Merge(after, ""), "<p>Before <a href=\"target.md\">" + url + "</a> after the long link, with more prose that wraps onto following lines.</p>" })

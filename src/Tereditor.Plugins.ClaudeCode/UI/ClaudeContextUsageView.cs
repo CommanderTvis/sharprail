@@ -3,9 +3,9 @@ using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The state of the Context surface's baseline (<c>claude -p /context</c> for a fresh session started like the tab's):

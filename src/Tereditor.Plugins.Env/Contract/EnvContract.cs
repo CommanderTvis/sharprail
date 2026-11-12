@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Env;
+namespace Tereditor.Plugins.Env;
 
 public sealed record EnvSettings;
 
@@ -31,8 +31,8 @@ public static class EnvContract
         Description = "Orders and merges the workspace environment steps of the mise, direnv, Python, JavaScript and JVM plugins, and shows the environments applied to a workspace's terminals as chips under each terminal.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Env.Host.dll",
-        Ui = "SharpRail.Plugins.Env.UI.dll"
+        Host = "Tereditor.Plugins.Env.Host.dll",
+        Ui = "Tereditor.Plugins.Env.UI.dll"
     };
 }
 

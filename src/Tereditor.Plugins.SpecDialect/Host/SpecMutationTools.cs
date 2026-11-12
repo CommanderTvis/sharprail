@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 internal static partial class SpecTools
 {

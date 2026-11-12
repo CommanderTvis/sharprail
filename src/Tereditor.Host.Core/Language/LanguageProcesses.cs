@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// The language-server processes this host started, recorded per host process under <c>language/processes</c> so a host that died
@@ -11,7 +11,7 @@ namespace SharpRail.Host.Core.Language;
 internal static class LanguageProcesses
 {
     /// <summary>The environment variable naming the registry directory a launch records into; the service sets it on every start.</summary>
-    internal const string Variable = "SHARPRAIL_LANGUAGE_REGISTRY";
+    internal const string Variable = "TEREDITOR_LANGUAGE_REGISTRY";
     private static readonly ConcurrentDictionary<string, Registry> registries = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<int, Registry> owners = new();
 
@@ -130,7 +130,7 @@ internal static class LanguageProcesses
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add("while kill -0 \"$1\" 2>/dev/null; do sleep 2; done; " +
             "if [ -f \"$2\" ]; then while IFS=\"$(printf '\\t')\" read -r pid started name; do kill -KILL \"$pid\" 2>/dev/null; done < \"$2\"; rm -f \"$2\"; fi");
-        start.ArgumentList.Add("sharprail-language-watchdog");
+        start.ArgumentList.Add("tereditor-language-watchdog");
         start.ArgumentList.Add(host.ToString(CultureInfo.InvariantCulture));
         start.ArgumentList.Add(file);
         try { return Process.Start(start); }

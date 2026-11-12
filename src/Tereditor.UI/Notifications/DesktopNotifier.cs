@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Notifications;
+namespace Tereditor.UI.Notifications;
 
 /// <summary>One notification outside the app's windows. A later one with the same id replaces it.</summary>
 public sealed record DesktopNotification(string Id, string Title, string? Subtitle, string Body);

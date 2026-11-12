@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The workspace registry through direct and WebSocket RPC adapters: the same scenario must leave the same records, events and files.</summary>
 internal static class WorkspaceRegistryChecks
@@ -26,9 +26,9 @@ internal static class WorkspaceRegistryChecks
     private static async Task<string> Refused(Func<ValueTask<WorkspaceRecord?>> action, string what)
     {
         try { await action(); }
-        catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or SharpRail.Host.Protocol.RpcException)
+        catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or Tereditor.Host.Protocol.RpcException)
         {
-            return error is SharpRail.Host.Protocol.RpcException rpc ? rpc.Status.Detail : error.Message;
+            return error is Tereditor.Host.Protocol.RpcException rpc ? rpc.Status.Detail : error.Message;
         }
         throw new InvalidOperationException(what);
     }
@@ -96,7 +96,7 @@ internal static class WorkspaceRegistryChecks
         var reader = Task.Run(async () =>
         {
             try { await foreach (var item in state.WatchLifecycleAsync(lifetime.Token)) lock (events) events.Add(item); }
-            catch (Exception error) when (error is OperationCanceledException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is OperationCanceledException or Tereditor.Host.Protocol.RpcException) { }
         });
         async Task Seen(Func<LifecycleEvent, bool> match, Func<Task>? nudge = null)
         {
@@ -154,7 +154,7 @@ internal static class WorkspaceRegistryChecks
         Require(attached is { Kind: WorkspaceKinds.External, Branch: "late", BaseBranch: "main", InitialTerminalPending: true } && attached.Path == late,
             "Attaching yields a pending external workspace measured against the repository default.");
         Require((await host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(repo, late)))!.Id == attached.Id, "Attaching twice is idempotent.");
-        Require(Git(late, "rev-parse", "HEAD") == head && Git(late, "status", "--porcelain").Length == 0 && !Directory.Exists(Path.Combine(late, ".sharprail")),
+        Require(Git(late, "rev-parse", "HEAD") == head && Git(late, "status", "--porcelain").Length == 0 && !Directory.Exists(Path.Combine(late, ".tereditor")),
             "Attaching must not touch the checkout.");
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(repo, Path.Combine(root, "loose"))), "A detached worktree was attached."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(repo, root)), "A folder that is no worktree was attached."));
@@ -175,8 +175,8 @@ internal static class WorkspaceRegistryChecks
         Require(named is { Kind: WorkspaceKinds.Managed, Branch: "fix-login-flow", BaseBranch: "main", InitialTerminalPending: true } &&
             named.Path == Path.Combine(worktrees, "fix-login-flow") && (await state.GetStateAsync()).WorkspaceLabels[named.Path] == "Fix Login Flow!",
             "A named workspace keeps its name as the label and cuts a kebab branch.");
-        Require(!Directory.Exists(Path.Combine(named.Path, ".sharprail")) && Git(named.Path, "status", "--porcelain").Length == 0,
-            "A created workspace has no .sharprail directory, no inner .gitignore and no Git footprint.");
+        Require(!Directory.Exists(Path.Combine(named.Path, ".tereditor")) && Git(named.Path, "status", "--porcelain").Length == 0,
+            "A created workspace has no .tereditor directory, no inner .gitignore and no Git footprint.");
         var scratch = WorktreePaths.WorkspaceScratchDirectory(repo, named.Path, Path.Combine(root, "state-probe"));
         Require(scratch.StartsWith(Path.GetFullPath(Path.Combine(root, "state-probe")) + Path.DirectorySeparatorChar, StringComparison.Ordinal) && !scratch.StartsWith(named.Path, StringComparison.Ordinal) &&
             Path.GetFileName(scratch) == "fix-login-flow" && scratch.Contains(Path.DirectorySeparatorChar + "scratch" + Path.DirectorySeparatorChar),

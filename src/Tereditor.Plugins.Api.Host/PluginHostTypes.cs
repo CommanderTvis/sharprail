@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>The logger handed to a host half as <see cref="IPluginHostContext.Log"/>, one level per method.</summary>
 public interface IPluginLogger
@@ -176,7 +176,7 @@ public sealed record PluginHttpResponse(int Status)
 /// <summary>Where an agent plugin puts a <see cref="PromptContribution"/> in the instructions of a session (H20).</summary>
 public enum PromptPlacement
 {
-    /// <summary>A list item in the guidance on SharpRail's MCP tools, ahead of the host's own text.</summary>
+    /// <summary>A list item in the guidance on tereditor's MCP tools, ahead of the host's own text.</summary>
     ToolList,
 
     /// <summary>A block of text after the host's own text.</summary>

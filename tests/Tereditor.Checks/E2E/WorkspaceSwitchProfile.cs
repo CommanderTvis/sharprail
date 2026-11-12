@@ -9,13 +9,13 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Profiles switching between workspaces of one realistic project (a few thousand tracked files over several commits, specs,
@@ -112,7 +112,7 @@ internal static class WorkspaceSwitchProfile
         var clock = Stopwatch.StartNew();
         double loading = -1, mounted = -1, frame = -1, usable = -1;
         var critical = new List<string>();
-        SharpRail.UI.SwitchTimeline.Observer = step =>
+        Tereditor.UI.SwitchTimeline.Observer = step =>
         {
             if (step == "placeholder" && loading < 0) loading = clock.Elapsed.TotalMilliseconds;
             if (step == "mounted") { mounted = clock.Elapsed.TotalMilliseconds; critical.AddRange(log.SwitchCalls()); }
@@ -134,7 +134,7 @@ internal static class WorkspaceSwitchProfile
                 Dispatcher.UIThread.MainLoop(stop.Token);
             }
         }
-        finally { SharpRail.UI.SwitchTimeline.Observer = null; }
+        finally { Tereditor.UI.SwitchTimeline.Observer = null; }
         Require(Active(app, path), "The switch must land on the requested workspace.");
         while (usable < 0 && !Usable(app))
         {
@@ -168,12 +168,12 @@ internal static class WorkspaceSwitchProfile
             return $"median {values[values.Length / 2]:F1} p95 {values[Math.Max(0, (int)Math.Ceiling(values.Length * 0.95) - 1)]:F1}";
         }
         var shown = samples.Count(sample => sample.Loading >= 0);
-        Console.WriteLine($"SHARPRAIL_SWITCH_PROFILE {kind} samples={samples.Count} loading-shown={shown} loading=({Stat(s => s.Loading)}) " +
+        Console.WriteLine($"TEREDITOR_SWITCH_PROFILE {kind} samples={samples.Count} loading-shown={shown} loading=({Stat(s => s.Loading)}) " +
             $"mounted=({Stat(s => s.Mounted)}) frame=({Stat(s => s.Frame)}) usable=({Stat(s => s.Usable)})");
         var before = samples.SelectMany(sample => sample.Critical).GroupBy(name => name).Select(group => $"{group.Key}x{group.Count()}");
         var after = samples.SelectMany(sample => sample.After).GroupBy(name => name).Select(group => $"{group.Key}x{group.Count()}");
-        Console.WriteLine($"SHARPRAIL_SWITCH_PROFILE {kind} before-mount: {string.Join(" ", before)}");
-        Console.WriteLine($"SHARPRAIL_SWITCH_PROFILE {kind} after-mount: {string.Join(" ", after)}");
+        Console.WriteLine($"TEREDITOR_SWITCH_PROFILE {kind} before-mount: {string.Join(" ", before)}");
+        Console.WriteLine($"TEREDITOR_SWITCH_PROFILE {kind} after-mount: {string.Join(" ", after)}");
     }
 
     /// <summary>

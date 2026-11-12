@@ -2,9 +2,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>The tab's terminals: a simulated bash (<c>shell*</c> in <c>tabhost.js</c>) over the tab's own file system, one per terminal tab.</summary>
 internal sealed partial class TabTerminals : ITerminalService

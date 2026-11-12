@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Agent-owned attachment behavior on a terminal accessory. The workbench resolves drops to host paths.</summary>
 public sealed class FileDrop : AvaloniaObject

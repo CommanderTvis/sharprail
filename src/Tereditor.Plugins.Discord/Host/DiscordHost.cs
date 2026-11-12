@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Discord.Host;
+namespace Tereditor.Plugins.Discord.Host;
 
 /// <summary>The host half: the IPC client and the presence decision, driven by the plugin's own settings.</summary>
 public sealed class DiscordHost : PluginHostModule

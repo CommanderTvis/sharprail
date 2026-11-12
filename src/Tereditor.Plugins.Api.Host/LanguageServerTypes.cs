@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>How completely a language server's managed installation is pinned (H21).</summary>
 public enum LanguageServerPinning
@@ -196,7 +196,7 @@ public interface ILanguageServerInstallation
 /// </summary>
 public sealed class LanguageServerSpec
 {
-    /// <summary>The catalog id, such as <c>typescript</c>; settings and <c>.sharprail/language.toml</c> are keyed by it.</summary>
+    /// <summary>The catalog id, such as <c>typescript</c>; settings and <c>.tereditor/language.toml</c> are keyed by it.</summary>
     public required string Id { get; init; }
 
     /// <summary>The exact pinned version, or <c>toolchain</c> for an SDK-bundled server.</summary>

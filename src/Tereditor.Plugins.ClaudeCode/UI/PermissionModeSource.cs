@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The permission modes the host's CLI accepts, as the launcher and Settings last heard them. Until the host answers

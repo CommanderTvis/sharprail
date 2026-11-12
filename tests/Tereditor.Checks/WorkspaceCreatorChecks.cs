@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>A workspace's creator is recorded only by an attributed workspace_create and never outlives its workspace.</summary>
 internal static class WorkspaceCreatorChecks

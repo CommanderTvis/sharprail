@@ -1,11 +1,11 @@
 using System.Text;
 
-using SharpRail.Scintilla;
-using SharpRail.Scintilla.View;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks.ScintillaCore;
+using Tereditor.Scintilla;
+using Tereditor.Scintilla.View;
+
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Managed-only checks (no upstream suite): shaped screen-line layout replacing Native/Layout.cxx.</summary>
 internal static class LineShapeChecks

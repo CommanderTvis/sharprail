@@ -5,14 +5,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
-/// <summary>The project's .sharprail/language.toml: validation, precedence, watching, atomic write, local/remote parity.</summary>
+/// <summary>The project's .tereditor/language.toml: validation, precedence, watching, atomic write, local/remote parity.</summary>
 internal static class ProjectLanguageFileChecks
 {
     private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
@@ -34,9 +34,9 @@ internal static class ProjectLanguageFileChecks
         var project = Path.Combine(root, "project");
         var child = Path.Combine(root, "child");
         foreach (var folder in new[] { project, child }) Directory.CreateDirectory(folder);
-        var file = Path.Combine(project, ".sharprail", "language.toml");
+        var file = Path.Combine(project, ".tereditor", "language.toml");
         var storage = Path.Combine(root, "state");
-        await using var server = remote ? RemoteServer.Create(project, IPAddress.Loopback, 0, "language-file", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
+        await using var server = remote ? RemoteServer.Create(project, IPAddress.Loopback, 0, "language-file", storage, plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         using var remoteHost = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-file");
@@ -48,11 +48,11 @@ internal static class ProjectLanguageFileChecks
         async Task<JsonObject> Status(string id = "python") => JsonNode.Parse((await host.LanguageAsync(new(project, Operation: "projectLanguageFile", Server: id))).Configuration)!.AsObject();
 
         // Nothing is written for a project the user did not touch; host-state configuration keeps working.
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail")), "Opening a project created .sharprail.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor")), "Opening a project created .tereditor.");
         Require(!(await Status())["exists"]!.GetValue<bool>(), "A missing file was reported as existing.");
         await host.LanguageAsync(new(project, Operation: "configure", Server: "typescript", Configuration: """{"autoStart":true}"""));
         Require((await Config(project, "typescript"))["autoStart"]!.GetValue<bool>(), "Legacy host-state configuration stopped working.");
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail")), "A host-state save wrote into the project.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor")), "A host-state save wrote into the project.");
 
         // Parse and validate: unknown keys tolerated, bad entries ignored with diagnostics, host-specific keys refused.
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
@@ -172,7 +172,7 @@ internal static class ProjectLanguageFileChecks
             using var remoteState = new RemoteStateAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-file");
             Require((await remoteState.GetStateAsync()).ProjectLanguageFiles.ContainsKey(project), "The file status was lost from remote snapshots.");
         }
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail", ".gitignore")) && !File.Exists(Path.Combine(project, ".sharprail", ".gitignore")), "A .gitignore appeared in .sharprail.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor", ".gitignore")) && !File.Exists(Path.Combine(project, ".tereditor", ".gitignore")), "A .gitignore appeared in .tereditor.");
         await state.StopLanguagesAsync();
     }
 }

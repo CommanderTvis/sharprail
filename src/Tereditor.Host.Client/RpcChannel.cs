@@ -2,10 +2,10 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>Typed host calls over a shared, reconnectable WebSocket connection.</summary>
 public sealed class RpcChannel : IRpcClient, IDisposable

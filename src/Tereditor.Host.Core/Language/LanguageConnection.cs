@@ -4,9 +4,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal sealed class LanguageConnection : IAsyncDisposable
 {
@@ -89,7 +89,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         exitWatcher = Task.Run(WatchExitAsync);
     }
 
-    /// <summary>Names why SharpRail itself ends this process; the first reason wins. A failure is a stop the user did not ask for.</summary>
+    /// <summary>Names why tereditor itself ends this process; the first reason wins. A failure is a stop the user did not ask for.</summary>
     internal void Terminate(string reason, bool failure = false)
     {
         if (Interlocked.CompareExchange(ref stopReason, reason, null) is null) stopFailure = failure;
@@ -311,7 +311,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
             "workspace/configuration" => new JsonArray([.. (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")?.DeepClone())]),
             "window/showMessageRequest" => ClientRequest?.Invoke(method, parameters?.DeepClone()),
             "window/showDocument" when AcceptsShowDocument => ClientRequest?.Invoke(method, parameters?.DeepClone()),
-            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new JsonObject { ["applied"] = false, ["failureReason"] = "SharpRail applies server edits only inside a code action the user or agent chose." },
+            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new JsonObject { ["applied"] = false, ["failureReason"] = "tereditor applies server edits only inside a code action the user or agent chose." },
             _ => null
         };
         var known = method is "workspace/workspaceFolders" or "workspace/configuration" or "workspace/applyEdit"

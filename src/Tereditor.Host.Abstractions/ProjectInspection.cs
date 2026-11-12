@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>What a folder is before a client opens it: a repository, a plain folder Git can be initialised in, or nothing usable.</summary>
 public enum ProjectPathKind { Repository, Initable, Missing, NotDirectory }

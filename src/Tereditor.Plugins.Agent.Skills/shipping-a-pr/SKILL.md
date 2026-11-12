@@ -63,7 +63,7 @@ workflow's; finish it first and come back here when it lands.
 ## Working files
 
 Ephemeral files this workflow uses live in a scratch directory the phase docs call `<scratch>`: the
-`$SHARPRAIL_SCRATCH_DIR` when SharpRail set it (a host-side directory outside the repository, granted to
+`$TEREDITOR_SCRATCH_DIR` when tereditor set it (a host-side directory outside the repository, granted to
 the session), otherwise a fresh temporary directory outside the repository. Never a path `git status`
 would report.
 

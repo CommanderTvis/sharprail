@@ -1,9 +1,9 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 using System.Text;
 
-using SharpRail.Scintilla.Core;
+using Tereditor.Scintilla.Core;
 
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Port of Scintilla test/unit/testDocument.cxx (minus search/regex/DBCS). Not ported: searches, regex,
 /// case folding, DBCS, brace matching, SafeSegment and DiscardLastCombinedCharacter (not used), and the PerLine
@@ -32,7 +32,7 @@ internal static class DocumentChecks
         IndicatorsAndMargins();
         PerLineLineAnnotation();
         // Not ported (feature absent from the managed core): Search*/InsensitiveSearch*/Regex*/RESearch* (no FindText;
-        // SharpRail searches managed text), GetCharacterAndWidth DBCS, NextPosition Valid DBCS, BraceMatch DBCS and
+        // tereditor searches managed text), GetCharacterAndWidth DBCS, NextPosition Valid DBCS, BraceMatch DBCS and
         // SafeSegment "DBCS Shift-JIS" (UTF-8 only), BraceMatch (no brace matching), SafeSegment and
         // DiscardLastCombinedCharacter sections (no SafeSegment/DiscardLastCombinedCharacter), PerLine LineMarkers (no markers).
     }

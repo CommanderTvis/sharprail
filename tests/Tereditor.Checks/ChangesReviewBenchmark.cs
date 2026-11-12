@@ -8,11 +8,11 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// `--rendering-bench changes-review`: a stacked Changes review of 200 files whose first file is a 20,000-line diff
@@ -44,7 +44,7 @@ internal static class ChangesReviewBenchmark
         window.Show();
         try
         {
-            bool Drawn() => pane.DiffFor("large.txt")?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor => editor.Bounds.Height > 0) == true;
+            bool Drawn() => pane.DiffFor("large.txt")?.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Any(editor => editor.Bounds.Height > 0) == true;
             while (!Drawn())
             {
                 Frame(window);
@@ -60,7 +60,7 @@ internal static class ChangesReviewBenchmark
             Frame(window); Frame(window);
             bool Revealed()
             {
-                var panes = pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Editor.EditorFrame>()
+                var panes = pane.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Editor.EditorFrame>()
                     .Where(frame => frame.TranslatePoint(default, scroll) is { } at && at.Y < scroll.Bounds.Height && at.Y + frame.Bounds.Height > 0).ToArray();
                 return panes.Length > 0 && panes.All(frame => frame.HighlightingReady.IsCompleted);
             }
@@ -95,7 +95,7 @@ internal static class ChangesReviewBenchmark
                 scrollP95Ms = frames[114],
                 scrollAllocatedBytes = allocated,
                 finalOffset = scroll.Offset.Y,
-                editors = pane.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Count()
+                editors = pane.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Count()
             }));
         }
         finally { window.Close(); pane.Dispose(); }

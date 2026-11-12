@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
-/// Project-level language configuration from <c>.sharprail/language.toml</c> in the project root (the Default
+/// Project-level language configuration from <c>.tereditor/language.toml</c> in the project root (the Default
 /// checkout, so every workspace of the project agrees), merged under host state. Files are read lazily on first
 /// use, off the UI thread, and re-read when they change; nothing is written except by an explicit save.
 /// </summary>
@@ -77,7 +77,7 @@ public sealed partial class HostStateStore
     {
         void Changed(object? sender, FileSystemEventArgs e)
         {
-            if (e.Name is not null && !e.Name.StartsWith(".sharprail", StringComparison.Ordinal) && !e.Name.StartsWith("language.toml", StringComparison.Ordinal)) return;
+            if (e.Name is not null && !e.Name.StartsWith(".tereditor", StringComparison.Ordinal) && !e.Name.StartsWith("language.toml", StringComparison.Ordinal)) return;
             lock (languageFileGate)
             {
                 watch.Debounce?.Dispose();
@@ -105,7 +105,7 @@ public sealed partial class HostStateStore
             }
         }
         watch.Create = Create;
-        if (Create(project, ".sharprail") is { } outer) watch.Watchers.Add(outer);
+        if (Create(project, ".tereditor") is { } outer) watch.Watchers.Add(outer);
         EnsureInnerWatcher(project, watch);
     }
 
@@ -114,7 +114,7 @@ public sealed partial class HostStateStore
         lock (languageFileGate)
         {
             if (watch.Watchers.Count > 1 || watch.Create is not { } create) return;
-            if (create(Path.Combine(project, ".sharprail"), "language.toml*") is { } inner) watch.Watchers.Add(inner);
+            if (create(Path.Combine(project, ".tereditor"), "language.toml*") is { } inner) watch.Watchers.Add(inner);
         }
     }
 

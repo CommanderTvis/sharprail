@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Protocol;
+namespace Tereditor.Host.Protocol;
 
 [ProtoContract]
 public sealed class SaveFileRequest
@@ -44,10 +44,10 @@ public sealed class SaveFileReply { }
 public static class ProjectHeaders
 {
     /// <summary>Trailer naming the <c>ChangeFailure</c> of a refused change write.</summary>
-    public const string ChangeCode = "x-sharprail-change-code";
+    public const string ChangeCode = "x-tereditor-change-code";
 
     /// <summary>Binary metadata carrying the UTF-8 workspace root a client last opened; the host resolves each call against it.</summary>
-    public const string Root = "x-sharprail-root-bin";
+    public const string Root = "x-tereditor-root-bin";
 }
 
 [ProtoContract]
@@ -273,14 +273,14 @@ public partial interface IProjectRpc
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
     ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default);
-    ValueTask<SharprailDirectoryReply> GetSharprailDirectoryAsync(ProjectRequest request, CallContext context = default);
-    ValueTask<SharprailDirectoryReply> ExcludeSharprailDirectoryAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<TereditorDirectoryReply> GetTereditorDirectoryAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<TereditorDirectoryReply> ExcludeTereditorDirectoryAsync(ProjectRequest request, CallContext context = default);
     ValueTask<WorkspaceCatalogReply> ListWorkspacesAsync(WorkspaceCatalogRequest request, CallContext context = default);
     ValueTask<WorkspaceActionReply> ApplyWorkspaceActionAsync(WorkspaceActionRequest request, CallContext context = default);
 }
 
 [ProtoContract]
-public sealed class SharprailDirectoryReply
+public sealed class TereditorDirectoryReply
 {
     [ProtoMember(1)] public bool Exists { get; set; }
     [ProtoMember(2)] public bool Tracked { get; set; }

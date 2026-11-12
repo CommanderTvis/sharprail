@@ -10,19 +10,19 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Editor;
-using SharpRail.Scintilla;
-using SharpRail.UI.Editor;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Editor;
+using Tereditor.Scintilla;
+using Tereditor.UI.Editor;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
+
+namespace Tereditor.Checks;
 
 internal static class SyntaxHighlightChecks
 {
@@ -64,7 +64,7 @@ internal static class SyntaxHighlightChecks
             (".gitignore", "# comment\n!keep\n*.log"), (".dockerignore", "# comment\nnode_modules"),
             ("Makefile", "all:\n\techo hello"), ("a.xml", "<root name=\"a\"/>"), ("a.html", "<p>Hello</p>"),
             ("a.sql", "SELECT 42;"), ("a.ini", "[section]\nkey=value"),
-            ("SharpRail.slnx", "<Solution><Project Path=\"app.csproj\" /></Solution>"),
+            ("Tereditor.slnx", "<Solution><Project Path=\"app.csproj\" /></Solution>"),
             ("a.toml", "[package]\nname = \"app\"\nversion = 42"), ("a.properties", "# comment\nkey=value"),
             (".gitattributes", "# comment\n*.png binary"), (".gitconfig", "[user]\nname = Developer"), (".gitmodules", "[submodule \"lib\"]\npath = lib"),
             ("build.gradle", "plugins { id 'java' }"), ("build.gradle.kts", "plugins { kotlin(\"jvm\") }"),

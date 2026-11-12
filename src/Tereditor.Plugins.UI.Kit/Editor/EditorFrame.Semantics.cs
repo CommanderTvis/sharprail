@@ -2,7 +2,7 @@ using System.Text;
 
 using Avalonia.Threading;
 
-namespace SharpRail.Plugins.UI.Kit.Editor;
+namespace Tereditor.Plugins.UI.Kit.Editor;
 
 /// <summary>A single-line semantic token in zero-based UTF-16 coordinates.</summary>
 public sealed record SemanticToken(int Line, int Column, int Length, string Type)

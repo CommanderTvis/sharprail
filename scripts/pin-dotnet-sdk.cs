@@ -3,7 +3,7 @@
 //
 // For each SDK version and platform it reads the official release metadata, downloads the archive, requires the
 // publisher's SHA-512 to match, and prints a C# entry with our own SHA-256 (the value the host verifies before
-// extraction). Review the printed entries, then paste them into src/SharpRail.Host.Core/Language/ManagedRuntimes.cs.
+// extraction). Review the printed entries, then paste them into src/Tereditor.Host.Core/Language/ManagedRuntimes.cs.
 // Nothing is written to disk.
 using System.Security.Cryptography;
 using System.Text.Json;

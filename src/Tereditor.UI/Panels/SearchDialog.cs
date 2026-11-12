@@ -5,9 +5,9 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// One query over the whole active worktree, asked and dismissed: results grouped by file, one row per
@@ -23,7 +23,7 @@ public sealed class SearchDialog
     private readonly DispatcherTimer debounce;
     private CancellationTokenSource? pending;
 
-    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
+    public Tereditor.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public SearchDialog(Func<string, CancellationToken, Task<SearchHits>> search)
     {

@@ -3,18 +3,18 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.ClaudeCode.Host.Chat;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.ClaudeCode.Host.Chat;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Chat mode's host half, against a scripted stand-in for the claude CLI that speaks the stream-json protocol.</summary>
 internal static class ClaudeChatChecks
@@ -55,7 +55,7 @@ internal static class ClaudeChatChecks
         MODEL=$(echo "$*" | sed -n 's/.*--model \([^ ]*\).*/\1/p'); [ -z "$MODEL" ] && MODEL=fake-model
         MODE=$(echo "$*" | sed -n 's/.*--permission-mode \([^ ]*\).*/\1/p'); [ -z "$MODE" ] && MODE=default
         EFFORT=$(echo "$*" | sed -n 's/.*--effort \([^ ]*\).*/\1/p')
-        env | grep -E '^(SHARPRAIL_UI_LAUNCH|THINKRAIL_MCP_URL|CLAUDE_CODE_SSE_PORT)=' | sort >> "$D/env.log"
+        env | grep -E '^(TEREDITOR_UI_LAUNCH|THINKRAIL_MCP_URL|CLAUDE_CODE_SSE_PORT)=' | sort >> "$D/env.log"
         # A check can script a failed start: the exit code and what the child says on stderr.
         if [ -f "$D/exit" ]; then case "$*" in *stream-json*) [ -f "$D/stderr" ] && cat "$D/stderr" >&2; exit "$(cat "$D/exit")" ;; esac; fi
         emit() { printf '%s\n' "$1"; }
@@ -204,7 +204,7 @@ internal static class ClaudeChatChecks
         foreach (var (name, path) in new Dictionary<string, string>
         {
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
         })
         {
@@ -389,7 +389,7 @@ internal static class ClaudeChatChecks
             await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, gone, 0, "goes with its workspace", "desk"));
             await fixture.Call(ChatContract.Close, new ChatKey(project, chat));
             // The save is debounced: it happens shortly after the last change.
-            await Task.Delay(SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.SaveDelay + TimeSpan.FromMilliseconds(700));
+            await Task.Delay(Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts.SaveDelay + TimeSpan.FromMilliseconds(700));
         }
 
         // A host restart: a new state store over the same directory still has the drafts, the revisions and the consumed marker.
@@ -415,19 +415,19 @@ internal static class ClaudeChatChecks
     // The draft store on its own: persistence round trip, the stored-chat bound, the length bound and a removed workspace's drafts.
     private static void StoreBounds()
     {
-        var saved = new Dictionary<string, SharpRail.Plugins.ClaudeCode.Host.Chat.StoredDraft>();
+        var saved = new Dictionary<string, Tereditor.Plugins.ClaudeCode.Host.Chat.StoredDraft>();
         var pushes = new List<ChatPush>();
-        using (var store = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => [], all => { saved = all; }, pushes.Add, _ => { }))
+        using (var store = new Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => [], all => { saved = all; }, pushes.Add, _ => { }))
         {
-            for (var index = 0; index < SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 20; index++)
+            for (var index = 0; index < Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 20; index++)
                 store.Set("w", "c" + index, "text " + index, "x");
             store.Set("w", "empty", "temp", "x");
             store.Set("w", "empty", "", "x");
             store.Set("other", "kept", "elsewhere", "x");
             Require(store.Get("w", "c0").Text == "text 0" || store.Get("w", "c0").Revision == 0, "The oldest drafts may be dropped, never altered.");
             store.Save();
-            Require(saved.Count <= SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats, $"At most {SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats} chats are stored ({saved.Count}).");
-            Require(store.Get("w", "c" + (SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 19)).Text.StartsWith("text ", StringComparison.Ordinal) && store.Get("other", "kept").Text == "elsewhere",
+            Require(saved.Count <= Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats, $"At most {Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats} chats are stored ({saved.Count}).");
+            Require(store.Get("w", "c" + (Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 19)).Text.StartsWith("text ", StringComparison.Ordinal) && store.Get("other", "kept").Text == "elsewhere",
                 "The most recent drafts and non-empty ones are kept.");
             Require(store.Get("w", "empty") is { Text: "" }, "A cleared draft is empty.");
             var before = pushes.Count;
@@ -437,10 +437,10 @@ internal static class ClaudeChatChecks
             store.Save();
             Require(saved.Keys.All(key => key.StartsWith("other\0", StringComparison.Ordinal)) && saved.Count == 1, "A removed workspace's drafts are dropped and the drop is saved.");
         }
-        PluginJson.Register(SharpRail.Plugins.ClaudeCode.Host.Chat.ClaudeCodeHostJson.Default);
+        PluginJson.Register(Tereditor.Plugins.ClaudeCode.Host.Chat.ClaudeCodeHostJson.Default);
         var json = JsonSerializer.Serialize(saved, PluginJson.Options);
-        var back = JsonSerializer.Deserialize<Dictionary<string, SharpRail.Plugins.ClaudeCode.Host.Chat.StoredDraft>>(json, PluginJson.Options)!;
-        using var reloaded = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => back, _ => { }, _ => { }, _ => { });
+        var back = JsonSerializer.Deserialize<Dictionary<string, Tereditor.Plugins.ClaudeCode.Host.Chat.StoredDraft>>(json, PluginJson.Options)!;
+        using var reloaded = new Tereditor.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => back, _ => { }, _ => { }, _ => { });
         Require(reloaded.Get("other", "kept") is { Text: "elsewhere", Revision: 1 }, "A stored draft round-trips through the state file's JSON.");
     }
 
@@ -466,8 +466,8 @@ internal static class ClaudeChatChecks
         var failed = await Card("echo hello; echo oops 1>&2; exit 3", card => !card.Running, "the failing command to finish");
         Require(failed.Category == ChatNoticeKinds.BashOutput && Section(failed, "Output") == "hello" && Section(failed, "Error output") == "oops" && Section(failed, "Exit code") == "3",
             "A command's card has its output, its error output and the exit code of a failure.");
-        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "pwd; printf '%s|%s|%s' \"$TERM\" \"${SHARPRAIL_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\""));
-        var where = await Card("pwd; printf '%s|%s|%s' \"$TERM\" \"${SHARPRAIL_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\"", card => !card.Running, "the environment command to finish");
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "pwd; printf '%s|%s|%s' \"$TERM\" \"${TEREDITOR_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\""));
+        var where = await Card("pwd; printf '%s|%s|%s' \"$TERM\" \"${TEREDITOR_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\"", card => !card.Running, "the environment command to finish");
         var lines = Section(where, "Output").Split('\n');
         Require(Path.GetFileName(lines[0]) == Path.GetFileName(project), $"The command runs in the chat's directory ({lines[0]}).");
         Require(lines[1].StartsWith("xterm-256color|none|", StringComparison.Ordinal), $"The shell gets a terminal's sanitised environment: {lines[1]}");
@@ -537,9 +537,9 @@ internal static class ClaudeChatChecks
                 Spawns().Last().Contains("--permission-prompt-tool=stdio", StringComparison.Ordinal),
                 "A new chat starts the CLI under its id with the stream-json flags, the chosen permission mode and the appended prompt.");
             var environment = File.ReadAllText(Path.Combine(directory, "fake", "env.log"));
-            Require(environment.Contains("SHARPRAIL_UI_LAUNCH=claude", StringComparison.Ordinal) && environment.Contains("THINKRAIL_MCP_URL=http://127.0.0.1:1", StringComparison.Ordinal) &&
+            Require(environment.Contains("TEREDITOR_UI_LAUNCH=claude", StringComparison.Ordinal) && environment.Contains("THINKRAIL_MCP_URL=http://127.0.0.1:1", StringComparison.Ordinal) &&
                 environment.Contains("/mcp/chat-fixture-token", StringComparison.Ordinal) && environment.Contains("CLAUDE_CODE_SSE_PORT=", StringComparison.Ordinal),
-                "The child gets SharpRail's launch marker, its MCP address and the IDE bridge port.");
+                "The child gets tereditor's launch marker, its MCP address and the IDE bridge port.");
             Require((await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat))).SessionId == ready.Header.SessionId && Spawns().Length == 1, "Open is idempotent per chat id.");
 
             // A streamed answer: partials grow one item, which the complete message then finishes.
@@ -840,7 +840,7 @@ internal static class ClaudeChatChecks
             var firstItem = fixture.Pushes.ToArray().SkipWhile(push => push is not ChatResetPush).Skip(1).First();
             Require(firstItem is ChatItemPush, "Replayed items follow the reset.");
             var statuses = await fixture.Call(ClaudeCodeContract.StatusSnapshot, new StatusSnapshotParams(project));
-            Require(statuses.Any(row => row.TabKey == resumed), "A revived chat reports status like a launch of SharpRail's own.");
+            Require(statuses.Any(row => row.TabKey == resumed), "A revived chat reports status like a launch of tereditor's own.");
 
             // Rewind keeps what preceded the prompt and continues from there under a new session.
             await fixture.Call(ChatContract.Rewind, new ChatRewindParams(project, resumed, "u-3"));

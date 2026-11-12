@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>
 /// How the language tools meet the paths an agent types. A path inside the workspace root is accepted absolute or relative to the root;

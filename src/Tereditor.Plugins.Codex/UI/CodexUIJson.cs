@@ -2,7 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>Source-generated JSON metadata for the values the Codex panes show as JSON text.</summary>
 [JsonSerializable(typeof(JsonElement))]

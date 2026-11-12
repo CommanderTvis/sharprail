@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The host reads a password prompt from the PTY's line discipline (canonical, echo off), as Ghostty's termios poll does.
 internal static partial class TerminalHostChecks

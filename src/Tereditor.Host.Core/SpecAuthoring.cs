@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal sealed record SpecDraft(string Path, string Id, string Type, string Title)
 {
@@ -83,7 +83,7 @@ internal static class SpecAuthoring
         // Bytes in, bytes out: the body and a byte order mark are never decoded into something else.
         var bytes = File.ReadAllBytes(full);
         var updated = Encoding.UTF8.GetBytes(UpdateText(ContentInfo.Decode(bytes), edit));
-        var temporary = Path.Combine(Path.GetDirectoryName(full)!, ".sharprail-spec-" + Guid.NewGuid().ToString("N"));
+        var temporary = Path.Combine(Path.GetDirectoryName(full)!, ".tereditor-spec-" + Guid.NewGuid().ToString("N"));
         try
         {
             File.WriteAllBytes(temporary, updated);

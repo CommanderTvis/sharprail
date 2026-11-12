@@ -2,9 +2,9 @@
 
 Run `sh scripts/build-tailscale-android.sh` from the repository. It downloads
 checksum-pinned Go 1.27.2 and builds Tailscale v1.104.1 using `go.sum` and the pinned
-Android NDK. Output: `src/SharpRail.Android/obj/tailscale/arm64-v8a/libSharpRailTailscale.so`.
+Android NDK. Output: `src/Tereditor.Android/obj/tailscale/arm64-v8a/libTereditorTailscale.so`.
 Pass `x86_64` as the optional first argument for the emulator ABI. The default is
-`arm64-v8a`; both target API24. `SHARPRAIL_ANDROID_NDK` may reference an existing pinned NDK. No VPN interface,
+`arm64-v8a`; both target API24. `TEREDITOR_ANDROID_NDK` may reference an existing pinned NDK. No VPN interface,
 external Tailscale application or root privileges are required.
 
 C ABI: `char *sr_ts_call(char *operation, char *inputJson)` and
@@ -17,7 +17,7 @@ enrolment; the app leaves both empty. `cmd/tsforward` is a test-only tailnet nod
 `--headscale` check (`sh scripts/build-headscale-test.sh`).
 
 Operations: `start`, `status`, `login`, `logout`, `stop`. Start accepts
-`{"stateDirectory":"/app/private/tailscale","hostname":"sharprail-android"}`.
+`{"stateDirectory":"/app/private/tailscale","hostname":"tereditor-android"}`.
 The directory contains the durable node identity and is restricted to mode 0700.
 Start does not wait for authentication. Login requests browser authentication;
 subsequent status calls expose Tailscale's authentication URL. Logout revokes the
@@ -30,9 +30,9 @@ and change each start. All TCP routes through `tsnet.Server.Dial`, including DNS
 Both HTTP and WebSocket consumers must use the proxy: ordinary OS sockets do not
 route through this node. Never log response JSON or credentials. User/backend log
 callbacks discard messages to keep authentication URLs out of Android logs.
-Discovery does not bypass SharpRail device pairing approval.
+Discovery does not bypass tereditor device pairing approval.
 
-The build stamps the node version as `<go.mod tailscale.com version>-sharprail` through
+The build stamps the node version as `<go.mod tailscale.com version>-tereditor` through
 `tailscale.com/version` linker flags, so the admin console shows no `-dev`/`-dirty` suffix.
 
 Tailscale's BSD-3-Clause license is in `TAILSCALE-LICENSE`; exact dependency
@@ -57,7 +57,7 @@ native checks from the repository root (macOS/Linux, no Tailscale account needed
 
 ```sh
 goroot="$(sh scripts/tailscale-go.sh)"
-cd src/SharpRail.Android/Tailscale.Native
+cd src/Tereditor.Android/Tailscale.Native
 GOCACHE="$(dirname "$goroot")/build-cache" \
 GOMODCACHE="$(dirname "$goroot")/modules" GOTOOLCHAIN=local \
 "$goroot/bin/go" test -race .

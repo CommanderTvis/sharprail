@@ -9,10 +9,10 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
-using SharpRail.Scintilla;
-using SharpRail.UI.Rendering;
+using Tereditor.Scintilla;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Browser.Checks;
+namespace Tereditor.Browser.Checks;
 
 // `restty.mjs --perf`: the editor and diff workloads of the desktop editor benchmark, run inside the browser.
 internal static partial class BrowserChecks

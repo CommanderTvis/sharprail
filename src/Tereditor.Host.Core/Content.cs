@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The byte-level classification shared by diff sides and file reads: media type from magic numbers, then SVG and

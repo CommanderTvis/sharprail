@@ -7,10 +7,10 @@ using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ChangesDiffE2E
 {
@@ -20,7 +20,7 @@ internal static class ChangesDiffE2E
     {
         if (Source is not { } source)
         {
-            Console.WriteLine("SKIP upstream Changes diff viewer: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream Changes diff viewer: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         Viewer(root, source);

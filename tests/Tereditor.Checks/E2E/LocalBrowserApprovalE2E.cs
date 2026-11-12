@@ -7,16 +7,16 @@ using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Protocol;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Protocol;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class LocalBrowserApprovalE2E
 {
-    internal static Window? Prompt(Window root) => SharpRail.Plugins.UI.Kit.DialogWindow.On(root).SelectMany(child => new[] { child }.Concat(SharpRail.Plugins.UI.Kit.DialogWindow.On(child))).FirstOrDefault(child => Equals(child.Tag, "LocalBrowserApproval"));
+    internal static Window? Prompt(Window root) => Tereditor.Plugins.UI.Kit.DialogWindow.On(root).SelectMany(child => new[] { child }.Concat(Tereditor.Plugins.UI.Kit.DialogWindow.On(child))).FirstOrDefault(child => Equals(child.Tag, "LocalBrowserApproval"));
     internal static T Field<T>(Control root, string name) where T : Control => root.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
 
     internal static void Run(string root)

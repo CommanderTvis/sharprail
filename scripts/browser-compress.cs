@@ -69,13 +69,13 @@ static async Task WriteAtomic(string file, byte[] bytes)
     finally { File.Delete(temporary); }
 }
 
-// The machine-wide build cache every checkout shares: SHARPRAIL_CACHE_DIR from mise.toml, else the same default, for
+// The machine-wide build cache every checkout shares: TEREDITOR_CACHE_DIR from mise.toml, else the same default, for
 // scripts that run outside mise. A root created here is excluded from Time Machine on macOS, as scripts/native-cache.sh does.
 static string CacheDir(params string[] parts)
 {
-    var root = Environment.GetEnvironmentVariable("SHARPRAIL_CACHE_DIR") is { Length: > 0 } configured ? configured
-        : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") is { Length: > 0 } local ? local : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local"), "sharprail", "cache")
-        : Path.Combine(Environment.GetEnvironmentVariable("XDG_CACHE_HOME") is { Length: > 0 } xdg ? xdg : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache"), "sharprail");
+    var root = Environment.GetEnvironmentVariable("TEREDITOR_CACHE_DIR") is { Length: > 0 } configured ? configured
+        : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") is { Length: > 0 } local ? local : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local"), "tereditor", "cache")
+        : Path.Combine(Environment.GetEnvironmentVariable("XDG_CACHE_HOME") is { Length: > 0 } xdg ? xdg : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache"), "tereditor");
     if (!Directory.Exists(root))
     {
         Directory.CreateDirectory(root);

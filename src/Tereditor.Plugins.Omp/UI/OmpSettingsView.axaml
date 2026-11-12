@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Omp.UI.OmpSettingsView" x:ClassModifier="internal"
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Omp.UI.OmpSettingsView" x:ClassModifier="internal"
             Name="SettingsOmp" Spacing="16">
   <StackPanel.Styles>
     <Style Selector="TextBlock">
@@ -20,7 +20,7 @@
         <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
       </Border>
     </StackPanel>
-    <TextBlock Classes="detail" Text="Launch flags for omp sessions SharpRail starts. omp itself comes from your system installation (https://omp.sh)." />
+    <TextBlock Classes="detail" Text="Launch flags for omp sessions tereditor starts. omp itself comes from your system installation (https://omp.sh)." />
   </StackPanel>
   <StackPanel Spacing="4">
     <TextBlock Text="Launch command" />
@@ -42,16 +42,16 @@
       <TextBlock Classes="detail" Text="Passive per-turn review with injected advice." />
     </StackPanel>
   </CheckBox>
-  <CheckBox x:Name="OmpMcp" AutomationProperties.Name="Give sessions SharpRail's tools">
+  <CheckBox x:Name="OmpMcp" AutomationProperties.Name="Give sessions tereditor's tools">
     <StackPanel Spacing="2">
-      <TextBlock Text="Give sessions SharpRail's tools" />
-      <TextBlock Classes="detail" Text="Launches with the sharprail omp profile, whose mcp.json SharpRail owns. The profile has its own sign-in, settings and sessions; the omp side tool can copy your default omp sign-in into it." />
+      <TextBlock Text="Give sessions tereditor's tools" />
+      <TextBlock Classes="detail" Text="Launches with the tereditor omp profile, whose mcp.json tereditor owns. The profile has its own sign-in, settings and sessions; the omp side tool can copy your default omp sign-in into it." />
     </StackPanel>
   </CheckBox>
   <CheckBox x:Name="OmpOwnLsp" AutomationProperties.Name="Use omp's own code intelligence">
     <StackPanel Spacing="2">
       <TextBlock Text="Use omp's own code intelligence" />
-      <TextBlock Classes="detail" Text="Off: sessions start with --no-lsp and use SharpRail's shared language servers through the lsp_* tools." />
+      <TextBlock Classes="detail" Text="Off: sessions start with --no-lsp and use tereditor's shared language servers through the lsp_* tools." />
     </StackPanel>
   </CheckBox>
 </StackPanel>

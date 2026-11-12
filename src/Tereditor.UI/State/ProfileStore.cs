@@ -2,12 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.State;
+namespace Tereditor.UI.State;
 
 public sealed class Preferences
 {
@@ -28,7 +28,7 @@ public sealed class Preferences
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
     /// <summary>The editors' text size, set by pinching one of them.</summary>
-    public double CodeFontSize { get; set; } = SharpRail.Scintilla.ScintillaEditor.DefaultTextSize;
+    public double CodeFontSize { get; set; } = Tereditor.Scintilla.ScintillaEditor.DefaultTextSize;
     /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
     public double Zoom { get; set; } = 1;
     public bool ChangesSingle { get; set; }
@@ -121,12 +121,12 @@ public sealed class Profile
 
 public sealed class ProfileStore
 {
-    public static string DefaultDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail");
+    public static string DefaultDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor");
 
     public static ProfileStore OpenDefault(string initialRoot)
     {
         var directory = DefaultDirectory;
-        var legacy = Path.Combine(initialRoot, ".sharprail", "profile.json");
+        var legacy = Path.Combine(initialRoot, ".tereditor", "profile.json");
         var current = Path.Combine(directory, "profile.json");
         if (!File.Exists(current) && File.Exists(legacy))
         {
@@ -219,8 +219,8 @@ public sealed class ProfileStore
             }
             Data.Preferences.CustomPresets ??= [];
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
-            if (!double.IsFinite(Data.Preferences.CodeFontSize) || Data.Preferences.CodeFontSize is < SharpRail.Scintilla.ScintillaEditor.MinimumTextSize or > SharpRail.Scintilla.ScintillaEditor.MaximumTextSize)
-                Data.Preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.DefaultTextSize;
+            if (!double.IsFinite(Data.Preferences.CodeFontSize) || Data.Preferences.CodeFontSize is < Tereditor.Scintilla.ScintillaEditor.MinimumTextSize or > Tereditor.Scintilla.ScintillaEditor.MaximumTextSize)
+                Data.Preferences.CodeFontSize = Tereditor.Scintilla.ScintillaEditor.DefaultTextSize;
             Data.Preferences.Zoom = InterfaceZoom.Normalize(Data.Preferences.Zoom);
             Data.Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(Data.Preferences.VerticalCenterTabsWidth);
             if (Data.Preferences.DefaultPaneDirection is not ("horizontal" or "vertical")) Data.Preferences.DefaultPaneDirection = "horizontal";

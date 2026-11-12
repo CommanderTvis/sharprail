@@ -43,7 +43,7 @@ With Central chosen, the plugin contributes, through the Plugin API's agent laun
 launchers and starts, H18 in the host half for revived terminals), a replacing wrapper
 `<central> run <claude-code|codex> --` to launcher ids `claude` and `codex`. The agent plugins apply it to the
 executable word of the command they build: the launcher, its right-click flags, the Create-workspace and Project Home
-starts, resumes and the host's revive offer, so the agent's usual arguments follow the `--`. SharpRail's own
+starts, resumes and the host's revive offer, so the agent's usual arguments follow the `--`. tereditor's own
 environment prefixes stay outermost. A custom command in the agent's settings (not the default `claude` or `codex`)
 is never rewritten and so is not governed; the pane says so. Running terminals keep the command they started with.
 `<central>` is the path the host found, else the bare name: if Central is missing the launch fails in the shell
@@ -187,6 +187,6 @@ code never sets): success with the current marker, signed out, unknown environme
 responses, rotation, secrets absent from every surfaced string, switching with proxy-restart failure and A, B, A.
 Not verified against the real CLI or production endpoints (never called from checks): the live envelope and endpoint,
 the exact `central status` output format, that
-`central run <agent> -- <args>` forwards SharpRail's prompt, plugin-dir and MCP arguments and environment to the agent
+`central run <agent> -- <args>` forwards tereditor's prompt, plugin-dir and MCP arguments and environment to the agent
 unchanged, how `central run` picks the access source, and the ToS prompt of `central access`. The parsers follow the
 fork's.

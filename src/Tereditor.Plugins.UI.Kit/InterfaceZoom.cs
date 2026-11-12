@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Browser-style page zoom for every window and popup: each root wraps its content in a

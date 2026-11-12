@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Pi;
+namespace Tereditor.Plugins.Pi;
 
 public sealed record PiNoParams;
 

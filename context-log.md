@@ -9,11 +9,11 @@ including terminal/editor scope and verification evidence.
 The historical entries above retain their dated outcomes, failures and publication limits. References
 to the former validation ledger now lead here because that separate file is retired; they do not
 assert that its old package, process, pending workspace or check result is current. Durable facts
-and measurements now live in the [browser](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence),
-[native terminal](src/SharpRail.UI/Terminal/SPEC.md#native-memory),
-[UI kit](src/SharpRail.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits),
-[Android](src/SharpRail.Android/SPEC.md#validation), [rendering](src/SharpRail.UI/Rendering/SPEC.md#native-visual-acceptance-limits)
-and [checks](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) specs. The [Codex recovery caveat](src/SharpRail.Plugins.Codex/SPEC.md)
+and measurements now live in the [browser](src/Tereditor.Browser/SPEC.md#recorded-rendering-evidence),
+[native terminal](src/Tereditor.UI/Terminal/SPEC.md#native-memory),
+[UI kit](src/Tereditor.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits),
+[Android](src/Tereditor.Android/SPEC.md#validation), [rendering](src/Tereditor.UI/Rendering/SPEC.md#native-visual-acceptance-limits)
+and [checks](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope) specs. The [Codex recovery caveat](src/Tereditor.Plugins.Codex/SPEC.md)
 remains unresolved. Upstream provenance, current porting differences and outstanding acceptance
 are consolidated in [STATUS.md](STATUS.md#current-porting-gaps). The previous ledger remains
 recoverable from Git history; chronological build logs and superseded implementation claims are
@@ -58,7 +58,7 @@ layout invariants and 300 generated transitions; real pointer cancellation,
 join, center split, hidden-bottom drop; refresh during drag/resize; resize Escape;
 settings persistence; project/frame restoration; fresh window profile restoration.
 Logs: .bench/prototype-checks.log, .bench/build.log, .bench/format.log.
-Previous published build passed SHARPRAIL_REQUIRE_R2R=1 and full checks;
+Previous published build passed TEREDITOR_REQUIRE_R2R=1 and full checks;
 new publish started after latest separator patch, inspect its live handle/log.
 Runtime checks prove dynamic IL emission/JIT and independent assembly loading.
 
@@ -70,8 +70,8 @@ Native window logs .bench/gui.log and gui-errors.log (errors empty).
 Screenshot helper .bench/window-info PID prints windowID/bounds; use native
 screencapture -x -o -l ID .bench/prototype-native.png. GUI uses require_escalated.
 The previous own app PID61451 was terminated before latest publish. New app
-showcase profile under .sharprail/showcase has README.md/SPEC.md kept tabs.
-Launch from the repository root via open -n artifacts/SharpRail.app --env SHARPRAIL_ROOT="$PWD" --env SHARPRAIL_PROFILE="$PWD/.sharprail/showcase" --stdout "$PWD/.bench/gui.log" --stderr "$PWD/.bench/gui-errors.log"
+showcase profile under .tereditor/showcase has README.md/SPEC.md kept tabs.
+Launch from the repository root via open -n artifacts/tereditor.app --env TEREDITOR_ROOT="$PWD" --env TEREDITOR_PROFILE="$PWD/.tereditor/showcase" --stdout "$PWD/.bench/gui.log" --stderr "$PWD/.bench/gui-errors.log"
 
 ## Remaining completion audit / concrete issues
 
@@ -210,7 +210,7 @@ region artifact removed immediately and not used as evidence.
 Final state this continuation: canonical publish completed; full published R2R
 checks exit0, format verification exit0 and strict/deep codesign verify exit0.
 Current app PID75573/window103371 renders 1352x848 logical with isolated review
-profile .sharprail/geometry-review and reference project root. User has switched
+profile .tereditor/geometry-review and reference project root. User has switched
 Changes to Review in this instance; preserve their live state. GUI error log is
 empty. Window-only .bench/prototype-empty.png refreshed to current tab chrome.
 Added [historical verification ledger](#verification-record-migration) with requirement/evidence matrix and explicit remaining gates.
@@ -246,13 +246,13 @@ needed (Avalonia default buttons sized to text); bounds test passes.
 Reference uses theme mode/pair and four themes; current prototype retains
 agreed dark/light/system profile behavior and font size setting. Exact full
 Settings equivalence not claimed. No additional inactive settings sections.
-Published separate artifacts/SharpRail-Review.app to avoid rewriting live app.
-New app PID80963/window103769, isolated .sharprail/current-review cloned from
-showcase profile, restores sharprail root + README/SPEC despite env root.
+Published separate artifacts/tereditor-Review.app to avoid rewriting live app.
+New app PID80963/window103769, isolated .tereditor/current-review cloned from
+showcase profile, restores tereditor root + README/SPEC despite env root.
 Native window-only screenshot .bench/prototype-review-native.png confirms
 Markdown render; no errors. Old PID75573 remains running untouched.
 Review bundle signature strict/deep PASS; .bench/review-published-checks.log
-PASS with SHARPRAIL_REQUIRE_R2R=1. Latest format verify session45010 pending
+PASS with TEREDITOR_REQUIRE_R2R=1. Latest format verify session45010 pending
 at writing; poll rather than restart. Remaining no-op/minimum pointer rejection,
 empty/folded focus/native accessibility, exact native modal/Markdown comparison,
 canonical final publishing once safe. Goal active; no benches/commits/push/agents.
@@ -289,8 +289,8 @@ Added file/spec tree accessible names/pathhelp and Git row pathnames after nativ
 probe exposed genericControl names. Latestnativeproof currentlog confirms
 README.md AXCell name. Full Release+publishedR2R checks PASS; formatverify PASS.
 Review app normalAppleEventquit rejectedUserCanceled(-128); not forced/overwritten.
-Published latest to artifacts/SharpRail-Current.app, separateidentifier.current,
-isolatedprofile .sharprail/current-build copiedshowcase (restoresSharpRail+README).
+Published latest to artifacts/tereditor-Current.app, separateidentifier.current,
+isolatedprofile .tereditor/current-build copiedshowcase (restoresTereditor+README).
 CurrentPID85972/window1039001352x848. .bench/prototype-current-native.png latest
 nativeMarkdown. Codesign strict/deep PASS. .bench/current-published-checks.log
 PASS withR2R required. OriginalPID75573 andReview80963 preserved. Goalactive:
@@ -368,7 +368,7 @@ Extent>Viewport andOffset.Y>0, failedbaseline. Rootcause customScrollViewer
 subclass didnotselectbaseStyleKey, so noScrollContentPresenter. Added
 StyleKeyOverride=>typeof(ScrollViewer), regression andfullRelease PASS.
 Formatverify PASS. PublishedselfcontainedR2R artifacts/scroll-fix-ui thennew
-artifacts/SharpRail-ScrollFix.app, distinctbundleiddev.thinkrail.sharprail.scrollfix,
+artifacts/tereditor-ScrollFix.app, distinctbundleiddev.thinkrail.tereditor.scrollfix,
 ad-hocsigned/strictdeepverified. Includeslatestfonts/Projects/Changes updates.
 RunningPID93812/session94893/window104644 withisolated.scroll-fixprofilecopied
 fromcurrent-build; SPEC.mdopen, ownAXtreeverticalScrollBar0..1821.5 andcapture
@@ -385,8 +385,8 @@ nowGroupMenu (doesnotinterferewithcontentmenus). RealMouseRight regression
 opensProjecttabmenu/invokesClose/assertstoolremoved; emptycenterheaderRMBopens
 menu andRemovegroupdisabledforlastcenter. FullRelease/formatverify PASS.
 PublishedCoreCLRnoncompositeR2R artifacts/pane-fix-ui anddistinct
-artifacts/SharpRail-PaneFix.app; strictdeepsignature PASS. Launchedownprofile
-.sharprail/pane-fix copiedfromscroll-fix; session69345 remainsrunning. Oldapps
+artifacts/tereditor-PaneFix.app; strictdeepsignature PASS. Launchedownprofile
+.tereditor/pane-fix copiedfromscroll-fix; session69345 remainsrunning. Oldapps
 untouched. IncludesMarkdownscrollfix. NoChangespath/treechromeeditsyet.
 Goalactive; finalfidelity/completionaudit stillpending. Nobenchmarks/commits/push.
 
@@ -401,8 +401,8 @@ despitefixed32header; fixed14pxreferencefont andclassdock-tab-title excludedfrom
 ApplyAppearance blanketfontmutation. Previewitalic textPaddingRight3 forsynthetic
 overhang. Regressionchecks READMEpreview font14/italic/padding/textheight<tabheight.
 FullRelease andformatverify PASS .bench/tab-fit-checks.log. Publishednoncomposite
-CoreCLR/R2R artifacts/tab-fit-ui and artifacts/SharpRail-TabFit.app, strictdeep
-signature PASS. RunningPID97085/session96697 own.sharprail/tab-fitprofile copied
+CoreCLR/R2R artifacts/tab-fit-ui and artifacts/tereditor-TabFit.app, strictdeep
+signature PASS. RunningPID97085/session96697 own.tereditor/tab-fitprofile copied
 frompane-fix. Olderuserappsuntouched. Includesallscroll/menu/path/treefixes.
 Remaining requirementaudit/nativefidelityproof; goalactive. Nobenchmarks/commits.
 
@@ -412,7 +412,7 @@ reset14, Linewidth640 updatesmountedMarkdownbody.MaxWidth640, unboundcheckbox
 updatesinfinity. IndependentProfileStore reloadconfirmsfontsize14/width640/
 boundedfalse persisted. FullRelease PASS .bench/live-settings-checks.log,
 formatverify PASS. Publishedcurrentchecks artifacts/tab-fit-checks R2R
-noncomposite; SHARPRAIL_REQUIRE_R2R=1 fullsuite PASS
+noncomposite; TEREDITOR_REQUIRE_R2R=1 fullsuite PASS
 .bench/tab-fit-published-checks.log (dynamicassembly/ILemit plusnewlivechecks).
 Noappcodechanges; TabFitPID97085 authoritativelylive. VALIDATION correctedstale
 Current/font/Projectsnotpublishedclaimsandupdatedsettings/evidencegates.
@@ -437,7 +437,7 @@ YamlFrontMatterBlock inheritsCodeBlock soRendercaughtit; body nowfiltersit
 beforeRender/margincollapse. Regressionvisibleheading/bodypresent,metadataabsent,
 exact2visibleblocksnoemptyspacing. FullRelease/formatverify PASS
 .bench/frontmatter-checks.log. PublishednoncompositeCoreCLR/R2R artifacts/latest-ui
-and artifacts/SharpRail-Latest.app, strictdeepcodesignverify PASS. IncludesFiles24/
+and artifacts/tereditor-Latest.app, strictdeepcodesignverify PASS. IncludesFiles24/
 padding12/removedtoolbar/allpreviousfixes. RunningPID181/session38593/window105498
 own.latestprofilecopiedtypography-review restoringreferenceworkspace/spec.
 Nativecapture .bench/prototype-latest-native.png verifiedYAMLabsent/Responsibility
@@ -460,7 +460,7 @@ andfreshpublishedchecks/fullcompletionaudit. Goalactive; nobenchmarks/commits.
 fromWorkbench.Header. Header.ContextMenu nowexistingViewMenu retainslayout/tool
 restoreactionswithoutinventedicons. Projects panelopenandModOremain. Noorphan
 method. FullRelease/formatverify PASS .bench/titlebar-checks.log. Published
-noncompositeCoreCLR/R2R artifacts/titlebar-ui and SharpRail-Titlebar.app,
+noncompositeCoreCLR/R2R artifacts/titlebar-ui and tereditor-Titlebar.app,
 strictdeepcodesign PASS. Includespreviouslistalignmentfix. RunningPID14276/
 session3737 isolated.titlebarprofilecopied.latest; olderappsuntouched.
 VALIDATIONcurrentartifact/listpublicationupdated, gotchaslessonrecorded.
@@ -471,19 +471,19 @@ headingborder #3f3f46 vsownHover#27272a; fixedUi.BorderBrush. H6Muted. Blockquot
 primary-muted40% accent vsownsolidAccent; sharedUi.PrimaryMutedmutablebrush
 tracksUi.SetLight; quoteparagraphMuted/strong500TextBrush andleftonly12padding.
 FullRelease/format PASS .bench/markdown-chrome-checks.log. Publishedcurrentchecks
-artifacts/current-checks, fullSHARPRAIL_REQUIRE_R2R=1 suitePASS
+artifacts/current-checks, fullTEREDITOR_REQUIRE_R2R=1 suitePASS
 .bench/current-r2r-checks.log includesallrendererfixes/runtimeILemit/assemblyload.
 ReadDirectory.Build.props stillNullable/Optimize/TieredPGO andnoAOT/trim/singlefile.
-Authoritativeps14276absent; pgrepallpackagedSharpRailUI empty. PreviousGUI sessions
+Authoritativeps14276absent; pgrepallpackagedTereditorUI empty. PreviousGUI sessions
 ended; userlikelyclosedthem, donotclaimcurrentlyrunning. NoGUIrelaunchthisturn.
 VALIDATIONupdatedhistoricalclaims/currentchecks. Latestchromechangesnotpublished
 app/nativecomparedyet; nextnativecomparison/finalpublishshow/completionaudit.
 Goalactive, no benchmarks/commits/push/agents.
 
 2026-09-28 standardbundlepublication: pgrepallpackagedUI emptybeforepublish;
-ran scripts/publish.sh, updatedstandardartifacts/SharpRail.app/host/checks with
+ran scripts/publish.sh, updatedstandardartifacts/tereditor.app/host/checks with
 currentfullsource R2Rnoncomposite. Strictdeepcodesign/formatverify PASS.
-Publishedfullchecks SHARPRAIL_REQUIRE_R2R=1 PASS .bench/final-published-checks.log.
+Publishedfullchecks TEREDITOR_REQUIRE_R2R=1 PASS .bench/final-published-checks.log.
 RunningstandardUI PID16060/session7938/window105782, isolated.published-review
 profilecopied.titlebar restoringreferenceworkspace/spec. Nativecapture
 .bench/prototype-published-native.png verifiesremovedextraicons/YAMLabsent/list
@@ -515,7 +515,7 @@ RGB70,116,48, within one level of the expected 40% accent blend. Fixture proof
 does not establish full screenshot equivalence. Own temporary driver27510
 terminated; standard app16060 remains open and was not overwritten.
 Published self-contained noncomposite R2R UI to artifacts/ui-settings-review and
-bundled artifacts/SharpRail-Settings.app; strict/deep codesign verification PASS.
+bundled artifacts/tereditor-Settings.app; strict/deep codesign verification PASS.
 Updated app30708/session26420 remains running, window106087 (1440x920). Native
 Settings window106099 (832x736) captured in
 .bench/prototype-settings-published-native.png. Subsequent AX close lookup found
@@ -539,9 +539,9 @@ Own driver32949 terminated after proof; user apps16060/30708 preserved.
 Reference Workbench has no universal Arrange icon. Removed it; Add appears
 only in auxiliary headers with missing singleton tools. Empty groups show
 Remove control, final center disabled. Tests exercise hide/reveal via Add menu.
-Published noncomposite self-contained R2R artifacts/SharpRail-Gestures.app,
+Published noncomposite self-contained R2R artifacts/tereditor-Gestures.app,
 strict/deep signature PASS; running34013/session30872/window106301,1440x920.
-Uses separate .sharprail/published-gestures profile copied from review profile.
+Uses separate .tereditor/published-gestures profile copied from review profile.
 Native capture .bench/prototype-titlebar-gestures-native.png inspected.
 Fresh R2R check build artifacts/checks-titlebar-gestures; suite session33636
 running at last check, log .bench/titlebar-published-checks.log.
@@ -556,11 +556,11 @@ returns when the tab is already selected; retains controls and navigation race
 semantics. Regression sends both clicks without intermediate layout pump and
 checks preview false plus nonitalic label. Full Release/format PASS; native
 .bench/preview-tab-native-after.log shows both presses hit Border and preview
-becomes False. Ignored native helper now falls back to own visible SharpRail
+becomes False. Ignored native helper now falls back to own visible tereditor
 window if NSApp.mainWindow nil (focus changes); no global input.
 Published checks from titlebar turn PASS .bench/titlebar-published-checks.log.
 All user bundle processes had ended at authoritative pgrep, so refreshed
-standard artifacts/ui and artifacts/SharpRail.app with current noncomposite R2R
+standard artifacts/ui and artifacts/tereditor.app with current noncomposite R2R
 build. Own temporary35885 terminated; final app45822/session48674/window106477
 1440x920 remains running. Strict/deep signature and fresh full R2R checks PASS
 .bench/preview-keep-published-checks.log. Capture
@@ -583,9 +583,9 @@ Native helper prior profile had retained kept README; clean profiles required
 to prove promotion. Own60862 and60411 terminated; own59422 still live and user
 interacted with it, preserved. User confirms title-bar restore double click
 works; no further title-bar change made.
-Published artifacts/SharpRail-StableTabs.app (noncomposite selfcontained R2R),
+Published artifacts/tereditor-StableTabs.app (noncomposite selfcontained R2R),
 strict/deep signature PASS; app61113/session18254/window1067081440x920 running.
-Separate .sharprail/published-stable-tabs profile; standard45822 preserved.
+Separate .tereditor/published-stable-tabs profile; standard45822 preserved.
 Capture .bench/prototype-stable-tabs-native.png inspected. No benches/agents/
 commits/push. Goal active. Next audit: selection-update folded-bottom label and
 destination-menu label freshness; then remaining visual/docking contract.
@@ -596,7 +596,7 @@ header had a Unicode glyph in branchLabel. Replaced with existing gitBranch
 asset14, plain branch text, spacing4. Initial project open and Git refresh
 update icon visibility from repository state. Full Release/format PASS.
 User wants only latest/best package, no feature/versioned review bundles.
-SPEC now names canonical artifacts/SharpRail.app; no further named packages.
+SPEC now names canonical artifacts/tereditor.app; no further named packages.
 Standard bundle was not running at process check, so scripts/publish.sh safely
 refreshed UI, remote host and checks (selfcontained/noncompositeR2R). Strict/deep
 signature and fresh published R2R suite PASS .bench/branch-icon-published-checks.log.
@@ -620,7 +620,7 @@ Move unfolds destination by contract, so refold explicitly before rail test.
 Full Release/format PASS .bench/selection-details-checks.log.
 Normal NSRunningApplication.terminate on app65809 returned true and pgrep
 confirmed no canonical bundle process; safely refreshed scripts/publish.sh.
-Current artifacts/SharpRail.app strict/deep signature and full published R2R
+Current artifacts/tereditor.app strict/deep signature and full published R2R
 checks PASS .bench/selection-details-published-checks.log. App72128/session71214
 running with existing published-stable-tabs profile; no versioned/new bundles.
 Goal active. Remaining full visual/docking requirement audit and typography
@@ -882,7 +882,7 @@ recursive minima320/180 +1 separators versus referencepercent resize semantics;
 overlapping header/aux collision priority; emptyfoldedlabel "Empty pane" vs
 source "Empty group". Currentfinite completion criteria shouldbe reconciled with
 referenceSPEC plus tests beforeclaiming screenshot-perfect. No agents, commits,
-push or newbundlenames. Only artifacts/SharpRail.app is currentdeliverable.
+push or newbundlenames. Only artifacts/tereditor.app is currentdeliverable.
 
 2026-09-28 nested resize and locale geometry:
 Previous turn was concrete progress (append target/split boundaries published).
@@ -905,7 +905,7 @@ Originalnative driver20900 shouldalso bepreserved dueknownphysicaluseractivity.
 Canonical23517 gracefulquit/pgrepabsent+session40433exit0 beforepublish.
 Publish/strictdeepsignature/fullR2R PASS .bench/nested-resize-published-checks.log.
 Latestcanonical27089/session27910 runningreference root, published-stable-tabs
-profile, artifacts/SharpRail.app. Addedgotchas localegeometrylesson.
+profile, artifacts/tereditor.app. Addedgotchas localegeometrylesson.
 GoalACTIVE. Remaining: outerseparator stillrecursivelyMinimum(state.Center).Width
 (reference outercenterMinimumPercent direct320/workbenchWidth); overlappingheader/
 auxcollisionpriority; emptyfoldedlabelsandemptyauxbody("Empty pane"+AddRevealvs
@@ -920,7 +920,7 @@ foldedbottomfallbackandselectionupdates say"Empty group". HeaderAddMenu remains.
 FullRelease/format PASS empty-group-checks/format.log; publish/strictdeepsignature/
 fullR2R PASS .bench/empty-group-published-checks.log. Canonical27089 gracefullyquit,
 pgrepabsent/session27910exit0 beforepublish. Latest27764/session15222 running
-artifacts/SharpRail.app reference root/published-stable-tabs. No nativecapture
+artifacts/tereditor.app reference root/published-stable-tabs. No nativecapture
 fortrivialemptytextyet. Drivers20900 and26858 preserved.
 Further sourceaudit: SIDE foldedgroups ALSO render creationTargets (Workbench
 ~1803), notjustjoin! canCreateAbove/Below nofoldedguard ~1655. Expanded/folded
@@ -944,7 +944,7 @@ Preservepreexistingbottomfixture withState.Copy beforeextra loops andApplyPreset
 backafter, so laterfoldedbottomtests exerciseoriginalgeometry. No behaviorregressed.
 Canonical27764 normalquitaccepted,pgrepabsent/session15222exit0 beforepublish.
 Publish/signature/fullR2R PASS .bench/folded-side-published-checks.log. Latest29138
-session85202 runningreference/published-stable-tabs artifacts/SharpRail.app.
+session85202 runningreference/published-stable-tabs artifacts/tereditor.app.
 No nativecaptureofactivefoldedsideoverlay; actualpointerregressionsproveplacement.
 Preserve userinteracted driver20900 andnative26858. GoalACTIVE.
 Next: outerresize recursiveMinimumwidthvsreferencedirect320, generalheader/aux
@@ -961,7 +961,7 @@ assertsouterAXmax1-rightWidth-320/workbenchWidth. FullRelease/format PASS
 outer-resize-checks/format.log. Canonical29138 gracefulquitaccepted+pgrepabsent/
 session85202exit0 beforepublish. Publish/signature/fullR2R PASS
 .bench/outer-resize-published-checks.log. Latest30151/session66595 runningreference
-root/published-stable-tabs artifacts/SharpRail.app. Drivers20900/26858preserved.
+root/published-stable-tabs artifacts/tereditor.app. Drivers20900/26858preserved.
 Nextimportantconfirmedsource: sidepanelminSize8percent, collapsedSize0, collapsible
 inWorkbench3156+3273. react-resizable-panels installed2.1.9 primarysource
 node_modules/.bun/react-resizable-panels@2.1.9+5c1d893a956070e5/node_modules/
@@ -987,7 +987,7 @@ visible8%atsnap andhiddenretainedexpandedwidthbelowthreshold. ExistingAXrange us
 FullRelease/format PASS side-snap-checks/format.log. Canonical30151 gracefulquit,
 pgrepabsent/session66595exit0 beforepublish. Publish/signature/fullR2R PASS
 .bench/side-snap-published-checks.log. Latest31089/session46127 runningreference
-root/published-stable-tabs artifacts/SharpRail.app. Preserve20900/26858drivers.
+root/published-stable-tabs artifacts/tereditor.app. Preserve20900/26858drivers.
 Remaining: keyboardseparatorreference step/snap semantics; livecollapsepreview
 oppositeactualprojection/restore rail28vsours6; header/auxcollisionpriority;
 menufidelity/nativeTypography andfinitefullcompletionaudit. GoalACTIVE.
@@ -1008,7 +1008,7 @@ matchingleft/righticons/rails, centeredemptybottom. Reviewwindow normalquitafter
 capture (nointeractionevidence),sessionexit0. Preserve20900/26858olderdrivers.
 Canonical31089 normalquit/pgrepabsent/session46127exit0 beforepublish. Publish/
 strictdeepsignature/fullR2R PASS .bench/hidden-rail-published-checks.log.
-Latest32240/session81274 runningreference root/published-stable-tabs SharpRail.app.
+Latest32240/session81274 runningreference root/published-stable-tabs tereditor.app.
 Nextkeyboardreference: installedreact-resizable-panels2.1.9 developmentesm
 calculateDeltaPercentage1278..1318 defaultstep10PERCENT, shift100PERCENT, Home/End
 +/-100PERCENT; ours8px/shift32px lacksHomeEnd. Needmatchrange/collapse anddraft
@@ -1033,7 +1033,7 @@ keyboard-resize-checks/format.log. Firstintermediatepublished33434/session3312
 wasgracefullyclosed/pgrepabsent/sessionexit0 beforerefreshwithfocusfix. Initial
 32240 normalquit/session81274exit0 beforefirstpublish. Finalpublish/signature/
 fullR2R PASS .bench/keyboard-resize-published-checks.log. Latest34061/session24770
-runningreference root/published-stable-tabs SharpRail.app. Preserve20900/26858.
+runningreference root/published-stable-tabs tereditor.app. Preserve20900/26858.
 Remaininglivecollapsepreviewprojection, bottomheightcollapse(whichcurrentlyclamps
 minimumthoughreferencecollapsible), generalheader/auxcollisionpriority, menufidelity,
 nativeTypography andfinitefullcompletionaudit. GoalACTIVE. No benchmarks, agents,
@@ -1051,7 +1051,7 @@ allowance/collapse. Pointerchecks .75minimumsnap, .5exactmidpointvisible,
 format PASS bottom-snap-checks/format.log. Publish/signature/fullR2R PASS
 .bench/bottom-snap-published-checks.log. Canonical34061 normalquit/pgrepabsent/
 session24770exit0 beforepublish. Latest35367/session6788 runningreference
-root/published-stable-tabs SharpRail.app. Preserve20900/26858olderdrivers.
+root/published-stable-tabs tereditor.app. Preserve20900/26858olderdrivers.
 Useraskedwhy noXAML. AnsweredC#controlconstructionwasimplementationchoice, notuser
 requirement, no inherentperfadvantageovercompiledXAML; staticlayouts/stylescould
 useXAML whiledynamicdocktree C#. No migrationexplicitlyrequested yet. Keepquestion
@@ -1221,7 +1221,7 @@ Auxiliary publish/signature/published R2R PASS; canonical58177/session40264 late
 exited, confirmed sessionexit0 and pgrepabsent before nextpublish.
 User steering: Find tab dropdown (notdialog), conditional magnifier on overflow,
 Markdown links baseline, Specs spaced em/en dash compaction and hover role tags,
-move application state ~/.sharprail; search placeholder misposition/focusframe.
+move application state ~/.tereditor; search placeholder misposition/focusframe.
 Implemented TabSearch.axaml/.cs fifth compiledXAML; Flyout bottom-end offset6
 width288, filterbytitle/path, firstresult, arrowwrap, Enter/singleclick, empty,
 Escape restoredtriggerfocus. Presenter style in App.axaml retains defaulttemplate;
@@ -1234,9 +1234,9 @@ mapping including Main spec, role hover/focus, accessiblehelp includes role.
 Tests realpointerhover/typehidden/titlefixturecompact pass. Navigation checks
 assert no ownedwindow/width288, pathfilter, keyboardselection, empty/Escape.
 CtrlW remains focusedtab command as reference; test refocuses tab afterEscape.
-Default ProfileStore home .sharprail, legacyproject profile migration whenhome
-absent; SHARPRAIL_PROFILE explicitoverride retained. Physically moved repo
-.sharprail to the home profile directory (destination absent), copied latest
+Default ProfileStore home .tereditor, legacyproject profile migration whenhome
+absent; TEREDITOR_PROFILE explicitoverride retained. Physically moved repo
+.tereditor to the home profile directory (destination absent), copied latest
 published-stable-tabs/profile.json to home/profile.json. Existing home profile
 last project (a local clone of JetBrains/thinkrail:main) preserved, not reset.
 FullRelease/Git PASS review-fixes-checks, format PASS review-fixes-format,
@@ -1281,7 +1281,7 @@ session28223 still previousreviewfixespkg, revalidate before overwrite. GoalACTI
 [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main). Added STATUS.md (E2E porting inventory) with per-case
 inventory for preview/Markdown/layout/projects/workspaces/theme/width/settings/
 changes/chrome, honest Pending statuses and explicit editor/terminal/AI exclusions.
-Added tests/SharpRail.Checks/E2E/{E2eWorkspace,PreviewTabsE2E,MarkdownLinksE2E,
+Added tests/Tereditor.Checks/E2E/{E2eWorkspace,PreviewTabsE2E,MarkdownLinksE2E,
 LayoutE2E}.cs. Eleven translated cases PASS: all8 preview, both Markdown links,
 layout independent preview slots. Driver uses real pointer presses, dispatcher
 MainLoop bounded10ms, render ticks, hit-test guard, resolves rebuilt named/file
@@ -1321,7 +1321,7 @@ accessible pane labels have regression coverage.
 The published suite exposed a legacy pointer driver's stale target/render tree;
 UiChecks now re-resolves detached named controls and renders before clicking.
 The latest full Release and published R2R suites pass with
-SHARPRAIL_TEST_GIT_SOURCE pointing at the authoritative upstream, including
+TEREDITOR_TEST_GIT_SOURCE pointing at the authoritative upstream, including
 Git/worktree integration and open-world runtime checks. Logs:
 .bench/projects-upstream-checks.log and
 .bench/projects-upstream-published-checks.log. Format verification and diff check
@@ -1422,7 +1422,7 @@ signature verification pass. Do not cite terminal-chrome-final-checks.log: overl
 writers corrupted it; the clean final logs supersede it. git diff --check passes.
 
 Native displays recovered: two active displays, CVDisplayLink creation status 0.
-Canonical artifacts/SharpRail.app launched; PID 22270 owns window 112412 (1440x920).
+Canonical artifacts/tereditor.app launched; PID 22270 owns window 112412 (1440x920).
 Own-window capture .bench/terminal-side-menu-native.png inspected; app left running.
 Do not overwrite this live package without checking/stopping its own process first.
 
@@ -1603,7 +1603,7 @@ Sessions97448 and74566 exited134 before correction; logs are not success evidenc
 Full final Release .bench/window-gestures-final-checks.log passes31 and entire
 suite (24139 exit0). Checks-only non-composite R2R publish
 .bench/window-gestures-publish-checks.log passed (12150 exit0). Full final published
-suite with SHARPRAIL_REQUIRE_R2R=1 and existing Git source passes31 plus every host,
+suite with TEREDITOR_REQUIRE_R2R=1 and existing Git source passes31 plus every host,
 Git/worktree/model/UI/open-world check (94862 exit0), log
 .bench/window-gestures-published-checks.log. Format final log passed (91841 exit0).
 Inventory31 ported,49 pending,5 excluded. Diff and canonical signature verify pass.
@@ -1689,7 +1689,7 @@ alpha assertions. Reusable lesson recorded in gotchas.md. Full final Release
 open-world check (32391 exit0). Final format .bench/drop-hints-final-format.log passes
 (39873 exit0). Checks-only non-composite R2R publish .bench/drop-hints-publish-checks.log
 passes75917=0. Full final canonical published suite .bench/drop-hints-published-checks.log
-with SHARPRAIL_REQUIRE_R2R=1 passes35/all (16660 exit0). Diff and canonical strict/deep
+with TEREDITOR_REQUIRE_R2R=1 passes35/all (16660 exit0). Diff and canonical strict/deep
 signature verify pass. Inventory35 ported,45 pending,5 excluded. App unchanged and
 still runningPID1943; existing own-window113863 capture gesture-cancellation-native.png
 remains latest. Do not replace live app or alter user layout unasked. No test writer
@@ -1736,7 +1736,7 @@ Theme translation completed: session16187 exit0, full Git-enabled Release log
 .bench/theme-reload-complete-checks.log passes37/all. Checks-only non-composite R2R
 publish49987 exit0 (.bench/theme-reload-publish-checks.log); full published suite
 12790 exit0 (.bench/theme-reload-published-checks.log) passes37/all with
-SHARPRAIL_REQUIRE_R2R=1. Final format43625 exit0. Inventory37 ported,43 pending,
+TEREDITOR_REQUIRE_R2R=1. Final format43625 exit0. Inventory37 ported,43 pending,
 5 excluded. Canonical strict/deep signature and git diff check pass; own app15312
 still running and unchanged. Docs updated with bounded evidence; no native theme
 capture claimed. Full theme catalog/high contrast/system pairs/multiwindow sync
@@ -1777,7 +1777,7 @@ exit0; strict/deep signature passes. App relaunched PID32881, own window114344
 1352x848, inspected .bench/changes-tree-native.png. Restored user Markdown/Files/
 Review layout preserved; native capture is frame evidence, not tree interaction.
 Full published69379 currently live .bench/changes-tree-published-checks.log with
-SHARPRAIL_REQUIRE_R2R=1; new Changes case passed, remaining checks still running.
+TEREDITOR_REQUIRE_R2R=1; new Changes case passed, remaining checks still running.
 Finish that handle before updating header to38 published/all or concluding.
 
 Published69379 exited0; final log ends PASS prototype checks and open-world runtime
@@ -1808,7 +1808,7 @@ agents, commits or pushes.
 ## Git probe package verification completed
 
 Release session94762 exited0; full published session23044 exited0 with39
-translated cases, Git fixtures and SHARPRAIL_REQUIRE_R2R=1. Unique logs:
+translated cases, Git fixtures and TEREDITOR_REQUIRE_R2R=1. Unique logs:
 .bench/git-probe-checks.log, .bench/git-probe-published-checks.log.
 Publish19134 exited0 (.bench/git-probe-publish.log). Verified old canonical
 PID56356 before terminating it and verified absence before replacing the bundle.
@@ -1918,7 +1918,7 @@ Git commands now use process-local LC_ALL=C; catch only explicit no-repository
 exit128/diagnostic and symbolic-ref exit1. Other failures reach Changes error state.
 Changes gets named error/loading controls and Retry that reloads only Git.
 Program fixtures use GIT_CEILING_DIRECTORIES=currentcwd instead of a fake broken
-.git marker, avoiding discovery of SharpRail's parent repo without conflating
+.git marker, avoiding discovery of tereditor's parent repo without conflating
 non-repos and corrupt metadata. ProjectChecks verifies local and gRPC error detail.
 ChangesE2E extra regression moves only an owned fixture's .git admin aside, creates
 a dangling marker, sees error/no-clean state, opens README, restores admin and
@@ -2042,7 +2042,7 @@ on switching, isolating new worktrees. Not persisted across app restart yet.
 Row staging remains enabled in pending scopes with retained targets and disabled
 for commit content. Query invalidation/fallback/live refresh remain incomplete.
 Host tests verify catalog range, empty catalog behind target and populated gRPC
-metadata parity. GitUiChecks selects existing sharprail-fork target (created by
+metadata parity. GitUiChecks selects existing tereditor-fork target (created by
 host fixture), selects commit, shortSHA/subject, opens actual commit diff row,
 switches Uncommitted retaining target, restores commit on return from new workspace.
 Final test adds readonly commit actions and enabled pending staging under target.
@@ -2137,7 +2137,7 @@ claiming the last revision's full suite passed. Final format log
 .bench/ghostty-complete-format.log is empty, exit0. Final publish exit0:
 .bench/ghostty-final-package.log. Strict/deep codesign verification passes.
 
-Canonical app for this worktree is artifacts/SharpRail.app, running PID57328,
+Canonical app for this worktree is artifacts/tereditor.app, running PID57328,
 window114933, isolated .bench/ghostty-demo-profile. Capture only this window;
 .bench/ghostty-terminal-native.png was captured and inspected, showing real shell
 prompt in the bottom pane. One successful Metal init, no errors, in
@@ -2157,7 +2157,7 @@ navigation retains tab focus; clicking/activating a terminal tab, overflow resul
 or New terminal transfers focus to the terminal. Added test-only TerminalEvents.m
 and a macOS build target to exercise NSApplication event routing, real tab/body
 clicks, first responder, shell output, Backspace, Ctrl+C and new-terminal focus.
-SHARPRAIL_CHECK_OS_INPUT=1 additionally posts actual CGEvents only to the isolated
+TEREDITOR_CHECK_OS_INPUT=1 additionally posts actual CGEvents only to the isolated
 test process. Published native check passes (.bench/keyboard-published-native.log),
 as do publish, strict deep signature verification and final formatting. Own old
 app PID61159 was stopped before republishing; updated canonical app reopened.
@@ -2168,8 +2168,8 @@ Updated app is running as PID72343.
 
 Second keyboard report remains unresolved; do not claim fixed from the previous
 synthetic tests. Current diagnostic app is PID80376, launched from this worktree's
-bundle with SHARPRAIL_INPUT_DIAGNOSTICS=1; output .bench/keyboard-live-2.log,
-exec session30609. Temporary opt-in diagnostics in SharpRailGhostty.m log event
+bundle with TEREDITOR_INPUT_DIAGNOSTICS=1; output .bench/keyboard-live-2.log,
+exec session30609. Temporary opt-in diagnostics in TereditorGhostty.m log event
 type, native responder, keycode/modifier flags and interpreted text counts, never
 typed text. Native bridge compiled, copied into stopped own bundle and re-signed.
 Sibling apps PID76979 (scintilla) and PID79161 (main checkout) were not touched.
@@ -2216,12 +2216,12 @@ and full published R2R/Git regression all pass. Suite evidence:
 .bench/terminal-paste-theme-final-format.log. Published checks refreshed after
 the test-harness fix. Clean canonical app reopened as PID96497. All requested
 typing, image paste and theme fixes are implemented. Images persist under the
-active profile's clipboard directory (default ~/.sharprail/clipboard).
+active profile's clipboard directory (default ~/.tereditor/clipboard).
 
 
 ### Ghostty worktree integration — 2026-09-29
 
-User requested all changes from /Users/commandertvis/.thinkrail/worktrees/sharprail/ghostty.
+User requested all changes from /Users/commandertvis/.thinkrail/worktrees/tereditor/ghostty.
 Source clean at 522d81e; common ancestor 0c99d6a. Three-way integrated its 26 changed
 files into this dirty main checkout, retaining newer docking/Git/test changes.
 Pre-integration patch saved in .bench/ghostty-integration/before.patch. Four doc
@@ -2248,16 +2248,16 @@ Final integration + hover verification: Release39258 and published80812 both EXI
 
 Previous goal turn classified progress: integrated all Ghostty files, docs and verified hover. Next concrete gap: restoring commit selection fetched full working snapshot solely for catalog. Added mandatory IProjectServices.ListCommitsAsync across Core/Local/gRPC contracts+adapters, reused existing capped/sanitized git log helper in snapshots. UI restoration now uses lightweight call. All three test host decorators delegate new API. ProjectChecks compares local/remote catalogs to snapshot; temporarily corrupts disposable fixture index, proves catalog still works and full snapshot fails, restores index in finally. Also unresolved-range empty list and canceled empty-range semantics checked. SPEC.md acceptance added. New host tests pass. Format64560 EXIT0; checks publish13714, UI54712, host73603 EXIT0. Release45904 live (.bench/commit-catalog-release.log); R2R published81986 live (.bench/commit-catalog-published-checks.log). Re-poll these handles, do not restart or overwrite logs.
 
-IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/SharpRail.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in [historical verification ledger](#verification-record-migration)/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
+IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/tereditor.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in [historical verification ledger](#verification-record-migration)/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
 
-Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/SharpRail.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart SharpRail; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. [historical verification ledger](#verification-record-migration) distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.
+Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/tereditor.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart tereditor; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. [historical verification ledger](#verification-record-migration) distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.
 
 ### macOS Scintilla / Skia editor integration — 2026-09-28
 
 New user request authorizes a functional Scintilla code editor with a hand-written
 Skia renderer, macOS only; it supersedes the earlier editor exclusion. Implemented
-native/SharpRail.Scintilla (Scintilla 5.6.7 Editor/Surface port and C ABI),
-src/SharpRail.UI/Editor (SkiaSharp renderer, Avalonia input/IME client and editable
+native/Tereditor.Scintilla (Scintilla 5.6.7 Editor/Surface port and C ABI),
+src/Tereditor.UI/Editor (SkiaSharp renderer, Avalonia input/IME client and editable
 file view), checksum-pinned native build integrated into UI build/publish, and
 local/gRPC explicit saves with workspace/content checks. Editing keeps preview
 slots, dirty documents block removal/window close, and editor caches survive
@@ -2273,7 +2273,7 @@ is not declared complete. Syntax lexers, completion, full IME preedit,
 accessibility text providers and complex-script shaping remain first-port limits.
 
 Canonical app published and signed. Own isolated preview process76979,
-window115739, capture .bench/scintilla-native.png remains open. Other SharpRail
+window115739, capture .bench/scintilla-native.png remains open. Other tereditor
 processes in sibling checkouts were not touched. Commit was explicitly requested;
 no agents, benchmarks, pushes or external posts. User did not answer the optional
 save/component-only question; proceeded with the stated file-saving default.
@@ -2285,7 +2285,7 @@ User's task is a Settings-selectable Avalonia Skia Ghostty rendering path and
 extraction of the integration into a shareable project. Existing draft and staged
 renames were preserved. `src/Ghostty.Avalonia` now contains native AppKit/Metal
 and Skia/libghostty-vt controls, native sources, pinned build script, README and
-license, without SharpRail project references. It builds with root build/package
+license, without tereditor project references. It builds with root build/package
 props disabled. Settings persists native/skia, rebuilds attached views on the same
 host shells, and leaves displaced clients detached. The Skia adapter attaches to
 the host directly and reports input/resize failures.
@@ -2810,7 +2810,7 @@ and explicit disposal. Other platforms retain selectable text. Changes file path
 are capped and clipped as a whole before counts; folder labels use a shrinking
 grid. Regression checks cover Scintilla identity/read-only/content/live reload
 and rendered long-basename geometry at three widths. Rendering and Panels specs
-reuse literal upstream panels wording at be804a563 and identify SharpRail adaptations.
+reuse literal upstream panels wording at be804a563 and identify tereditor adaptations.
 
 Release compilation and focused Markdown/alerts/Mermaid/editor/live-refresh checks
 pass with upstream Git fixtures (.bench/markdown-source-focused.log). Focused Git
@@ -2836,7 +2836,7 @@ no push, packaging, or app restart was requested.
 ### Plugin API — 2026-10-01
 
 Plugin API on the contract commit (e5af295), host and UI halves merged; uncommitted. Host:
-`src/SharpRail.Host.Core/Plugins/` holds the runtime (`PluginRuntime` implements `IPluginService`; files listed in
+`src/Tereditor.Host.Core/Plugins/` holds the runtime (`PluginRuntime` implements `IPluginService`; files listed in
 `Plugins.SPEC.md`), composed from `PluginHostSeams` in `App.cs` (local, in process) and `RemoteServer.Create`
 (remote). `HostStateStore` accepts `plugin-settings`/`plugin-paths`, persists namespaces, roots and agent records,
 and stamps `Platform`. `PtyTerminalService` implements `IPluginTerminalSeams`; `McpRoute.cs` is now
@@ -2844,13 +2844,13 @@ and stamps `Platform`. `PtyTerminalService` implements `IPluginTerminalSeams`; `
 `TerminalOutput` members, `PluginRpc`, `Local/RemotePluginAdapter`.
 
 UI: the kit (`Ui`, `ThemeManifest`, `DialogWindow`, `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`, Markdown,
-`EditorFrame`, Mermaid, `Assets/{Icons,Fonts}`) lives in `src/SharpRail.Plugins.UI.Kit`, imported through
-`GlobalUsings.cs` and the checks' `<Using>` items. The app runtime is `src/SharpRail.UI/Plugins` (registry, icons,
+`EditorFrame`, Mermaid, `Assets/{Icons,Fonts}`) lives in `src/Tereditor.Plugins.UI.Kit`, imported through
+`GlobalUsings.cs` and the checks' `<Using>` items. The app runtime is `src/Tereditor.UI/Plugins` (registry, icons,
 builtin array, external ALC loading through `IPluginService.ReadFileAsync`, loader/reconciler, `IPluginUIContext`,
 projection, editor events) and `PluginSurfaces.cs`. `App.cs` passes the host's plugin service and sets
 `Workbench.Endpoint`; `scripts/publish.sh` copies `plugin-fixture` into `artifacts/checks`.
 
-Checks: the fixture plugin (`tests/SharpRail.PluginFixture` host half, `tests/SharpRail.PluginFixture.UI` UI half,
+Checks: the fixture plugin (`tests/Tereditor.PluginFixture` host half, `tests/Tereditor.PluginFixture.UI` UI half,
 both built into `<checks bin>/plugin-fixture/fixture/`). `PluginHostChecks.cs` covers the host runtime locally and
 over gRPC. `PluginUiChecks.cs` covers the registry and dependency walks, the loader on `E2E/FakePluginHost.cs` (now
 only what the real host cannot produce: builtin UI halves with a wire mismatch or throwing activation, off-scope
@@ -2863,7 +2863,7 @@ the local path does. `-- --plugins` runs the plugin checks alone. Open items are
 ### Fork builtin plugin continuation — Codex, 2026-10-01
 
 User explicitly requests all nine fork plugins ported in full. Recovered the interrupted Claude
-conversation from `~/.claude/projects/-Users-commandertvis-thinkrail-sharprail/` session
+conversation from `~/.claude/projects/-Users-commandertvis-thinkrail-tereditor/` session
 `cb069fb2-f1ff-4b27-9a4c-4d0309028ffa`. Its latest real user instruction was “Port the plugins”.
 The original user scope excludes Pi and AI chat and requires C#/Avalonia/gRPC adaptations only.
 Do not accept inherited partial ports or narrower existing tests as completion criteria.
@@ -2939,7 +2939,7 @@ Source references are saved in `.bench/blueprint-source`. No solution/registry r
 UI, tests and owning spec still absent, so this is not a complete plugin.
 
 Required API correction discovered while porting Blueprint: fork `RevivePrefill.text` is optional;
-server plugins compose the first supplied text and OR every hook's submit flag. SharpRail currently
+server plugins compose the first supplied text and OR every hook's submit flag. tereditor currently
 requires text and returns the first hook. Blueprint's submit-only hook must not consume the Claude
 Code resume offer. Change the API record to nullable/defaulted Text, update PublicAPI, aggregate
 hooks in PluginRuntime, and test independent text/submit contributors through local and remote
@@ -2954,7 +2954,7 @@ but review the repository's compatibility checks. Read authoritative fork compos
 Made concrete progress without using signing. Blueprint is now registered in both builtin arrays and
 the solution, with project references from host/app. Added UI store, opener, companion, controls,
 editable passages and properties, start dialog and file redirect. Host/session/check/prompts remain
-direct source ports. Added `src/SharpRail.Plugins.Blueprint/SPEC.md` and recorded remaining gates in
+direct source ports. Added `src/Tereditor.Plugins.Blueprint/SPEC.md` and recorded remaining gates in
 COMPLETION. Use `--blueprint` for focused host+gRPC+UI checks; --plugins and full runner include it.
 
 Fixed the revive composition gap described above: nullable optional Text in API and PublicAPI;
@@ -3035,7 +3035,7 @@ Recorded the lesson in gotchas. Full fidelity still needs notifications, input s
 pane/dialog XAML, additional action/configuration cases, remote/native and full verification.
 
 New ClaudeCodeChecks.cs and --claude-code runner also included in --plugins/full. Tests isolate
-CLAUDE_CONFIG_DIR and SHARPRAIL_STATE_DIR with restoration; use /usr/bin/false rather than starting
+CLAUDE_CONFIG_DIR and TEREDITOR_STATE_DIR with restoration; use /usr/bin/false rather than starting
 actual Claude. Check disabled lifecycle (no IDE files), configuration provenance, read-only plan,
 stale review refusal/preservation, token status/method rejection, transcript/session identity,
 continuation Stop, continue fallback, cleanup, incremental/subagent/partial usage, interrupt timestamp,
@@ -3262,7 +3262,7 @@ Detach invalidates late reads, refresh prevents concurrent paging, errors use da
 Created BranchGraphChecks with recovered pure parsing/lane fixtures and new real local/gRPC tests.
 No IsolatedGit instance, signing bypass or new commits: helper Run only executes git init, local fetch
 of 600 existing fork commits, checkout, branch and detached worktree in an isolated .bench fixture.
-Requires SHARPRAIL_TEST_GIT_SOURCE pointing to the fork clone containing its origin plugin branch ref.
+Requires TEREDITOR_TEST_GIT_SOURCE pointing to the fork clone containing its origin plugin branch ref.
 Without the env var only pure checks run and real fixture coverage is explicitly skipped.
 --branch-graph added; --plugins and full runner include host checks before headless and UI afterward.
 
@@ -3354,7 +3354,7 @@ Previous goal turn yielded source-audit evidence; this turn made verified implem
 All nine plugin objective remains active. Seven plugins now registered; File Icons and Codex remain
 unintegrated, and the first six still have their previously listed fidelity/verification gates.
 
-Visualize scoped code recovered into src/SharpRail.Plugins.Visualize/{Contract,Host,UI}, adapted
+Visualize scoped code recovered into src/Tereditor.Plugins.Visualize/{Contract,Host,UI}, adapted
 project refs and registered all three projects, host module and UI factory. Compared complete fork
 host/store and pi-visualize/src/schema.ts/validate.ts, plus source kit cards/PanZoom and terminal E2E.
 Manifest enabled by default, wire1, two methods report/get, keyed whole-workspace changed channel;
@@ -3491,7 +3491,7 @@ then changes host settings again to prove both hydration and continued updates. 
 .bench/codex-compiled-frames-checks-2.log passes (session58942 exit0). Dynamic pane rows and terminal
 accessories still need compiled frames, and source audit/process group/native/multi-window gates remain.
 
-Full repository run with SHARPRAIL_TEST_GIT_SOURCE failed at ChangesScopeE2E.FailedRead:
+Full repository run with TEREDITOR_TEST_GIT_SOURCE failed at ChangesScopeE2E.FailedRead:
 filesystem/ref updates rebuilt the Changes toolbar while its scope popup was open. RefreshGitPanels
 now defers rebuilding until the active scope/comparison menu closes. Regression holds the menu open
 through deleting the comparison branch and a completed explicit refresh, checks trigger/menu identity,
@@ -3533,7 +3533,7 @@ Native and packaging gates advanced:
 - Published --plugins .bench/plugins-published-plugin-checks.log session25464 failed BranchGraph
   unchanged-refresh row/menu retention. It overlapped republishing checks, so re-run in stable output
   before inferring cause. .bench/plugins-published-branch-graph-checks-2.log is the real narrow rerun
-  with SHARPRAIL_TEST_GIT_SOURCE (earlier no-env run skipped Git/UI and is not evidence).
+  with TEREDITOR_TEST_GIT_SOURCE (earlier no-env run skipped Git/UI and is not evidence).
 - Full3 session78453 has passed Changes failed-read/menu-retention regression and continues remaining
   UI translations. No whole-suite pass yet. No commits/pushes/signing attempts made.
 
@@ -3548,7 +3548,7 @@ Final continuation snapshot (still active):
   One-line fix reuses Empty(Session.Group(site.Group)); WelcomeE2E now forces that refresh before
   asserting the sole title. Docking SPEC updated. No constructor/API expansion needed.
 - Focused --workspaces .bench/plugins-empty-groups-workspace-checks.log session82697 running against
-  current source (SHARPRAIL_TEST_GIT_SOURCE omitted; do not claim source-dependent skipped cases).
+  current source (TEREDITOR_TEST_GIT_SOURCE omitted; do not claim source-dependent skipped cases).
 - Published full .bench/plugins-published-full-checks.log session62595 running with required R2R and
   Git source, but predates the empty-group fix. Current canonical app also predates it; republish after
   verification, checking for live canonical app first. No further artifact replacement while published
@@ -3567,7 +3567,7 @@ Latest jobs and source fixes:
 - Rechecked no canonical app live. Publish3 .bench/plugins-resumed-publish-3.log session70429 running
   with latest empty-group and terminal-projection fixes. Source full4 .bench/all-plugins-full-checks-4.log
   session58332 running with Git source. After publish3 finishes, verify signature/assets and run published
-  full again with SHARPRAIL_REQUIRE_R2R=1 and Git source. Keep artifacts stable while checks run.
+  full again with TEREDITOR_REQUIRE_R2R=1 and Git source. Keep artifacts stable while checks run.
 - No commits/pushes/signing attempts/external posts. All earlier per-plugin full-fidelity gates remain.
 
 
@@ -3578,7 +3578,7 @@ Current artifact/jobs snapshot:
 - Published full2 .bench/plugins-published-full-checks-2.log session72378 running with R2R required
   and Git source. Both cover latest fixes; do not replace artifacts while published run is live.
 - Signed app native smoke launched with dedicated .bench profile and fixture. Git discovery found parent
-  SharpRail repo (fixture is under .bench), so screenshot shows actual repo/default workspace, Changes
+  tereditor repo (fixture is under .bench), so screenshot shows actual repo/default workspace, Changes
   Material icons and working native Ghostty; no real agent plugin enabled. Own PID3990/window155839
   captured to .bench/plugin-published-native-smoke.png, inspected with view_image. This is native smoke,
   not complete per-plugin visual comparison. .bench/plugin-published-native-smoke.log has Metal proof.
@@ -4022,7 +4022,7 @@ PDF, startup/UI smoke and formatting passed as recorded above. Earlier intermitt
 rewrite and NewWorkspace edited-name failures have not been conclusively explained; do not describe
 them as proven fixed merely because subsequent runs passed.
 
-Last investigation, not implemented: src/SharpRail.UI/Plugins/PluginUIContext.cs still implements
+Last investigation, not implemented: src/Tereditor.UI/Plugins/PluginUIContext.cs still implements
 WatchWorkspaceAsync as ValueTask.CompletedTask. Mounted-window watches and host local/gRPC watchers
 exist, but explicit plugin watching of inactive workspaces remains a real missing API behavior.
 Fork apps/web/src/plugins/loader/context.ts delegates to transport/skillLoad.ts
@@ -4259,7 +4259,7 @@ remote tracking defaults fall back to existing local refs; prefetch can promote 
 exists. Branch search fills its popup even when long branch names widen it.
 
 New worktrees are suggested under the host state directory's worktrees/<project-name>-<root-hash>/,
-normally ~/.sharprail, with existing worktrees retained. Plugins receive this directory from HostProject
+normally ~/.tereditor, with existing worktrees retained. Plugins receive this directory from HostProject
 instead of deriving sibling paths. Markdown Source/Split uses the normal editable file buffer, including
 Save, conflict/close guards, live preview and dirty-buffer retention during appearance refreshes.
 Image paragraphs reserve full height and constrain wide images to the reading column.
@@ -4509,7 +4509,7 @@ The separate upstream worktree and running app are unchanged.
 
 ## Shared agent UI module (2026-10-08)
 
-Added SharpRail.Plugins.Agent.UI to own shared Codex/Claude Code account controls,
+Added Tereditor.Plugins.Agent.UI to own shared Codex/Claude Code account controls,
 terminal facts, usage, plan, pickers, attachment and IDE-toggle presentation.
 Both plugin UI projects reference it; generic settings controls remain in the UI kit.
 The five moved source/XAML files match their previous implementations exactly after
@@ -4641,7 +4641,7 @@ additional isolation or parallel work. The workspace MCP tool resolves implicit
 or explicit HEAD in the calling checkout before routing creation through the main
 worktree. Local/remote regression fixtures advance the caller beyond Default.
 
-POSIX UI launches set command-scoped SHARPRAIL_UI_LAUNCH markers independently of
+POSIX UI launches set command-scoped TEREDITOR_UI_LAUNCH markers independently of
 prompt/MCP settings. Host process detection records nullable LaunchedByUi metadata,
 preserved by hooks, persistence and gRPC; replacing a process between polls
 rechecks origin. Known manual launches show a shared compiled persistent notice
@@ -4687,12 +4687,12 @@ Evidence is preserved in main's .bench/agent-marks-amend/ and
 
 ## Android client (2026-10-10)
 
-Branch `android` adds `src/SharpRail.Android`: the UI's sources compiled for Android as a client of a remote
+Branch `android` adds `src/Tereditor.Android`: the UI's sources compiled for Android as a client of a remote
 host, with its own windowing layer over Avalonia 12.1.3 internals, a connect screen and a remembered endpoint.
-It is outside `SharpRail.slnx`. Build and run with `scripts/android.sh`; the terminal and editor libraries
+It is outside `Tereditor.slnx`. Build and run with `scripts/android.sh`; the terminal and editor libraries
 cross-build with the NDK from `scripts/android-ndk.sh`. Shared UI sources must stay compilable for Android
 (`#if !ANDROID` or an excluded file for host-serving code). Design, limits and evidence are in
-`src/SharpRail.Android/SPEC.md` and the 2026-10-10 section of [historical verification ledger](#verification-record-migration): emulator only.
+`src/Tereditor.Android/SPEC.md` and the 2026-10-10 section of [historical verification ledger](#verification-record-migration): emulator only.
 
 Open: physical devices, phone ergonomics beyond the first frame, other IMEs, accessibility, HTTPS, CI,
 on-device tests, a release keystore, packaging `licenses/` into the APK, trimming.
@@ -4736,7 +4736,7 @@ resume then hit AppCommandChecks' quit-hint timing assertion, which also passes
 in isolation. The final --last-failed resume passes and the runner's unfinished
 record is empty. This is completed coverage across the gate and resumes, not
 a clean first full run. Whole-solution format verification reports an existing
-extra final newline in src/SharpRail.Plugins.ClaudeCode/Host/SystemPrompt.cs:81;
+extra final newline in src/Tereditor.Plugins.ClaudeCode/Host/SystemPrompt.cs:81;
 that file is byte-identical to HEAD.
 
 The approved follow-up adds patch files, Git configuration and attributes,
@@ -4905,7 +4905,7 @@ format verification, --ghostty-skia and --design pass. Regression coverage check
 twelve non-focusable buttons, modifier consumption, arrow bytes, Ctrl+C and Alt+B.
 The six-lane full gate hit a StartupChecks document-open timeout; --startup passes
 alone without changes, and --last-failed passes with no unfinished cases. Optional
-Git-source cases were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. No
+Git-source cases were skipped because TEREDITOR_TEST_GIT_SOURCE was unset. No
 device input or keyboard visibility was verified. Changes remain uncommitted in
 feature/android-terminal-keys; no push, installation or publication was requested.
 
@@ -4927,7 +4927,7 @@ touch scrolling and nested-row hover, and phone-to-desktop discovery/live output
 The six-lane full gate completed across its initial run and --last-failed resume;
 the Codex badge check was updated to verify both the tab and its new Projects
 entry. No unfinished cases remain. Optional Git-source checks were skipped because
-SHARPRAIL_TEST_GIT_SOURCE was unset. No device, packaged desktop app or installation
+TEREDITOR_TEST_GIT_SOURCE was unset. No device, packaged desktop app or installation
 was exercised. All changes remain uncommitted on feature/android-terminal-keys.
 
 ## Android fixes rebased onto main (2026-10-11)
@@ -5007,7 +5007,7 @@ complete with an empty unfinished-case record. The initial run hit the previousl
 recorded preview-tab and Specs failed-update assertions; a resume hit a Markdown
 search document-open timeout. Those cases pass alone without source changes, and
 the final resume passes. Optional Git-source checks were skipped because
-SHARPRAIL_TEST_GIT_SOURCE was unset. No packaged-app rebuild, native visual check,
+TEREDITOR_TEST_GIT_SOURCE was unset. No packaged-app rebuild, native visual check,
 Android build or running-app restart. The fix is committed on fix/project-home-specs; the original checkout's
 in-progress work is untouched.
 
@@ -5036,7 +5036,7 @@ its draft; Enter submits and Shift+Enter inserts a newline. Release build has
 zero warnings/errors, whole-solution format verification and --new-workspace pass.
 The six-lane full gate and serial --last-failed resume finish with no unfinished
 cases; MarkdownDocumentE2E's document-open timeout passed on resume without code
-changes. Optional Git-source fixtures were skipped (SHARPRAIL_TEST_GIT_SOURCE
+changes. Optional Git-source fixtures were skipped (TEREDITOR_TEST_GIT_SOURCE
 unset). No packaged-app rebuild, native visual inspection or Android build.
 
 Work is uncommitted in fix/workspace-starting-prompt; the original checkout is untouched.
@@ -5127,7 +5127,7 @@ Implemented on `chat-file-links` in managed `workspace-1`. Claude Code, Codex an
 output share Command/Ctrl-hover and click for existing file references. A host-side character scanner
 resolves paths against the live shell directory, preserving line/column positions and supporting local
 and remote sessions. Skia and Metal map soft-wrapped Unicode text to cells; the native URL matcher no
-longer claims plain file paths before the existence check. Files open as source in SharpRail. Exact
+longer claims plain file paths before the existence check. Files open as source in tereditor. Exact
 external targets use the existing external-file lifecycle, scoped to the terminal's workspace.
 
 Release build, whole-solution formatting, focused file-link/editor checks and the native Metal check
@@ -5145,7 +5145,7 @@ after resize and live status changes. Manual side-by-side selection remains
 available; modified files retain the width-based default.
 
 Release build passes with zero warnings/errors; touched-file formatting, --syntax,
-and RenderedDiffE2E with SHARPRAIL_TEST_GIT_SOURCE pointing to the local upstream
+and RenderedDiffE2E with TEREDITOR_TEST_GIT_SOURCE pointing to the local upstream
 clone pass. The four-lane full gate hit a nullable-value exception in file-icon
 raster capture; serial --last-failed passed without code changes and leaves no
 unfinished cases. Other optional Git-source cases were skipped in the full gate.
@@ -5169,7 +5169,7 @@ The history rewrite preserves the integrated tree apart from public API declarat
 
 The user requested a separate workspace for Markdown preview/diff, Git graph and
 Files/Specs tree rendering, and explicitly authorized measurement. Work is uncommitted
-on `perf/drawn-document-and-tree-views` in SharpRail `workspace-6`, based on `d4cfa5eb`.
+on `perf/drawn-document-and-tree-views` in tereditor `workspace-6`, based on `d4cfa5eb`.
 Markdown uses block virtualization; trees use recycled drawn rows; graph labels are
 drawn and menus are lazy. The owning specs and regression checks are updated.
 
@@ -5213,7 +5213,7 @@ existing verification is reused for identical code. No push or merge was request
 
 Created managed workspace-12 on agent-launch-defaults, leaving the original
 checkout's in-progress changes alone. Claude Code and Codex Settings now have
-separate model and effort defaults for SharpRail launches. Empty values use the
+separate model and effort defaults for tereditor launches. Empty values use the
 CLI defaults and are written explicitly so merged settings updates can clear
 previous choices. Per-launch model choices and custom arguments take precedence.
 The user approved Codex's supported `-c model_reasoning_effort` spelling instead
@@ -5436,7 +5436,7 @@ Measured ~60.05 GPU-drawn frames/sec at 124×48/DPR1, matching the headless brow
 Skia path or desktop Metal parity. See VALIDATION and Browser/SPEC for limits.
 Preview assets at port 57459 now include both the prior native-row optimization and
 restty; host PID/token/state are unchanged. Work remains uncommitted. Source check:
-`node tests/SharpRail.Browser.Checks/restty.mjs`; opt-in benchmark adds `--profile`.
+`node tests/Tereditor.Browser.Checks/restty.mjs`; opt-in benchmark adds `--profile`.
 
 ## 2026-10-13 — Default restty, Skia only on loading failure
 
@@ -5608,7 +5608,7 @@ conformance, relative Markdown paths and diff whitespace pass. A temporary missi
 fails RS0016 and a stale type entry fails RS0017; restoring the baseline byte-for-byte passes.
 The four-lane full gate stopped at ChangeActionChecks while opening a diff; the serial last-failed
 resume passed without code changes and leaves no unfinished cases. Optional Git-source fixtures
-were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. No Android build, package or native
+were skipped because TEREDITOR_TEST_GIT_SOURCE was unset. No Android build, package or native
 appearance check. Task fixtures and logs were removed after recording these results.
 
 All work remains uncommitted on docs/spec-readability; nothing was pushed.
@@ -5739,7 +5739,7 @@ Release build passed with zero warnings/errors; all nine vertical-tab journeys, 
 
 Settings group-limit inputs retain their 28-DIP compact size while their nested Fluent spinner and text box now fit that height. Previously the inner 32-DIP minimum positioned the outline at Y=-2, clipping its horizontal borders. Scoped compiled styles preserve the existing template, state handling and stepper actions.
 
-Release build passed with zero warnings/errors; touched formatting and whitespace passed. LayoutSettingsE2E passed the outline-containment regression, increment/decrement interaction and disabled min/max states, plus existing non-Git journeys. Its Git-backed GrandfatheredLimit case skipped because SHARPRAIL_TEST_GIT_SOURCE was unset; no pass is claimed for it. Main reuses byte-identical verified changes.
+Release build passed with zero warnings/errors; touched formatting and whitespace passed. LayoutSettingsE2E passed the outline-containment regression, increment/decrement interaction and disabled min/max states, plus existing non-Git journeys. Its Git-backed GrandfatheredLimit case skipped because TEREDITOR_TEST_GIT_SOURCE was unset; no pass is claimed for it. Main reuses byte-identical verified changes.
 
 ## 2026-10-15 — Android Settings immediate touch scrolling
 
@@ -5777,7 +5777,7 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 
 2026-10-15: Kept browser terminal wheel events within their DOM surface to prevent stale Avalonia pointer targeting from scrolling Projects. Writable/read-only and return-to-Projects browser regressions passed; listener teardown is checked.
 
-2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see [browser rendering evidence](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence).
+2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see [browser rendering evidence](src/Tereditor.Browser/SPEC.md#recorded-rendering-evidence).
 
 2026-10-15: Host settings separates Connect to another host from Share this app as a host in bordered cards. Browser/Android current-host views use Connected host. Release solution, browser WASM and Android compilation passed with zero warnings/errors; focused serving checks verified card geometry, remote/unavailable states and unchanged listener lifecycle. Touched formatting passed; no physical-device or full-suite claim.
 
@@ -5830,7 +5830,7 @@ outside this source tree. No commit or push was made by this verification task.
 
 2026-10-17: Landed workspace-22 browser delivery, local browser approval and terminal pointer/selection changes on main in ce9fa4f8. Added persistent validated commit underlines for Metal/Skia terminals in d37463de, preserving modifier-click commit Changes navigation and missing/ambiguous rejection. Visible resolution is bounded/debounced off-thread, with stale-output and detach/disposal rejection. Release solution, browser managed Compile, touched formatting, targeted host/UI checks and actual native Metal/Skia highlight pixels passed. The combined 142-case source gate passed in aggregate: Git UI workspace-selection and Branch Graph readiness assertions failed in the initial two-lane run, passed unchanged in isolation, and the serial --last-failed resume completed with no unfinished cases. Reused workspace-22's unchanged Chromium acceptance; this combined tip has not been packaged or run on Windows/Android. Nothing pushed.
 
-2026-10-17: Landed per-launch Claude integration in 64577a06: new and revived sessions load the bundled host-side plugin with --plugin-dir; removed installation/update banners, marketplace registration and cached-plugin maintenance. Existing user-installed plugins remain untouched. Landed the embedded Codex MCP registration rename to sharprail in f72ff864. Release solution compilation and touched formatting passed, alongside focused Claude and agent-launch checks. All 142 source cases completed in aggregate after repairing fake-agent argument routing and deferred Git UI fixture readiness; no unfinished cases remain. The final main production/test tree matches the verified workspace, with only status history differing. Existing AVLN3001 warnings remain visible. No authenticated Claude session, packaged acceptance or Windows/Android runtime verification is claimed. Deleted own completed workspaces 13 and 26, keeping their branches. Nothing pushed.
+2026-10-17: Landed per-launch Claude integration in 64577a06: new and revived sessions load the bundled host-side plugin with --plugin-dir; removed installation/update banners, marketplace registration and cached-plugin maintenance. Existing user-installed plugins remain untouched. Landed the embedded Codex MCP registration rename to tereditor in f72ff864. Release solution compilation and touched formatting passed, alongside focused Claude and agent-launch checks. All 142 source cases completed in aggregate after repairing fake-agent argument routing and deferred Git UI fixture readiness; no unfinished cases remain. The final main production/test tree matches the verified workspace, with only status history differing. Existing AVLN3001 warnings remain visible. No authenticated Claude session, packaged acceptance or Windows/Android runtime verification is claimed. Deleted own completed workspaces 13 and 26, keeping their branches. Nothing pushed.
 
 2026-10-17: Fixed commit underline flashing when terminal output changes: retain validated links on identical visible lines while asynchronous viewport resolution runs, remapping offsets after scrolling. Changed lines and detach discard retained highlights. Release solution build, touched formatting and focused terminal commit resolution/navigation checks passed, including unchanged-line retention and changed-line rejection. Physical live-session flicker acceptance and the full source gate were not rerun for this patch. Nothing pushed.
 
@@ -5838,7 +5838,7 @@ outside this source tree. No commit or push was made by this verification task.
 
 2026-10-18: Landed Settings page-retention fix in 7bf19a15: unrelated host broadcasts (including terminal titles/agent activity) no longer rebuild the open page when settings, presets and projects are unchanged. The before-check reproduced Appearance replacement; focused retention/touch checks passed with the guard, including relevant-setting refresh. Release solution/browser builds, touched formatting/JS syntax and actual Chrome Settings/RPC activity journeys passed at normal size and 125% zoom/DPR2 fractional geometry. The 143-case Settings source gate completed in aggregate: initial Layout/Visualize timeouts passed unchanged in serial --last-failed, leaving no unfinished cases. Bundled Chromium startup stalled before Settings in one run; no Safari/Firefox/physical Retina or WASM-startup fix is claimed. Main differs from the verified Settings branch only by separately verified cosmetic tab-name quotes (e5c3cbe1), status and verification documentation; the combined main Release build passed. Existing :54125 preview still serves workspace-22, not the freshly tested bundle.
 
-2026-10-18: Quoted active-tab names in Codex and Claude context labels, including no-session wording. Release compilation, touched formatting and focused Codex/Claude UI checks passed. Removed 12 unused branches with no unique changes relative to main (including cherry-picked equivalents), then the completed Settings branch after landing/removing own workspace-21: 13 branches total. Branches with unique commits and every checked-out/active workspace were preserved. No HybridCLR/IL2CPP branch or SharpRail workspace label exists. The Android embedded-Tailscale task remains active in workspace-13. Nothing pushed.
+2026-10-18: Quoted active-tab names in Codex and Claude context labels, including no-session wording. Release compilation, touched formatting and focused Codex/Claude UI checks passed. Removed 12 unused branches with no unique changes relative to main (including cherry-picked equivalents), then the completed Settings branch after landing/removing own workspace-21: 13 branches total. Branches with unique commits and every checked-out/active workspace were preserved. No HybridCLR/IL2CPP branch or tereditor workspace label exists. The Android embedded-Tailscale task remains active in workspace-13. Nothing pushed.
 
 ## 2026-10-13 — Workspace LSP support
 
@@ -5854,7 +5854,7 @@ coverage and index-sharing limits.
 Release/format and focused checks pass; real TypeScript, Pyright and clangd checks
 pass. The Git-enabled full gate and unchanged serial continuation remain incomplete
 at existing shared-terminal/startup checks; exact failures and unverified platform
-coverage are recorded in src/SharpRail.Host.Core/Language/SPEC.md. Keep the unfinished-case record for follow-up;
+coverage are recorded in src/Tereditor.Host.Core/Language/SPEC.md. Keep the unfinished-case record for follow-up;
 other task scratch is removed. Work is uncommitted, with no push or app replacement.
 
 ## 2026-10-13 — LSP management pane and visible agent tools
@@ -5869,7 +5869,7 @@ pass, as do provider UI, design and conformance modes. Final Release/format chec
 The four-lane full gate stopped on rendered-diff and shared-terminal checks and an
 outdated default-tool assumption. The latter now restores catalog tools explicitly;
 the targeted LayoutE2E run passes, including mounting LSP from the workbench. Remaining
-full-gate limits are in src/SharpRail.Host.Core/Language/SPEC.md. Keep `.bench/checks-last-run.txt` for continuation;
+full-gate limits are in src/Tereditor.Host.Core/Language/SPEC.md. Keep `.bench/checks-last-run.txt` for continuation;
 other scratch is removed. No commit, push, package or app replacement.
 
 ## 2026-10-14 — LSP pane scrolling, manual servers and usages popup
@@ -5884,7 +5884,7 @@ when supplied; missing/empty tokens keep syntax fallback. Scintilla exposes care
 
 Final Release/format and focused host/UI, syntax, editor, design and conformance checks
 pass. Full-gate lanes 3 and 4 complete, while rendered-diff/change-action cases time out
-opening diff rows. Exact limits are in src/SharpRail.Host.Core/Language/SPEC.md. Preserve the unfinished-case
+opening diff rows. Exact limits are in src/Tereditor.Host.Core/Language/SPEC.md. Preserve the unfinished-case
 record; other task scratch is cleaned. Work remains uncommitted with no app replacement.
 
 ## 2026-10-14 — LSP lifecycle actions on server rows
@@ -5892,7 +5892,7 @@ record; other task scratch is cleaned. Work remains uncommitted with no app repl
 Moved Start/Retry and Stop from the lower buttons into each server row’s right-click
 menu. The action captures the clicked server independently of the previous selection.
 Release build, touched-file formatting, LSP UI and design checks pass; existing
-full-gate limits remain recorded in src/SharpRail.Host.Core/Language/SPEC.md. Work is uncommitted.
+full-gate limits remain recorded in src/Tereditor.Host.Core/Language/SPEC.md. Work is uncommitted.
 
 ## 2026-10-14 — Agent edited-file and project diagnostic scans
 
@@ -5905,7 +5905,7 @@ and retain pending/unversioned coverage. Agent instructions describe both reques
 
 Release, formatting, focused LSP and conformance pass. The full four-lane gate passes
 lanes 1/3 (including LSP host/editor), but shared-terminal PhoneToDesktop and file-icon
-Raster fail in lanes 2/4. Exact evidence is in src/SharpRail.Host.Core/Language/SPEC.md. No unrelated fixes, commit,
+Raster fail in lanes 2/4. Exact evidence is in src/Tereditor.Host.Core/Language/SPEC.md. No unrelated fixes, commit,
 package or app replacement. Scratch is cleaned; the unfinished-case record is retained.
 
 ## 2026-10-14 — LSP inline errors and Settings category
@@ -5919,7 +5919,7 @@ next start/retry. Untouched servers keep legacy servers.json fallback. Catalog r
 workspace-free and starts no servers.
 
 Release, focused host/UI, design and conformance checks pass. Headless pane and Settings
-captures were visually inspected. Latest full-suite limits remain in src/SharpRail.Host.Core/Language/SPEC.md; no
+captures were visually inspected. Latest full-suite limits remain in src/Tereditor.Host.Core/Language/SPEC.md; no
 new full run, Android/native capture, package or app replacement. Changes are uncommitted.
 
 Final UI audit: inline unselected-row errors, one pane scroller, row context lifecycle actions
@@ -6019,7 +6019,7 @@ was performed. Task scratch files were removed; the remaining terminal failure i
 
 Rebased lsp-support’s uncommitted feature onto main snapshot 1696f031, incorporating concurrent main updates through that commit. Resolved 17 initial conflicts and later append-only status conflicts, regenerated the RPC clients/dispatch to retain both file uploads and language requests, and preserved main’s tool rails, workspace settings and public-API analyzer conventions. LSP launcher/enablement wire fields moved to 15/16 to avoid main’s established 12–14 tab/settling fields. The compiler baseline contains the added language API. All 31 initially untracked feature files remain present; source changes among those are limited to the configuration fix, its owning spec and regression checks. Changes remain unstaged and uncommitted; original pre-rebase stash 6a43f99d60c47888803c89f7ce4052b3eb6a02e2 is retained. No commit, push or running-app replacement.
 
-Fixed workspace/configuration responses that substituted {} for missing/null scalar values. Roslyn/Razor now receives null and applies its defaults, while configured false, zero and strings retain their types. The real installed Roslyn/Razor server started against workspace-11, returned 20 symbols from src/SharpRail.Host.Abstractions/LanguageServices.cs, remained ready afterward and logged neither the JsonValue crash nor {} parse failures. The isolated probe and its server state were task-local and are cleaned.
+Fixed workspace/configuration responses that substituted {} for missing/null scalar values. Roslyn/Razor now receives null and applies its defaults, while configured false, zero and strings retain their types. The real installed Roslyn/Razor server started against workspace-11, returned 20 symbols from src/Tereditor.Host.Abstractions/LanguageServices.cs, remained ready afterward and logged neither the JsonValue crash nor {} parse failures. The isolated probe and its server state were task-local and are cleaned.
 
 Verification: final Release solution build on 1696f031 passed with zero warnings/errors. Formatting verification passed for all changed C# files before the final two main-only integrations; their unchanged LSP slices reuse those results. Whitespace/conflict-marker checks pass on the final tree. Local/remote LSP checks, configuration regression, shared state, workspace registry, LSP editor/pane/settings/tool-rail and design checks passed. Real C# validation and unchanged focused results are reused across main-only updates. Browser/Android compilation and runtime were not run for this batch.
 
@@ -6060,7 +6060,7 @@ Final integrated LayoutE2E passed after explicitly reselecting Files in the fixt
 
 ## 2026-10-15 — Preserve agent LSP configuration across host instances
 
-Investigated the empty settings shown after an agent configured clangd. Two running app processes (Default checkout and workspace-11) use the same ~/.sharprail profile and separate MCP hosts. The on-disk state had no WorkspaceLanguages field, and the live LSP host returned an empty saved clangd configuration. This is consistent with an older host rewriting shared state without the new field; existing lost values cannot be recovered from the current host. No running app was stopped, replaced or reconfigured.
+Investigated the empty settings shown after an agent configured clangd. Two running app processes (Default checkout and workspace-11) use the same ~/.tereditor profile and separate MCP hosts. The on-disk state had no WorkspaceLanguages field, and the live LSP host returned an empty saved clangd configuration. This is consistent with an older host rewriting shared state without the new field; existing lost values cannot be recovered from the current host. No running app was stopped, replaced or reconfigured.
 
 Persisted workspace/server LSP settings in atomic host-owned language metadata records, projected through the existing host-state API. Existing metadata migrates; removal/inheritance update their own records. Language reads refresh saved values from those records, while active configurations remain specific to each host’s running server. Opening settings and Reload saved explicitly fetch current host values instead of trusting cached inventory.
 
@@ -6092,7 +6092,7 @@ Release build and touched C# whitespace verification passed. Focused local/WebSo
 checks passed. Real TypeScript alias imports, Python imports and clangd compilation-database
 references found unopened files; clangd include-path restart resolved missing-library diagnostics.
 Real Roslyn found an unopened dependent project on the first ready query and FileDrop references
-across five files in SharpRail without opening editors. Other providers were not live-tested.
+across five files in tereditor without opening editors. Other providers were not live-tested.
 
 The four-lane broader gate passed LSP cases but failed at FilesE2E, ExternalWorkspaceE2E, projects
 and watchers amid repeated filesystem EventStream failures; its incomplete-case record is retained.
@@ -6138,7 +6138,7 @@ an all-edited-files LSP scan is not claimed. No Android/browser, packaged accept
 replacement, commit, push or external message. Earlier unfinished workspace changes were preserved.
 
 Final compatibility checks passed with real TypeScript, Python, clangd and Roslyn after the
-initialization change, including unopened-file references and the SharpRail solution. These are
+initialization change, including unopened-file references and the tereditor solution. These are
 existing-provider checks, not IntelliJ smoke acceptance. Task-owned research archive, UI captures
 and identified completed fixture directories were removed after processes exited.
 
@@ -6201,7 +6201,7 @@ Android or packaged acceptance, commit, push, external post or running-app repla
 
 The user also asked about IDEA's MCP server. Current JetBrains documentation describes a bundled
 IDE integration exposing inspections, project models, builds, refactoring and debugging. It is
-separate from this standalone LSP adapter and SharpRail's existing MCP facade. No standalone
+separate from this standalone LSP adapter and tereditor's existing MCP facade. No standalone
 JetBrains MCP distribution or supported independent headless MCP launch was established or added.
 
 
@@ -6258,13 +6258,13 @@ No new daemon, IDE bridge, provider substitution or licensing change was introdu
 
 Research: https://blog.jetbrains.com/ai/2026/10/how-netflix-made-ai-coding-agents-more-efficient/
 and intellij-lsp.nvim revision 9cfad18005470e4187090013e08f92ec9e437219 (decompiler.lua).
-Reported article gains are not SharpRail measurements; symbol-oriented APIs are forward-looking
+Reported article gains are not tereditor measurements; symbol-oriented APIs are forward-looking
 in that article. Existing EULA, artifact and execution controls remain unchanged.
 
 Release build (zero warnings/errors), touched-file whitespace verification, focused language
 checks and full 141-case/four-lane gate passed. Fixtures verify local/remote behavior and MCP
 contracts, not real IntelliJ compatibility. Upstream Git scenarios skipped without
-SHARPRAIL_TEST_GIT_SOURCE. LSP diagnostics for edited files were unavailable because this session
+TEREDITOR_TEST_GIT_SOURCE. LSP diagnostics for edited files were unavailable because this session
 exposed no LSP MCP tools. No real JetBrains execution, terms acceptance, app replacement, commit
 or push. Task-owned logs and fixtures removed; older task artifacts preserved.
 
@@ -6272,7 +6272,7 @@ or push. Task-owned logs and fixtures removed; older task artifacts preserved.
 ## 2026-10-16 — Headless language validation and usable provider settings
 
 Implemented in workspace-11 without committing, pushing or replacing the running app.
-An explicit SHARPRAIL_HEADLESS_MCP host option exposes production language MCP tools
+An explicit TEREDITOR_HEADLESS_MCP host option exposes production language MCP tools
 through bearer-authenticated POST /mcp without an AI terminal. It exposes no terms
 acceptance. The opt-in Node corpus pins 18 real repositories and is not part of Gate.Case
 or the full suite. Reports distinguish symbols/diagnostics from cross-file references.
@@ -6295,7 +6295,7 @@ at the user acceptance gate. R used a workspace-local extracted CRAN 4.6.1 runti
 launcher/linker paths relocated for native package builds, not a system install. Swift
 and Dart remain host-SDK servers; the validation Dart SDK was 3.13.5. Named settings
 are curated public options, not exhaustive certification of every exact-release key.
-Durable matrix and limitations: tests/SharpRail.Language.Integration/RESULTS.md.
+Durable matrix and limitations: tests/Tereditor.Language.Integration/RESULTS.md.
 
 Release build, focused --lsp and --lsp-ui, touched-file whitespace, Node syntax and
 18-scenario manifest rejection checks passed. Current LSP diagnostics covered 82 changed
@@ -6453,13 +6453,13 @@ freshness. Expired and acceptance-required startup responses now immediately ret
 unavailable freshness. The existing expiry/lifecycle checks pass.
 
 The user selected per-workspace Context enablement with automatic indexing on a
-SharpRail agent launch. Public JetBrains sources identify CLI 0.9.16.1161 and its
+tereditor agent launch. Public JetBrains sources identify CLI 0.9.16.1161 and its
 published artifact checksums. The internal downloader pins macOS/Linux ARM64/x64,
 requires download authorization before I/O, validates integrity and safely repairs or
 cancels installations. The internal stdio adapter supplies one workspace root and
 forwards code_search, with bounded frames/time and owned-child cancellation. Fake
 HTTP/executable/MCP checks pass through --context. These are foundations only: no
-Context user interface, login, launch trigger or SharpRail tool registration exists.
+Context user interface, login, launch trigger or tereditor tool registration exists.
 
 No new proprietary CLI was downloaded or executed. The actual user's acknowledgement
 of the Context CLI EAP agreement and applicable linked AI terms remains pending in
@@ -6559,7 +6559,7 @@ acceptance by the agent, commit, push or running-app replacement.
 
 Code Intelligence now provides explicit workspace cloud enablement, interactive user
 sign-in, status, index/stop controls and bounded redacted logs. Enabled workspaces
-index automatically on first SharpRail agent launch; restored launches work, model
+index automatically on first tereditor agent launch; restored launches work, model
 updates do not duplicate indexing, and new workspaces never inherit cloud permission.
 The host owns cancellation and process lifetime. Native index/status use fixed absolute
 workspace paths; search uses one warm root-bound stdio connection and discovered
@@ -6603,7 +6603,7 @@ IntelliJ/JDT compatibility. Focused LSP host/UI, syntax, Context UI and design c
 Native Roslyn checked all 23 edited C# files current across 11 diagnostic pages: 310
 informational/hint diagnostics, no errors or warnings. Browser/Android runtime and real
 IntelliJ/JDT smoke tests were not run. Rebased onto local main b61c6de1, combining Codex's
-sharprail MCP namespace with LSP/Context approvals and preserving all pending work.
+tereditor MCP namespace with LSP/Context approvals and preserving all pending work.
 Rebased Release build and focused Codex checks pass; no commit, push or app replacement.
 
 Final rebased verification: Release compilation and 26-file scoped formatting pass.
@@ -6657,7 +6657,7 @@ with 139 hints/informational diagnostics and no errors or warnings. The broad ga
 completed through serial --last-failed continuation after concurrent UI timing failures.
 Two fixture waits now wait for the actual syntax styling/tool readiness prerequisites;
 production Branch Graph behavior is unchanged. Git-source-dependent cases were skipped
-because SHARPRAIL_TEST_GIT_SOURCE was unset. No browser/Android runtime acceptance,
+because TEREDITOR_TEST_GIT_SOURCE was unset. No browser/Android runtime acceptance,
 real IntelliJ typography acceptance or authenticated cloud indexing was performed.
 
 
@@ -6719,7 +6719,7 @@ No commit or push was made.
 
 Workspace `ui/typed-language-server-settings` researches all 18 catalog providers and
 52 exposed named settings plus clangd/IntelliJ launch fields against official sources.
-The evidence and type inventory live in `src/SharpRail.Host.Core/Language/CONFIGURATION.md`.
+The evidence and type inventory live in `src/Tereditor.Host.Core/Language/CONFIGURATION.md`.
 Host path controls distinguish files/folders and append selections to path lists; remote,
 browser and Android clients keep host-path text entry. Numeric settings use nullable
 numeric controls; importer/enumerated options use choices while open-ended commands
@@ -6750,10 +6750,10 @@ Fork titles from the 2026-10-01 pass that are no longer separate fork commits ar
 
 ## 2026-10-19 — Linux desktop port and AppImage nightly
 
-SharpRail builds and runs on linux-x64. The Ghostty VT and Scintilla libraries cross-compile with the pinned Zig for
-`x86_64-linux-gnu.2.31` (`build-linux.sh` beside each, MSBuild targets keyed on `SharpRailLinuxRid`, `linux-x64` added to the
+tereditor builds and runs on linux-x64. The Ghostty VT and Scintilla libraries cross-compile with the pinned Zig for
+`x86_64-linux-gnu.2.31` (`build-linux.sh` beside each, MSBuild targets keyed on `TereditorLinuxRid`, `linux-x64` added to the
 locked RIDs); Linux terminals are Skia only, the editor is enabled with Ctrl shortcuts, workspace clones use `cp --reflink=auto`
-and notifications use `notify-send`. `package:linux` writes `artifacts/SharpRail-linux-x64.AppImage` (pinned appimagetool and
+and notifications use `notify-send`. `package:linux` writes `artifacts/tereditor-linux-x64.AppImage` (pinned appimagetool and
 type 2 runtime), `check:packaged -- --linux` runs the new `--linux` gate from the image's payload, and CI and nightly gained
 Linux jobs. Verified on macOS: Release build, `--conformance`, `--design`, `--plugins`, `--workspace-clone`, the cross publish, ELF
 checks of both libraries, and in an amd64 Ubuntu 22.04 container (Rosetta) the packaged `--linux` gate and a 40-second Xvfb launch of
@@ -6762,8 +6762,8 @@ Wayland, arm64. See STATUS.md V13.
 
 ## 2026-10-20 — Linux arm64 AppImage
 
-`package:linux linux-arm64` writes `artifacts/SharpRail-linux-arm64.AppImage`: both `build-linux.sh` scripts take `linux-arm64`
-(`aarch64-linux-gnu.2.31`), `SharpRailLinuxRid` follows the publish RID (and an arm64 Linux host), `linux-arm64` joined the locked
+`package:linux linux-arm64` writes `artifacts/tereditor-linux-arm64.AppImage`: both `build-linux.sh` scripts take `linux-arm64`
+(`aarch64-linux-gnu.2.31`), `TereditorLinuxRid` follows the publish RID (and an arm64 Linux host), `linux-arm64` joined the locked
 RIDs (every `packages.lock.json`, `scripts/packages.lock.json`), the aarch64 appimagetool and type 2 runtime are pinned in
 `mise.toml`/`mise.lock`, and `check:packaged -- --linux` picks the image by host architecture. Nightly gained `appimage-arm64` on
 `ubuntu-24.04-arm` (signed, packaged check); the release needs it but publishes without its asset when it fails. CI gained a
@@ -6775,7 +6775,7 @@ appimagetool and the packaged gate (CI will).
 
 2026-10-21: Air Context enablement is now per project, not per workspace (fix/context-new-workspaces): every existing and later worktree of an enabled project is enabled, disabling from any pane disables the project, and old per-workspace records in workspaces.json promote to their project (projects.json). Focused --context, --context-ui and the air-context-project gate case passed (the new case failed on the old code); a scratch embedded host on a copy of the real plugin state reported a linked worktree enabled with vendor status. The running app needs a restart to pick it up.
 
-2026-10-22: Extracted every builtin language server into its own builtin plugin (workspace-6): `src/SharpRail.Plugins.Lsp.<Name>`, ids `lsp-<server>`, all enabled by default, through the new Plugin API H21 (`IPluginHostContext.LanguageServer`, `LanguageServerSpec`, `LanguageServerPlugin`, `ILanguageServerInstallation`). Pins, lock files, settings controls, project manifests/kinds/scope, language ids, defaults and install/launch steps moved out of the host; the host catalog is the active plugins' servers. Still id-keyed in the host: the IntelliJ distribution/terms, the Java/Kotlin switch, clangd/IntelliJ option shaping, session protocol quirks, UI names and icons. Verified: Release build gate, format, `--managed-artifacts`, `--lsp`, `--lsp-ui`, `--lsp-on-demand`, `--lsp-icons`, `--lsp-settings`, `--plugins`, `--conformance`. Two full runs failed on different UI checks (`--context-ui`, then ThemeE2E in `--design`) while other workspaces' suites loaded the machine; both pass in isolation twice. No real-provider (`--lsp-real`) run.
+2026-10-22: Extracted every builtin language server into its own builtin plugin (workspace-6): `src/Tereditor.Plugins.Lsp.<Name>`, ids `lsp-<server>`, all enabled by default, through the new Plugin API H21 (`IPluginHostContext.LanguageServer`, `LanguageServerSpec`, `LanguageServerPlugin`, `ILanguageServerInstallation`). Pins, lock files, settings controls, project manifests/kinds/scope, language ids, defaults and install/launch steps moved out of the host; the host catalog is the active plugins' servers. Still id-keyed in the host: the IntelliJ distribution/terms, the Java/Kotlin switch, clangd/IntelliJ option shaping, session protocol quirks, UI names and icons. Verified: Release build gate, format, `--managed-artifacts`, `--lsp`, `--lsp-ui`, `--lsp-on-demand`, `--lsp-icons`, `--lsp-settings`, `--plugins`, `--conformance`. Two full runs failed on different UI checks (`--context-ui`, then ThemeE2E in `--design`) while other workspaces' suites loaded the machine; both pass in isolation twice. No real-provider (`--lsp-real`) run.
 
 2026-10-22: Moved the remaining id-keyed language behaviour into the plugins (workspace-6). H21 gained presentation (name, embedded icon), typed option groups, `Replaces` (IntelliJ for Java/Kotlin; the provider-choice setting now holds `standard` or the replacing server's id), `TermsAsync` with host-recorded acceptance (`LanguageTermsAsync`, renamed from `IntelliJTermsAsync`, now carries the server), vendor expiry, `ConfigureInitialization` (`ILanguageServerStart`), extra manifests/manifest directories, workspace folders, initialize timeout/token, project-load waiting, `OnMessage`, dependency sources and source roots (`ILanguageServerSession`). IntelliJ's distribution, terms reading and launcher live in its plugin; icons moved into each plugin; listings carry `LanguageServerPresentation` to the UI. The persisted setting key stays `java-kotlin-provider` and the option stays `useForJavaAndKotlin`.
 
@@ -6784,11 +6784,11 @@ appimagetool and the packaged gate (CI will).
 ## 2026-10-22 — workspace switch without the loading flash
 
 Profiled switching between workspaces of one project with the new `--workspace-switch` check and the
-`SHARPRAIL_PERFORMANCE=1` `SHARPRAIL_SWITCH` timeline. The switch already awaited only one host call (open)
+`TEREDITOR_PERFORMANCE=1` `TEREDITOR_SWITCH` timeline. The switch already awaited only one host call (open)
 before mounting; Git, files, watchers, language and document revalidation already ran after it. The visible
 cost was a forced "Loading workspace…" frame on every switch. Leaving a mounted workspace now keeps its inert
 view until the target resolves and shows loading bodies only after 100 ms. Measurements are in
-`src/SharpRail.UI/SPEC.md`. Removing the frame before routing made `--startup` flaky at its fourth-Git-request wait; the frame is
+`src/Tereditor.UI/SPEC.md`. Removing the frame before routing made `--startup` flaky at its fourth-Git-request wait; the frame is
 back when leaving a mounted workspace (still no loading bodies), and a worktree-list broadcast during the
 mount's Git load now queues a reload instead of cancelling it. `--startup` then passed 3 of 3.
 
@@ -6797,11 +6797,11 @@ mount's Git load now queues a reload instead of cancelling it. `--startup` then 
 
 ## 2026-10-24 — Browser Tailscale node
 
-The browser connect screen gains "Connect over Tailscale": a Go-to-WASM Tailscale v1.104.1 node (`src/SharpRail.Browser/Tailscale.Wasm`, `scripts/build-tailscale-wasm.sh`, 28.8 MB raw, 4.70 MB Brotli) served under `tailscale/` and fetched only after "Download Tailscale (~4.7 MB)", cached per build in Cache Storage, identity in IndexedDB. Pairing HTTP and WebSocket RPC dial through it (`StreamHttpHandler`, `RpcTransports.RegisterStreamTransport`). Verified: Release, browser and Android builds, format, `--tailscale`, `--transport`, `tailscale.mjs`, and headless Chromium against the real host (offer, download, cached reload with no second fetch, node reaching NeedsLogin with a real login URL, identity persisted). Unverified: real sign-in, pairing and RPC over a tailnet from a browser.
+The browser connect screen gains "Connect over Tailscale": a Go-to-WASM Tailscale v1.104.1 node (`src/Tereditor.Browser/Tailscale.Wasm`, `scripts/build-tailscale-wasm.sh`, 28.8 MB raw, 4.70 MB Brotli) served under `tailscale/` and fetched only after "Download Tailscale (~4.7 MB)", cached per build in Cache Storage, identity in IndexedDB. Pairing HTTP and WebSocket RPC dial through it (`StreamHttpHandler`, `RpcTransports.RegisterStreamTransport`). Verified: Release, browser and Android builds, format, `--tailscale`, `--transport`, `tailscale.mjs`, and headless Chromium against the real host (offer, download, cached reload with no second fetch, node reaching NeedsLogin with a real login URL, identity persisted). Unverified: real sign-in, pairing and RPC over a tailnet from a browser.
 ## 2026-10-26 — Claude Code chat mode (branch claude-chat-mode)
 
 Claude Code can now run as a chat: the plugin's Mode setting (Terminal or Chat, Settings › Claude Code › Presentation)
-chooses how a SharpRail launch is shown. Chat mode spawns the CLI headless over stream-json and draws the conversation in a
+chooses how a tereditor launch is shown. Chat mode spawns the CLI headless over stream-json and draws the conversation in a
 document tab of the editor area, built on a new plugin API for plugin-owned document tabs (W26: `Document`, `OpenDocumentAsync`,
 `Closed`, `OpenTextDiffAsync`, an optional `AgentLauncher.Open`). The semantics follow the official VS Code extension's chat
 (message origins, no per-turn result rows, permission and question panels above the composer, tool tables, compaction, queued
@@ -6812,7 +6812,7 @@ a chat open as their own editor tab. A chat child cannot reach the IDE bridge (p
 open from the tool input and the IDE context is an explicit attachment. Effort changes live through `apply_flag_settings`.
 
 Verification at tip a5ec58187 plus the Android and Browser constructor fix: whole-solution `scripts/mise run format` clean; a full
-no-incremental `dotnet build SharpRail.slnx -c Release` with 0 warnings and 0 errors; `scripts/mise run browser` and
+no-incremental `dotnet build Tereditor.slnx -c Release` with 0 warnings and 0 errors; `scripts/mise run browser` and
 `scripts/mise run android` exit 0 without warnings; `--claude-chat-ui`, `--claude-chat-e2e`, `--claude-chat-host` and `--claude-code`
 pass; one run of every gated case except `WelcomeE2E` passed with 717 checks. `WelcomeE2E` times out in `InitialiseFromWelcome`
 on main itself (acf592d6e) and on this branch, so the argument-free suite is red for a reason that is not this branch. Two
@@ -6827,11 +6827,11 @@ streaming word are not recovered; the chat has no rename, cross-chat history or 
 
 ## 2026-10-27 — GitHub plugin and repo hosting providers
 
-Pull requests and GitHub sign-in moved out of the host into the builtin `GitHub` plugin ([spec](src/SharpRail.Plugins.GitHub/SPEC.md)): the host routes by `origin` URL to the first active `RepoHostProvider` (H24), the plugin's UI half contributes the Pull request strip item, the Review section and the Settings page (W28, W4), and the wire is protocol 15 with the neutral `PullRequest`. Verified: build, format, `--github`, `--branch-status`, `--review`, `--settings`, `--shell`, `--design`, `--plugins`, `--conformance`, `--reconnect`, `--state`, Android and browser builds. Open: the merge choice is still in the UI profile; no registry-level plugin-off check in `--plugins`.
+Pull requests and GitHub sign-in moved out of the host into the builtin `GitHub` plugin ([spec](src/Tereditor.Plugins.GitHub/SPEC.md)): the host routes by `origin` URL to the first active `RepoHostProvider` (H24), the plugin's UI half contributes the Pull request strip item, the Review section and the Settings page (W28, W4), and the wire is protocol 15 with the neutral `PullRequest`. Verified: build, format, `--github`, `--branch-status`, `--review`, `--settings`, `--shell`, `--design`, `--plugins`, `--conformance`, `--reconnect`, `--state`, Android and browser builds. Open: the merge choice is still in the UI profile; no registry-level plugin-off check in `--plugins`.
 
 ## 2026-10-31 — Processes plugin
 
-The builtin `Processes` plugin ([spec](src/SharpRail.Plugins.Processes/SPEC.md)) adds a Processes side tool (language servers, AI agents and daemons, spawned agents; CPU, memory, 30-sample trend; Stop selected and Stop group) and owns the agent-facing owned-process management of #52: the `owned_process_report`/`owned_process_release` tools and prompt section moved out of core into it, and `OwnedProcesses` (still core) stays inert until the plugin switches it on through H27. Disabled, nothing is sampled, registered, swept or stopped on close or quit. Verified with `--processes`, `--owned-processes`, `--plugins`, `--conformance`, `--design` and the Release build; not seen rendered.
+The builtin `Processes` plugin ([spec](src/Tereditor.Plugins.Processes/SPEC.md)) adds a Processes side tool (language servers, AI agents and daemons, spawned agents; CPU, memory, 30-sample trend; Stop selected and Stop group) and owns the agent-facing owned-process management of #52: the `owned_process_report`/`owned_process_release` tools and prompt section moved out of core into it, and `OwnedProcesses` (still core) stays inert until the plugin switches it on through H27. Disabled, nothing is sampled, registered, swept or stopped on close or quit. Verified with `--processes`, `--owned-processes`, `--plugins`, `--conformance`, `--design` and the Release build; not seen rendered.
 
 ## 2026-11-02 — IntelliJ released build and license flow
 
@@ -6839,7 +6839,7 @@ The bundled IntelliJ server moved from the expired EAP build to JetBrains' relea
 
 ## 2026-10-27: Pi chat, shared chat view, Model providers
 
-Extracted the Claude Code chat's wire records and drawn view into `SharpRail.Plugins.Chat` and `SharpRail.Plugins.Chat.UI` (a plugin
+Extracted the Claude Code chat's wire records and drawn view into `Tereditor.Plugins.Chat` and `Tereditor.Plugins.Chat.UI` (a plugin
 describes itself to the view with a `ChatAgent`), added the Pi plugin (chat over `pi --mode rpc`) and the Model providers plugin (API keys
 for Pi's `auth.json` and omp's profile `.env`), and gave manifests `UnavailableOn` so plugins that need an operating system opt out of a pure
 web host (the eleven process-bound builtins now do). Checks run: `--claude-chat-ui`, `--claude-chat-host`, `--claude-code`, `--pi`,
@@ -6854,7 +6854,7 @@ The host and the app no longer load external plugin assemblies: the host's load 
 loader and the roster's UI assembly field are gone. External plugins are still discovered, listed and validated;
 switching one on refuses it with "External plugins are not supported in this version." The fixture plugin is now a
 check-only builtin the checks compose on both sides. Checks run: `--plugins`, `--plugins-settings`, `--conformance`.
-Not run: the full suite and the browser check (`tests/SharpRail.Browser.Checks/check.mjs`, retargeted to the Branch
+Not run: the full suite and the browser check (`tests/Tereditor.Browser.Checks/check.mjs`, retargeted to the Branch
 graph and Epub builtins plus an external refusal; only `node --check` was run).
 
 ## 2026-11-06 — NativeAOT packages (branch nativeaot)
@@ -6873,7 +6873,7 @@ and app relay in an Ubuntu 20.04 container. Not run: the AOT app with a window o
 
 An independent review of the two NativeAOT packaging commits. Fixed: the packaged gate now requires each payload to
 carry the native libraries, helpers and `plugins`/`shell-integration`/`terminfo` trees the checks' own publish has
-for it (`SHARPRAIL_PACKAGED_CHECKS`), since the staging filled gaps with the checks' copies; the glibc 2.31 floor
+for it (`TEREDITOR_PACKAGED_CHECKS`), since the staging filled gaps with the checks' copies; the glibc 2.31 floor
 covers every ELF file in a Linux payload; the Codex and Claude Code process-group helpers compile on Linux through
 `scripts/aot-linux-cc.sh` (they were Mach-O in a macOS cross-build and would need `GLIBC_2.34` from a runner's `cc`);
 `Microsoft.NET.WebAssembly.Threading` follows the SDK's runtime to 10.0.14. Verified unchanged: the SDK archive

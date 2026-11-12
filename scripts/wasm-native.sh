@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 root="$PWD"
 . scripts/lock.sh
 . scripts/native-cache.sh
-out="$root/src/SharpRail.Browser/obj/wasm-native"
-cache="$(sharprail_cache_dir)/wasm-native"
+out="$root/src/Tereditor.Browser/obj/wasm-native"
+cache="$(tereditor_cache_dir)/wasm-native"
 mkdir -p "$cache/results" "$out"
 case "$(uname -s)-$(uname -m)" in
     Darwin-arm64) runtime=osx-arm64; zig_host=aarch64-macos;;

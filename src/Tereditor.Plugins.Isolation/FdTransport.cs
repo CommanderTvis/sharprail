@@ -6,9 +6,9 @@ using System.Runtime.Versioning;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Plugins.Isolation.Native;
+using Tereditor.Plugins.Isolation.Native;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>A frame encoded for one transport, with the descriptors that ride beside its bytes.</summary>
 public sealed class PreparedFrame
@@ -384,7 +384,7 @@ internal static class WindowsPipe
     /// <summary>The host's overlapped server end and the client end, not yet inheritable.</summary>
     internal static (SafePipeHandle Server, SafeFileHandle Client) Create()
     {
-        var name = @"\\.\pipe\sharprail-plugin-" + Guid.NewGuid().ToString("N");
+        var name = @"\\.\pipe\tereditor-plugin-" + Guid.NewGuid().ToString("N");
         var user = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value ?? throw new IOException("The current user has no security identifier.");
         if (!Native.Windows.ConvertSecurityDescriptor($"D:P(A;;GA;;;{user})", 1, out var descriptor, 0))
             throw new IOException("Could not build the plugin channel's access list.", new System.ComponentModel.Win32Exception());

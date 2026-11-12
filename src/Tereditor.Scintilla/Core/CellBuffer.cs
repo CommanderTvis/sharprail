@@ -1,7 +1,7 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 using System.Runtime.InteropServices;
 
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>UTF-8 bytes, style bytes, line starts, read-only flag and undo (upstream src/CellBuffer.h/.cxx).</summary>
 /// <remarks>Lines end at CR, LF or CR LF only; Unicode line ends, per-line UTF-16/UTF-32 indices and change
@@ -144,7 +144,7 @@ internal sealed class CellBuffer
         perLine?.RemoveLine(line);
     }
 
-    /// <summary>SharpRail extension: inserted bytes take the neighbouring style instead of 0, so container-styled text keeps its token colour until restyled.</summary>
+    /// <summary>tereditor extension: inserted bytes take the neighbouring style instead of 0, so container-styled text keeps its token colour until restyled.</summary>
     internal bool InheritInsertionStyle { get; set; }
 
     private byte InsertionStyle(int position)

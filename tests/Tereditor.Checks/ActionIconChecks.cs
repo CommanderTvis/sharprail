@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// Menu icon consistency (src/SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md): the registry maps each meaning to one distinct,
+/// Menu icon consistency (src/Tereditor.Plugins.UI.Kit/ActionIcons/SPEC.md): the registry maps each meaning to one distinct,
 /// shipped icon, and no menu source assigns a menu item's icon from a raw name instead of the registry.
 /// </summary>
 internal static partial class ActionIconChecks
@@ -21,7 +21,7 @@ internal static partial class ActionIconChecks
         Require(assets.Distinct().Count() == assets.Length, "Two action icon semantics share an asset: " + string.Join(", ", assets.GroupBy(asset => asset).Where(group => group.Count() > 1).Select(group => group.Key)));
         if (BoundaryChecks.Checkout() is not { } checkout) { Console.WriteLine("SKIP action icon source scan: no source checkout"); return; }
         foreach (var asset in assets)
-            Require(File.Exists(Path.Combine(checkout, "src/SharpRail.Plugins.UI.Kit/Assets/Icons", asset + ".svg")), $"Action icon asset '{asset}' is not shipped.");
+            Require(File.Exists(Path.Combine(checkout, "src/Tereditor.Plugins.UI.Kit/Assets/Icons", asset + ".svg")), $"Action icon asset '{asset}' is not shipped.");
         var violations = new List<string>();
         foreach (var file in Directory.EnumerateFiles(Path.Combine(checkout, "src"), "*.cs", SearchOption.AllDirectories))
         {
@@ -46,7 +46,7 @@ internal static partial class ActionIconChecks
         if (BoundaryChecks.Checkout() is not { } checkout) return;
         var assets = ActionIcons.All.Select(entry => entry.Asset).ToArray();
         foreach (var asset in assets)
-            foreach (var path in System.Xml.Linq.XDocument.Load(Path.Combine(checkout, "src/SharpRail.Plugins.UI.Kit/Assets/Icons", asset + ".svg")).Root!.Elements().Where(element => element.Name.LocalName == "path"))
+            foreach (var path in System.Xml.Linq.XDocument.Load(Path.Combine(checkout, "src/Tereditor.Plugins.UI.Kit/Assets/Icons", asset + ".svg")).Root!.Elements().Where(element => element.Name.LocalName == "path"))
             {
                 var ink = Avalonia.Media.Geometry.Parse("F1 " + path.Attribute("d")!.Value).Bounds;
                 Require(ink.X >= 0 && ink.Y >= 0 && ink.Right <= 24 && ink.Bottom <= 24, $"Action icon asset '{asset}' draws outside its 24x24 view box ({ink}), so the menu would trim it.");

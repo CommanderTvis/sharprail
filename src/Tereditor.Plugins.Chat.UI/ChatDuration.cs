@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>Elapsed seconds as the chat words them: <c>45s</c>, <c>10m 27s</c>, <c>1h 02m 05s</c>.</summary>
 internal static class ChatDuration

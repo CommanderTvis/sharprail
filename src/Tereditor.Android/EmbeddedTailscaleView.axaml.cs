@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.UI;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.UI;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>Browser sign-in followed by the existing host-approval picker over the app's private node.</summary>
 internal sealed partial class EmbeddedTailscaleView : UserControl

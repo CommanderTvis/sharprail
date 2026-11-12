@@ -7,10 +7,10 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Lays the header's Project and Branch segments in a row. As width shrinks the branch yields; a segment too

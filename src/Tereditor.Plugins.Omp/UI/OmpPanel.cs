@@ -5,10 +5,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Omp.UI;
+namespace Tereditor.Plugins.Omp.UI;
 
 /// <summary>
 /// The omp side tool: the Early badge, the installed version or the missing-binary state with the install link, which
@@ -18,10 +18,10 @@ namespace SharpRail.Plugins.Omp.UI;
 public static class OmpPanel
 {
     public static string CodeIntelligenceNote(OmpSettings settings) =>
-        settings.OwnCodeIntelligence ? "Code intelligence: omp's own language servers" : "Code intelligence: SharpRail's lsp_* tools";
+        settings.OwnCodeIntelligence ? "Code intelligence: omp's own language servers" : "Code intelligence: tereditor's lsp_* tools";
 
     public static string? ProfileNote(OmpSettings settings) => settings.Mcp
-        ? $"omp runs with its own \"{OmpLaunch.Profile}\" profile and sign-in. Copy your default sign-in below or run /login once in a SharpRail omp tab. " +
+        ? $"omp runs with its own \"{OmpLaunch.Profile}\" profile and sign-in. Copy your default sign-in below or run /login once in a tereditor omp tab. " +
           "Governed launches use Central's proxy key."
         : null;
 
@@ -67,7 +67,7 @@ public static class OmpPanel
             signIn.IsVisible = installed && settings.Mcp;
         }
 
-        // Runs only on this click: the host pipes omp auth export into the SharpRail profile's import.
+        // Runs only on this click: the host pipes omp auth export into the tereditor profile's import.
         async Task ImportSignInAsync()
         {
             if (importing) return;

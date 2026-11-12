@@ -2,9 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Chat;
+namespace Tereditor.Plugins.Chat;
 
 // Chat mode: an agent driven headless by its plugin's host (Claude Code over stream-json is the first), shown as a conversation. The host owns the
 // child process and folds its events into an ordered, id-keyed list of items; the UI renders that list and sends
@@ -203,7 +203,7 @@ public static class ChatNoticeKinds
     public const string Failure = "failure";
     /// <summary>The CLI is retrying a failed API request.</summary>
     public const string Retry = "retry";
-    /// <summary>The CLI or SharpRail restarted the child (an effort change, a rewind).</summary>
+    /// <summary>The CLI or tereditor restarted the child (an effort change, a rewind).</summary>
     public const string Restart = "restart";
     /// <summary>"Interrupted" or "Tool interrupted": the CLI's interrupt marker line.</summary>
     public const string Interrupt = "interrupt";
@@ -488,7 +488,7 @@ public sealed record ChatSessionInfo(string SessionId, string Title, string Last
     public int? Messages { get; init; }
     /// <summary>The chat of this workspace that is running this session right now, so a second one is never started on it; null when none is.</summary>
     public string? ChatId { get; init; }
-    /// <summary>"chat" when a SharpRail chat started the session (the host has its record); null when the host cannot say, as for a terminal session.</summary>
+    /// <summary>"chat" when a tereditor chat started the session (the host has its record); null when the host cannot say, as for a terminal session.</summary>
     public string? StartedIn { get; init; }
 }
 

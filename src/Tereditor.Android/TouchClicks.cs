@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>
 /// A finger that travels is scrolling or flicking, not pressing: a button under it stops being pressed once the

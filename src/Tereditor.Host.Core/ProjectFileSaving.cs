@@ -1,9 +1,9 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class ProjectServices
 {
@@ -23,7 +23,7 @@ public sealed partial class ProjectServices
             var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
             if (!request.Overwrite && utf8.GetString(bytes) != request.OriginalText)
                 throw new HostException(HostErrorCode.FileChangedOnDisk, "The file changed on disk. Your edits have been kept; reconcile the changes before saving.");
-            temporary = Path.Combine(Path.GetDirectoryName(path)!, ".sharprail-save-" + Guid.NewGuid().ToString("N"));
+            temporary = Path.Combine(Path.GetDirectoryName(path)!, ".tereditor-save-" + Guid.NewGuid().ToString("N"));
             await File.WriteAllBytesAsync(temporary, utf8.GetBytes(request.Text), cancellationToken);
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(temporary, File.GetUnixFileMode(path));
             cancellationToken.ThrowIfCancellationRequested();

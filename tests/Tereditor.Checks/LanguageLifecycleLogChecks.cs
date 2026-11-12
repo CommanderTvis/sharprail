@@ -3,9 +3,9 @@ using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>An <see cref="IProjectServices"/> whose language calls hang forever, or throw.</summary>
 public class LanguageFakeHost : DispatchProxy
@@ -32,7 +32,7 @@ internal static class LanguageLifecycleLogChecks
     {
         var log = Path.Combine(fixture, "ci-log", "code-intelligence.log");
         var previousPath = CodeIntelligenceLog.Path; CodeIntelligenceLog.Path = log;
-        var timeouts = (SharpRail.UI.Panels.LanguagePanel.ReadTimeout, SharpRail.UI.Panels.LanguagePanel.StartTimeout);
+        var timeouts = (Tereditor.UI.Panels.LanguagePanel.ReadTimeout, Tereditor.UI.Panels.LanguagePanel.StartTimeout);
         try
         {
             Pane(log, throwing: false);
@@ -44,7 +44,7 @@ internal static class LanguageLifecycleLogChecks
         }
         finally
         {
-            (SharpRail.UI.Panels.LanguagePanel.ReadTimeout, SharpRail.UI.Panels.LanguagePanel.StartTimeout) = timeouts;
+            (Tereditor.UI.Panels.LanguagePanel.ReadTimeout, Tereditor.UI.Panels.LanguagePanel.StartTimeout) = timeouts;
             CodeIntelligenceLog.Path = previousPath;
         }
     }
@@ -53,11 +53,11 @@ internal static class LanguageLifecycleLogChecks
 
     private static void Pane(string log, bool throwing)
     {
-        SharpRail.UI.Panels.LanguagePanel.ReadTimeout = TimeSpan.FromSeconds(1);
+        Tereditor.UI.Panels.LanguagePanel.ReadTimeout = TimeSpan.FromSeconds(1);
         var host = DispatchProxy.Create<IProjectServices, LanguageFakeHost>();
         ((LanguageFakeHost)(object)host).Throw = throwing;
         var root = Path.GetDirectoryName(log)!;
-        var pane = new SharpRail.UI.Panels.LanguagePanel(host, root, _ => Task.CompletedTask);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(host, root, _ => Task.CompletedTask);
         var window = new Window { Width = 400, Height = 400, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -84,7 +84,7 @@ internal static class LanguageLifecycleLogChecks
     private static void StartIsNotCancelled(string log)
     {
         var host = DispatchProxy.Create<IProjectServices, LanguageFakeHost>();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(host, Path.GetDirectoryName(log)!, _ => Task.CompletedTask);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(host, Path.GetDirectoryName(log)!, _ => Task.CompletedTask);
         // Blocking on the call below would deadlock on the UI thread's context, so run without one like the pane checks do.
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         try
@@ -107,7 +107,7 @@ internal static class LanguageLifecycleLogChecks
 
     private static void Watchdog(string log)
     {
-        using var watchdog = new SharpRail.UI.UiLagWatchdog(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(150));
+        using var watchdog = new Tereditor.UI.UiLagWatchdog(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(150));
         var until = Environment.TickCount64 + 1500;
         while (Environment.TickCount64 < until) { Thread.Sleep(700); Dispatcher.UIThread.RunJobs(); }
         var text = Read(log);

@@ -3,10 +3,10 @@ using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Managed runtimes: a fake HTTPS source serves a tiny archive; nothing here touches the network or the real pins.</summary>
 internal static class ManagedRuntimeChecks
@@ -154,9 +154,9 @@ internal static class ManagedRuntimeChecks
         empty.ToolchainSetting = () => "managed-then-path";
         Require(empty.ProbeTool("dotnet", workspace, "DOTNET_ROOT", fresh: true).Source == "home", "managed-then-path did not fall back to DOTNET_ROOT.");
         Env(Toolchains.SourceVariable, "path");
-        Require(empty.ProbeTool("dotnet", workspace, "DOTNET_ROOT", fresh: true).Source == "home" && empty.Toolchain == ToolchainSource.Path, "SHARPRAIL_TOOLCHAINS did not override the setting.");
+        Require(empty.ProbeTool("dotnet", workspace, "DOTNET_ROOT", fresh: true).Source == "home" && empty.Toolchain == ToolchainSource.Path, "TEREDITOR_TOOLCHAINS did not override the setting.");
         Env(Toolchains.SourceVariable, "managed");
-        Require(empty.Toolchain == ToolchainSource.Managed, "SHARPRAIL_TOOLCHAINS=managed was not honoured.");
+        Require(empty.Toolchain == ToolchainSource.Managed, "TEREDITOR_TOOLCHAINS=managed was not honoured.");
         Env(Toolchains.SourceVariable, null);
         Console.WriteLine("PASS an empty managed cache is reported with the pinned version and the variable overrides the setting");
 
@@ -181,9 +181,9 @@ internal static class ManagedRuntimeChecks
         Require(Toolchains.ReadSetting("[toolchains]\nsource = \"docker\"\n", out problem) == "" && problem is not null, "A bad source was accepted.");
         Require(Toolchains.ReadSetting("", out problem) == "" && problem is null && Toolchains.Effective("") == ToolchainSource.Path, "The default is not path.");
         Env(Toolchains.CacheVariable, Path.Combine(root, "cache"));
-        Require(ManagedRuntimes.RuntimesRoot(Path.Combine(root, "other")) == Path.Combine(root, "cache", "runtimes"), "SHARPRAIL_MANAGED_CACHE did not move the runtimes folder.");
+        Require(ManagedRuntimes.RuntimesRoot(Path.Combine(root, "other")) == Path.Combine(root, "cache", "runtimes"), "TEREDITOR_MANAGED_CACHE did not move the runtimes folder.");
         Env(Toolchains.CacheVariable, null);
-        Console.WriteLine("PASS [toolchains] source parses, defaults to path, and the cache directory can be moved by SHARPRAIL_MANAGED_CACHE");
+        Console.WriteLine("PASS [toolchains] source parses, defaults to path, and the cache directory can be moved by TEREDITOR_MANAGED_CACHE");
 
         // The shipped pins: every platform entry is complete and shaped like the others.
         ManagedRuntimes.UsePins(null);
@@ -222,7 +222,7 @@ internal static class ManagedRuntimeChecks
     /// <summary>Bun as a managed runtime: pinned per platform, fail-closed, found by the PATH opt-in rules, and the launcher of the Node-based servers and installs without Node or npm.</summary>
     private static void Bun(string root)
     {
-        // The shipped pins: one verified archive per platform SharpRail runs on, on GitHub's release host, all of one version.
+        // The shipped pins: one verified archive per platform tereditor runs on, on GitHub's release host, all of one version.
         ManagedRuntimes.UsePins(null);
         var bun = ManagedRuntimes.Pins.Where(pin => pin.Id == "bun").ToArray();
         Require(bun.Select(pin => pin.Platform).Order().SequenceEqual(["linux-aarch64", "linux-x86_64", "macos-aarch64", "macos-x86_64", "windows-aarch64", "windows-x86_64"]), "Bun is not pinned for exactly the six platforms.");

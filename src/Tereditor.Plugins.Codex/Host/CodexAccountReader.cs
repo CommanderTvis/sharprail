@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// Reads identity and ChatGPT usage allowances over one lazy, retained app-server connection per activation. Concurrent

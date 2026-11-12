@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode;
+namespace Tereditor.Plugins.ClaudeCode;
 
 /// <summary>One choice of Claude Code's <c>--permission-mode</c>, in the words the launcher and Settings show.</summary>
 public sealed record ClaudePermissionMode(string Id, string Label, string Description)
@@ -12,7 +12,7 @@ public sealed record ClaudePermissionMode(string Id, string Label, string Descri
 /// <summary>The modes the host's CLI accepts and the default the user's own Claude settings name, if any.</summary>
 public sealed record PermissionModesResult(IReadOnlyList<string> Modes)
 {
-    /// <summary>True when the list came from the installed CLI's help rather than SharpRail's fallback.</summary>
+    /// <summary>True when the list came from the installed CLI's help rather than tereditor's fallback.</summary>
     public bool FromCli { get; init; }
     /// <summary><c>permissions.defaultMode</c> from the user's <c>~/.claude/settings.json</c>; null when it names none.</summary>
     public string? ConfiguredDefault { get; init; }

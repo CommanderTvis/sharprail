@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace SharpRail.UI.Notifications;
+namespace Tereditor.UI.Notifications;
 
 /// <summary>
-/// macOS notifications. Inside the app bundle they go through User Notifications, attributed to SharpRail, and
+/// macOS notifications. Inside the app bundle they go through User Notifications, attributed to tereditor, and
 /// activating one comes back through <see cref="Activated"/>. The system refuses that API to a process without a
 /// bundle identifier, so a run from source falls back to AppleScript's <c>display notification</c>: the banner
 /// appears under Script Editor's name and its click cannot return to the app.
@@ -13,7 +13,7 @@ namespace SharpRail.UI.Notifications;
 [SupportedOSPlatform("macos")]
 internal sealed unsafe class MacNotifier : IDesktopNotifier
 {
-    private const string Library = "SharpRailNotifications";
+    private const string Library = "TereditorNotifications";
     private static MacNotifier? current;
     private readonly bool bundled;
 
@@ -82,19 +82,19 @@ internal sealed unsafe class MacNotifier : IDesktopNotifier
         catch (Exception error) { Console.Error.WriteLine("Desktop notification activation failed: " + error.Message); }
     }
 
-    [DllImport(Library, EntryPoint = "sharprail_notifications_start")]
+    [DllImport(Library, EntryPoint = "tereditor_notifications_start")]
     private static extern int Start(delegate* unmanaged[Cdecl]<byte*, void> activated);
 
-    [DllImport(Library, EntryPoint = "sharprail_request_attention")]
+    [DllImport(Library, EntryPoint = "tereditor_request_attention")]
     private static extern void RequestUserAttention();
 
-    [DllImport(Library, EntryPoint = "sharprail_beep")]
+    [DllImport(Library, EntryPoint = "tereditor_beep")]
     private static extern void SystemBeep();
 
-    [DllImport(Library, EntryPoint = "sharprail_notifications_authorize")]
+    [DllImport(Library, EntryPoint = "tereditor_notifications_authorize")]
     private static extern void Authorize();
 
-    [DllImport(Library, EntryPoint = "sharprail_notifications_show")]
+    [DllImport(Library, EntryPoint = "tereditor_notifications_show")]
     private static extern void Show([MarshalAs(UnmanagedType.LPUTF8Str)] string identifier, [MarshalAs(UnmanagedType.LPUTF8Str)] string title,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string subtitle, [MarshalAs(UnmanagedType.LPUTF8Str)] string body);
 }

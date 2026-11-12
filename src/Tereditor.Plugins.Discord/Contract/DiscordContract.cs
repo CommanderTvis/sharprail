@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Discord;
+namespace Tereditor.Plugins.Discord;
 
 /// <summary>What the client believes is worth publishing. The host decides whether any of it may leave.</summary>
 /// <param name="FilePath">Worktree-relative path of the focused editor tab, or null when none is focused.</param>
@@ -64,8 +64,8 @@ public static class DiscordPlugin
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
         Assets = "assets",
-        Host = "SharpRail.Plugins.Discord.Host.dll",
-        Ui = "SharpRail.Plugins.Discord.UI.dll"
+        Host = "Tereditor.Plugins.Discord.Host.dll",
+        Ui = "Tereditor.Plugins.Discord.UI.dll"
     };
 }
 

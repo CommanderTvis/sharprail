@@ -7,11 +7,11 @@ using Avalonia.VisualTree;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Prompt features of the Skia renderer over a real integrated zsh: libghostty-vt's own OSC 133 marks.
 internal static partial class ShellIntegrationChecks

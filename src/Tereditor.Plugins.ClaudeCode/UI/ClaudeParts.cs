@@ -4,11 +4,11 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>The Claude brand mark from this plugin's own <c>claude.svg</c>, read once and tinted like any glyph.</summary>
 internal sealed class ClaudeGlyph(IPluginUIContext context)

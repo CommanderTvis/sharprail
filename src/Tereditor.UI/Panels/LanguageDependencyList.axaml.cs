@@ -5,10 +5,10 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// The host tools one language server declares, each with the user's ways to provide it: a host-wide path of their own, or the install hint.
@@ -50,8 +50,8 @@ internal sealed partial class LanguageDependencyList : UserControl
         AvaloniaProperty.Register<LanguageDependencyList, IReadOnlyList<LanguageDependencyState>?>(nameof(Dependencies));
 
     /// <summary>The host state that owns tool paths; inherited, so a pane sets it once for every row it templates. Null hides Use path and Clear path.</summary>
-    public static readonly StyledProperty<SharpRail.UI.State.SharedState?> HostStateProperty =
-        AvaloniaProperty.Register<LanguageDependencyList, SharpRail.UI.State.SharedState?>(nameof(HostState), inherits: true);
+    public static readonly StyledProperty<Tereditor.UI.State.SharedState?> HostStateProperty =
+        AvaloniaProperty.Register<LanguageDependencyList, Tereditor.UI.State.SharedState?>(nameof(HostState), inherits: true);
 
     /// <summary>Raised with a message for the hosting surface's status line.</summary>
     public static readonly RoutedEvent<StatusEventArgs> StatusEvent =
@@ -60,7 +60,7 @@ internal sealed partial class LanguageDependencyList : UserControl
     internal sealed class StatusEventArgs(string text) : RoutedEventArgs(StatusEvent) { public string Text { get; } = text; }
 
     public IReadOnlyList<LanguageDependencyState>? Dependencies { get => GetValue(DependenciesProperty); set => SetValue(DependenciesProperty, value); }
-    public SharpRail.UI.State.SharedState? HostState { get => GetValue(HostStateProperty); set => SetValue(HostStateProperty, value); }
+    public Tereditor.UI.State.SharedState? HostState { get => GetValue(HostStateProperty); set => SetValue(HostStateProperty, value); }
     public event EventHandler<StatusEventArgs>? Status { add => AddHandler(StatusEvent, value); remove => RemoveHandler(StatusEvent, value); }
 
     /// <summary>Leaves out missing required tools' state lines, for a row that already shows them as its status.</summary>
@@ -68,7 +68,7 @@ internal sealed partial class LanguageDependencyList : UserControl
         AvaloniaProperty.Register<LanguageDependencyList, bool>(nameof(OmitMissingText));
     public bool OmitMissingText { get => GetValue(OmitMissingTextProperty); set => SetValue(OmitMissingTextProperty, value); }
 
-    public static void SetHostState(AvaloniaObject target, SharpRail.UI.State.SharedState? value) => target.SetValue(HostStateProperty, value);
+    public static void SetHostState(AvaloniaObject target, Tereditor.UI.State.SharedState? value) => target.SetValue(HostStateProperty, value);
 
     public LanguageDependencyList()
     {

@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // What the host refuses before it touches a session, and what it tells a client whose shell cannot start.
 internal static partial class TerminalHostChecks
@@ -51,7 +51,7 @@ internal static partial class TerminalHostChecks
         {
             await using var environment = new PtyTerminalService();
             await StartFails(new LocalTerminalAdapter(environment), workspace,
-                "Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart SharpRail, then retry.", root);
+                "Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart tereditor, then retry.", root);
         }
         finally { Environment.SetEnvironmentVariable("SHELL", previous); }
         Console.WriteLine("PASS host terminal start guidance: an unusable shell reports fixed guidance without the native error, path or SHELL value, and a retry starts nothing");

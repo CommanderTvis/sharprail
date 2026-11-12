@@ -4,11 +4,11 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// Source-generated JSON metadata for everything the host core persists or answers outside plugin payloads. Its

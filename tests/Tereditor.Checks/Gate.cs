@@ -2,7 +2,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Slice <c>Index</c> of <c>Total</c>, one-based, over the gate's cases in the order they are reached.</summary>
 internal readonly record struct Shard(int Index, int Total)

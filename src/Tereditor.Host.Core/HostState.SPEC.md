@@ -28,7 +28,7 @@ creation base and re-pointed review target, and the workspace registry, plugin s
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
-Keymaps are shared state too: `HostState.KeymapPresets` (custom presets, name plus a versioned JSON bindings document the host only checks for shape; ids and chords it does not know are kept) and `HostSettings.ActiveKeymap` (a preset name; empty is the built-in IntelliJ). The changes are `keymap-save` (create or replace a preset, validated name, never IntelliJ), `keymap-rename` (the active selection follows) and `keymap-delete` (deleting the active preset resets the selection), plus the `keymap` setting. A store without these fields (an older profile) has no presets and IntelliJ active. The rules and the model live in `SharpRail.Host.Abstractions/Keymaps.cs`; the UI spec ("Keymap") defines chords.
+Keymaps are shared state too: `HostState.KeymapPresets` (custom presets, name plus a versioned JSON bindings document the host only checks for shape; ids and chords it does not know are kept) and `HostSettings.ActiveKeymap` (a preset name; empty is the built-in IntelliJ). The changes are `keymap-save` (create or replace a preset, validated name, never IntelliJ), `keymap-rename` (the active selection follows) and `keymap-delete` (deleting the active preset resets the selection), plus the `keymap` setting. A store without these fields (an older profile) has no presets and IntelliJ active. The rules and the model live in `Tereditor.Host.Abstractions/Keymaps.cs`; the UI spec ("Keymap") defines chords.
 
 The workbench frame, per-workspace document placement, current or default preset, group limits, bottom
 alignment, selection, focus and last location are frontend-local and never reach this store. Built-in
@@ -46,9 +46,9 @@ presets belong to the UI.
 
 ## Persistence
 
-- Local state lives in `~/.sharprail/state.json`; the first launch seeds it once from the profile's
+- Local state lives in `~/.tereditor/state.json`; the first launch seeds it once from the profile's
   pre-host fields, which the UI clears only after the file is written. A remote host uses
-  `SHARPRAIL_STATE_DIR`, default `~/.sharprail/host` on its machine. Tests use isolated directories.
+  `TEREDITOR_STATE_DIR`, default `~/.tereditor/host` on its machine. Tests use isolated directories.
 - Writes go to a temporary file and are moved over the original. A failed load or save is reported
   through `LastError` and never discards the in-memory state; a corrupt file starts from defaults rather
   than blocking the app.
@@ -107,8 +107,8 @@ name clears the label. `HostState.ProjectName` is the shown name. Remote clients
 
 ## Unread workspaces
 
-Ported from ThinkRail #770 onto SharpRail's own unread model (the STATUS A18 gap). Upstream keeps per-chat completion
-receipts; SharpRail has no embedded chat, so the unit is the workspace and the sources are the agent terminals.
+Ported from ThinkRail #770 onto tereditor's own unread model (the STATUS A18 gap). Upstream keeps per-chat completion
+receipts; tereditor has no embedded chat, so the unit is the workspace and the sources are the agent terminals.
 `UnreadWorkspaces` maps a workspace path to the strongest reason it is unread: `blocked` (an agent waits for input),
 `failed`, `done`, or `manual` (marked by hand); a weaker reason never replaces a stronger one. It is persisted, sent to
 remote clients as `StateReply` member 25, and dropped with the workspace's record.
@@ -131,8 +131,8 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   are dropped with the label when the workspace's record leaves the registry, and entries with an invalid
   path or ref are dropped on load. The creation base is kept apart from the record's `BaseBranch`, which
   always names a branch: a workspace cut from `HEAD` has a `BaseBranch` and no review target.
-- `SharprailExcludeDeclined` (`sharprail-exclude-declined`) lists absolute project roots whose user chose to keep an
-  untracked `.sharprail` in the repository; it is persisted, idempotent and sorted, and invalid paths are dropped on load.
+- `TereditorExcludeDeclined` (`tereditor-exclude-declined`) lists absolute project roots whose user chose to keep an
+  untracked `.tereditor` in the repository; it is persisted, idempotent and sorted, and invalid paths are dropped on load.
 
 ## Settings and presets
 
@@ -211,7 +211,7 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
 
 ## Not yet ported
 
-- A `NotGit` refusal of a non-repository. SharpRail opens a plain folder as a workspace on purpose (the
+- A `NotGit` refusal of a non-repository. tereditor opens a plain folder as a workspace on purpose (the
   startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
   needs the product decision upstream made; inspection already gives a client the classification, and the
   code already survives the local and remote adapters.

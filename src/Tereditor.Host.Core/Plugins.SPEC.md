@@ -14,12 +14,12 @@ Upstream: packages/server/src/plugins/SPEC.md @ 4737df6d (CommanderTvis fork)
 ## Responsibility
 
 Turns the builtin plugin host halves (`BuiltinPlugins.All`) and the external plugins it discovers
-(`<stateDir>/plugins/<id>/sharprail-plugin.json` plus every root in `HostState.PluginPaths`) into one running
+(`<stateDir>/plugins/<id>/tereditor-plugin.json` plus every root in `HostState.PluginPaths`) into one running
 `PluginRuntime`: a roster the host publishes on its shared state, a method/channel/route dispatcher, the MCP
 tools a terminal's agent sees, the plugin file read the app reads assets through, and the
 terminal, workspace and settings fan-out every active plugin's host context subscribed to. `PluginRuntime` is
 the composition root and implements `IPluginService`; every other file in `Plugins/` is a leaf it wires
-together. The contract it implements is [the plugin API](../SharpRail.Plugins.Api/SPEC.md).
+together. The contract it implements is [the plugin API](../Tereditor.Plugins.Api/SPEC.md).
 
 ## The boundary
 
@@ -44,16 +44,16 @@ implemented here and never redeclared.
 | `WorkspaceFileWatcher.cs` | one activation's coalescing lease on the shared workspace watcher pool (`OnFilesChanged`); idempotent admission, released on removal, project close and deactivation |
 | `BuiltinPlugins.cs` | Builtin plugin manifests and their optional host modules; PDF preview and file icons are core functionality |
 
-The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
-remote host, and inside `sharprail-headless` (`SharpRail.Host.Headless`) for headless SharpRail. A remote client never runs a host half. Only builtin host halves run: an external plugin is listed
+The runtime runs where the host runs: in the app's process for its own host, inside `Tereditor.Host.Remote` for a
+remote host, and inside `tereditor-headless` (`Tereditor.Host.Headless`) for headless tereditor. A remote client never runs a host half. Only builtin host halves run: an external plugin is listed
 and refused, and nothing here loads an assembly at runtime, which keeps the host publishable as NativeAOT.
 
 ## Shared chat contract
 
-An agent plugin that offers a chat mode lists `ChatContract.Methods` and `ChatContract.Updates` (project `SharpRail.Plugins.Chat`, which
+An agent plugin that offers a chat mode lists `ChatContract.Methods` and `ChatContract.Updates` (project `Tereditor.Plugins.Chat`, which
 depends only on the plugin API) in its own contract, so the wire names stay under the plugin's id, and gives the shared chat view
-(`SharpRail.Plugins.Chat.UI`) a `ChatAgent` description. The core references the contract project through the plugin, never the view.
-See `src/SharpRail.Plugins.Chat/SPEC.md`.
+(`Tereditor.Plugins.Chat.UI`) a `ChatAgent` description. The core references the contract project through the plugin, never the view.
+See `src/Tereditor.Plugins.Chat/SPEC.md`.
 
 ## Manifest-only builtins (no host half)
 
@@ -83,7 +83,7 @@ declared wire version, and itself desired, computed dependency-first over the re
 dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. An
 enabled external plugin is desired only behind the isolation seam (`PluginHostSeams.Isolation`, below): after the
 dependency check, which gives its reason first, the pass marks it `Refused` with "External plugins are not supported
-in this version." when the seam is null, which it is in `App.cs`, `RemoteServer.Create` and headless SharpRail's `Program.cs`. Like a dependency
+in this version." when the seam is null, which it is in `App.cs`, `RemoteServer.Create` and headless tereditor's `Program.cs`. Like a dependency
 refusal, this one is decided again on every pass, so turning the plugin off returns it to `Disabled`. Activation
 refuses an external entry the same way, so no path reaches its code. Changing a builtin's
 `EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
@@ -93,9 +93,9 @@ A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
 `plugin <id> is not available in the Playground`; its dependents follow through the ordinary dependency refusal.
 Every language server plugin except CSS lists `PureWeb`, so a browser tab's catalog holds only `css` (the one server its page runs in a Web Worker). With a non-empty catalog the `lsp_*` MCP tools and the Code intelligence prompt section stay; when the catalog is partial the section names the servers the host provides and says every other file type has none. With an empty catalog the tools and the section are left out. A browser host answers a language request for a file no catalog server owns with `unsupported` before it touches the workspace, a probe or a process. The UI reads the same facts from the roster (`LanguageSupport`): Code Intelligence, its settings page and the language keymap group need at least one available server, and the editor's chords, menu items, quick fixes and status polling run only for files an available server owns. A host with an operating system is unchanged.
 A host of kind `Headless` also refuses every plugin whose manifest `Headless` is not `Yes` (`Undeclared` and `No`), with the reason
-`plugin <id> is not available in headless SharpRail`, and its dependents follow the same way. An external plugin is
+`plugin <id> is not available in headless tereditor`, and its dependents follow the same way. An external plugin is
 held to the same rule; one whose manifest says nothing counts as `No`, and one that says `Yes` is still refused while the seam is null. On such a host `HeadlessEnabledByDefault`, when set,
-replaces `EnabledByDefault`; no builtin sets it, and the headless program sets it in memory for the spec graph and Blueprint only when the run opts in (`SHARPRAIL_TOOLS_ENABLE`). `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
+replaces `EnabledByDefault`; no builtin sets it, and the headless program sets it in memory for the spec graph and Blueprint only when the run opts in (`TEREDITOR_TOOLS_ENABLE`). `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
 A plugin already active is left alone (the kind never changes during a run). A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired
@@ -148,7 +148,7 @@ An external directory whose manifest claims a builtin plugin's id is refused rat
 
 Discovery lists only the roots it is handed (`<stateDir>/plugins` and `HostState.PluginPaths`); it never walks a
 project tree, and a root that does not exist is skipped, not thrown. It keeps no memory: every directory under
-every root is read fresh, and an unreadable or invalid `sharprail-plugin.json` becomes a refused entry rather
+every root is read fresh, and an unreadable or invalid `tereditor-plugin.json` becomes a refused entry rather
 than being dropped, so a mistyped manifest is visible in the roster. Each entry is checked with its link target
 unresolved: a symbolic link is refused outright, naming the entry, rather than followed, because the one
 scanned directory would otherwise be one `ln -s` away from placing an arbitrary directory (a project checkout
@@ -163,7 +163,7 @@ and an `ApiGeneration` other than `PluginApi.Generation` (naming the declared an
 
 The host never loads an external assembly, and the app never receives one: both stay free of dynamic code loading
 so they can be published as NativeAOT. An external plugin runs only in its own runner process
-([Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md)), behind `PluginHostSeams.Isolation`, which only the
+([Security.SPEC.md](../Tereditor.Plugins.Api/Security.SPEC.md)), behind `PluginHostSeams.Isolation`, which only the
 checks set until external plugins are switched on:
 
 - The seam names the runner, what its environment adds, whether a sandbox is required and the start timeout. An
@@ -285,18 +285,18 @@ followed by Return; a session open elsewhere stays offered with `OpenElsewhere` 
 withdraws the offer, clears the record and types the first hook's `RevivePrefill.Fresh` command (a new session of the
 same agent). Only an attach that names its program (an approved `workspace_emigrate`) resumes directly.
 
-Why: two SharpRail processes on one machine (another instance, a dev build from a worktree, another
-`SHARPRAIL_STATE_DIR` profile, a second host) restore the same persisted tabs, and resuming automatically ran one
+Why: two tereditor processes on one machine (another instance, a dev build from a worktree, another
+`TEREDITOR_STATE_DIR` profile, a second host) restore the same persisted tabs, and resuming automatically ran one
 agent session in two processes writing one transcript.
 
 `AgentSessionOwnership` (one per `HostStateStore`) decides "open elsewhere" from two signals. A live, non-zombie
 process whose arguments name the session id (a whole argument, `--flag=id`, or a path segment or file stem, which
 covers Claude's `--resume`/`--session-id`, Codex's `resume <id>` and omp's session folder) counts, except inside the
 asking tab's own shell tree. A lock file counts when another live process holds it. Locks live in
-`<LocalApplicationData>/SharpRail/agent-sessions/<agent>-<id>.lock` (`~/Library/Application Support` on macOS,
-`~/.local/share` on Linux; `SHARPRAIL_AGENT_SESSIONS_DIR` overrides), deliberately outside `~/.sharprail`, which
-`SHARPRAIL_STATE_DIR` makes per profile while the agents' own homes stay shared, and outside the agents' homes, which
-SharpRail does not write. A lock holds the host's pid, its start time and the terminal; it is created with
+`<LocalApplicationData>/tereditor/agent-sessions/<agent>-<id>.lock` (`~/Library/Application Support` on macOS,
+`~/.local/share` on Linux; `TEREDITOR_AGENT_SESSIONS_DIR` overrides), deliberately outside `~/.tereditor`, which
+`TEREDITOR_STATE_DIR` makes per profile while the agents' own homes stay shared, and outside the agents' homes, which
+tereditor does not write. A lock holds the host's pid, its start time and the terminal; it is created with
 `CreateNew`, and one whose process is gone or whose start time differs (pid reuse) is stale, deleted and retaken. The
 host takes the lock whenever an agent record with a session id is set (a fresh launch's preassigned id, a hook
 report, a resume) and releases it when the record clears or changes id, when the tab closes and when the runtime
@@ -304,7 +304,7 @@ stops. A tab whose agent exited keeps its lock while the record stays, since the
 Lock and process work runs in order on the thread pool.
 
 `Inspect` names the owner instead of a bare refusal: a `SessionOwner` with pid, age, tty, command and a kind.
-`Instance` is a live lock holder, or a process with a live SharpRail (this host, a lock holder, or a `SharpRail*`
+`Instance` is a live lock holder, or a process with a live tereditor (this host, a lock holder, or a `tereditor*`
 executable) among its ancestors; `Stray` has none and either a dead holder's lock is left behind or its topmost
 ancestor below init is a shell with a tty (the instance that started it stopped, e.g. an agent that ignored the
 hang-up); `Foreign` is any other process. The offer then carries `OwnerText`, and only a `Stray` that is neither an
@@ -328,7 +328,7 @@ still holds the terminal ([Terminals.SPEC.md](Terminals.SPEC.md#decisions)). Ter
 
 ## Checks
 
-Each rule above is pinned in `tests/SharpRail.Checks/PluginHostChecks.cs`, run against both the in-process
+Each rule above is pinned in `tests/Tereditor.Checks/PluginHostChecks.cs`, run against both the in-process
 runtime and a remote host: manifest refusals (strict shape, id against directory, generation naming both
 numbers), discovery (valid, unreadable and missing manifests, a missing root, a symlinked plugin directory
 refused), registry (dependency order, cycle refusal, contract-intake refusals, channels on the roster), activation (lifecycle, a throwing activation failing the plugin,
@@ -359,12 +359,12 @@ services are enabled; `CorePrompt.cs`), then every active plugin's `plugin.<plug
 `plugin.air-context.tool-guidance`). Only enabled plugins' sections, and only those whose condition holds, are composed
 or listed. Each has a title and a one-line description (a contribution without a title gets one from its id).
 
-A project turns sections off in `.sharprail/instructions.toml` in its root (the Default checkout, so every workspace of
+A project turns sections off in `.tereditor/instructions.toml` in its root (the Default checkout, so every workspace of
 the project agrees; a path that is no registered workspace is its own root). It is shareable, committed config and
 stores only a disable-list, never instruction text, so changing the set of enabled plugins can never make it invalid:
 
 ```toml
-# Instruction sections SharpRail leaves out of agent sessions in this project.
+# Instruction sections tereditor leaves out of agent sessions in this project.
 version = 1
 disabled = [
   "core.workspaces",
@@ -393,7 +393,7 @@ disabled = [
   hand edits included, by a temporary file renamed over it. On POSIX the file is left `0444`, so other editors warn and
   the rename needs only a writable directory; Windows keeps a normal file, since its read-only attribute blocks
   replacing it and recursively deleting the folder. `ReadFileAsync` serves such a file read-only with
-  `ReadOnlyNotice` "Generated by SharpRail. Turn sections off in Context › SharpRail's instructions.", which every file
+  `ReadOnlyNotice` "Generated by tereditor. Turn sections off in Context › tereditor's instructions.", which every file
   view shows above its body, and `SaveFileAsync` (and Claude Code's configuration writes) refuse it. `--claude-code`
   checks the notice, the refused save, the read-only mode and a hand edit overwritten at launch; `--codex` the mode and
   the overwrite.
@@ -410,7 +410,7 @@ save without depending on any plugin id.
 
 ## Not yet ported
 
-- Agent extensions and skills from a plugin's `pi` block, and the agent tool surface: SharpRail has no
+- Agent extensions and skills from a plugin's `pi` block, and the agent tool surface: tereditor has no
   in-process agent.
 - Workspace auto-naming hints.
 - `WorkspaceUpdated` for a branch switch: the host learns of workspace changes only from the published
@@ -422,7 +422,7 @@ save without depending on any plugin id.
 The builtin factory accepts the Tailscale plugin's serving bridge from composition. Its host module owns
 bootstrap pairing and grants; Core only constructs it alongside the other builtins. Ordinary plugin
 contexts and external module loading gain no transport dependency. See
-[Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+[Tailscale](../Tereditor.Plugins.Tailscale/SPEC.md).
 
 Workspace watch admission and release share the activation registration lock. Requests recheck project
 and removed-workspace membership after asynchronous lookup, so close/deactivation cannot admit a stale
@@ -434,14 +434,14 @@ process registry counters, exact lease/instance IDs and the macOS native FSEvent
 ## Workspace environment pipeline (H22, H23)
 
 The host owns the mechanism, because terminals need the environment before any plugin UI loads; the `Env` plugin
-owns the policy ([Env](../SharpRail.Plugins.Env/SPEC.md)): the order of steps, how their variables merge, what a
+owns the policy ([Env](../Tereditor.Plugins.Env/SPEC.md)): the order of steps, how their variables merge, what a
 failing or timed-out step means, and the chips. Without an active `Env` there is no policy, no step runs and every
-shell gets the plain environment (the host's own, minus `SHARPRAIL_TOKEN`).
+shell gets the plain environment (the host's own, minus `TEREDITOR_TOKEN`).
 
 Step providers register with `WorkspaceEnvironmentStep(id, step)` (H23); `Env` registers the policy with
 `WorkspaceEnvironment(policy)` (H22). Before a shell starts for a tab with none running, the terminal service
 awaits `EnvironmentPreparer`, which resolves the workspace on a pool thread: it takes the process environment without
-`SHARPRAIL_TOKEN`, runs the active providers' steps in the order the policy gives (ties by plugin id), each seeing the
+`TEREDITOR_TOKEN`, runs the active providers' steps in the order the policy gives (ties by plugin id), each seeing the
 earlier ones' edits, merges them as the policy says, and keeps the variables that differ from the host's own. A step
 that throws is logged against its plugin and skipped. The policy (`IWorkspaceEnvironmentPolicy`) ranks step ids; merge, failure
 and timeout rules are fixed by the mechanism.
@@ -469,7 +469,7 @@ is per plugin, as for any dependency.
 ## Repo hosting providers (H24, W28)
 
 Git stays in the host; what a forge adds on top of a remote is contributed by plugins. A provider registers with
-`RepoHost(id, provider)` (H24), and `GitHub` ([GitHub](../SharpRail.Plugins.GitHub/SPEC.md)) is the first; GitLab,
+`RepoHost(id, provider)` (H24), and `GitHub` ([GitHub](../Tereditor.Plugins.GitHub/SPEC.md)) is the first; GitLab,
 Gitea or anything else is another plugin, with no host change.
 
 - Routing. For a workspace the host reads `origin`'s URL (git, never the string's shape for remote-ness) and asks the

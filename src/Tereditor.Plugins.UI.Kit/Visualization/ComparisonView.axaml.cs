@@ -5,7 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 internal sealed partial class ComparisonView : StackPanel
 {

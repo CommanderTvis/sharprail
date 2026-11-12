@@ -10,16 +10,16 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class WorkspaceToolChecks
 {
@@ -40,7 +40,7 @@ internal static class WorkspaceToolChecks
         var stateDirectory = root + "-state";
         await using var pty = new PtyTerminalService();
         await using var server = remote ? RemoteServer.Create(root, IPAddress.Loopback, 0, "workspace-tools", stateDirectory,
-            terminals: pty, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
+            terminals: pty, plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(stateDirectory) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         await using var loopback = server is null ? new LoopbackServer(pty, state) : null;
@@ -64,7 +64,7 @@ internal static class WorkspaceToolChecks
         var created = await Request("tools/call", new { name = "workspace_create", arguments = new { description = "Fix live diffs", branch = "fix-live-diffs", baseBranch = initial } });
         var result = JsonNode.Parse(created["result"]!["content"]![0]!["text"]!.GetValue<string>())!;
         var path = result["path"]!.GetValue<string>();
-        Require(Path.GetDirectoryName(path) == SharpRail.Host.Core.WorktreePaths.ProjectDirectory(root, stateDirectory), "The tool must use this host's managed directory.");
+        Require(Path.GetDirectoryName(path) == Tereditor.Host.Core.WorktreePaths.ProjectDirectory(root, stateDirectory), "The tool must use this host's managed directory.");
         Require((await GitRepository.RunAsync(path, default, "rev-parse", "HEAD")).Trim() == initial, "The requested base must determine the new HEAD.");
         IHostStateService client = server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
             new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools");
@@ -111,7 +111,7 @@ internal static class WorkspaceToolChecks
             Require(Path.GetDirectoryName(imagePath) == Path.Combine(stateDirectory, "clipboard") && File.ReadAllBytes(imagePath).SequenceEqual(png),
                 "Prompt images must be stored on the host and survive local and remote transport unchanged.");
             try { await imageHost.SavePromptImageAsync([1, 2, 3]); throw new InvalidOperationException("Invalid images were accepted."); }
-            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
         }
         await Titling(root, stateDirectory, state, client, server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
             new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools"),
@@ -215,7 +215,7 @@ internal static class WorkspaceToolChecks
 
     internal static void RunUi(string root)
     {
-        using var app = new SharpRail.Checks.E2E.E2eWorkspace(Path.Combine(root, "workspace-tool-ui"));
+        using var app = new Tereditor.Checks.E2E.E2eWorkspace(Path.Combine(root, "workspace-tool-ui"));
         Git(app.Root, "init", "-b", "main");
         Git(app.Root, "add", ".");
         Git(app.Root, "commit", "-m", "Initial");

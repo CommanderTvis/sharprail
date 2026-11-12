@@ -5,9 +5,9 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The accessibility tree of one top-level of a plugin's surface (the surface, a popup or a dialog) as the plugin's

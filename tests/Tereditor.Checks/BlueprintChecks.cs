@@ -15,23 +15,23 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Blueprint;
-using SharpRail.Plugins.Blueprint.Host;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Blueprint;
+using Tereditor.Plugins.Blueprint.Host;
+using Tereditor.Plugins.SpecDialect;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class BlueprintChecks
 {
@@ -122,7 +122,7 @@ internal static class BlueprintChecks
         var properties = app.Find<UserControl>("BlueprintProperties");
         properties.Width = 320;
         properties.UpdateLayout();
-        Require(properties.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor>().Count() == 1,
+        Require(properties.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor>().Count() == 1,
             "Blueprint properties are the shared Kit frontmatter editor.");
         var fields = properties.GetLogicalDescendants().OfType<Control>().Where(control => control.Name == "FrontmatterValue").ToArray();
         var keys = properties.GetLogicalDescendants().OfType<UserControl>().Where(control => control.Name == "FrontmatterKey").ToArray();

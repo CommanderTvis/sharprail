@@ -19,9 +19,9 @@ with, so terminals, and the agents run inside them, are ready in a worktree. It 
 independent of the other providers (disabling one leaves the rest working) but not of `Env`: it registers exactly one step and `dependsOn` `Env`, so it goes off with it, and with nothing to apply it
 runs nothing and contributes nothing. There is no UI half and no setting: Settings › Plugins is the off switch. Its position in the pipeline and its chip are `Env`'s to place; the step supplies the chip data.
 
-Two projects, `Contract` (`SharpRail.Plugins.EnvMise`: manifest, empty settings, the step id) and `Host`
-(`SharpRail.Plugins.EnvMise.Host`). The namespace avoids `Environment`, which would shadow `System.Environment` in
-every plugin. The pipeline itself is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md), [Env](../SharpRail.Plugins.Env/SPEC.md).
+Two projects, `Contract` (`Tereditor.Plugins.EnvMise`: manifest, empty settings, the step id) and `Host`
+(`Tereditor.Plugins.EnvMise.Host`). The namespace avoids `Environment`, which would shadow `System.Environment` in
+every plugin. The pipeline itself is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../Tereditor.Host.Core/Plugins.SPEC.md), [Env](../Tereditor.Plugins.Env/SPEC.md).
 
 ## Behaviour
 
@@ -38,7 +38,7 @@ binary by absolute path. A workspace with mise configuration and no mise is logg
 (`brew install mise`); an untrusted configuration shows `mise untrusted`, and a failing `mise env` shows `mise failed`
 with its first error line. mise runs against the user's own configuration and data directory, so a repository's `mise.toml` must not depend on
 variables only its own wrapper sets, and the tools only appear once installed in that data directory (`mise install`;
-SharpRail's `scripts/mise` uses a system mise and that default directory too).
+tereditor's `scripts/mise` uses a system mise and that default directory too).
 
 ## Trust in a new worktree
 

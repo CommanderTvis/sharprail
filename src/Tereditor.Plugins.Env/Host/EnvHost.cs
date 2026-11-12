@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Env.Host;
+namespace Tereditor.Plugins.Env.Host;
 
 /// <summary>Owns the workspace environment policy (step order) and keeps what the last environment resolution of each workspace reported and pushes every change to the terminals' chip rows.</summary>
 public sealed class EnvHost : PluginHostModule

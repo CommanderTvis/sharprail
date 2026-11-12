@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>What the client knows of one tab's Claude session, folded from the status pushes.</summary>
 internal sealed record ClaudeSessionState(ClaudeCodeStatus Status)
@@ -49,7 +49,7 @@ internal sealed class ClaudeCodeStore
     // An empty report field says nothing, as the hook writes a field it has no value for.
     private static string? Present(string? value) => value is { Length: > 0 } ? value : null;
 
-    /// <summary>Whether this terminal's session receives SharpRail's editor context; null until first known.</summary>
+    /// <summary>Whether this terminal's session receives tereditor's editor context; null until first known.</summary>
     public bool? IdeContext(string workspaceId, string tabKey) => ideContext.TryGetValue((workspaceId, tabKey), out var enabled) ? enabled : null;
 
     public void SetIdeContext(string workspaceId, string tabKey, bool enabled)

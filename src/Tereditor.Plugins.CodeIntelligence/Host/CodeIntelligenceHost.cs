@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.CodeIntelligence.Host;
+namespace Tereditor.Plugins.CodeIntelligence.Host;
 
 /// <summary>The host half has nothing to run: the plugin being active is the signal, and the dependents are ordered after it.</summary>
 public sealed class CodeIntelligenceHost : PluginHostModule

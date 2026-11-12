@@ -1,22 +1,22 @@
 using System.Diagnostics;
 using System.Globalization;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The one place every check creates fixtures, screenshots and scratch files: a per-process directory under the OS
-/// temporary directory (<c>SHARPRAIL_CHECKS_ROOT</c> names another parent), never under the checkout. The directory is
-/// deleted when the process ends; <c>SHARPRAIL_CHECKS_KEEP=1</c> keeps it, and a failed gate keeps it as evidence
+/// temporary directory (<c>TEREDITOR_CHECKS_ROOT</c> names another parent), never under the checkout. The directory is
+/// deleted when the process ends; <c>TEREDITOR_CHECKS_KEEP=1</c> keeps it, and a failed gate keeps it as evidence
 /// until the next successful run in the checkout. Roots of processes that died without cleaning up are removed by the
 /// next run.
 /// </summary>
 internal static class CheckRoot
 {
-    internal const string RootVariable = "SHARPRAIL_CHECKS_ROOT";
-    internal const string KeepVariable = "SHARPRAIL_CHECKS_KEEP";
-    internal const string Prefix = "sharprail-checks-";
+    internal const string RootVariable = "TEREDITOR_CHECKS_ROOT";
+    internal const string KeepVariable = "TEREDITOR_CHECKS_KEEP";
+    internal const string Prefix = "tereditor-checks-";
     internal const string FailedMarker = ".failed";
     private static readonly TimeSpan StaleAfter = TimeSpan.FromHours(1);
     private static readonly TimeSpan FailedStaleAfter = TimeSpan.FromDays(1);
@@ -29,16 +29,16 @@ internal static class CheckRoot
     private static string FailedRecord => Path.Combine(Path.GetDirectoryName(Runner.LastRun)!, "checks-failed-fixtures.txt");
 
     /// <summary>
-    /// An entry of the machine-wide build cache every checkout shares (<c>SHARPRAIL_CACHE_DIR</c> from mise.toml, else the
+    /// An entry of the machine-wide build cache every checkout shares (<c>TEREDITOR_CACHE_DIR</c> from mise.toml, else the
     /// same default): downloads and provisioned tools that outlive a run, never fixtures.
     /// </summary>
     internal static string SharedCache(string name)
     {
-        var configured = Environment.GetEnvironmentVariable("SHARPRAIL_CACHE_DIR");
+        var configured = Environment.GetEnvironmentVariable("TEREDITOR_CACHE_DIR");
         var xdg = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
         var root = !string.IsNullOrEmpty(configured) ? configured
-            : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "sharprail", "cache")
-            : Path.Combine(string.IsNullOrEmpty(xdg) ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache") : xdg, "sharprail");
+            : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "tereditor", "cache")
+            : Path.Combine(string.IsNullOrEmpty(xdg) ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache") : xdg, "tereditor");
         return Path.Combine(root, name);
     }
 

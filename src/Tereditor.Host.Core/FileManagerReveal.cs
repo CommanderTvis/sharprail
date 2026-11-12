@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>Shows an entry in the desktop file manager of the machine the host runs on.</summary>
 public static class FileManagerReveal

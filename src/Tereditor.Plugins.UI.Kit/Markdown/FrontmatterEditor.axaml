@@ -1,7 +1,7 @@
-<UserControl xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+<UserControl xmlns:kit="using:Tereditor.Plugins.UI.Kit"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor">
+             x:Class="Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor">
   <StackPanel>
     <StackPanel x:Name="Rows" Grid.IsSharedSizeScope="True" />
     <Button x:Name="FrontmatterAdd" Content="+ Add property" Foreground="{x:Static kit:Ui.Muted}" HorizontalAlignment="Left"

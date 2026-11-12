@@ -3,9 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 /// <summary>Reads an IntelliJ installation's EULA and fingerprints the whole installation, for the host's terms review.</summary>
 internal static class IntelliJTerms

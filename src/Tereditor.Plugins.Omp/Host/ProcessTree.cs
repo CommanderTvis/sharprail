@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Omp.Host;
+namespace Tereditor.Plugins.Omp.Host;
 
 public sealed record ProcessRow(int Pid, int ParentPid, string Name);
 
@@ -107,9 +107,9 @@ public sealed partial class ProcessSnapshot
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { return null; }
     }
 
-    /// <summary>Another SharpRail app (the bundle and apphost are <c>SharpRail.UI</c>): its terminals' agents belong to its own tabs, so the search never descends through it.</summary>
-    public static bool IsSharpRailHost(string name) =>
-        name.Equals("SharpRail.UI", StringComparison.OrdinalIgnoreCase) || name.Equals("SharpRail", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Another tereditor app (the bundle and apphost are <c>Tereditor.UI</c>): its terminals' agents belong to its own tabs, so the search never descends through it.</summary>
+    public static bool IsTereditorHost(string name) =>
+        name.Equals("Tereditor.UI", StringComparison.OrdinalIgnoreCase) || name.Equals("tereditor", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The nearest descendant of <paramref name="rootPid"/> named one of <paramref name="wanted"/>, breadth first.</summary>
     public (int Pid, string Name)? FindDescendant(int rootPid, IReadOnlyCollection<string> wanted, int maxDepth = MaxDescendantDepth)
@@ -125,7 +125,7 @@ public sealed partial class ProcessSnapshot
                     if (!seen.Add(child)) continue;
                     var name = NameOf(child);
                     if (name is not null && wanted.Contains(name)) return (child, name);
-                    if (name is null || !IsSharpRailHost(name)) next.Add(child);
+                    if (name is null || !IsTereditorHost(name)) next.Add(child);
                 }
             frontier = next;
         }

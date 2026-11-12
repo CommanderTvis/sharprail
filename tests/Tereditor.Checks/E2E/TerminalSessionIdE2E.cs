@@ -2,12 +2,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>The terminal tab menu's Copy session ID (W26): offered for an agent tab whose plugin wires it and whose session id is known.</summary>
 internal static class TerminalSessionIdE2E

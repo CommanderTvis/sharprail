@@ -1,6 +1,6 @@
 # Agents
 
-Claude Code, Codex and omp run in workspace terminals. SharpRail adds a pane for each agent, tools they can call, and
+Claude Code, Codex and omp run in workspace terminals. tereditor adds a pane for each agent, tools they can call, and
 the environment their shells start with. [Plugins](plugins.md) lists the plugins behind this.
 
 ## Panes
@@ -29,11 +29,11 @@ project folder itself. Agents can create them too.
 
 - Agents work in the workspace you prepared. When a task needs isolation or parallel work, they create another one with
   the `workspace_create` MCP tool, giving it a description that becomes its label in Projects. They use the tool and not
-  `git worktree add`, so the workspace is placed and described in SharpRail.
+  `git worktree add`, so the workspace is placed and described in tereditor.
 - The tool returns the new path and does not move the agent's terminal. `set_title` titles the terminal's tab, and for
   an unnamed generated workspace the first title also becomes its name and branch.
 - Agents report long-running background processes they start (dev servers, watchers) with `owned_process_report` and
-  withdraw them with `owned_process_release`. SharpRail stops reported processes when their terminal closes or it quits,
+  withdraw them with `owned_process_release`. tereditor stops reported processes when their terminal closes or it quits,
   and quitting tells you how many it will stop. Nothing else is stopped. The Processes plugin provides this and a
   Processes pane (process tree with CPU and memory); disable it in Settings › Plugins to turn all of it off.
 - Given several unrelated tasks, an agent can use a separate workspace and subagent for each.
@@ -44,7 +44,7 @@ project folder itself. Agents can create them too.
 <img src="screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main and a workspace name" width="520">
 
 New workspaces can start with git-ignored paths such as `node_modules` cloned from the Default workspace. List them in
-`.sharprail/workspace.toml` at the project root.
+`.tereditor/workspace.toml` at the project root.
 
 ## Environments
 
@@ -83,16 +83,16 @@ Optional semantic search runs through [JetBrains Air Context](https://www.jetbra
 An agent can show a Mermaid diagram or compare options in a companion pane beside the terminal, and update it as the
 discussion develops.
 
-<img src="screenshots/visualize.png" alt="Claude Code answering in a terminal while the companion pane beside it shows the diagram it drew of SharpRail's layers" width="720">
+<img src="screenshots/visualize.png" alt="Claude Code answering in a terminal while the companion pane beside it shows the diagram it drew of tereditor's layers" width="720">
 
 ## omp
 
 [omp](https://omp.sh) has very early support.
 
-- It launches in a workspace terminal with SharpRail's MCP tools, and a pane lists its context files with token
+- It launches in a workspace terminal with tereditor's MCP tools, and a pane lists its context files with token
   estimates.
 - The integration follows omp's documentation and has not been verified against a real install.
-- With MCP on, omp launches use a `sharprail` omp profile with its own sign-in, settings and sessions, apart from your
+- With MCP on, omp launches use a `tereditor` omp profile with its own sign-in, settings and sessions, apart from your
   default profile.
 - Settings › omp can import your existing sign-in.
 
@@ -109,13 +109,13 @@ Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.co
   A checksum shows the file is the one the registry lists. It does not show the agent is safe. Installing first shows where the code comes from,
   its version, the exact command and what is verified (SHA-256 verified, no checksum from the registry, version pinned, or not pinned), and needs
   your confirmation for each agent and each version. A binary is checked against the registry's checksum when it has one, and refused on a
-  mismatch. The registry has no signatures. Claude and Pi adapters are tagged Not recommended because SharpRail supports those agents directly.
+  mismatch. The registry has no signatures. Claude and Pi adapters are tagged Not recommended because tereditor supports those agents directly.
   You can still install them.
 - Switch on "Start this agent when the New ACP chat button is clicked" in an agent's pane to make it the default. A click on the ACP button in the workspace's tab strip starts it at once. Right-click the button to list
   every agent, with the default marked, and start any of them. With no default the click asks (or starts the only agent).
 - Start a chat with the ACP button in the workspace's tab strip. It runs in the workspace folder; it can read and write
   files and run commands there, and every permission it asks for is shown to you.
-- Sign in with the agent's own tool; SharpRail never asks for credentials. See `src/SharpRail.Plugins.Acp/SPEC.md` for what is not supported yet.
+- Sign in with the agent's own tool; tereditor never asks for credentials. See `src/Tereditor.Plugins.Acp/SPEC.md` for what is not supported yet.
 
 ## Pi
 
@@ -130,7 +130,7 @@ Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.co
 ## Model providers
 
 Settings › Model providers adds the API keys of Pi's and omp's providers, in the file each of them reads (Pi's `auth.json`,
-omp's `sharprail` profile `.env`). You can add a provider that is not listed. Keys are never shown again after they are saved,
+omp's `tereditor` profile `.env`). You can add a provider that is not listed. Keys are never shown again after they are saved,
 and a Claude subscription sign-in is not offered: Anthropic takes an API key from the Claude Console.
 
 ## Air Gateway
@@ -139,5 +139,5 @@ and a Claude subscription sign-in is not offered: Anthropic takes an API key fro
 their own accounts.
 
 - Choose the source in Settings › Air Gateway.
-- SharpRail starts each agent through your own `central` CLI and edits none of the agents' configuration.
+- tereditor starts each agent through your own `central` CLI and edits none of the agents' configuration.
 - For omp, only Anthropic models are governed, and Central's Pi integration (`central add pi`) must be installed.

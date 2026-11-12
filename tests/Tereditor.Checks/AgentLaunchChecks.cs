@@ -3,18 +3,18 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.ClaudeCode.UI;
-using SharpRail.Plugins.Codex;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.ClaudeCode.UI;
+using Tereditor.Plugins.Codex;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-using ClaudeProcesses = SharpRail.Plugins.ClaudeCode.Host.ProcessTree;
-using CodexProcesses = SharpRail.Plugins.Codex.Host.ProcessSnapshot;
+using ClaudeProcesses = Tereditor.Plugins.ClaudeCode.Host.ProcessTree;
+using CodexProcesses = Tereditor.Plugins.Codex.Host.ProcessSnapshot;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class AgentLaunchChecks
 {
@@ -33,7 +33,7 @@ internal static class AgentLaunchChecks
             foreach (var (command, expected) in new[] { (invocation + " --fake-agent-launch", false), (marked, true) })
             {
                 var start = new ProcessStartInfo("/bin/sh", ["-c", command]) { UseShellExecute = false };
-                start.Environment.Remove("SHARPRAIL_UI_LAUNCH");
+                start.Environment.Remove("TEREDITOR_UI_LAUNCH");
                 using var process = Process.Start(start)!;
                 try
                 {
@@ -45,9 +45,9 @@ internal static class AgentLaunchChecks
                 finally { if (!process.HasExited) process.Kill(); process.WaitForExit(); }
             }
             var noLeak = new ProcessStartInfo("/bin/sh", ["-c", marked.Replace(invocation, "/usr/bin/true", StringComparison.Ordinal)
-                + "; test \"${SHARPRAIL_UI_LAUNCH-unset}\" = unset"])
+                + "; test \"${TEREDITOR_UI_LAUNCH-unset}\" = unset"])
             { UseShellExecute = false };
-            noLeak.Environment.Remove("SHARPRAIL_UI_LAUNCH");
+            noLeak.Environment.Remove("TEREDITOR_UI_LAUNCH");
             using var shell = Process.Start(noLeak)!;
             shell.WaitForExit();
             Require(shell.ExitCode == 0, $"{kind}: the UI marker must not leak into later manual commands in the same shell.");
@@ -62,7 +62,7 @@ internal static class AgentLaunchChecks
     {
         var codex = new CodexProcesses([new(10, 1, "sh"), new(20, 10, "codex")]);
         var codexDetections = new List<int>();
-        using var codexWatch = new SharpRail.Plugins.Codex.Host.AgentWatch(() => [new("workspace", "tab", 10)],
+        using var codexWatch = new Tereditor.Plugins.Codex.Host.AgentWatch(() => [new("workspace", "tab", 10)],
             (_, _, pid) => codexDetections.Add(pid), (_, _) => { }, () => codex);
         codexWatch.Sweep();
         codex = new([new(10, 1, "sh"), new(21, 10, "codex")]);
@@ -71,7 +71,7 @@ internal static class AgentLaunchChecks
         Require(codexDetections.SequenceEqual([20, 21]), "Replacing Codex between polls must recheck the launch origin once.");
         var claude = ClaudeProcesses.FromRows([new(10, 1, "sh"), new(20, 10, "claude")]);
         var claudeDetections = new List<int>();
-        var claudeWatch = new SharpRail.Plugins.ClaudeCode.Host.AgentWatch(() => [new("workspace", "tab", 10)],
+        var claudeWatch = new Tereditor.Plugins.ClaudeCode.Host.AgentWatch(() => [new("workspace", "tab", 10)],
             _ => { }, onAgentDetected: (_, _, pid) => claudeDetections.Add(pid), capture: () => claude);
         claudeWatch.Sweep();
         claude = ClaudeProcesses.FromRows([new(10, 1, "sh"), new(21, 10, "claude")]);
@@ -79,9 +79,9 @@ internal static class AgentLaunchChecks
         claudeWatch.Sweep();
         claudeWatch.Stop();
         Require(claudeDetections.SequenceEqual([20, 21]), "Replacing Claude between polls must recheck the launch origin once.");
-        var nestedClaude = ClaudeProcesses.FromRows([new(10, 1, "sh"), new(20, 10, "codex"), new(30, 20, "SharpRail.UI"), new(40, 30, "sh"), new(50, 40, "claude")]);
+        var nestedClaude = ClaudeProcesses.FromRows([new(10, 1, "sh"), new(20, 10, "codex"), new(30, 20, "Tereditor.UI"), new(40, 30, "sh"), new(50, 40, "claude")]);
         Require(ClaudeProcesses.FindDescendant(nestedClaude, 10, ["claude"]) is null && ClaudeProcesses.FindDescendant(nestedClaude, 10, ["codex"]) is { Pid: 20 } &&
-            !ClaudeProcesses.RunsInsideAgent(nestedClaude, 10, "claude", "codex"), "Claude below an inner SharpRail app is not the outer tab's agent");
+            !ClaudeProcesses.RunsInsideAgent(nestedClaude, 10, "claude", "codex"), "Claude below an inner tereditor app is not the outer tab's agent");
     }
 
     internal static void RunUi(string root)

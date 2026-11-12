@@ -1,12 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Plugins.Blueprint.UI;
+namespace Tereditor.Plugins.Blueprint.UI;
 
 internal sealed partial class BlueprintPane : UserControl
 {

@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// What one plugin adds to another plugin's agent launch: a command that wraps or replaces the agent's executable,
@@ -23,7 +23,7 @@ public sealed record AgentLaunchContribution
     /// </summary>
     public bool ReplacesExecutable { get; init; }
 
-    /// <summary>Variables set for this command only. Names outside <c>[A-Za-z_][A-Za-z0-9_]*</c> and the <c>SHARPRAIL_</c> and <c>THINKRAIL_</c> prefixes are ignored; not emitted for Windows shells.</summary>
+    /// <summary>Variables set for this command only. Names outside <c>[A-Za-z_][A-Za-z0-9_]*</c> and the <c>TEREDITOR_</c> and <c>THINKRAIL_</c> prefixes are ignored; not emitted for Windows shells.</summary>
     public IReadOnlyDictionary<string, string> Environment { get; init; } = new Dictionary<string, string>();
 
     /// <summary>Literal words placed directly after the executable or its replacement, before the agent's own arguments.</summary>
@@ -102,7 +102,7 @@ public static partial class AgentLaunchComposition
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var (name, value) in usable.SelectMany(contribution => contribution.Environment))
             {
-                if (!VariableName().IsMatch(name) || name.StartsWith("SHARPRAIL_", StringComparison.Ordinal) || name.StartsWith("THINKRAIL_", StringComparison.Ordinal) || !seen.Add(name)) continue;
+                if (!VariableName().IsMatch(name) || name.StartsWith("TEREDITOR_", StringComparison.Ordinal) || name.StartsWith("THINKRAIL_", StringComparison.Ordinal) || !seen.Add(name)) continue;
                 prefix.Append(name).Append('=').Append(Quote(value, false)).Append(' ');
             }
         }

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// Lets the environment plugins run a script inside an interactive shell after the user's own start-up files, so a
@@ -12,43 +12,43 @@ namespace SharpRail.Host.Core;
 internal static class ShellEnvironmentHooks
 {
     /// <summary>The variable naming the shim directory; the shell never sees it.</summary>
-    internal const string DirectoryVariable = "SHARPRAIL_SHELL_INTEGRATION";
+    internal const string DirectoryVariable = "TEREDITOR_SHELL_INTEGRATION";
 
     /// <summary>The prefix of the variables carrying a shell's script, followed by the upper-case shell name.</summary>
-    internal const string InitPrefix = "SHARPRAIL_SHELL_INIT_";
+    internal const string InitPrefix = "TEREDITOR_SHELL_INIT_";
 
-    private const string UserDirectory = "SHARPRAIL_USER_ZDOTDIR";
+    private const string UserDirectory = "TEREDITOR_USER_ZDOTDIR";
 
     // Each file runs the user's counterpart as if ZDOTDIR were untouched, then hands ZDOTDIR back.
     private static string Pass(string file) => $$"""
-        # SharpRail shell integration: runs the user's {{file}} with ZDOTDIR as the user has it.
-        if [[ -n "$SHARPRAIL_USER_ZDOTDIR" ]]; then
-          SHARPRAIL_SHIM_ZDOTDIR="$ZDOTDIR"
-          ZDOTDIR="$SHARPRAIL_USER_ZDOTDIR"
+        # tereditor shell integration: runs the user's {{file}} with ZDOTDIR as the user has it.
+        if [[ -n "$TEREDITOR_USER_ZDOTDIR" ]]; then
+          TEREDITOR_SHIM_ZDOTDIR="$ZDOTDIR"
+          ZDOTDIR="$TEREDITOR_USER_ZDOTDIR"
           [[ -f "$ZDOTDIR/{{file}}" ]] && . "$ZDOTDIR/{{file}}"
-          SHARPRAIL_USER_ZDOTDIR="$ZDOTDIR"
-          ZDOTDIR="$SHARPRAIL_SHIM_ZDOTDIR"
+          TEREDITOR_USER_ZDOTDIR="$ZDOTDIR"
+          ZDOTDIR="$TEREDITOR_SHIM_ZDOTDIR"
         fi
 
         """;
 
     private static readonly string Zshrc = $$"""
-        # SharpRail shell integration: runs the user's .zshrc, then the plugins' script, then gives ZDOTDIR back.
-        if [[ -n "$SHARPRAIL_USER_ZDOTDIR" ]]; then
-          ZDOTDIR="$SHARPRAIL_USER_ZDOTDIR"
+        # tereditor shell integration: runs the user's .zshrc, then the plugins' script, then gives ZDOTDIR back.
+        if [[ -n "$TEREDITOR_USER_ZDOTDIR" ]]; then
+          ZDOTDIR="$TEREDITOR_USER_ZDOTDIR"
           [[ -f "$ZDOTDIR/.zshrc" ]] && . "$ZDOTDIR/.zshrc"
         fi
-        [[ -n "$SHARPRAIL_SHELL_INIT_ZSH" ]] && eval "$SHARPRAIL_SHELL_INIT_ZSH"
+        [[ -n "$TEREDITOR_SHELL_INIT_ZSH" ]] && eval "$TEREDITOR_SHELL_INIT_ZSH"
         [[ "$ZDOTDIR" == "$HOME" ]] && unset ZDOTDIR
-        unset SHARPRAIL_SHIM_ZDOTDIR SHARPRAIL_USER_ZDOTDIR SHARPRAIL_SHELL_INIT_ZSH
+        unset TEREDITOR_SHIM_ZDOTDIR TEREDITOR_USER_ZDOTDIR TEREDITOR_SHELL_INIT_ZSH
 
         """;
 
     private const string Fish = """
-        # SharpRail shell integration: the plugins' script, before the user's config.fish.
-        if set -q SHARPRAIL_SHELL_INIT_FISH
-            echo "$SHARPRAIL_SHELL_INIT_FISH" | source
-            set -e SHARPRAIL_SHELL_INIT_FISH
+        # tereditor shell integration: the plugins' script, before the user's config.fish.
+        if set -q TEREDITOR_SHELL_INIT_FISH
+            echo "$TEREDITOR_SHELL_INIT_FISH" | source
+            set -e TEREDITOR_SHELL_INIT_FISH
         end
 
         """;
@@ -59,7 +59,7 @@ internal static class ShellEnvironmentHooks
         Write(Path.Combine(root, "zsh", ".zshenv"), Pass(".zshenv"));
         Write(Path.Combine(root, "zsh", ".zprofile"), Pass(".zprofile"));
         Write(Path.Combine(root, "zsh", ".zshrc"), Zshrc);
-        Write(Path.Combine(root, "fish", "vendor_conf.d", "sharprail.fish"), Fish);
+        Write(Path.Combine(root, "fish", "vendor_conf.d", "tereditor.fish"), Fish);
         return root;
     }
 

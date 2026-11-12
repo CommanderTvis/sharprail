@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace SharpRail.Plugins.Epub.Host;
+namespace Tereditor.Plugins.Epub.Host;
 
 /// <summary>
 /// Converts one XHTML content document to Markdown blocks for the kit's renderer. Structure survives (headings,

@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 // A terminal session belongs to the host, not to the client that shows it. The client names the session
 // (a stable tab identity) and identifies itself, so that attaching elsewhere takes the session over.

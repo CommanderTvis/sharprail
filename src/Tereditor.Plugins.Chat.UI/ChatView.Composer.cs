@@ -9,12 +9,12 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
@@ -805,7 +805,7 @@ internal sealed partial class ChatView
     }
 
     // The extension's placeholder: waiting while a request is open, queueing while Claude works, else the plain invitation. The key-hint variants
-    // ("Esc to focus or unfocus", "Esc to attach selected text") belong to keybindings SharpRail does not have.
+    // ("Esc to focus or unfocus", "Esc to attach selected text") belong to keybindings tereditor does not have.
     internal string Placeholder() => bashMode ? "Run a shell command" : transcript.PendingCount > 0 ? (transcript.FirstPending() is ChatQuestionItem ? "Waiting for your answer…" : "Waiting for permission…") : Busy ? "Queue another message…" : $"Ask {env.Agent.Short} to edit…";
 
     private bool Busy => status is ChatStatus.Running or ChatStatus.AwaitingPermission;
@@ -1488,7 +1488,7 @@ internal sealed partial class ChatView
     /// <summary>The sections of the slash menu, in the extension's order; sections the host names that are not here follow Slash Commands.</summary>
     internal static readonly string[] SlashSections = ["Context", "Model", "Customize", "Settings", "Slash Commands", "Support", "MCP servers"];
 
-    // Built-in actions are only those SharpRail can honestly do: attach a file, resume or start a conversation, switch the model, open the docs.
+    // Built-in actions are only those tereditor can honestly do: attach a file, resume or start a conversation, switch the model, open the docs.
     private List<MenuEntry> SlashEntries(ChatHeader header, string query, int from, int to)
     {
         bool Matches(string label, string? detail = null) => label.Contains(query, StringComparison.OrdinalIgnoreCase);

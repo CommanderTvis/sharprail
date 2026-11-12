@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// One workspace's derived spec index. Every read walks the tree and revalidates each Markdown file by
@@ -14,7 +14,7 @@ internal sealed class SpecIndex(string root)
     private const int MaxBytes = 512 * 1024;
 
     internal static readonly HashSet<string> Excluded = new(StringComparer.Ordinal)
-    { ".git", ".tools", ".bench", ".sharprail", "node_modules", "bin", "obj", "dist", "build", "artifacts", "vendor", "target", ".next" };
+    { ".git", ".tools", ".bench", ".tereditor", "node_modules", "bin", "obj", "dist", "build", "artifacts", "vendor", "target", ".next" };
 
     private sealed record SpecFile(SpecDocument Document, Dictionary<string, string[]> Frontmatter);
     private sealed record Entry(DateTime Modified, long Size, SpecFile? Spec);

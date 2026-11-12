@@ -1,11 +1,11 @@
 using System.Net;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Ghostty's undo close on the host: a tab the user closed keeps its shell, detached, for the undo timeout.
 internal static partial class TerminalHostChecks

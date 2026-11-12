@@ -5,12 +5,12 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Code Intelligence pane and the shared pane header from very narrow to wide: names never break inside a word, actions stay reachable and titles never run under their buttons.</summary>
 internal static class LanguagePaneNarrowChecks
@@ -39,11 +39,11 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-scroll"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 260, Height = 300, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -77,7 +77,7 @@ internal static class LanguagePaneNarrowChecks
             Require(scroll.Offset.Y >= before - 1, $"A refresh moved the scroll offset from {before} to {scroll.Offset.Y}.");
             Console.WriteLine("PASS The Code Intelligence pane scrolls with the wheel, reaches its last row and does not overflow horizontally");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>The "Suggested by file" line wraps onto as many lines as the file name needs instead of ending in an ellipsis, and Hide stays visible beside or below it.</summary>
@@ -85,11 +85,11 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-suggestion"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         var window = new Window { Width = 300, Height = 600, Content = pane };
         window.Show();
@@ -116,7 +116,7 @@ internal static class LanguagePaneNarrowChecks
             }
             Console.WriteLine("PASS The suggested-by line wraps instead of trimming and Hide stays visible at narrow and wide widths");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>The pane re-reads the host every few seconds and each reply carries freshly built arrays and lists; an unchanged server must keep its row container, or every poll rebuilds the rows and drops a click or drag in flight.</summary>
@@ -124,11 +124,11 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-poll"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 480, Height = 600, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -153,7 +153,7 @@ internal static class LanguagePaneNarrowChecks
                 Require(ReferenceEquals(first[index], servers.ContainerFromIndex(index)), $"An unchanged server row {index} was rebuilt by a poll reply.");
             Console.WriteLine("PASS An unchanged inventory reply keeps the Code Intelligence rows in place");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>
@@ -165,11 +165,11 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-burst"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 320, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -177,9 +177,9 @@ internal static class LanguagePaneNarrowChecks
         {
             E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
             var open = Enumerable.Range(0, 5000).ToDictionary(index => "t" + index, index => $"Loading project src/Company.Product.Module{index}/Company.Product.Module{index}.csproj");
-            var line = SharpRail.Host.Core.Language.LanguageSession.ProgressDetail(open);
+            var line = Tereditor.Host.Core.Language.LanguageSession.ProgressDetail(open);
             Require(line.Length < 500 && line.EndsWith("(+4997 more)", StringComparison.Ordinal), $"The session's progress detail for 5000 open tokens is {line.Length} characters: {line[..Math.Min(80, line.Length)]}");
-            Require(SharpRail.Host.Core.Language.LanguageSession.ProgressDetail(new Dictionary<string, string>()) == "Ready", "No open token is not Ready.");
+            Require(Tereditor.Host.Core.Language.LanguageSession.ProgressDetail(new Dictionary<string, string>()) == "Ready", "No open token is not Ready.");
             foreach (var tokens in new[] { 120, 2000 })
             {
                 var slowest = 0.0; var total = 0.0;
@@ -204,7 +204,7 @@ internal static class LanguagePaneNarrowChecks
             }
             Console.WriteLine("PASS A Roslyn start burst keeps the average pane update inside the frame budget");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>Forwards to a target and records whether each call arrived on the UI thread.</summary>
@@ -225,13 +225,13 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-ui-thread"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
         var projects = System.Reflection.DispatchProxy.Create<IProjectServices, Recorder>();
         ((Recorder)(object)projects).Target = new LocalProjectAdapter(new ProjectServices(root, state));
-        var plugins = System.Reflection.DispatchProxy.Create<SharpRail.Plugins.Api.UI.IPluginUIContext, Recorder>();
+        var plugins = System.Reflection.DispatchProxy.Create<Tereditor.Plugins.Api.UI.IPluginUIContext, Recorder>();
         var requests = 0;
         ((Recorder)(object)plugins).Fake = (method, _) =>
         {
@@ -247,13 +247,13 @@ internal static class LanguagePaneNarrowChecks
             }
             return type.IsValueType ? Activator.CreateInstance(type) : null;
         };
-        var pane = new SharpRail.UI.Panels.LanguagePanel(projects, root, _ => Task.CompletedTask, shared);
-        var air = new SharpRail.Plugins.AirContext.UI.AirContextPane(plugins, root, account: false);
-        var view = new SharpRail.UI.Panels.LanguageConfigurationView(projects, root, new LanguageServerState("fake", "file.x", "idle", "", "1"));
+        var pane = new Tereditor.UI.Panels.LanguagePanel(projects, root, _ => Task.CompletedTask, shared);
+        var air = new Tereditor.Plugins.AirContext.UI.AirContextPane(plugins, root, account: false);
+        var view = new Tereditor.UI.Panels.LanguageConfigurationView(projects, root, new LanguageServerState("fake", "file.x", "idle", "", "1"));
         var panel = new StackPanel { Children = { pane, air, view } };
         var window = new Window { Width = 480, Height = 600, Content = panel };
         var observed = 0;
-        SharpRail.Plugins.AirContext.UI.AirContextPane.RequestObserver = () =>
+        Tereditor.Plugins.AirContext.UI.AirContextPane.RequestObserver = () =>
         {
             Interlocked.Increment(ref observed);
             if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) ((Recorder)(object)plugins).OnUi.Add("AirContext request");
@@ -267,7 +267,7 @@ internal static class LanguagePaneNarrowChecks
             Require(onUi.Length == 0, "Host calls ran on the UI thread: " + string.Join(", ", onUi));
             Console.WriteLine($"PASS The Code Intelligence pane, its configuration view and Air Context start no host or plugin request on the UI thread ({requests} plugin requests)");
         }
-        finally { SharpRail.Plugins.AirContext.UI.AirContextPane.RequestObserver = null; window.Close(); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { Tereditor.Plugins.AirContext.UI.AirContextPane.RequestObserver = null; window.Close(); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>Hide removes a suggested row behind "1 hidden · Show", persists per project in host state, stops suggesting it, and Show/Unhide bring it back.</summary>
@@ -277,11 +277,11 @@ internal static class LanguagePaneNarrowChecks
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
         File.WriteAllText(Path.Combine(root, "scripts", "window-probe.m"), "int main(void) { return 0; }");
         File.WriteAllText(Path.Combine(root, "Program.cs"), "class Program {}");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 480, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -315,7 +315,7 @@ internal static class LanguagePaneNarrowChecks
             E2E.E2eWorkspace.Until(() => Row(clangd) is not null && !toggle.IsVisible && !state.Current.ProjectLanguageHidden.ContainsKey(root), "Unhide did not bring clangd back.");
             Console.WriteLine("PASS Show reveals hidden servers and Unhide restores them");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>Refreshing ~20 servers 50 times keeps one row per server: rows from the first refreshes are collected, so no scope or subscription retains them.</summary>
@@ -323,11 +323,11 @@ internal static class LanguagePaneNarrowChecks
     {
         var root = Path.Combine(fixture, "language-churn"); Directory.CreateDirectory(root);
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 320, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -353,7 +353,7 @@ internal static class LanguagePaneNarrowChecks
             Require(alive == 0, $"{alive} of {early.Count} server rows from early refreshes were still reachable after 50 refreshes.");
             Console.WriteLine("PASS 50 refreshes of 20 servers leave one row per server and release replaced rows");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     private const double PlainSuggestedRowBudget = 56;
@@ -364,17 +364,17 @@ internal static class LanguagePaneNarrowChecks
         var root = Path.Combine(fixture, "language-dense"); Directory.CreateDirectory(Path.Combine(root, "scripts"));
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
         File.WriteAllText(Path.Combine(root, "scripts", "window-probe.m"), "int main(void) { return 0; }");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 480, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
         try
         {
-            Require(pane.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace") is { Path: var path } && path == root, "The pane's path line is not the shared PathLine showing the workspace.");
+            Require(pane.FindControl<Tereditor.Plugins.UI.Kit.PathLine>("Workspace") is { Path: var path } && path == root, "The pane's path line is not the shared PathLine showing the workspace.");
             var servers = pane.FindControl<ListBox>("Servers")!;
             E2E.E2eWorkspace.Until(() => servers.Items.Any(item => item?.ToString() == "C / C++ (clangd)"), "The dense-layout fixture did not list clangd.");
             window.UpdateLayout();
@@ -392,7 +392,7 @@ internal static class LanguagePaneNarrowChecks
             Require(row.Bounds.Height <= PlainSuggestedRowBudget, $"A plain suggested row is {row.Bounds.Height} px tall, over {PlainSuggestedRowBudget}.");
             Console.WriteLine("PASS Language rows align their detail lines with the name, put Hide on the suggested-by line and stay within the row height budget");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     private static void Rows(string fixture)
@@ -401,11 +401,11 @@ internal static class LanguagePaneNarrowChecks
         var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
         File.WriteAllText(Path.Combine(root, "scripts", "window-probe.m"), "int main(void) { return 0; }");
         File.WriteAllText(Path.Combine(root, "Program.cs"), "class Program {}");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 480, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -456,7 +456,7 @@ internal static class LanguagePaneNarrowChecks
             }
             Console.WriteLine("PASS Code Intelligence rows at 160-480 px keep one aligned header line, trimmed names and reachable actions");
         }
-        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     private static void Header(string fixture)

@@ -11,7 +11,7 @@ tags: [plugins, security]
 # Plugin security
 
 Today a plugin is code in the host process and in the app, with the user's full rights
-([Trust](SPEC.md#trust)). This spec replaces that for plugins SharpRail does not ship. The plugin API stays the
+([Trust](SPEC.md#trust)). This spec replaces that for plugins tereditor does not ship. The plugin API stays the
 contract; what changes is where an untrusted plugin runs and what it can reach from there. When this spec is
 adopted, it supersedes the "There is no sandbox" paragraph and "sandboxing or crash isolation" in the API spec's
 out-of-scope list.
@@ -75,11 +75,11 @@ flowchart LR
 
 ## The host and the app become NativeAOT
 
-Once no external code loads into SharpRail's own processes, nothing in them needs dynamic assembly loading. The
+Once no external code loads into tereditor's own processes, nothing in them needs dynamic assembly loading. The
 host, the remote host and the desktop app are published as real NativeAOT binaries: every package ships the desktop
-app (with its embedded host) and the remote host that way, the headless image ships `sharprail-headless` that way, and
+app (with its embedded host) and the remote host that way, the headless image ships `tereditor-headless` that way, and
 nothing else is NativeAOT (see [Packages](#packages-ship-nativeaot-binaries) and
-[Headless SharpRail](#headless-sharprail)).
+[Headless tereditor](#headless-tereditor)).
 
 This comes first and does not wait for the isolated runtime. No external plugin exists yet, so external plugins
 stop loading in-process now: they are still discovered and listed, and refused with a reason until the isolated
@@ -87,12 +87,12 @@ runtime can run them. The isolated runtime is built when the first external plug
 
 Builtin plugins are bundled, not loaded. They are project references composed by the literal builtin arrays in
 both runtimes, so the AOT compiler sees them like any other code in the binary. The plugin load context, loading
-by path and the app's reading of UI assemblies through the host all leave SharpRail's processes. They become the
+by path and the app's reading of UI assemblies through the host all leave tereditor's processes. They become the
 plugin runner's job.
 
-The plugin runner is the only JIT process. SharpRail ships it with a self-contained .NET runtime beside its own
+The plugin runner is the only JIT process. tereditor ships it with a self-contained .NET runtime beside its own
 binaries, on every host and app that can run external plugins. The shared assemblies (the API, Avalonia, SkiaSharp,
-the kit, and the shared chat contract and view, `SharpRail.Plugins.Chat` and `SharpRail.Plugins.Chat.UI`, so an
+the kit, and the shared chat contract and view, `Tereditor.Plugins.Chat` and `Tereditor.Plugins.Chat.UI`, so an
 external agent plugin can offer the shared chat mode) are precompiled with ReadyToRun for it, so that plugin start
 does not pay for compiling them.
 
@@ -112,7 +112,7 @@ An analyzer build and NativeAOT publishes of the remote host and of the desktop 
 authority. After the analyzer build was clean, the remote host publish reported one site (the IDE bridge's tool
 list, fixed before the app was published), and the desktop app publish reported only reflection bindings in five
 XAML data templates. Those templates were compiled afterwards; the build and `--conformance` cover them, not a
-second publish. The first publish of headless SharpRail (osx-arm64) reported nothing. What stood in the way, and how each went:
+second publish. The first publish of headless tereditor (osx-arm64) reported nothing. What stood in the way, and how each went:
 
 1. The WebSocket RPC payload codec was protobuf-net, which builds serializers at run time. Host, remote host and
    clients all used it. A codec generated at build time replaced it and keeps the wire bytes, since a remote host
@@ -124,7 +124,7 @@ second publish. The first publish of headless SharpRail (osx-arm64) reported not
    source-generated metadata or JSON nodes.
 3. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are plain
    request delegates that read their route values themselves, since minimal-API delegate binding is
-   reflection-based (see the [remote host](../SharpRail.Host.Remote/SPEC.md)).
+   reflection-based (see the [remote host](../Tereditor.Host.Remote/SPEC.md)).
 4. Avalonia bindings are all compiled. The kit observes properties directly instead of binding by string path,
    its control styles are a compiled XAML class instead of a style include by URI, and every data template names
    its `x:DataType`. The `AVLN3001` note on the kit's front matter editor stays: it only says the file cannot be
@@ -135,7 +135,7 @@ second publish. The first publish of headless SharpRail (osx-arm64) reported not
 
 Packages, each decided from the two publishes:
 
-- Tomlyn: our use was reflection (`Deserialize<TomlTable>`). Fixed in our use: the project's `.sharprail` files
+- Tomlyn: our use was reflection (`Deserialize<TomlTable>`). Fixed in our use: the project's `.tereditor` files
   and Codex's `config.toml` read through a generated `TomlSerializerContext` for the untyped table, which gives
   the same model and the same JSON (`--project-toml`).
 - TextMateSharp, Svg.Controls.Skia.Avalonia, Markdig, QRCoder, Avalonia with SkiaSharp and HarfBuzzSharp, and
@@ -143,7 +143,7 @@ Packages, each decided from the two publishes:
 - The AOT compiler package SDK 10.0.401 brought (Microsoft.DotNet.ILCompiler 10.0.12) had a high-severity
   advisory. The SDK pin moved to 10.0.403, whose compiler (10.0.14) is past it, before the first AOT package.
 
-Every project under `src/` except the Android and Browser heads and the plugin runner (`SharpRail.Plugins.Runner`, the
+Every project under `src/` except the Android and Browser heads and the plugin runner (`Tereditor.Plugins.Runner`, the
 one JIT process) sets `IsAotCompatible` (`Directory.Build.props`),
 which runs the trim, AOT and single-file analyzers on every build, so a new IL2xxx or IL3xxx fails the build. It
 also marks those assemblies trimmable, which changes neither head: Android does not trim, and the Browser build
@@ -164,7 +164,7 @@ fallback. A `pureWeb` host has no external plugins anyway.
 
 The desktop app and the remote host import `NativeAot.props`, which turns `PublishAot` on and keeps symbol, PDB, XML
 and runtimeconfig files out of the publish. NativeAOT replaced the composite ReadyToRun publish they had. Headless
-SharpRail imports it too, but ships in an image, not a package. The checks stay a JIT program, and so does everything
+tereditor imports it too, but ships in an image, not a package. The checks stay a JIT program, and so does everything
 else.
 
 - macOS links with Xcode's clang, then signs the bundle as before.
@@ -232,8 +232,8 @@ what changes is that it now covers where each UI half comes from.
 
 Hosts that cannot sandbox run no external plugins. A host that lives in a browser tab (`pureWeb`, the playground)
 has no external plugins at all: discovery is off, the roster lists builtin plugins only, and nothing offers an
-install. Headless SharpRail has no client, so an external plugin there runs its host half only
-([below](#headless-sharprail)).
+install. Headless tereditor has no client, so an external plugin there runs its host half only
+([below](#headless-tereditor)).
 
 The runtime creates the channel (a socketpair or pipe), starts the plugin runner with that one end inherited, and
 applies the sandbox before any plugin code runs. The sandbox forbids opening any other channel. The plugin's
@@ -243,47 +243,47 @@ reads an id, path or client key the plugin claims.
 Inside the sandbox a plugin process can read its plugin directory and the runner, read and write its own state
 directory (H19) and a private temporary directory, and use its channel. Nothing else.
 
-Linux uses Landlock and seccomp, applied by a small helper (`sharprail-confine`, C built with the pinned Zig) that
+Linux uses Landlock and seccomp, applied by a small helper (`tereditor-confine`, C built with the pinned Zig) that
 then executes the runner: Landlock allows reading the plugin and runner directories and writing only the state and
 temporary directories, and seccomp refuses sockets, other processes' memory, `io_uring` and terminal injection. This
 replaced bubblewrap (namespaces and binds), because Ubuntu 24.04 restricts unprivileged user namespaces through
 AppArmor, and the helper needs no external binary and no privilege. The costs: Linux 5.13 at least, and 6.7 for
 Landlock's network rules (below that, seccomp alone blocks sockets); without PID and mount namespaces a plugin can
 learn which paths exist (`stat`) though it cannot read them; whether it works inside containers, where headless
-SharpRail's image runs, is unverified until the Linux sandbox slice probes it. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
+tereditor's image runs, is unverified until the Linux sandbox slice probes it. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
 `sandbox_init` with a generated profile, rather than the App Sandbox, which needs entitlements per binary).
 Windows uses an AppContainer with no capabilities (unconfirmed). A host that cannot apply its sandbox refuses
 external plugins with that as the reason, rather than running them unconfined.
 
-### Headless SharpRail
+### Headless tereditor
 
-Headless SharpRail (`sharprail-headless`, see [module-host-headless](../SharpRail.Host.Headless/SPEC.md)) is the third
+Headless tereditor (`tereditor-headless`, see [module-host-headless](../Tereditor.Host.Headless/SPEC.md)) is the third
 host composition, beside the app's own host and the remote host (`RemoteServer.Create`). It serves MCP over stdio for
-one workspace and has no client: no window, no app and no remote client. Its image is `ghcr.io/commandertvis/sharprail`.
+one workspace and has no client: no window, no app and no remote client. Its image is `ghcr.io/commandertvis/tereditor`.
 
 - It is published as NativeAOT, like the other two. Its image is not a package, so the packaged gate does not check
   it. One osx-arm64 publish has run: a 27 MiB binary that answered `check-config`, initialize, tools/list and three
   tool calls. No Linux binary has been built yet.
 - It runs as `HostKind.Headless`. A builtin plugin runs there only when its manifest says `Headless = Yes`, and a
-  plugin that depends on a refused one is refused too ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md)).
+  plugin that depends on a refused one is refused too ([Plugins](../Tereditor.Host.Core/Plugins.SPEC.md)).
 - External plugins in `<stateDir>/plugins` are found and listed, and refused for now: the isolation seam is null there.
   Once the isolated host half exists, an external plugin runs there only when its manifest says `Headless = Yes`. A
   manifest that says nothing counts as `No`. Such a plugin is isolated exactly as on other hosts: one sandboxed process,
   the same broker, protected set and audit log. Only its host half runs. There is no client, so no UI half activates
   and no surface opens.
 - No app draws a prompt. A plugin's grants come only from a grants file the user writes in the headless state
-  directory (`SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`). Enabling a plugin grants nothing there, not even the
+  directory (`TEREDITOR_STATE_DIR`, else `~/.tereditor/headless`). Enabling a plugin grants nothing there, not even the
   enable-time set. A permissioned call without a grant in the file is denied at once, with no prompt and no wait, and
   is written to the audit log. A full-trust grant needs its own explicit entry in the file, like any other grant. The
   file sits in the state directory, so it is in the protected set. Its format, and how an entry is bound to the
   plugin's content hash, are settled by the grants slice; neither exists yet.
-- The sandbox applies inside a container too: the image confines a plugin with `sharprail-confine` like any Linux
+- The sandbox applies inside a container too: the image confines a plugin with `tereditor-confine` like any Linux
   host. Whether Landlock and seccomp work inside a container is unverified until the Linux sandbox slice probes it.
   A container that cannot apply the sandbox refuses external plugins with that reason, as any host does.
 
 ### The channel and the runner process
 
-These exist now (`SharpRail.Plugins.Isolation`, the `SharpRail.PluginRunner` executable; `--plugin-channel`). Only
+These exist now (`Tereditor.Plugins.Isolation`, the `Tereditor.PluginRunner` executable; `--plugin-channel`). Only
 the checks run an external plugin through them ([below](#where-the-isolated-runtime-stands)), and no sandbox is
 applied yet.
 
@@ -292,7 +292,7 @@ applied yet.
   end to end before it passes the client handle to the runner (`--channel <handle>`). The runner never opens a pipe
   by name.
 - Frames are a 4-byte little-endian length and an `IsoFrame` in the same generated protobuf codec as the RPC
-  (`SharpRail.Wire`), at most 4 MiB each. The host allocates odd call ids and the runner even ones. A call gets a
+  (`Tereditor.Wire`), at most 4 MiB each. The host allocates odd call ids and the runner even ones. A call gets a
   reply or a fault, can be cancelled, and can carry a deadline that both sides enforce. One-ways run one at a time in
   arrival order. A stream sends at most 16 items ahead of the reader's credit. Objects lent across are handles; a
   released or revoked handle answers `Released` or `Denied` with its permission, and only an id never lent on that
@@ -317,12 +317,12 @@ applied yet.
   handle), so a kill never reaches a recycled pid and the runner is reaped exactly once, also while .NET reaps its
   own children. On Unix that thread kills the runner's process group before it reaps the runner, while the zombie
   still holds the group's id, so everything still in that group dies with the runner, even when it exits on its
-  own. A child that starts its own session or group escapes this until `sharprail-confine` denies `setsid` and
+  own. A child that starts its own session or group escapes this until `tereditor-confine` denies `setsid` and
   `setpgid` (pending). On Windows the job takes every process the runner started when the host closes it. This
   replaces the planned `pidfd`/kqueue watch. The runner exits when its channel ends.
 - What the runner inherits: on macOS only the descriptors the spawn places (`POSIX_SPAWN_CLOEXEC_DEFAULT`); on Linux
   everything above descriptor 3 is closed where glibc has `posix_spawn_file_actions_addclosefrom_np` (2.34 and later,
-  so not on the packages' 2.31 baseline; `sharprail-confine` will close them there); on Windows only the handle list.
+  so not on the packages' 2.31 baseline; `tereditor-confine` will close them there); on Windows only the handle list.
   On macOS a socket pair cannot be created close-on-exec, and on Windows the three listed handles are inheritable
   while the process is created, so a `Process.Start` on another thread in that instant could inherit them. The
   runner's end arrives inheritable, so the runner marks it close-on-exec as it starts (ioctl `FIOCLEX`, because
@@ -338,14 +338,14 @@ not even as a zombie. The Windows half is compiled on every platform but first r
 A plugin process that crashes or exits marks its plugin `failed` with the reason, and retry starts a new process.
 Disabling a plugin ends its process after the existing drain, which gives external plugins the real unload that
 non-collectible load contexts never did. Memory and CPU limits apply per process (unconfirmed: rlimits under
-`sharprail-confine`, job objects on Windows, none yet on macOS).
+`tereditor-confine`, job objects on Windows, none yet on macOS).
 
 ### Where the isolated runtime stands
 
 An external plugin with a UI half and no host half runs isolated in the checks (`--plugin-isolated-ui`, with the
 outsider fixture installed from disk). Shipping compositions do not run it: the host's seam
 (`PluginHostSeams.Isolation`) and the app's (`Workbench.IsolatedPlugins`) are null in `App.cs` and
-`RemoteServer.Create`, the host's seam is null in headless SharpRail's `Program.cs`, and only the checks set them.
+`RemoteServer.Create`, the host's seam is null in headless tereditor's `Program.cs`, and only the checks set them.
 
 - With the seam, an enabled external plugin with only a UI half is no longer refused. Refusals remain, each with
   its reason: no seam, no runner, a seam that requires a sandbox (none is applied yet, so only the checks' seam,
@@ -384,7 +384,7 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   client that closes ends its session alone. The shipping compositions leave the app's seam null, so a remote client
   of a shipping host still keeps an external plugin dormant.
 - Surfaces are real for the local host (`--plugin-surface`). The runner runs the plugin's code on the UI thread of
-  SharpRail's remote platform backend, which Skia's CPU raster draws for. Each surface is the factory's control in
+  tereditor's remote platform backend, which Skia's CPU raster draws for. Each surface is the factory's control in
   its own top-level of that backend, one per client and mount, at the size and scale the client
   pushes, transparent where the plugin draws nothing so the client's slot shows through. When the client has taken the last frame, the runner renders, diffs against what the client holds in
   64-pixel tiles and sends the changed tiles. It renders every 16 ms for half a second after anything happens and
@@ -499,7 +499,7 @@ and the generator reads it:
   isolated plugins yet. A new member is never pending by default: it is generated, or listed on purpose. The list
   must be empty before external plugins run isolated in a shipping build.
 
-`SharpRail.Plugins.Isolation.Generator` turns this into code. In the plugin process: a proxy per root context that
+`Tereditor.Plugins.Isolation.Generator` turns this into code. In the plugin process: a proxy per root context that
 implements every member explicitly, default members included; an object for each interface a `LocalInRunner` member
 hands out; an interface listing the members the runner implements itself; and an invoker for the callbacks the
 plugin lent. On the trusted side: a dispatcher per root context that replays each call onto the real context, with
@@ -567,7 +567,7 @@ and `ReadAssetAsync` against the read-only plugin directory, and the loggers, wh
 
 ### Members that cannot cross as they are
 
-These members hand over an object that only makes sense inside SharpRail's process. Each one changes shape in the
+These members hand over an object that only makes sense inside tereditor's process. Each one changes shape in the
 isolated runtime, while the trusted runtime keeps them as they are.
 
 | member | problem | isolated shape |
@@ -634,7 +634,7 @@ host runtime, which checks the dependency declaration as it does today.
 
 The central promise is about directories. A plugin may change the user's source, which cannot be prevented,
 because that is what a plugin that edits code does. A plugin must never read the user's secrets: `~/.ssh`, cloud
-and token files, keychains, browser profiles, shell history, or SharpRail's own credentials and state.
+and token files, keychains, browser profiles, shell history, or tereditor's own credentials and state.
 
 ### What a sandbox sees
 
@@ -653,7 +653,7 @@ A protected set is denied for reads and writes whatever the scope says, and no p
 - Credentials and keys: `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.azure`, `~/.config/gcloud`, `~/.config/gh`,
   `~/.docker`, `~/.kube`, `~/.netrc`, `~/.npmrc`, the platform keychains and credential stores, and browser and
   mail profiles.
-- SharpRail's own state directory, which holds other plugins' settings, tokens and the grants themselves. A
+- tereditor's own state directory, which holds other plugins' settings, tokens and the grants themselves. A
   plugin reaches only its own subtree, `<stateDir>/plugin-state/<id>/`, through `ReadState`/`WriteState`.
 - Shell startup and history files in the home directory, since a write there is code execution outside the
   sandbox.
@@ -685,7 +685,7 @@ plugin starts is run in one of two ways:
   most tools work here.
 - Unconfined, for a tool that has to use the user's credentials (git over SSH, a cloud CLI). This needs its own
   grant, named by executable, and is described as reading everything the user can read. Only a fixed argument
-  shape is allowed for the tools SharpRail knows, such as `GitAsync`: the broker rejects options that make the
+  shape is allowed for the tools tereditor knows, such as `GitAsync`: the broker rejects options that make the
   tool run other programs or read other files (`-c`, `--upload-pack`, `core.sshCommand`, `GIT_*` environment).
 
 Any grant that lets a plugin run arbitrary programs unconfined, type into terminals, read terminal output or
@@ -799,8 +799,8 @@ open handle wider than what it asked for.
 Every use of a permissioned member is written to a per-plugin audit log the user can open from the plugin's
 Settings card. Network, process and terminal use also show a live indicator on that card.
 
-Headless SharpRail has no app, so it has no prompt and no Settings card. It grants from a file instead
-([below](#headless-sharprail)).
+Headless tereditor has no app, so it has no prompt and no Settings card. It grants from a file instead
+([below](#headless-tereditor)).
 
 ## UI halves
 
@@ -820,7 +820,7 @@ region, 150–300 ms over a WAN or mobile link.
 The wire carries pixels, not drawing commands. The plugin process rasterizes on the CPU and sends changed tiles,
 losslessly compressed, at the scale the client asked for. A "move region" message carries scrolling, so a scroll
 sends only the newly exposed strip. The client's only parsing of plugin content is decoding tiles, with sizes and
-counts capped. Drawing commands (validated SharpRail ops, or Skia pictures with the same Skia version everywhere)
+counts capped. Drawing commands (validated tereditor ops, or Skia pictures with the same Skia version everywhere)
 remain a later option if bandwidth becomes the problem; they would put a command parser on the client.
 
 - The plugin process runs a remote platform backend built the way Avalonia's previewer and headless backends are:
@@ -895,7 +895,7 @@ Builtin UI halves are part of the client binary and are not delivered at all.
 
 Protected: the user's secrets and credentials (the protected set), files outside the granted workspaces, network,
 processes and shells against an external plugin beyond its grants; other plugins' state and channels; and the
-integrity of SharpRail's own prompts. A plugin without a full-trust grant cannot read the protected set by any
+integrity of tereditor's own prompts. A plugin without a full-trust grant cannot read the protected set by any
 route.
 
 Not protected:
@@ -907,7 +907,7 @@ Not protected:
 - Denial of service inside the plugin's own surfaces.
 - Timing and resource side channels.
 - Builtin plugins, which are trusted by construction.
-- Anything installed outside SharpRail's plugin roots.
+- Anything installed outside tereditor's plugin roots.
 
 ## Non-goals
 

@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>One language server a workspace's files need, with how many files it owns in the bounded census.</summary>
 internal sealed record ProjectLanguage(string Server, int Files);

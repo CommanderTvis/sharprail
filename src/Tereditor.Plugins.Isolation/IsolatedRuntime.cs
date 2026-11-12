@@ -5,9 +5,9 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>
 /// The plugin process's end of the generated proxies: how a proxy reaches the trusted side. <c>target</c> is the handle of

@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>
 /// Fluent paints control states from its own palette. These resource keys point the states it would

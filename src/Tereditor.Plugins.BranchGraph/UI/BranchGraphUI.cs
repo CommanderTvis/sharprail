@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 /// <summary>The UI half: the Git Graph side tool, which the manifest declares as needing Git.</summary>
 public sealed class BranchGraphUI : PluginUIModule

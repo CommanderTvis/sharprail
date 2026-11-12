@@ -4,12 +4,12 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>
 /// A detected Codex terminal's accessory row: the one model-and-effort chip that opens Codex's own /model picker, token totals, the plan,

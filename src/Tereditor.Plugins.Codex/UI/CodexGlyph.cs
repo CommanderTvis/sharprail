@@ -4,10 +4,10 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>
 /// The Codex mark from this plugin's own <c>codex.svg</c>, drawn in a theme brush (the asset paints

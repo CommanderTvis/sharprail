@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Threading.Channels;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Host.Core.Plugins.Isolation;
+namespace Tereditor.Host.Core.Plugins.Isolation;
 
 /// <summary>
 /// One client's surfaces in an external plugin's process (Security.SPEC.md, UI halves). The host numbers each surface,

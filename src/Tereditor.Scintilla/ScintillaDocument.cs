@@ -2,11 +2,11 @@ using System.Text;
 
 using Avalonia.Threading;
 
-using SharpRail.Scintilla.Editing;
-
 using SkiaSharp;
 
-namespace SharpRail.Scintilla;
+using Tereditor.Scintilla.Editing;
+
+namespace Tereditor.Scintilla;
 
 internal sealed class ScintillaDocument : IDisposable
 {

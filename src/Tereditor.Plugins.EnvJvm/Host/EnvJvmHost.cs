@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.EnvJvm.Host;
+namespace Tereditor.Plugins.EnvJvm.Host;
 
 /// <summary>
 /// Points <c>JAVA_HOME</c> and PATH at the JDK a workspace chooses, so Gradle, Maven, language servers and agents in a

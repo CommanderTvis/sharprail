@@ -6,9 +6,9 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
 
-using SharpRail.Scintilla;
+using Tereditor.Scintilla;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// `--rendering-bench editor`: a 100,000-line document (mixed ASCII, accented and emoji text) in a 1000×700 headless

@@ -11,15 +11,15 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Keymap model checks: chord spelling, platform variants, presets, conflicts and the terminal-reserved chords. Headless and pure.</summary>
 internal static class KeymapChecks
@@ -228,9 +228,9 @@ internal static class KeymapChecks
         void Enable()
         {
             registry.SetActive("fake", true);
-            registry.AddKeymapAction("fake", new SharpRail.Plugins.Api.UI.KeymapActionRegistration("Go", "Fake go", "Fake group", () => ran++)
+            registry.AddKeymapAction("fake", new Tereditor.Plugins.Api.UI.KeymapActionRegistration("Go", "Fake go", "Fake group", () => ran++)
             { Mac = ["Mod+Alt+Shift+G"], Other = ["Mod+Alt+Shift+G"] });
-            registry.AddKeymapAction("fake", new SharpRail.Plugins.Api.UI.KeymapActionRegistration("Stop", "Fake stop", "Fake group", () => ran += 10));
+            registry.AddKeymapAction("fake", new Tereditor.Plugins.Api.UI.KeymapActionRegistration("Stop", "Fake stop", "Fake group", () => ran += 10));
         }
         try
         {

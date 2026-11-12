@@ -1,6 +1,6 @@
 // Resize projection adapted from react-resizable-panels 2.1.9.
 // Copyright (c) 2023 Brian Vaughn; MIT license in licenses/React-Resizable-Panels.txt.
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 internal sealed class SideGeometry
 {

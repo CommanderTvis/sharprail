@@ -1,12 +1,12 @@
-Required Notice: Copyright 2026 Iaroslav Postovalov (https://github.com/CommanderTvis/sharprail)
+Required Notice: Copyright 2026 Iaroslav Postovalov (https://github.com/CommanderTvis/tereditor)
 
-SharpRail is licensed under the PolyForm Shield License 1.0.0 (see LICENSE.md). That license covers the
-code and documentation SharpRail's author wrote. It does not cover the parts listed below, which stay
+tereditor is licensed under the PolyForm Shield License 1.0.0 (see LICENSE.md). That license covers the
+code and documentation tereditor's author wrote. It does not cover the parts listed below, which stay
 under their own terms.
 
 Derived from ThinkRail (Apache-2.0)
   Files adapted or translated from ThinkRail (Copyright 2026 JetBrains s.r.o., Apache License 2.0,
-  licenses/Thinkrail-Apache-2.0.txt) stay under Apache-2.0. All of them were modified for SharpRail
+  licenses/Thinkrail-Apache-2.0.txt) stay under Apache-2.0. All of them were modified for tereditor
   (translated from TypeScript to C#, renamed, or rewritten for its tools). THIRD-PARTY-NOTICES.md lists
   them; the files themselves carry a "Derived from" comment where their format allows one.
 
@@ -31,10 +31,10 @@ Agent Client Protocol logomark
   they identify the integration and imply no endorsement.
 
 Icon sets
-  The Remix Icon SVGs in src/SharpRail.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0
+  The Remix Icon SVGs in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0
   (licenses/RemixIcon.txt). Do not extract them as a standalone icon set.
 
 JetBrains software
   Air Context, Air Gateway (the central CLI) and the IntelliJ language server are separate JetBrains
-  products. SharpRail bundles none of them. They are downloaded or invoked separately and are licensed to
+  products. tereditor bundles none of them. They are downloaded or invoked separately and are licensed to
   you by JetBrains.

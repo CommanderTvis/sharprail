@@ -3,7 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// One semantic text style from Rendering/Design/typography.json. Controls take it by its <see cref="Class"/>

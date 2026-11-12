@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Epub;
+namespace Tereditor.Plugins.Epub;
 
 /// <summary>Names one EPUB file of a workspace.</summary>
 public sealed record EpubOpen(string WorkspaceId, string Path);
@@ -45,8 +45,8 @@ public static class EpubContract
         Description = "Opens .epub books in a reader with a table of contents, scrolling and paginated modes, and search.",
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Epub.Host.dll",
-        Ui = "SharpRail.Plugins.Epub.UI.dll",
+        Host = "Tereditor.Plugins.Epub.Host.dll",
+        Ui = "Tereditor.Plugins.Epub.UI.dll",
         Contributes = new() { FileViewers = [new() { Extensions = ["epub"], Read = PluginFileRead.None }] }
     };
 }

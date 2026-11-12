@@ -1,7 +1,7 @@
 <Border xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-        x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeSpinner" x:ClassModifier="internal"
+        xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+        x:Class="Tereditor.Plugins.ClaudeCode.UI.ClaudeSpinner" x:ClassModifier="internal"
         Name="ClaudeSpinner" Width="8" Height="8">
   <!-- The turn is a style animation: the composition thread runs it while the arc is attached and nothing ticks otherwise. -->
   <Border.Styles>

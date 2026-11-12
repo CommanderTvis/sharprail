@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.TypeScript;
+namespace Tereditor.Plugins.Lsp.TypeScript;
 
 /// <summary>The JavaScript / TypeScript (TypeScript LS) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.TypeScript.dll"
+        Host = "Tereditor.Plugins.Lsp.TypeScript.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>A plugin uninstall the user asked for, at the scope that declares it.</summary>
 internal sealed record PluginUninstallTarget(string Name, ClaudeWritableScope Scope);
@@ -242,7 +242,7 @@ internal static class ReviewDialogs
         go.Click += async (_, _) =>
         {
             go.IsEnabled = cancel.IsEnabled = false;
-            go.Content = SharpRail.Plugins.Chat.UI.ChatView.Inherit(runningLabel, Ui.FontSize);
+            go.Content = Tereditor.Plugins.Chat.UI.ChatView.Inherit(runningLabel, Ui.FontSize);
             error.IsVisible = false;
             try
             {
@@ -259,7 +259,7 @@ internal static class ReviewDialogs
             {
                 if (!done)
                 {
-                    go.Content = SharpRail.Plugins.Chat.UI.ChatView.Inherit(runLabel, Ui.FontSize);
+                    go.Content = Tereditor.Plugins.Chat.UI.ChatView.Inherit(runLabel, Ui.FontSize);
                     go.IsEnabled = cancel.IsEnabled = true;
                 }
             }

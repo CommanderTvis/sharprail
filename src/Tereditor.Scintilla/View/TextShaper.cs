@@ -9,7 +9,7 @@ using SkiaSharp;
 using Buffer = HarfBuzzSharp.Buffer;
 using HarfBuzzFont = HarfBuzzSharp.Font;
 
-namespace SharpRail.Scintilla.View;
+namespace Tereditor.Scintilla.View;
 
 /// <summary>
 /// Shapes UTF-8 text with HarfBuzz. Each grapheme cluster takes one font: the editor's

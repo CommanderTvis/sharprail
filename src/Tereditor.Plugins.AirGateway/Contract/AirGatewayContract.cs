@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.AirGateway;
+namespace Tereditor.Plugins.AirGateway;
 
 /// <summary>The AI sources the plugin switches between. <see cref="Direct"/> leaves the agents as the user configured them.</summary>
 public static class AirSources
@@ -175,8 +175,8 @@ public static class AirGatewayContract
         Description = "Starts Codex and Claude Code through JetBrains Air Gateway with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.AirGateway.Host.dll",
-        Ui = "SharpRail.Plugins.AirGateway.UI.dll"
+        Host = "Tereditor.Plugins.AirGateway.Host.dll",
+        Ui = "Tereditor.Plugins.AirGateway.UI.dll"
     };
 }
 

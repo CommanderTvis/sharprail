@@ -15,11 +15,11 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Resources.Pdf;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Resources.Pdf;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Core PDF preview: PDFium reading and rasterizing the fork's minimal PDF, and the fork's
 // pdf-preview e2e (render, zoom re-rasterizing larger, selectable text, no Markdown chrome, following the file's
@@ -91,7 +91,7 @@ internal static class PdfPreviewChecks
         using var app = new E2eWorkspace(workspace);
         app.Window.Layout.Open(new("viewer:legacy.pdf", "legacy.pdf", "viewer", "legacy.pdf"), keep: true);
         Wait(app.Window, "the legacy PDF tab to render its page", () => Rendered(app.Window));
-        Require(app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Resources.ResourcePane>().Single().Selected == "sharprail/pdf",
+        Require(app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Resources.ResourcePane>().Single().Selected == "tereditor/pdf",
             "A persisted plugin-era viewer tab restores through the core PDF renderer.");
         Console.WriteLine("PASS persisted PDF viewer tabs restore into core preview");
     }
@@ -528,12 +528,12 @@ internal static class PdfPreviewChecks
         E2eWorkspace.Until(() => unicodeCopy.IsCompleted);
         Require(unicodeCopy.GetAwaiter().GetResult() == "🚀é", "The native PDF's astral character and accent survive selection and clipboard copying.");
 
-        var pane = window.GetLogicalDescendants().OfType<SharpRail.UI.Resources.ResourcePane>().Single();
-        Require(pane.Candidates.Contains("sharprail/pdf") && pane.Candidates.Contains("sharprail/binary"),
+        var pane = window.GetLogicalDescendants().OfType<Tereditor.UI.Resources.ResourcePane>().Single();
+        Require(pane.Candidates.Contains("tereditor/pdf") && pane.Candidates.Contains("tereditor/binary"),
             "Core PDF preview retains the binary fallback as a renderer choice.");
-        pane.Select("sharprail/binary");
-        Require(pane.Selected == "sharprail/binary", "The binary fallback can be selected.");
-        pane.Select("sharprail/pdf");
+        pane.Select("tereditor/binary");
+        Require(pane.Selected == "tereditor/binary", "The binary fallback can be selected.");
+        pane.Select("tereditor/pdf");
         Wait(window, "the PDF renderer to show a page again", () => Rendered(window));
         app.Open("other.pdf", keep: true);
         E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "file" && tab.Path == "other.pdf"));

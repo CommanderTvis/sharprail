@@ -7,14 +7,14 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Docking;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// A menu mixing icon rows, plain rows and a submenu row (the tab menu) is as wide as its widest row, and no row's content
-/// sits outside the menu padding (src/SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md).
+/// sits outside the menu padding (src/Tereditor.Plugins.UI.Kit/ActionIcons/SPEC.md).
 /// </summary>
 internal static class MenuLayoutChecks
 {
@@ -53,16 +53,16 @@ internal static class MenuLayoutChecks
     {
         Directory.CreateDirectory(Path.Combine(root, "group-reveal", "deep", "er", "est"));
         foreach (var name in new[] { "a.txt", "b.txt", "c.txt", "d.txt", Path.Combine("deep", "er", "est", "z.txt") }) File.WriteAllText(Path.Combine(root, "group-reveal", name), name);
-        using var app = new SharpRail.Checks.E2E.E2eWorkspace(Path.Combine(root, "group-reveal"));
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        using var app = new Tereditor.Checks.E2E.E2eWorkspace(Path.Combine(root, "group-reveal"));
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
         foreach (var name in new[] { "a.txt", "b.txt", "c.txt", "d.txt" }) app.Open(name, true);
         _ = app.Window.OpenDocumentAsync("deep/er/est/z.txt", true);
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path == "deep/er/est/z.txt"));
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path == "deep/er/est/z.txt"));
         app.Window.Layout.Select(app.Center, "file:a.txt");
         var tab = app.Tab("a.txt");
         app.Click(tab, mouseButton: Avalonia.Input.MouseButton.Right);
         var menu = tab.ContextMenu!;
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => menu.IsOpen);
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => menu.IsOpen);
         var submenu = menu.Items.OfType<MenuItem>().Single(item => item.Name == "GroupWithMenu");
         Require(submenu.Items.OfType<MenuItem>().Select(item => (string?)item.Header).SequenceEqual(new[] { "b.txt", "c.txt", "d.txt", "z.txt" }),
             "Group with lists every other tab in strip order, not only the neighbours.");
@@ -77,18 +77,18 @@ internal static class MenuLayoutChecks
         var zTab = app.Tab("deep/er/est/z.txt");
         app.Click(zTab, mouseButton: Avalonia.Input.MouseButton.Right);
         var zMenu = zTab.ContextMenu!;
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => zMenu.IsOpen);
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => zMenu.IsOpen);
         zMenu.Items.OfType<MenuItem>().Single(item => item.Name == "TabShowInDirectory").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
         zMenu.Close();
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Window.Layout.RegionVisible(filesGroup.Region) && app.Window.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.DrawnTree>()
-            .FirstOrDefault(tree => tree.Name == "FilesTree") is { SelectedItem: SharpRail.Plugins.UI.Kit.DrawnTreeEntry { Tag: SharpRail.Host.Abstractions.ProjectFile { Path: "deep/er/est/z.txt" } } } shown &&
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => app.Window.Layout.RegionVisible(filesGroup.Region) && app.Window.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.DrawnTree>()
+            .FirstOrDefault(tree => tree.Name == "FilesTree") is { SelectedItem: Tereditor.Plugins.UI.Kit.DrawnTreeEntry { Tag: Tereditor.Host.Abstractions.ProjectFile { Path: "deep/er/est/z.txt" } } } shown &&
             shown.Rows.Any(row => row.Id == "deep/er/est" && row.Expanded)); // the single-child chain deep/er/est is one compacted row
 
         // A document that is not a file has no node: a terminal-style tab with no path offers nothing.
         app.Window.Layout.Open(new("terminal:menu", "Shell", "terminal"), false);
         var shell = app.Find<Button>("Tab_terminal_menu");
         app.Click(shell, mouseButton: Avalonia.Input.MouseButton.Right);
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => shell.ContextMenu!.IsOpen);
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => shell.ContextMenu!.IsOpen);
         Require(!shell.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "TabShowInDirectory"), "A terminal tab does not offer Show in directory.");
         shell.ContextMenu.Close();
         Console.WriteLine("PASS menu layout: Group with lists every tab and groups a non-neighbour, Show in directory reveals deep files");
@@ -209,7 +209,7 @@ internal static class MenuLayoutChecks
         menu.Items.Add(Ui.IconMenu("Clone repository…", () => { }, ActionIcon.Clone));
         menu.Items.Add(new Separator());
         var paths = new[] { "/Users/commandertvis/ansible-configuration", "/Users/commandertvis/thinkrail/a-project-with-a-really-long-folder-name-that-goes-on-and-on", "/Users/commandertvis/some/very/deeply/nested/directory/structure/that/is/long/sample-project" };
-        foreach (var path in paths) menu.Items.Add(new MenuItem { Header = SharpRail.UI.WorkbenchWindow.RecentLabel(path) });
+        foreach (var path in paths) menu.Items.Add(new MenuItem { Header = Tereditor.UI.WorkbenchWindow.RecentLabel(path) });
         anchor.ContextMenu = menu;
         menu.Open(anchor);
         Settle();
@@ -222,7 +222,7 @@ internal static class MenuLayoutChecks
             var shown = ScreenBounds(label);
             Require(Inside(shown, popup), $"recent paths: a row's text spans {shown}, outside the menu {popup}.");
         }
-        Require(((TextBlock)SharpRail.UI.WorkbenchWindow.RecentLabel(paths[0]).Children[0]).Text == "ansible-configuration", "recent paths: the folder name leads the row.");
+        Require(((TextBlock)Tereditor.UI.WorkbenchWindow.RecentLabel(paths[0]).Children[0]).Text == "ansible-configuration", "recent paths: the folder name leads the row.");
         menu.Close();
         window.Close();
         Console.WriteLine("PASS menu layout: recent project rows show the folder name, stay bounded and sit under the button");
@@ -238,7 +238,7 @@ internal static class MenuLayoutChecks
         ("header View", () => { var menu = Menu(("Files", ActionIcon.Check), ("Changes", ActionIcon.Check)); menu.Items.Add(new Separator()); menu.Items.Add(Ui.Menu("Reset layout", () => { })); return menu; }),
         ("branch", () => Menu(("Check out", ActionIcon.Check), ("Copy name", ActionIcon.CopyPath), ("Delete branch", ActionIcon.Delete))),
         ("file tree", () => Menu(("New file…", ActionIcon.NewFile), ("Rename…", ActionIcon.EnterPath), ("Copy path", ActionIcon.CopyPath), ("Delete file", ActionIcon.Delete))),
-        ("settings theme choice", () => { var menu = new ContextMenu { MinWidth = 280 }; foreach (var label in new[] { "SharpRail Light", "Solarized Light", "GitHub Light" }) menu.Items.Add(Ui.Menu(label, () => { })); return menu; }),
+        ("settings theme choice", () => { var menu = new ContextMenu { MinWidth = 280 }; foreach (var label in new[] { "tereditor Light", "Solarized Light", "GitHub Light" }) menu.Items.Add(Ui.Menu(label, () => { })); return menu; }),
         ("long labels", () => { var menu = Menu(("Open build definition for the selected project in the workspace", ActionIcon.EnterPath)); for (var i = 0; i < 40; i++) menu.Items.Add(Ui.Menu("Commit " + i, () => { })); return menu; }),
     ];
 
@@ -452,14 +452,14 @@ internal static class MenuLayoutChecks
 
     internal static void RealFileMenu(string root)
     {
-        using var app = new SharpRail.Checks.E2E.E2eWorkspace(Path.Combine(root, "menu-layout"));
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        using var app = new Tereditor.Checks.E2E.E2eWorkspace(Path.Combine(root, "menu-layout"));
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
         foreach (var id in new[] { "claude-code", "codex", "omp" })
             app.Workbench.PluginRegistry.AddFileAction(id, new("mention", target => "Mention file in " + id, _ => { }) { Icon = "terminal-line" });
         var row = app.FileRow("notes.txt");
         app.Click(row, mouseButton: Avalonia.Input.MouseButton.Right);
         var menu = row.ContextMenu!;
-        SharpRail.Checks.E2E.E2eWorkspace.Until(() => menu.IsOpen);
+        Tereditor.Checks.E2E.E2eWorkspace.Until(() => menu.IsOpen);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
@@ -475,9 +475,9 @@ internal static class MenuLayoutChecks
     // The last row sits as far from the menu's bottom edge as the first row does from the top edge, whatever the rows hold above it.
     private static void BottomPadding()
     {
-        var entry = new SharpRail.Plugins.Api.PluginRosterEntry("claude-code", "Claude Code", "puzzle", "1", 1, default, default) { Assets = "assets" };
+        var entry = new Tereditor.Plugins.Api.PluginRosterEntry("claude-code", "Claude Code", "puzzle", "1", 1, default, default) { Assets = "assets" };
         var gate = new TaskCompletionSource<byte[]?>();
-        SharpRail.UI.Plugins.PluginIcons.ReadAsset = (_, _, _) => gate.Task;
+        Tereditor.UI.Plugins.PluginIcons.ReadAsset = (_, _, _) => gate.Task;
         ContextMenu Menu(bool plugin, bool assetIcon, bool trailing)
         {
             var menu = new ContextMenu();
@@ -489,17 +489,17 @@ internal static class MenuLayoutChecks
             {
                 menu.Items.Add(new Separator());
                 var mention = Ui.Menu("Mention file in Claude Code", () => { });
-                mention.Icon = SharpRail.UI.Plugins.PluginIcons.Resolve(assetIcon ? "asset:icon.svg" : "terminal-line", entry, null, 14);
+                mention.Icon = Tereditor.UI.Plugins.PluginIcons.Resolve(assetIcon ? "asset:icon.svg" : "terminal-line", entry, null, 14);
                 menu.Items.Add(mention);
                 var codex = Ui.Menu("Mention file in Codex", () => { }, false);
-                codex.Icon = SharpRail.UI.Plugins.PluginIcons.Resolve("openai-line", entry, null, 14);
+                codex.Icon = Tereditor.UI.Plugins.PluginIcons.Resolve("openai-line", entry, null, 14);
                 menu.Items.Add(codex);
             }
             if (trailing)
             {
                 menu.Items.Add(new Separator());
                 menu.Items.Add(Ui.Menu("Configure csharp language service (workspace)…", () => { }));
-                menu.Items.Add(Ui.Menu("Open build definition · src/SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj", () => { }));
+                menu.Items.Add(Ui.Menu("Open build definition · src/Tereditor.Plugins.ClaudeCode/UI/Tereditor.Plugins.ClaudeCode.UI.csproj", () => { }));
             }
             if (trailing) menu.Items.Add(Ui.Menu("Last plain row", () => { }));
             return menu;

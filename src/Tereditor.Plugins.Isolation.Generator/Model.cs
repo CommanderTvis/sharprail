@@ -7,7 +7,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace SharpRail.Plugins.Isolation.Generator;
+namespace Tereditor.Plugins.Isolation.Generator;
 
 /// <summary>Where a member sits in the surface a root context reaches.</summary>
 internal enum MemberRole
@@ -119,15 +119,15 @@ internal sealed class PendingList
 /// <summary>Builds a root context's member table and applies SRI001 to SRI004 and SRI006 to it.</summary>
 internal sealed class ModelBuilder
 {
-    public const string ApiNamespace = "SharpRail.Plugins.Api";
-    private const string CrossingAttribute = "SharpRail.Plugins.Api.PluginCrossingAttribute";
-    private const string AmbientAttribute = "SharpRail.Plugins.Api.PluginAmbientAttribute";
-    private const string PermissionAttribute = "SharpRail.Plugins.Api.PluginPermissionAttribute";
+    public const string ApiNamespace = "Tereditor.Plugins.Api";
+    private const string CrossingAttribute = "Tereditor.Plugins.Api.PluginCrossingAttribute";
+    private const string AmbientAttribute = "Tereditor.Plugins.Api.PluginAmbientAttribute";
+    private const string PermissionAttribute = "Tereditor.Plugins.Api.PluginPermissionAttribute";
     private static readonly string[] JsonContexts =
     [
-        "SharpRail.Plugins.Api.PluginApiJson",
-        "SharpRail.Plugins.Isolation.IsolationJsonContext",
-        "SharpRail.Plugins.Isolation.UI.IsolationUiJsonContext",
+        "Tereditor.Plugins.Api.PluginApiJson",
+        "Tereditor.Plugins.Isolation.IsolationJsonContext",
+        "Tereditor.Plugins.Isolation.UI.IsolationUiJsonContext",
     ];
 
     private readonly Compilation compilation;

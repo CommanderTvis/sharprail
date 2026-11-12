@@ -45,7 +45,7 @@ Listings mark Git-ignored entries without hiding them, using a NUL-delimited `gi
   which the operation then reports itself. A read also refuses a linked leaf; a change write leaves the leaf
   to its caller, which never follows it. Listings skip links entirely.
 - Listings hide `.git` and `.tools` (the repository's provisioned, Git-ignored toolchains) but show the project's
-  `.sharprail` like any directory: its committed config (`workspace.toml`, `language.toml`, `instructions.toml`) is edited there, and
+  `.tereditor` like any directory: its committed config (`workspace.toml`, `language.toml`, `instructions.toml`) is edited there, and
   ignored local state inside it carries the usual ignore mark. They sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.
@@ -134,7 +134,7 @@ to), folders first and then by name ignoring case, files with their byte size. I
 folder fails as not found and an unreadable one as permission denied, kept distinct over RPC (`NotFound`,
 `PermissionDenied`) so clients show which inline. Every caller is an authenticated (master or paired)
 connection; the host has no watch-only client role, so holding a terminal is enforced by the client, which
-offers it only from the Attach menu of a terminal it holds (see `src/SharpRail.UI/Terminal/SPEC.md`).
+offers it only from the Attach menu of a terminal it holds (see `src/Tereditor.UI/Terminal/SPEC.md`).
 
 ## External configuration files
 
@@ -152,7 +152,7 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 - `IProjectServices.WatchFilesAsync` owns watchers for the workspace captured when enumeration starts.
   Its first empty batch confirms registration and requests a rescan. Each subscriber disposes its watchers on cancellation.
   Local and remote windows consume the same stream; no initial scan or Git snapshot is required.
-- Watchers skip `.git`, `.tools` and `node_modules` but report `.sharprail` and everything inside it, so a new
+- Watchers skip `.git`, `.tools` and `node_modules` but report `.tereditor` and everything inside it, so a new
   project config directory refreshes Git (see Panels.SPEC.md) and an edited `workspace.toml` refreshes Files.
 - Host batches settle for 50 ms, cap pending paths at 4096 and request a rescan on overflow or watcher error.
   Reconnection invalidates open documents to recover changes missed while disconnected.
@@ -205,7 +205,7 @@ whether a window currently displays it. Registry removal uses the host's lossles
 than relying only on the coalescing shared-state snapshots; adding/removing a workspace within one
 snapshot interval must still release its lease.
 
-The opt-in `SharpRail-WorkspaceWatchers` EventSource records watcher allocation/enabling/failure/disposal
+The opt-in `tereditor-WorkspaceWatchers` EventSource records watcher allocation/enabling/failure/disposal
 with root, watched path and generation, and logical lease acquisition/release with activation owner and
 lease ID. Enabling it emits catch-up snapshots of retained roots, paths and owners. Its polling counters
 are `allocated-watchers`, `enabled-watchers`, `logical-subscriptions`, `idle-roots`, `pending-retries`,
@@ -226,8 +226,8 @@ From the repository root, use the performance toolkit's pinned local tools:
 watcher_pid=12345 # replace with the host process ID
 mkdir -p artifacts
 (cd performance && dotnet tool restore)
-(cd performance && dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters SharpRail-WorkspaceWatchers)
-(cd performance && dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers SharpRail-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
+(cd performance && dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters tereditor-WorkspaceWatchers)
+(cd performance && dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers tereditor-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
 scripts/mise run check:fsevents
 ```
 

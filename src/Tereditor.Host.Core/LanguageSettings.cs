@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class HostStateStore
 {
@@ -129,7 +129,7 @@ public sealed partial class HostStateStore
                     try { await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: server.Id, Origin: LanguageOrigins.Config)); }
                     catch (Exception) { /* The pane reports startup failures through server state. */ }
             }
-            // The project's shared choices (.sharprail/language.toml autoStart, or its local override) start in every workspace of the project.
+            // The project's shared choices (.tereditor/language.toml autoStart, or its local override) start in every workspace of the project.
             try { await ProjectLanguageAutostartAsync(new(workspace, Operation: "prepareAgent"), CancellationToken.None); }
             catch (Exception) { /* A workspace outside a registered project has no shared choices. */ }
         });

@@ -6,7 +6,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// A top layer over the workbench for one in-window surface (Settings, or a dialog; each dialog gets its own, stacked by ZIndex): a scrim that blocks the content behind it,

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// One request method a plugin declares: its name and the record types of its params and result. Params are

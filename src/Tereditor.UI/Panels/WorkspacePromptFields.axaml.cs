@@ -6,9 +6,9 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed partial class WorkspacePromptFields : UserControl
 {

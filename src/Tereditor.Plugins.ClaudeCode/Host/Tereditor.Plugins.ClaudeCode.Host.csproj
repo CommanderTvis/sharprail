@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
-    <ClaudeProcessGroup>$(MSBuildProjectDirectory)/obj/$(Configuration)/native/$(NETCoreSdkRuntimeIdentifier)/$(RuntimeIdentifier)/sharprail-claude-process-group</ClaudeProcessGroup>
+    <ClaudeProcessGroup>$(MSBuildProjectDirectory)/obj/$(Configuration)/native/$(NETCoreSdkRuntimeIdentifier)/$(RuntimeIdentifier)/tereditor-claude-process-group</ClaudeProcessGroup>
     <ClaudeProcessGroupCompiler>cc</ClaudeProcessGroupCompiler>
-    <ClaudeProcessGroupCompiler Condition="'$(SharpRailLinuxCc)' != ''">$(SharpRailLinuxCc)</ClaudeProcessGroupCompiler>
+    <ClaudeProcessGroupCompiler Condition="'$(TereditorLinuxCc)' != ''">$(TereditorLinuxCc)</ClaudeProcessGroupCompiler>
   </PropertyGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == ''">
     <ClaudeProcessGroupArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
     <ClaudeProcessGroupArch Condition="'$(ClaudeProcessGroupArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ClaudeProcessGroupArch>
     <ClaudeProcessGroupArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
@@ -14,21 +14,21 @@
        hook plugin) are staged at plugins/claude-code/assets in every output that references it. The workflow skills
        have one source shared with Codex and are staged into the bundled plugin, where Claude Code discovers them. -->
   <ItemGroup>
-    <Using Include="SharpRail.Plugins.Chat" />
-    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <Using Include="Tereditor.Plugins.Chat" />
+    <ProjectReference Include="../Tereditor.Plugins.ClaudeCode.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
     <Content Include="../assets/**" LinkBase="plugins/claude-code/assets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="../../SharpRail.Plugins.Agent.Skills/**" LinkBase="plugins/claude-code/assets/marketplace/claude-plugin/skills" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../Tereditor.Plugins.Agent.Skills/**" LinkBase="plugins/claude-code/assets/marketplace/claude-plugin/skills" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Chat mode starts its headless child behind the same tiny setsid launcher the Codex plugin uses (one C source), so
        the child leads a process group that can be signalled whole. -->
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-    <None Include="$(ClaudeProcessGroup)" Link="sharprail-claude-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="$(ClaudeProcessGroup)" Link="tereditor-claude-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="BuildClaudeProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT' and '$(DesignTimeBuild)' != 'true'"
-          Inputs="../../SharpRail.Plugins.Codex/Host/native/process-group.c;$(MSBuildProjectFullPath)" Outputs="$(ClaudeProcessGroup)">
+          Inputs="../../Tereditor.Plugins.Codex/Host/native/process-group.c;$(MSBuildProjectFullPath)" Outputs="$(ClaudeProcessGroup)">
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(ClaudeProcessGroup)'))" />
-    <Exec Command="$(ClaudeProcessGroupCompiler) $(ClaudeProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/../../SharpRail.Plugins.Codex/Host/native/process-group.c&quot; -o &quot;$(ClaudeProcessGroup)&quot;" />
+    <Exec Command="$(ClaudeProcessGroupCompiler) $(ClaudeProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/../../Tereditor.Plugins.Codex/Host/native/process-group.c&quot; -o &quot;$(ClaudeProcessGroup)&quot;" />
   </Target>
 </Project>

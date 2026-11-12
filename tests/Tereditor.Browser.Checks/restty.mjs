@@ -9,10 +9,10 @@ import { randomUUID } from 'node:crypto';
 import { cacheDir } from '../../scripts/cache-dir.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
+const { chromium } = await import('../../src/Tereditor.Browser/node_modules/playwright/index.mjs');
 const scratch = path.join(root, process.argv.includes('--hover') ? '.bench/terminal-hover/checks' : process.argv.includes('--wheel') ? '.bench/terminal-wheel/checks' : process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
 const fixture = path.join(scratch, 'fixture');
-const bundle = path.resolve(process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'));
+const bundle = path.resolve(process.env.TEREDITOR_BROWSER_BUNDLE ?? path.join(root, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle'));
 const token = randomUUID();
 const profile = process.argv.includes('--profile');
 let host, browser, browserServer;
@@ -38,14 +38,14 @@ try {
   const server = net.createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const port = server.address().port; await new Promise(resolve => server.close(resolve));
   const address = `http://127.0.0.1:${port}`;
-  host = spawn(process.env.DOTNET ?? 'dotnet', [path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll')], {
+  host = spawn(process.env.DOTNET ?? 'dotnet', [path.join(root, 'src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll')], {
     cwd: fixture, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, NO_COLOR: '', DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE: 'false',
-      SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'), SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(port),
-      SHARPRAIL_BROWSER_ROOT: bundle }
+      TEREDITOR_ROOT: fixture, TEREDITOR_STATE_DIR: path.join(scratch, 'state'), TEREDITOR_TOKEN: token, TEREDITOR_PORT: String(port),
+      TEREDITOR_BROWSER_ROOT: bundle }
   });
   let hostError = ''; host.stderr.on('data', data => { hostError += data; });
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, r => r?.ok, 'Host did not start');
-  browserServer = await chromium.launchServer({ channel: process.env.SHARPRAIL_BROWSER_CHANNEL ?? 'chromium', headless: true,
+  browserServer = await chromium.launchServer({ channel: process.env.TEREDITOR_BROWSER_CHANNEL ?? 'chromium', headless: true,
     args: [ ...(process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : []),
       ...(process.argv.includes('--settings') ? ['--force-device-scale-factor=' + Number(process.env.PROFILE_DPR ?? 1)] : []) ] });
   browser = await chromium.connect(browserServer.wsEndpoint());
@@ -72,7 +72,7 @@ try {
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
   await page.addInitScript(({ address, token, fixture, zoom }) => {
-    sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
+    sessionStorage.setItem('tereditor:endpoint', JSON.stringify({ Address: address, Token: token }));
     // Restore an explicitly saved terminal; fresh workspaces no longer create one automatically.
     const terminal = { Id: 'terminal:restty-check', Title: 'Terminal 1', Kind: 'terminal' };
     const layout = {
@@ -85,11 +85,11 @@ try {
       Workspaces: { [fixture]: { Documents: { 'browser-center': [terminal] }, Selected: { 'browser-center': terminal.Id }, FocusedCenter: 'browser-center' } },
       ActiveWorkspace: fixture
     };
-    localStorage.setItem('sharprail:profile', JSON.stringify({ Preferences: { Zoom: zoom }, LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
+    localStorage.setItem('tereditor:profile', JSON.stringify({ Preferences: { Zoom: zoom }, LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
     globalThis.gpuFrames = 0; globalThis.animationFrames = 0; let dirty = false;
     const draw = WebGL2RenderingContext.prototype.drawArraysInstanced;
     WebGL2RenderingContext.prototype.drawArraysInstanced = function (...args) {
-      if (this.canvas.closest?.('.sharprail-restty')) dirty = true;
+      if (this.canvas.closest?.('.tereditor-restty')) dirty = true;
       return draw.apply(this, args);
     };
     const tick = () => { globalThis.animationFrames++; if (dirty) { globalThis.gpuFrames++; dirty = false; } requestAnimationFrame(tick); };
@@ -97,17 +97,17 @@ try {
   }, { address, token, fixture, zoom: Number(process.env.SETTINGS_ZOOM ?? 1) });
   const loadStarted = performance.now();
   await page.goto(address);
-  await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.ready === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 90000 });
-  const term = page.locator('.sharprail-restty:has(canvas):visible').first();
+  await page.waitForFunction(() => [...document.querySelectorAll('.tereditor-restty')].some(element => element.dataset.ready === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 90000 });
+  const term = page.locator('.tereditor-restty:has(canvas):visible').first();
   const screen = () => page.evaluate(async () => {
-    const element = [...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility());
+    const element = [...document.querySelectorAll('.tereditor-restty')].find(element => element.querySelector('canvas') && element.checkVisibility());
     return element ? (await import('./restty-bridge.js')).screen(element) : '';
   });
   await until(screen, value => value.includes('fixture'), 'Host prompt did not reach restty');
   if (process.argv.includes('--watch-replay')) {
     const replay = async () => JSON.parse(await page.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return await exports.SharpRail.Browser.Checks.BrowserChecks.CheckWatchedReplay();
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return await exports.Tereditor.Browser.Checks.BrowserChecks.CheckWatchedReplay();
     }));
     const watched = await replay();
     assert.equal(watched.Watching, true);
@@ -119,7 +119,7 @@ try {
     await page.evaluate(() => {
       const original = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
-        if (kind === 'webgl2' && this.closest('.sharprail-restty')) return null;
+        if (kind === 'webgl2' && this.closest('.tereditor-restty')) return null;
         return original.call(this, kind, ...args);
       };
     });
@@ -131,12 +131,12 @@ try {
     console.log('PASS Skia fallback read-only recorded alternate screen and incremental updates');
   } else if (process.argv.includes('--hover')) {
     const pointer = () => page.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.PointerSnapshot());
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return JSON.parse(await exports.Tereditor.Browser.Checks.BrowserChecks.PointerSnapshot());
     });
     const projects = await page.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return JSON.parse(await exports.Tereditor.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
     });
     const bounds = await term.boundingBox();
     const rail = { x: projects.Position.X + projects.Width / 2, y: projects.Position.Y + 60 };
@@ -197,31 +197,31 @@ try {
     console.log('PASS terminal hover, managed pane focus, input, selection release/click-clear/outside capture and return to Projects');
     // A popup drawn over the terminal shows above the terminal's page element and takes the click.
     const popup = await page.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.OpenPopupOverTerminal());
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return JSON.parse(await exports.Tereditor.Browser.Checks.BrowserChecks.OpenPopupOverTerminal());
     });
     assert(popup.Open, 'The check menu did not open');
     const terminalBox = await term.boundingBox();
     assert(popup.X > terminalBox.x && popup.X < terminalBox.x + terminalBox.width && popup.Y > terminalBox.y && popup.Y < terminalBox.y + terminalBox.height, 'The check menu item must lie over the terminal');
-    const over = await page.evaluate(({ X, Y }) => document.elementFromPoint(X, Y)?.closest('.sharprail-restty') !== null, popup);
+    const over = await page.evaluate(({ X, Y }) => document.elementFromPoint(X, Y)?.closest('.tereditor-restty') !== null, popup);
     assert(!over, 'The terminal element must not cover an open popup');
     await page.mouse.click(popup.X, popup.Y);
-    await until(() => page.evaluate(async () => (await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll')).SharpRail.Browser.Checks.BrowserChecks.PopupClicked()), value => value, 'A click on a menu item over the terminal did not reach the item');
-    await until(() => page.evaluate(() => document.querySelector('.sharprail-restty').style.clipPath), value => value === '', 'The terminal clip stayed after the popup closed');
+    await until(() => page.evaluate(async () => (await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll')).Tereditor.Browser.Checks.BrowserChecks.PopupClicked()), value => value, 'A click on a menu item over the terminal did not reach the item');
+    await until(() => page.evaluate(() => document.querySelector('.tereditor-restty').style.clipPath), value => value === '', 'The terminal clip stayed after the popup closed');
     console.log('PASS popup over the terminal shows above it and takes the click');
   } else if (process.argv.includes('--wheel')) {
     console.log('Wheel client mounted');
     const snapshot = client => client.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return JSON.parse(await exports.Tereditor.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
     });
     const prepare = client => client.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      await exports.SharpRail.Browser.Checks.BrowserChecks.PrepareWheelFixture();
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      await exports.Tereditor.Browser.Checks.BrowserChecks.PrepareWheelFixture();
     });
     const feed = client => client.evaluate(async () => {
       const bridge = await import('./restty-bridge.js');
-      bridge.output([...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()), new TextEncoder().encode('\x1b[?25l' + Array.from({ length: 300 }, (_, index) => 'WHEEL_ROW_' + String(index).padStart(3, '0')).join('\r\n') + '\r\n'));
+      bridge.output([...document.querySelectorAll('.tereditor-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()), new TextEncoder().encode('\x1b[?25l' + Array.from({ length: 300 }, (_, index) => 'WHEEL_ROW_' + String(index).padStart(3, '0')).join('\r\n') + '\r\n'));
     });
     await prepare(page);
     const projects = await until(() => snapshot(page), value => value && value.Extent > value.Viewport + 300, 'Projects fixture did not overflow');
@@ -248,13 +248,13 @@ try {
     console.log('PASS writable terminal wheel stays local and Projects scrolls again on return');
     const watcher = await browser.newPage({ viewport: { width: 1200, height: 650 } });
     await watcher.addInitScript(({ address, token, fixture }) => {
-      sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
-      localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+      sessionStorage.setItem('tereditor:endpoint', JSON.stringify({ Address: address, Token: token }));
+      localStorage.setItem('tereditor:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
     }, { address, token, fixture });
     await watcher.goto(address);
-    await watcher.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.watching === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 60000 });
-    const watched = watcher.locator('.sharprail-restty:has(canvas):visible').first();
-    await until(() => watcher.evaluate(async () => (await import('./restty-bridge.js')).screen([...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()))), value => value.includes('fixture'), 'Read-only terminal replay did not complete');
+    await watcher.waitForFunction(() => [...document.querySelectorAll('.tereditor-restty')].some(element => element.dataset.watching === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 60000 });
+    const watched = watcher.locator('.tereditor-restty:has(canvas):visible').first();
+    await until(() => watcher.evaluate(async () => (await import('./restty-bridge.js')).screen([...document.querySelectorAll('.tereditor-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()))), value => value.includes('fixture'), 'Read-only terminal replay did not complete');
     await prepare(watcher);
     await feed(watcher);
     const watcherProjects = await until(() => snapshot(watcher), value => value && value.Extent > value.Viewport + 300, 'Watched Projects fixture did not overflow');
@@ -314,12 +314,12 @@ try {
     console.log('PASS browser terminal wheel stays local to writable scrollback and read-only overflow, with Projects scrolling restored on return and ownership removed on dispose');
   } else if (process.argv.includes('--file-drop')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return await exports.Tereditor.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
     await invoke('FileDropProbe', true);
     const drop = () => page.evaluate(() => {
-      const terminal = document.querySelector('.sharprail-restty');
+      const terminal = document.querySelector('.tereditor-restty');
       const bounds = terminal.getBoundingClientRect();
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(new File(['browser dropped\0bytes 🚀'], 'client file.txt', { type: 'application/octet-stream' }));
@@ -376,8 +376,8 @@ try {
     // Startup, terminal throughput, editor and diff timings for comparing browser AOT assembly sets.
     const startupMs = performance.now() - loadStarted;
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return await exports.Tereditor.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
     const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const stats = values => { const sorted = [...values].sort((a, b) => a - b); return { median: sorted[Math.floor(sorted.length / 2)], p95: sorted[Math.floor(sorted.length * .95)] }; };
@@ -416,8 +416,8 @@ try {
     console.log('PERF', JSON.stringify({ startupMs, terminalMs, editor, typing: stats(typing), scrolling: stats(scrolling), typingCpu, scrollingCpu, diff }));
   } else if (process.argv.includes('--prose')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return await exports.Tereditor.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
     const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     try {
@@ -451,8 +451,8 @@ try {
     console.log('PASS estimated browser prose layout, scrolling and 646 KB first-frame budget');
   } else if (process.argv.includes('--settings')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return exports.Tereditor.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
     const geometry = async () => JSON.parse(await invoke('SettingsGeometry'));
     const viewport = page.viewportSize();
@@ -471,7 +471,7 @@ try {
     const fillsViewport = value => Math.abs(value.Width - page.viewportSize().width) < 1 && Math.abs(value.Height - page.viewportSize().height) < 1;
     await until(geometry, fillsViewport, 'The workbench retained its constructor size instead of the browser viewport');
     const dpr = Number(process.env.PROFILE_DPR ?? 1);
-    const canvas = await until(() => page.locator('.sharprail-workbench > canvas').evaluate(element => ({ width: element.width, height: element.height })),
+    const canvas = await until(() => page.locator('.tereditor-workbench > canvas').evaluate(element => ({ width: element.width, height: element.height })),
       value => value.width === Math.round(viewport.width * dpr) && value.height === Math.round(viewport.height * dpr), 'The workbench canvas did not take the viewport size');
     assert.equal(canvas.width, Math.round(viewport.width * Number(process.env.PROFILE_DPR ?? 1)));
     assert.equal(canvas.height, Math.round(viewport.height * Number(process.env.PROFILE_DPR ?? 1)));
@@ -485,7 +485,7 @@ try {
         assert.ok(Gear.X + Gear.Width <= viewport.width && Gear.Y >= 0, 'The three-dots button must stay inside the viewport');
         await openSettingsFromMenu();
       } else await invoke('OpenSettings', section);
-      const scrim = () => page.evaluate(() => getComputedStyle(document.querySelector('.sharprail-restty'), '::after').backgroundColor);
+      const scrim = () => page.evaluate(() => getComputedStyle(document.querySelector('.tereditor-restty'), '::after').backgroundColor);
       const open = async () => (await geometry()).Dialogs;
       const zoom = Number(process.env.SETTINGS_ZOOM ?? 1);
       // The card is 832 wide and 80% of the window tall in layout units; interface zoom scales both.
@@ -552,16 +552,16 @@ try {
   await page.keyboard.press('Enter');
   await until(screen, value => value.includes('CLIPBOARD_PASS'), 'Native paste failed');
   console.log('PASS native clipboard text paste');
-  if (!process.env.SHARPRAIL_BROWSER_BUNDLE) {
+  if (!process.env.TEREDITOR_BROWSER_BUNDLE) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return exports.Tereditor.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
     const before = await page.screenshot();
     const bounds = await term.boundingBox();
     const gridBefore = [await term.getAttribute('data-columns'), await term.getAttribute('data-rows')];
     await invoke('OpenSettings', 'Layout');
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.sharprail-restty'), '::after').backgroundColor === 'rgba(0, 0, 0, 0.5)');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.tereditor-restty'), '::after').backgroundColor === 'rgba(0, 0, 0, 0.5)');
     const dialog = await (async () => { for (;;) { const [card] = JSON.parse(await invoke('SettingsGeometry')).Dialogs; if (card) return { x: card.X, y: card.Y, width: card.Width, height: card.Height }; await page.waitForTimeout(50); } })();
     const point = [[bounds.x + 5, bounds.y + 5], [bounds.x + 5, bounds.y + bounds.height - 5],
       [bounds.x + bounds.width - 5, bounds.y + 5]].find(([x, y]) => x < dialog.x || x >= dialog.x + dialog.width || y < dialog.y || y >= dialog.y + dialog.height);
@@ -576,7 +576,7 @@ try {
     const dimmed = await pixel(await page.screenshot());
     for (let i = 0; i < 3; i++) assert.ok(Math.abs(dimmed[i] - original[i] * 127 / 255) <= 3, 'Terminal pixels were not dimmed with the workbench');
     await invoke('ClickSettingsButton', 'SettingsClose');
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.sharprail-restty'), '::after').backgroundColor === 'rgba(0, 0, 0, 0)');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.tereditor-restty'), '::after').backgroundColor === 'rgba(0, 0, 0, 0)');
     assert.deepEqual(await pixel(await page.screenshot()), original);
     assert.deepEqual([await term.getAttribute('data-columns'), await term.getAttribute('data-rows')], gridBefore);
     await command("printf '%s_%s\\n' MODAL PASS");
@@ -594,7 +594,7 @@ try {
   console.log('PASS canvas and host PTY resize agree');
   await page.evaluate(async () => {
     const { output, screen } = await import('./restty-bridge.js');
-    const element = document.querySelector('.sharprail-restty');
+    const element = document.querySelector('.tereditor-restty');
     const bytes = new TextEncoder().encode('\r\nSPLIT_UTF8:é界\r\n');
     for (const byte of bytes) output(element, new Uint8Array([byte]));
     if (!screen(element).includes('SPLIT_UTF8:é界')) throw new Error('Split UTF-8 was corrupted');
@@ -603,26 +603,26 @@ try {
   const newClient = async () => {
     const client = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
     await client.addInitScript(({ address, token, fixture }) => {
-      sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
-      localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+      sessionStorage.setItem('tereditor:endpoint', JSON.stringify({ Address: address, Token: token }));
+      localStorage.setItem('tereditor:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
     }, { address, token, fixture });
     return client;
   };
   const watcher = await newClient();
   await watcher.goto(address);
-  await watcher.waitForFunction(() => document.querySelector('.sharprail-restty')?.dataset.watching === 'true', {}, { timeout: 60000 });
+  await watcher.waitForFunction(() => document.querySelector('.tereditor-restty')?.dataset.watching === 'true', {}, { timeout: 60000 });
   await command("printf '%s_%s\\n' WATCH PASS");
-  const watchScreen = () => watcher.evaluate(async () => (await import('./restty-bridge.js')).screen(document.querySelector('.sharprail-restty')));
+  const watchScreen = () => watcher.evaluate(async () => (await import('./restty-bridge.js')).screen(document.querySelector('.tereditor-restty')));
   await until(watchScreen, value => value.includes('WATCH_PASS'), 'Restty watcher missed live output');
   await page.setViewportSize({ width: 1600, height: 1200 });
-  await until(() => watcher.locator('.sharprail-restty').getAttribute('data-columns'),
+  await until(() => watcher.locator('.tereditor-restty').getAttribute('data-columns'),
     value => Number(value) !== Number(grid[2]), 'Restty watcher missed holder grid change');
-  assert.equal(await watcher.locator('.sharprail-restty').getAttribute('data-columns'), await term.getAttribute('data-columns'));
-  const watchedGrid = await watcher.locator('.sharprail-restty').getAttribute('data-columns');
+  assert.equal(await watcher.locator('.tereditor-restty').getAttribute('data-columns'), await term.getAttribute('data-columns'));
+  const watchedGrid = await watcher.locator('.tereditor-restty').getAttribute('data-columns');
   await watcher.setViewportSize({ width: 900, height: 700 });
   await watcher.waitForTimeout(200);
-  assert.equal(await watcher.locator('.sharprail-restty').getAttribute('data-columns'), watchedGrid);
-  assert.equal(await watcher.locator('.sharprail-restty canvas').evaluate(canvas => canvas.style.pointerEvents), 'none');
+  assert.equal(await watcher.locator('.tereditor-restty').getAttribute('data-columns'), watchedGrid);
+  assert.equal(await watcher.locator('.tereditor-restty canvas').evaluate(canvas => canvas.style.pointerEvents), 'none');
   await watcher.close();
   console.log('PASS shared terminal watching stays on restty and follows the holder grid');
   if (profile) {
@@ -648,32 +648,32 @@ try {
   }
   await page.reload();
   console.log('Reloaded browser document');
-  await page.waitForFunction(() => document.querySelector('.sharprail-restty')?.dataset.ready === 'true', {}, { timeout: 90000 });
+  await page.waitForFunction(() => document.querySelector('.tereditor-restty')?.dataset.ready === 'true', {}, { timeout: 90000 });
   await until(screen, value => value.includes('fixture'), 'Host terminal did not survive reload');
   await command("printf '%s_%s\\n' REATTACH PASS");
   await until(screen, value => value.includes('REATTACH_PASS'), 'Input failed after reattach');
   assert.deepEqual(errors, []);
   console.log('PASS restty detach, host session survival and reattach');
-  if (!process.env.SHARPRAIL_BROWSER_BUNDLE) {
+  if (!process.env.TEREDITOR_BROWSER_BUNDLE) {
     for (const failure of ['bridge', 'module', 'gpu']) {
       console.log(`Checking restty ${failure} failure`);
       const fallback = await newClient();
       if (failure === 'gpu') await fallback.addInitScript(() => {
         const get = HTMLCanvasElement.prototype.getContext;
         HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
-          if (kind === 'webgl2' && this.closest('.sharprail-restty')) return null;
+          if (kind === 'webgl2' && this.closest('.tereditor-restty')) return null;
           return get.call(this, kind, ...args);
         };
       });
       else await fallback.route(failure === 'bridge' ? '**/restty-bridge.js' : '**/vendor/restty/**', route => route.abort());
       await fallback.goto(address);
-      await fallback.waitForFunction(() => document.querySelector('.sharprail-workbench canvas')?.width > 100, {}, { timeout: 60000 });
+      await fallback.waitForFunction(() => document.querySelector('.tereditor-workbench canvas')?.width > 100, {}, { timeout: 60000 });
       const snapshot = () => fallback.evaluate(async () => {
-        const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-        return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.Snapshot());
+        const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+        return JSON.parse(await exports.Tereditor.Browser.Checks.BrowserChecks.Snapshot());
       });
       await until(snapshot, windows => windows[0]?.Terminals.some(terminal => terminal.Text.includes('REATTACH_PASS')), `Skia fallback failed after ${failure} failure`);
-      assert.equal(await fallback.locator('.sharprail-restty').count(), 0);
+      assert.equal(await fallback.locator('.tereditor-restty').count(), 0);
       await fallback.close();
       console.log(`PASS Skia fallback after restty ${failure} initialization failure`);
     }

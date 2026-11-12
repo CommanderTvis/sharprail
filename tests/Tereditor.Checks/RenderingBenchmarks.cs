@@ -9,16 +9,16 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.BranchGraph;
-using SharpRail.Plugins.BranchGraph.UI;
-using SharpRail.Plugins.SpecDialect;
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.UI;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.BranchGraph;
+using Tereditor.Plugins.BranchGraph.UI;
+using Tereditor.Plugins.SpecDialect;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class RenderingBenchmarks
 {
@@ -58,7 +58,7 @@ internal static class RenderingBenchmarks
             "markdown" or "markdown-large" => new MarkdownPreview(document, "README.md", markdownContext),
             "markdown-diff" => new MarkdownPreview(diff, "README.md", markdownContext, renderDiagrams: false, focus: focus),
             "graph" => new GraphPanel(context, "bench"),
-            "specs" => (Control)Activator.CreateInstance(typeof(SpecSync).Assembly.GetType("SharpRail.Plugins.SpecDialect.SpecsPanel")!, context, sync, "bench")!,
+            "specs" => (Control)Activator.CreateInstance(typeof(SpecSync).Assembly.GetType("Tereditor.Plugins.SpecDialect.SpecsPanel")!, context, sync, "bench")!,
             "files" or "files-mixed" => CreateFiles(),
             _ => throw new ArgumentException("Expected markdown, markdown-large, markdown-diff, graph, files, files-mixed or specs.", nameof(surface))
         };
@@ -153,7 +153,7 @@ internal static class RenderingBenchmarks
 
 public class RenderingBenchmarkContext : DispatchProxy
 {
-    private readonly PluginHostProjection projection = new([], new Dictionary<string, IReadOnlyList<SharpRail.Plugins.Api.HostWorkspace>>
+    private readonly PluginHostProjection projection = new([], new Dictionary<string, IReadOnlyList<Tereditor.Plugins.Api.HostWorkspace>>
     {
         ["bench"] = [new("bench", "bench", "Bench", "main", "bench", true)]
     }, "bench", "bench", null, new("", false, 120, true, 78, true, []), new Dictionary<string, IReadOnlyList<TerminalTabInfo>>(),

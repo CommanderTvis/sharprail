@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>What a left click on the New ACP chat button does.</summary>
 /// <param name="Kind">"none" (no agent is configured), "start" (start <paramref name="Agent"/> now) or "ask" (show the picker).</param>

@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>MCP over stdio: one JSON-RPC message per line in, one per line out. Requests run concurrently, so responses may
 /// arrive in any order, and each is written as a single line under a lock. Diagnostics go to <paramref name="log"/>, never to the output.</summary>

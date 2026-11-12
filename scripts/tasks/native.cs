@@ -23,12 +23,12 @@ return Guard(() =>
     };
     var rid = $"{system}-{architecture}";
     var output = At("artifacts", "native");
-    var executable = Path.Combine(output, OperatingSystem.IsWindows() ? "SharpRail.UI.exe" : "SharpRail.UI");
+    var executable = Path.Combine(output, OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : "Tereditor.UI");
     // Same locked restore as the packages (it also fetches the ILCompiler pack); the publish then reuses it.
-    string[] restore = ["restore", "SharpRail.slnx", "-p:SelfContained=true", "-p:PublishReadyToRun=true"];
+    string[] restore = ["restore", "Tereditor.slnx", "-p:SelfContained=true", "-p:PublishReadyToRun=true"];
     // NativeAot.props already sets PublishAot and trimming; this adds what is specific to this build: code for this CPU's
     // instruction sets (it will not start on an older CPU) and speed over size.
-    string[] publish = ["publish", "src/SharpRail.UI", "-c", "Release", "-r", rid, "--no-restore", "-p:IlcInstructionSet=native", "-p:OptimizationPreference=Speed", $"-p:SharpRailBuildStamp={(print ? "<stamp>" : BuildStamp())}", "-o", output];
+    string[] publish = ["publish", "src/Tereditor.UI", "-c", "Release", "-r", rid, "--no-restore", "-p:IlcInstructionSet=native", "-p:OptimizationPreference=Speed", $"-p:TereditorBuildStamp={(print ? "<stamp>" : BuildStamp())}", "-o", output];
     Console.WriteLine("The NativeAOT compile uses several GB of memory and bypasses the agent compile queue (queue-heavy).");
     if (print)
     {
@@ -45,7 +45,7 @@ return Guard(() =>
         return 0;
     }
     // Same environment as `run dev`: the checkout is the initial workspace, and a Claude Code session's identity stays out of the app's terminals.
-    Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", Env("SHARPRAIL_ROOT") ?? Root);
+    Environment.SetEnvironmentVariable("TEREDITOR_ROOT", Env("TEREDITOR_ROOT") ?? Root);
     if (OperatingSystem.IsWindows() && Env("CLAUDECODE") is not null) Environment.SetEnvironmentVariable("NO_COLOR", null);
     foreach (var name in new[] { "CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_EXECPATH", "CLAUDE_CODE_SESSION_ID",
                  "CLAUDE_CODE_BRIDGE_SESSION_ID", "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_CODE_SESSION_ATTENDED",

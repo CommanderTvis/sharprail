@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Host PTY sessions through the direct adapter and a real authenticated WebSocket RPC host.
 internal static partial class TerminalHostChecks
@@ -48,19 +48,19 @@ internal static partial class TerminalHostChecks
         }
     }
 
-    // An outer SharpRail's per-terminal status URLs are not inherited; the inner host's own contribution and a user's configuration stay.
+    // An outer tereditor's per-terminal status URLs are not inherited; the inner host's own contribution and a user's configuration stay.
     private static void OuterIdentityIsStripped()
     {
-        string[] names = ["THINKRAIL_CODEX_STATUS_URL", "SHARPRAIL_AGENT_STATUS_URL", "SHARPRAIL_STATE_DIR"];
+        string[] names = ["THINKRAIL_CODEX_STATUS_URL", "TEREDITOR_AGENT_STATUS_URL", "TEREDITOR_STATE_DIR"];
         var saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
         try
         {
             foreach (var name in names) Environment.SetEnvironmentVariable(name, "outer");
             var inherited = PtyTerminalService.ShellEnvironment().OfType<string>().ToArray();
-            Require(!inherited.Any(line => line.Contains("_STATUS_URL=", StringComparison.Ordinal)) && inherited.Contains("SHARPRAIL_STATE_DIR=outer"),
+            Require(!inherited.Any(line => line.Contains("_STATUS_URL=", StringComparison.Ordinal)) && inherited.Contains("TEREDITOR_STATE_DIR=outer"),
                 "An outer terminal's status URLs must not reach an inner host's terminals, while configuration variables stay.");
-            var own = PtyTerminalService.ShellEnvironment(null, new Dictionary<string, string> { ["SHARPRAIL_AGENT_STATUS_URL"] = "inner" }).OfType<string>();
-            Require(own.Contains("SHARPRAIL_AGENT_STATUS_URL=inner"), "The inner host's own contribution is applied after the strip.");
+            var own = PtyTerminalService.ShellEnvironment(null, new Dictionary<string, string> { ["TEREDITOR_AGENT_STATUS_URL"] = "inner" }).OfType<string>();
+            Require(own.Contains("TEREDITOR_AGENT_STATUS_URL=inner"), "The inner host's own contribution is applied after the strip.");
         }
         finally { for (var i = 0; i < names.Length; i++) Environment.SetEnvironmentVariable(names[i], saved[i]); }
     }
@@ -334,7 +334,7 @@ internal static partial class TerminalHostChecks
             await session.ResizeAsync(120, 40);
             await screen.Run("printf 'RESIZED_%s\\n' \"$(stty size | tr ' ' x)\"");
             await screen.WaitFor("RESIZED_40x120", mode);
-            await screen.Run("printf 'TOKEN_%s\\n' \"${SHARPRAIL_TOKEN-unset}\"");
+            await screen.Run("printf 'TOKEN_%s\\n' \"${TEREDITOR_TOKEN-unset}\"");
             await screen.WaitFor("TOKEN_unset", mode);
             await screen.Run("printf 'USER_%s_%s\\n' \"$LOGNAME\" \"$USER\"");
             await screen.WaitFor($"USER_{Environment.UserName}_{Environment.UserName}", mode);
@@ -711,7 +711,7 @@ internal static partial class TerminalHostChecks
         var other = workspace + "-other";
         Directory.CreateDirectory(other);
         await state.ChangeAsync([HostStateChange.OpenProject(workspace), HostStateChange.OpenProject(other)]);
-        var unstarted = new SharpRail.Plugins.Api.TerminalRef(worktree, "unstarted");
+        var unstarted = new Tereditor.Plugins.Api.TerminalRef(worktree, "unstarted");
         store?.SetTerminalAgent(unstarted, new("codex", "codex resume"));
         var token = store?.Terminals?.Token(unstarted);
         var id = mode + "-project-close";
@@ -770,7 +770,7 @@ internal static partial class TerminalHostChecks
     }
 
     // Stopping the host ends every terminal's process tree: a job in its own process group that ignores HUP and TERM (as
-    // the agent that outlived a SharpRail instance did) is killed with its shell. Only the pid this check started is signalled.
+    // the agent that outlived a tereditor instance did) is killed with its shell. Only the pid this check started is signalled.
     private static async Task ShutdownEndsTrees(string root, string workspace)
     {
         var pidFile = Path.Combine(root, "shutdown-tree.pid");

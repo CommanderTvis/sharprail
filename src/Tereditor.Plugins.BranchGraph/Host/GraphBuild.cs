@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.BranchGraph.Host;
+namespace Tereditor.Plugins.BranchGraph.Host;
 
 /// <summary>Reads <c>git log</c> and <c>git worktree list</c> output into the graph the panel draws.</summary>
 internal static class GraphBuild

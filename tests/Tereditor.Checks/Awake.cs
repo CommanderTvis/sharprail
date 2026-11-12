@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The clock for wait bounds: it stands still while the machine sleeps, so a deadline measures time the

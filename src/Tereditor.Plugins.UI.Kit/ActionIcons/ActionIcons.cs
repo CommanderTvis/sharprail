@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>What a menu action means. A semantic has exactly one icon (<see cref="ActionIcons"/>); see ActionIcons/SPEC.md.</summary>
 public enum ActionIcon

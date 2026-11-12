@@ -7,7 +7,7 @@ points. Builds use the pinned .NET SDK, which mise puts on PATH. The first task 
 
 ## File icon assets
 
-The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `dotnet run --file scripts/generate-file-icons.cs -- --assets-only` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run --file scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. The generated SVGs go to the kit's `obj/file-icons`; the pinned archive is cached in `$SHARPRAIL_CACHE_DIR/file-icons`.
+The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `dotnet run --file scripts/generate-file-icons.cs -- --assets-only` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run --file scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. The generated SVGs go to the kit's `obj/file-icons`; the pinned archive is cached in `$TEREDITOR_CACHE_DIR/file-icons`.
 
 ## Start the app or a server
 
@@ -18,9 +18,9 @@ scripts/mise run dev
 ```
 
 Builds and runs the desktop app in Release by default, installing the SDK if
-needed. `SHARPRAIL_CONFIGURATION=Debug` selects a Debug build for debugging, `SHARPRAIL_ROOT` selects
-the initial workspace (default: this checkout), and `SHARPRAIL_PROFILE` selects a
-separate profile instead of `~/.sharprail`. Additional arguments go to the app.
+needed. `TEREDITOR_CONFIGURATION=Debug` selects a Debug build for debugging, `TEREDITOR_ROOT` selects
+the initial workspace (default: this checkout), and `TEREDITOR_PROFILE` selects a
+separate profile instead of `~/.tereditor`. Additional arguments go to the app.
 The script clears inherited Claude Code session identity before launch.
 The Release build uses the memory settings in `DesktopGc.props` and the idle memory trim (`performance/README.md`).
 
@@ -35,23 +35,23 @@ Publishes the desktop app as NativeAOT for this machine (OS, architecture and CP
 ### Browser
 
 ```sh
-SHARPRAIL_TOKEN='your-session-token' \
-SHARPRAIL_ROOT='/absolute/project/path' \
+TEREDITOR_TOKEN='your-session-token' \
+TEREDITOR_ROOT='/absolute/project/path' \
 scripts/mise run browser run
 ```
 
 Builds the browser client and remote host, then serves the client at
 `http://localhost:54123`. Enter the same token in the browser. The server binds to
-`127.0.0.1` by default; `SHARPRAIL_BIND` and `SHARPRAIL_PORT` change its address and
-port. `SHARPRAIL_ROOT` defaults to this checkout and `SHARPRAIL_STATE_DIR` defaults
-to `~/.sharprail/host`. Stop the foreground server with Ctrl+C.
+`127.0.0.1` by default; `TEREDITOR_BIND` and `TEREDITOR_PORT` change its address and
+port. `TEREDITOR_ROOT` defaults to this checkout and `TEREDITOR_STATE_DIR` defaults
+to `~/.tereditor/host`. Stop the foreground server with Ctrl+C.
 
-The `browser` task defaults to `build`; `SHARPRAIL_CONFIGURATION` defaults to Release.
+The `browser` task defaults to `build`; `TEREDITOR_CONFIGURATION` defaults to Release.
 Release uses selective hybrid WASM AOT with preserved managed assemblies and reflection;
 Debug remains interpreted. Initial native compilation is slower and the runtime download is
 larger before compression. Release Build/Publish precompress browser assets as Brotli and gzip;
 the standalone host negotiates sidecars without request-time compression. See the
-[browser README](../src/SharpRail.Browser/README.md) for measured sizes,
+[browser README](../src/Tereditor.Browser/README.md) for measured sizes,
 the interpreted diagnostic override and the optional prose performance journey.
 It installs the `wasm-experimental` workload when the
 multithreaded browser runtime pack is missing. Browser builds install Node, pnpm and
@@ -59,23 +59,23 @@ Binaryen through mise (`scripts/tool`), and need Git and a macOS or Linux build 
 
 | Command | Purpose and output |
 | --- | --- |
-| `scripts/mise run browser build` | Build into `src/SharpRail.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
+| `scripts/mise run browser build` | Build into `src/Tereditor.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
 | `scripts/mise run browser publish` | Publish the browser bundle into `artifacts/browser`. |
 | `scripts/mise run browser check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. |
 
 ### Remote host for desktop or Android clients
 
 ```sh
-SHARPRAIL_ROOT='/absolute/project/path' scripts/mise run host
+TEREDITOR_ROOT='/absolute/project/path' scripts/mise run host
 ```
 
 Builds and launches only the remote host in Release by default. It binds to
 `0.0.0.0:54123` and prints a connection URI and QR code containing the session
-token. The token is generated when `SHARPRAIL_TOKEN` is unset. Set
-`SHARPRAIL_CONNECT_HOST` to override the advertised hostname/IP (without a port),
-`SHARPRAIL_PORT` to change the port, or `SHARPRAIL_CONFIGURATION=Debug` for a diagnostic build.
+token. The token is generated when `TEREDITOR_TOKEN` is unset. Set
+`TEREDITOR_CONNECT_HOST` to override the advertised hostname/IP (without a port),
+`TEREDITOR_PORT` to change the port, or `TEREDITOR_CONFIGURATION=Debug` for a diagnostic build.
 The default advertised address is the first active non-loopback IPv4 address.
-`SHARPRAIL_STATE_DIR` defaults to `~/.sharprail/host`. Stop with Ctrl+C.
+`TEREDITOR_STATE_DIR` defaults to `~/.tereditor/host`. Stop with Ctrl+C.
 
 ## Toolchain: mise
 
@@ -105,8 +105,8 @@ directory (installing it first when missing): `dotnet`, `zig-0.17.1`, `merman`, 
 installs are serialised with a lock (`scripts/tasks/workload.cs`).
 
 Caches written during builds live in one machine-wide directory every checkout and worktree shares, never in the
-checkout (there is no `.tools`): `SHARPRAIL_CACHE_DIR` from `mise.toml`, `${XDG_CACHE_HOME:-~/.cache}/sharprail`
-(Windows: `%LOCALAPPDATA%\sharprail\cache`); scripts run outside mise fall back to the same path. The scripts that create the root exclude it from Time Machine on macOS
+checkout (there is no `.tools`): `TEREDITOR_CACHE_DIR` from `mise.toml`, `${XDG_CACHE_HOME:-~/.cache}/tereditor`
+(Windows: `%LOCALAPPDATA%\tereditor\cache`); scripts run outside mise fall back to the same path. The scripts that create the root exclude it from Time Machine on macOS
 (`tmutil addexclusion`). Entries:
 
 | Entry | Contents | Key and concurrency |
@@ -123,8 +123,8 @@ checkout (there is no `.tools`): `SHARPRAIL_CACHE_DIR` from `mise.toml`, `${XDG_
 | `lsp-validation`, `lsp-shared-cache`, `language-check` | opt-in language integration runs | repositories and managed servers |
 
 A native result is built in `<result>.partial` and published by rename (`scripts/native-cache.sh`); the recipe then
-copies it into the checkout's `obj` (Ghostty: `src/Ghostty.Avalonia/obj/native`, WASM: `src/SharpRail.Browser/obj/wasm-native`,
-Tailscale: `src/SharpRail.Android/obj/tailscale`, icons: `src/SharpRail.Plugins.UI.Kit/obj/file-icons`), where MSBuild's
+copies it into the checkout's `obj` (Ghostty: `src/Ghostty.Avalonia/obj/native`, WASM: `src/Tereditor.Browser/obj/wasm-native`,
+Tailscale: `src/Tereditor.Android/obj/tailscale`, icons: `src/Tereditor.Plugins.UI.Kit/obj/file-icons`), where MSBuild's
 incremental targets see it. Results are keyed, so branches never overwrite each other's and a new worktree reuses one
 instead of rebuilding; old results are not pruned (delete the directory to reclaim space). NuGet's cache is NuGet's own.
 
@@ -157,9 +157,9 @@ outside mise is not locked and updates the files itself. The locks list `osx-arm
 tasks restore once without `-r` (with `SelfContained` and `PublishReadyToRun`, which also fetches runtime, ILCompiler
 and Crossgen packs) and publish with `--no-restore`. Do the same for any new `-r` publish.
 
-Excluded from locking (`RestorePackagesWithLockFile=false`, reason in the project file): `SharpRail.Android` and
-`SharpRail.Browser`, whose restores resolve workload packs and per-RID runtime packs from the installed workload
-manifest. `benchmarks/` and any project outside `SharpRail.slnx` are locked too if restored; do not commit stray locks
+Excluded from locking (`RestorePackagesWithLockFile=false`, reason in the project file): `Tereditor.Android` and
+`Tereditor.Browser`, whose restores resolve workload packs and per-RID runtime packs from the installed workload
+manifest. `benchmarks/` and any project outside `Tereditor.slnx` are locked too if restored; do not commit stray locks
 you did not mean to.
 
 Audit: `NuGetAudit` covers all packages, transitive included, at moderate severity and above. Advisories (NU1901 to
@@ -177,26 +177,26 @@ and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
 `browser-assets.cs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
-`src/SharpRail.Browser/wwwroot/vendor`.
+`src/Tereditor.Browser/wwwroot/vendor`.
 
 ## Android
 
 Set `ANDROID_HOME` to an installed Android SDK (default:
 `~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: mise installs the pinned Temurin 21
 from `mise.toml` on first use and `scripts/tool jdk` prints it (on macOS, at the bundle's `Contents/Home`; Windows has no pin, see `mise.toml`); `scripts/tool merman-android`
-prints Merman's Android archive, whose per-ABI `.so` the APK packages as `libSharpRailMermaid.so`. A
+prints Merman's Android archive, whose per-ABI `.so` the APK packages as `libTereditorMermaid.so`. A
 `JAVA_HOME` in the environment, when set, names another JDK 17 or 21 instead. The task installs the .NET
 Android workload when missing and the pinned NDK.
 
 | Command | Purpose and output |
 | --- | --- |
-| `scripts/mise run android build` | Build the client; this is the default mode. Configuration defaults to Debug and can be set with `SHARPRAIL_CONFIGURATION`. |
-| `scripts/mise run android run` | Build, install on the connected device/emulator with adb, and launch `dev.thinkrail.sharprail`. |
+| `scripts/mise run android build` | Build the client; this is the default mode. Configuration defaults to Debug and can be set with `TEREDITOR_CONFIGURATION`. |
+| `scripts/mise run android run` | Build, install on the connected device/emulator with adb, and launch `dev.thinkrail.tereditor`. |
 | `scripts/mise run android install` | Rebuild the Release package (MSBuild skips unchanged work) and install it on the connected device; refuses when none or more than one is connected. |
-| `scripts/mise run package:android` | Build Release and copy the signed package to `artifacts/android/SharpRail.apk`. |
+| `scripts/mise run package:android` | Build Release and copy the signed package to `artifacts/android/tereditor.apk`. |
 
-Set `SHARPRAIL_ANDROID_KEYSTORE`, `SHARPRAIL_ANDROID_KEY_ALIAS` and
-`SHARPRAIL_ANDROID_KEY_PASSWORD` to sign with your own keystore. The password is
+Set `TEREDITOR_ANDROID_KEYSTORE`, `TEREDITOR_ANDROID_KEY_ALIAS` and
+`TEREDITOR_ANDROID_KEY_PASSWORD` to sign with your own keystore. The password is
 used for both the store and key. Without these settings, the package uses the
 machine's debug key.
 
@@ -210,7 +210,7 @@ scripts/mise run dmg
 
 `package:macos` publishes the Release UI and host as NativeAOT binaries into `artifacts/ui` and
 `artifacts/host`, with self-contained ReadyToRun checks in `artifacts/checks` for staging beside the shipped UI. It also assembles and
-ad-hoc signs `artifacts/SharpRail.app`. Publishing removes the previous outputs and app bundle,
+ad-hoc signs `artifacts/tereditor.app`. Publishing removes the previous outputs and app bundle,
 so stop any app using that bundle before replacing it.
 
 `check:packaged [-- check arguments...]` requires the published app and checks.
@@ -224,23 +224,23 @@ scripts/mise run check:packaged -- --terminals
 
 `scripts\mise.cmd run package:windows -- -RuntimeIdentifier win-x64|win-arm64` (on Windows) publishes the
 NativeAOT client and host and the self-contained checks to `artifacts/windows` (x64, default) or `artifacts/windows-arm64`
-and packages `artifacts/SharpRail-<rid>.zip`. Build the ARM64 package on a Windows ARM64 machine: the
+and packages `artifacts/tereditor-<rid>.zip`. Build the ARM64 package on a Windows ARM64 machine: the
 SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier. NativeAOT links with
 Visual Studio's C++ build tools for the target architecture.
 `scripts\mise.cmd run check:packaged -- -RuntimeIdentifier <rid> --windows` runs the packaged Windows gate.
 
 `scripts/mise run package:linux [linux-arm64]` (on Linux of the same architecture; x64 by default) builds, publishes the
 NativeAOT client (linked by the pinned Zig against glibc 2.31, `scripts/aot-linux-cc.sh`) and the checks to `artifacts/linux` and packs the client into
-`artifacts/SharpRail-linux-x64.AppImage` (`SharpRail-linux-arm64.AppImage` for `linux-arm64`, with the aarch64 appimagetool and runtime): an `AppDir` (`AppRun`, a desktop file, the
-icon, the client under `usr/lib/sharprail`) written as a squashfs image behind the pinned type 2 runtime by the pinned appimagetool
+`artifacts/tereditor-linux-x64.AppImage` (`tereditor-linux-arm64.AppImage` for `linux-arm64`, with the aarch64 appimagetool and runtime): an `AppDir` (`AppRun`, a desktop file, the
+icon, the client under `usr/lib/tereditor`) written as a squashfs image behind the pinned type 2 runtime by the pinned appimagetool
 (`scripts/tool` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
-`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile and the client cross-links with Zig) and stops at
+`TEREDITOR_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile and the client cross-links with Zig) and stops at
 `artifacts/linux/AppDir`. `scripts/mise run check:packaged -- --linux` unpacks the image with the runtime's own
 `--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
 
 `dmg [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to
-`artifacts/SharpRail.dmg`; it replaces an existing image at the chosen path.
+`artifacts/tereditor.dmg`; it replaces an existing image at the chosen path.
 
 `check:terminal` builds the native Ghostty bridge and a macOS
 shell/Metal probe at `.bench/terminal-check`, then runs the probe. It requires
@@ -250,7 +250,7 @@ managed check suite.
 For source checks, use the checkout-local SDK:
 
 ```sh
-dotnet run --project tests/SharpRail.Checks -c Release -- --terminals
+dotnet run --project tests/Tereditor.Checks -c Release -- --terminals
 ```
 
 The available focused modes and verification rules are documented in
@@ -260,9 +260,9 @@ The available focused modes and verification rules are documented in
 
 | File | Invocation and purpose |
 | --- | --- |
-| `generate-rpc.cs` | `scripts/mise run rpc` (`dotnet run --file scripts/generate-rpc.cs`) regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`, and a protobuf payload codec per codec root from every `[ProtoContract]` class in that project: `src/SharpRail.Host.Protocol/RpcCodec.Generated.cs` and the plugin channel's `src/SharpRail.Plugins.Isolation/IsoCodec.Generated.cs`. It stops with an error on a member declaration or type it cannot encode. It edits tracked source; review and format the generated diff, then run the `--rpc-codec` check. |
+| `generate-rpc.cs` | `scripts/mise run rpc` (`dotnet run --file scripts/generate-rpc.cs`) regenerates `src/Tereditor.Host.Protocol/RpcServices.Generated.cs` and `src/Tereditor.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`, and a protobuf payload codec per codec root from every `[ProtoContract]` class in that project: `src/Tereditor.Host.Protocol/RpcCodec.Generated.cs` and the plugin channel's `src/Tereditor.Plugins.Isolation/IsoCodec.Generated.cs`. It stops with an error on a member declaration or type it cannot encode. It edits tracked source; review and format the generated diff, then run the `--rpc-codec` check. |
 | `pin-dotnet-sdk.cs` | `dotnet run --file scripts/pin-dotnet-sdk.cs -- <sdk versions> [--rids ...]` downloads each .NET SDK archive named in the official release metadata, requires the publisher's SHA-512 to match, deletes the download and prints the `ManagedRuntimes` pin entries with our SHA-256. Paste the reviewed output into `ManagedRuntimes.cs`. |
-| `host-link.cs` | `dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
+| `host-link.cs` | `dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `TEREDITOR_TOKEN`, `TEREDITOR_PORT` and optional `TEREDITOR_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
 | `benchmark.cs` | `dotnet run --file scripts/benchmark.cs -- [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
 | `window-probe.m` | Native CoreGraphics helper compiled by the benchmark as `.bench/window-probe`; reports when CoreGraphics first lists a normal window at least 300 × 200 for a process ID. Not a standalone build/launch entry point. |
 
@@ -282,11 +282,11 @@ and the distinction between logical leases, managed watcher instances and native
 
 ### Headless language MCP and real-project validation
 
-Set `SHARPRAIL_HEADLESS_MCP=1` with the standalone host's existing root, state,
+Set `TEREDITOR_HEADLESS_MCP=1` with the standalone host's existing root, state,
 bind/port and token environment variables to enable bearer-authenticated POST
 `/mcp` without a terminal or graphical app. The production language tools are
 available; license acceptance is not. See
-[`tests/SharpRail.Language.Integration/README.md`](../tests/SharpRail.Language.Integration/README.md)
+[`tests/Tereditor.Language.Integration/README.md`](../tests/Tereditor.Language.Integration/README.md)
 for direct launch instructions and the explicitly opt-in, pinned-project tool-call
 matrix. Expensive real-server scenarios are excluded from the full check suite.
 
@@ -302,21 +302,21 @@ A real authenticated Context smoke test remains a separate, user-authorized acti
 
 `sh scripts/build-tailscale-android.sh [arm64-v8a|x86_64]` builds the app-private
 userspace node using checksum-pinned Go and the checkout's Android NDK. It stages
-`libSharpRailTailscale.so` and dependency licenses under `src/SharpRail.Android/obj/tailscale/<abi>`.
-The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/tool android-ndk` prints. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
+`libTereditorTailscale.so` and dependency licenses under `src/Tereditor.Android/obj/tailscale/<abi>`.
+The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/tool android-ndk` prints. See the [bridge README](../src/Tereditor.Android/Tailscale.Native/README.md)
 for its ABI and native tests; no system Go installation or separate Android VPN app is required.
 
 ### Browser Tailscale node
 
-`sh scripts/build-tailscale-wasm.sh` (`scripts/mise run tailscale:wasm`) builds `src/SharpRail.Browser/Tailscale.Wasm` for
-js/wasm with the shared pinned Go and stages it under `src/SharpRail.Browser/obj/tailscale-wasm`; the browser build
+`sh scripts/build-tailscale-wasm.sh` (`scripts/mise run tailscale:wasm`) builds `src/Tereditor.Browser/Tailscale.Wasm` for
+js/wasm with the shared pinned Go and stages it under `src/Tereditor.Browser/obj/tailscale-wasm`; the browser build
 runs it and deploys the result under `tailscale/` in the AppBundle. It needs `node` (the browser toolchain) for the
-Brotli sidecar. See the [bridge README](../src/SharpRail.Browser/Tailscale.Wasm/README.md).
+Brotli sidecar. See the [bridge README](../src/Tereditor.Browser/Tailscale.Wasm/README.md).
 
 ### Headscale connectivity check
 
-`sh scripts/build-headscale-test.sh` provisions what `--headscale` needs under `$SHARPRAIL_CACHE_DIR/headscale-test`:
+`sh scripts/build-headscale-test.sh` provisions what `--headscale` needs under `$TEREDITOR_CACHE_DIR/headscale-test`:
 the checksum-pinned Headscale v0.29.5 release for this platform (macOS or Linux, arm64 or x64), the
 `tsforward` userspace node and a desktop build of the embedded Tailscale library. The Go toolchain comes
 from `scripts/tailscale-go.sh`, which the Android build shares. Then
-`dotnet run --project tests/SharpRail.Checks -c Release -- --headscale` runs the slow check.
+`dotnet run --project tests/Tereditor.Checks -c Release -- --headscale` runs the slow check.

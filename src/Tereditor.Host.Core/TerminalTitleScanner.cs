@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// Follows the window and tab title a program sets with OSC 0 or OSC 2 in a shell's output, across chunk boundaries.

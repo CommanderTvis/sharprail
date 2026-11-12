@@ -1,11 +1,11 @@
 // Copyright (c) Tailscale Inc & contributors
 // SPDX-License-Identifier: BSD-3-Clause
 //
-// Adapted for SharpRail from tailscale.com/cmd/tsconnect/wasm/wasm_js.go (v1.104.1): the same userspace
+// Adapted for tereditor from tailscale.com/cmd/tsconnect/wasm/wasm_js.go (v1.104.1): the same userspace
 // engine and netstack, with a persistent (non-ephemeral) node, no SSH, no log uploads, and a TCP dial
 // bridged to JavaScript so the client can run its WebSocket RPC over the tailnet.
 
-// Command tailscale-wasm adds sharprailTailscale(config) to the JavaScript global scope. It returns a node
+// Command tailscale-wasm adds tereditorTailscale(config) to the JavaScript global scope. It returns a node
 // object with start(), status(), login(), logout(), dial(address) and the connection methods read/write/close.
 package main
 
@@ -40,9 +40,9 @@ import (
 )
 
 func main() {
-	js.Global().Set("sharprailTailscale", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Global().Set("tereditorTailscale", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 1 {
-			return js.Global().Get("Error").New("usage: sharprailTailscale(config)")
+			return js.Global().Get("Error").New("usage: tereditorTailscale(config)")
 		}
 		n, err := newNode(args[0])
 		if err != nil {
@@ -93,7 +93,7 @@ func newNode(config js.Value) (*node, error) {
 	if storage := config.Get("stateStorage"); !storage.IsUndefined() && !storage.IsNull() {
 		store = &jsStateStore{storage}
 	}
-	n := &node{controlURL: ipn.DefaultControlURL, hostname: "sharprail-browser", conns: map[int]net.Conn{}}
+	n := &node{controlURL: ipn.DefaultControlURL, hostname: "tereditor-browser", conns: map[int]net.Conn{}}
 	if value := config.Get("controlURL"); value.Type() == js.TypeString && value.String() != "" {
 		n.controlURL = value.String()
 	}

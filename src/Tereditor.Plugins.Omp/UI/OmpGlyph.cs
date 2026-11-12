@@ -4,10 +4,10 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Omp.UI;
+namespace Tereditor.Plugins.Omp.UI;
 
 /// <summary>
 /// The omp mark from this plugin's own <c>omp.svg</c>, drawn in a theme brush (the asset paints <c>currentColor</c>)

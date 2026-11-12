@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using Android.Content;
 using Android.Net;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>Supplies the supported Android connectivity snapshot instead of Go's restricted netlink query.</summary>
 internal sealed class AndroidTailscalePlatform : IDisposable

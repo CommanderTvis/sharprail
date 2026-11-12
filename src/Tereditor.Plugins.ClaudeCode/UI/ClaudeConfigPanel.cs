@@ -9,12 +9,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The Claude Code side tool: what a Claude session in this workspace loads (context, settings, capabilities) with the
@@ -441,7 +441,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             rows.Add(name switch
             {
                 "System prompt" => new("system-prompt", "Claude Code system prompt", "robot", Math.Max(0, claudePrompt ?? category.Tokens), [],
-                    "Claude Code's own prompt; SharpRail's appended instructions are counted on their own row"),
+                    "Claude Code's own prompt; tereditor's appended instructions are counted on their own row"),
                 "System tools" => new("system-tools", "Built-in tools", "terminal", category.Tokens, []),
                 "MCP tools" => new("mcp-tools", "MCP tools", "server", category.Tokens,
                     [.. breakdown.McpTools.GroupBy(tool => tool.Source).OrderByDescending(group => group.Sum(tool => tool.Tokens)).Select(server =>
@@ -546,7 +546,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         total.Children.Add(amount);
         total.Children.Add(new ClaudeContextLabel { Name = "ClaudeContextHeading" });
         list.Children.Add(new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = total });
-        // The appended prompt is drawn as SharpRail's instructions entry below, not as a file row.
+        // The appended prompt is drawn as tereditor's instructions entry below, not as a file row.
         var files = layers.Where(layer => !ReferenceEquals(layer, appendedRow)).ToList();
         layers = files;
         // An @-import hangs under the file that pulled it in: a rule per ancestor level, then a tee or an elbow into the row.
@@ -632,7 +632,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             list.Children.Add(line);
         }
-        // SharpRail's instructions: one entry sized by the appended file, opening a popup of the sections the project can turn off.
+        // tereditor's instructions: one entry sized by the appended file, opening a popup of the sections the project can turn off.
         if (appendedRow is not null || context.Settings<ClaudeCodeSettings>().AppendSystemPrompt)
         {
             var instructions = InstructionSections(workspaceId);
@@ -650,7 +650,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         var view = new InstructionSectionsView("Claude Code",
             () => context.RequestAsync(ClaudeCodeContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = workspace }).AsTask(),
             (id, enabled) => context.RequestAsync(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = workspace, Id = id, Enabled = enabled }).AsTask(),
-            message => context.Notify(PluginNotificationKind.Error, "Couldn't change SharpRail's instructions", message));
+            message => context.Notify(PluginNotificationKind.Error, "Couldn't change tereditor's instructions", message));
         IDisposable? subscription = null;
         view.AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(ClaudeCodeContract.InstructionsChanged, _ => view.Refresh());
         view.DetachedFromVisualTree += (_, _) => { subscription?.Dispose(); subscription = null; };

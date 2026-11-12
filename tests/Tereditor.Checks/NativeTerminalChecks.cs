@@ -17,14 +17,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Client;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 [SupportedOSPlatform("macos")]
 internal static class NativeTerminalChecks
@@ -42,8 +42,8 @@ internal static class NativeTerminalChecks
         layout.SwitchWorkspace(fixture);
         profile.Data.Windows[0].Layout = layout.State;
         profile.Save();
-        Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", fixture);
-        Environment.SetEnvironmentVariable("SHARPRAIL_PROFILE", Path.Combine(fixture, ProfileDirectory));
+        Environment.SetEnvironmentVariable("TEREDITOR_ROOT", fixture);
+        Environment.SetEnvironmentVariable("TEREDITOR_PROFILE", Path.Combine(fixture, ProfileDirectory));
         // Shutdown(1) only sets the lifetime's return value; drop it and a failed scenario exits 0.
         if (AppBuilder.Configure<App>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.Metal] }).AfterSetup(_ =>
@@ -124,16 +124,16 @@ internal static class NativeTerminalChecks
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
         await Until(() => Native.Focused(original));
         // The terminal takes the theme's sidebar colour (the container-terminal-bg role), not the content colour.
-        static uint TerminalBackground(string name) => SharpRail.UI.Rendering.Themes.Resolve(name)["sidebar"].ToUInt32() & 0xffffff;
+        static uint TerminalBackground(string name) => Tereditor.UI.Rendering.Themes.Resolve(name)["sidebar"].ToUInt32() & 0xffffff;
         await Until(() => Native.Background(original) == TerminalBackground("dark"));
-        Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("light"));
+        Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve("light"));
         await Until(() => Native.Background(original) == TerminalBackground("light"));
-        foreach (var theme in SharpRail.UI.Rendering.Themes.All)
+        foreach (var theme in Tereditor.UI.Rendering.Themes.All)
         {
             Ui.Apply(theme);
             await Until(() => Native.Background(original) == (theme["sidebar"].ToUInt32() & 0xffffff));
         }
-        Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("dark"));
+        Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve("dark"));
         await Until(() => Native.Background(original) == TerminalBackground("dark"));
         await Type(original, "printf 'TAB_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("TAB_KEYBOARD_OK", StringComparison.Ordinal));
@@ -182,7 +182,7 @@ internal static class NativeTerminalChecks
         Native.Key(original, "\x03", 8, true);
         await Type(original, "printf 'CTRL_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("CTRL_KEYBOARD_OK", StringComparison.Ordinal));
-        await Send(original, $"export SHARPRAIL_SESSION=original; test \"$PWD\" = '{root.Replace("'", "'\\''")}' && printf '\\nNATIVE_%s_OK\\n' SHELL\r");
+        await Send(original, $"export TEREDITOR_SESSION=original; test \"$PWD\" = '{root.Replace("'", "'\\''")}' && printf '\\nNATIVE_%s_OK\\n' SHELL\r");
         await Until(() => Read(original).Contains("NATIVE_SHELL_OK", StringComparison.Ordinal) && Native.Rendered(original));
         await Send(original, "printf '\\nNATIVE_PID_%s\\n' \"$$\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(original), @"NATIVE_PID_\d+"));
@@ -200,7 +200,7 @@ internal static class NativeTerminalChecks
         // Folding the pane moved focus out of it; focus the restored terminal as selecting its tab would.
         original.FindAncestorOfType<TerminalView>()!.FocusTerminal();
         await Until(() => Native.Focused(original));
-        await Send(original, "printf '\\nRETAINED_%s\\n' \"$SHARPRAIL_SESSION\"\r");
+        await Send(original, "printf '\\nRETAINED_%s\\n' \"$TEREDITOR_SESSION\"\r");
         await Until(() => Read(original).Contains("RETAINED_original", StringComparison.Ordinal));
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "absent"));
@@ -216,7 +216,7 @@ internal static class NativeTerminalChecks
         await Until(() => Native.Focused(second!));
         await Type(second!, "printf 'NEW_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(second!).Contains("NEW_KEYBOARD_OK", StringComparison.Ordinal));
-        await Send(second!, $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{SHARPRAIL_SESSION-unset}}\"\r");
+        await Send(second!, $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{TEREDITOR_SESSION-unset}}\"\r");
         await Until(() => Read(second!).Contains("ISOLATED_unset", StringComparison.Ordinal));
         await window.OpenProjectAsync(root);
         window.Layout.Select(side, tab.Id);
@@ -237,7 +237,7 @@ internal static class NativeTerminalChecks
         File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "absent"));
         var profile = Path.Combine(fixture, "local-sessions-profile");
         var terminals = ((App)Application.Current!).Terminals;
-        WorkbenchWindow Open() => new(new LocalProjectAdapter(new SharpRail.Host.Core.ProjectServices(root)), root, new ProfileStore(profile), terminals) { Width = 1000, Height = 700 };
+        WorkbenchWindow Open() => new(new LocalProjectAdapter(new Tereditor.Host.Core.ProjectServices(root)), root, new ProfileStore(profile), terminals) { Width = 1000, Height = 700 };
         async Task<GhosttyTextureView> Surface(WorkbenchWindow window)
         {
             await Until(() => window.WorkspaceMounted);
@@ -276,7 +276,7 @@ internal static class NativeTerminalChecks
             Native.Key(view, "\x15", 32, true);
         }
         delays.Sort();
-        Console.WriteLine($"SHARPRAIL_TERMINAL_ECHO median={delays[5]:F1}ms max={delays[^1]:F1}ms");
+        Console.WriteLine($"TEREDITOR_TERMINAL_ECHO median={delays[5]:F1}ms max={delays[^1]:F1}ms");
         if (delays[5] > 100) throw new InvalidOperationException($"Local relay input echo is too slow: median {delays[5]:F1} ms.");
         await Send(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"SIZE_\d+x\d+_"));

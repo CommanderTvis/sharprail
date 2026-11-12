@@ -14,7 +14,7 @@ $fingerprint = $commit + $target + $ZigWindowsCpu + (Get-NativeFingerprint @($PS
 $stamp = Join-Path $out 'fingerprint'
 $library = Join-Path $out 'GhosttyAvaloniaVt.dll'
 if ((Test-Path $library) -and (Test-Path $stamp) -and (Get-Content $stamp -Raw).Trim() -eq $fingerprint) { return }
-$work = Join-Path (Get-SharpRailCacheDir) 'ghostty-avalonia'
+$work = Join-Path (Get-TereditorCacheDir) 'ghostty-avalonia'
 $buildLock = Enter-NativeBuild $work
 try {
     $key = (Get-FileHash -InputStream ([IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($fingerprint))) -Algorithm SHA256).Hash.Substring(0, 16).ToLowerInvariant()

@@ -11,18 +11,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The app's plugin runtime: the registry's rules on constructed rosters, the dependency walks Settings › Plugins
 // uses, the loader and context against builtin modules on a stand-in host, and the fixture plugin composed as a
@@ -322,7 +322,7 @@ internal static partial class PluginUiChecks
         PluginHostChecks.InstallExternal(plugins, "broken", manifest => manifest with { ApiGeneration = 999 });
         PluginHostChecks.InstallExternal(plugins, "removable");
         IReadOnlyList<(PluginManifest, Func<PluginUIModule>)> uiPlugins =
-            [.. BuiltinPlugins.All, (SharpRail.PluginFixture.FixtureContract.Manifest, () => new SharpRail.PluginFixture.UI.FixtureUI())];
+            [.. BuiltinPlugins.All, (Tereditor.PluginFixture.FixtureContract.Manifest, () => new Tereditor.PluginFixture.UI.FixtureUI())];
         Directory.CreateDirectory(workspace);
         File.WriteAllText(Path.Combine(workspace, "sample.fixture"), "fixture-viewer-text");
         File.WriteAllText(Path.Combine(workspace, "notes.txt"), "plain-text-fixture\n");
@@ -334,7 +334,7 @@ internal static partial class PluginUiChecks
         try
         {
             using var app = server is null
-                ? new E2eWorkspace(workspace, profileRoot: profileRoot, hostPlugins: [.. SharpRail.Host.Core.Plugins.BuiltinPlugins.All, PluginHostChecks.Fixture()], uiPlugins: uiPlugins)
+                ? new E2eWorkspace(workspace, profileRoot: profileRoot, hostPlugins: [.. Tereditor.Host.Core.Plugins.BuiltinPlugins.All, PluginHostChecks.Fixture()], uiPlugins: uiPlugins)
                 : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),
                     token, workspace, profileRoot, workspace, plugins: true, uiPlugins: uiPlugins);
             if (remote)
@@ -365,25 +365,25 @@ internal static partial class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         var settings = window.OpenSettingsViews.Single();
-        SharpRail.UI.Panels.PluginsSettings Page() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single();
+        Tereditor.UI.Panels.PluginsSettings Page() => settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single();
         var row = Page().Card("removable")!;
         static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
             Texts(row).Contains("disabled", StringComparison.Ordinal), "An external plugin's row must show external, its version and disabled: " + Texts(row));
         Require(Texts(Page().Card("fixture")!).Contains("builtin", StringComparison.Ordinal), "The composed fixture is listed as builtin: " + Texts(Page().Card("fixture")!));
         // An early plugin wears its support badge on the card; a fully supported one does not.
-        var ompRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("omp")!;
+        var ompRow = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("omp")!;
         Require(ompRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible && Texts(ompRow).Contains("Early support", StringComparison.Ordinal),
             "The omp card shows its Early support badge: " + Texts(ompRow));
-        var codexRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("codex")!;
+        var codexRow = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("codex")!;
         Require(!codexRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible, "A fully supported plugin wears no support badge.");
-        var refusedRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
+        var refusedRow = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
         Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 2", StringComparison.Ordinal),
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));
 
         // Plugins are grouped under category headings: builtin categories in their fixed order, plugins without one under Other last,
         // and a language server beside the plugin that activates the same language's environments.
-        var names = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Listing().ToList();
+        var names = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Listing().ToList();
         var headings = names.Where(name => name.StartsWith("PluginCategory_", StringComparison.Ordinal)).Select(name => name["PluginCategory_".Length..]).ToArray();
         Require(headings.SequenceEqual(["C & C++", "C#", "CSS", "Dart", "Go", "JavaScript & TypeScript", "JVM", "PHP", "PowerShell", "Python", "R", "Ruby", "Rust", "Shell", "Swift", "Environment", "Agents", "Version Control", "Specs & Documents", "Integrations", "Other", "Unavailable"]),
             "Plugins are grouped by category, languages first, then tool groups, with Other, then Unavailable, last: " + string.Join(", ", headings));
@@ -418,7 +418,7 @@ internal static partial class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         settings = window.OpenSettingsViews.Single();
-        var toggle = Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
+        var toggle = Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
         toggle.IsChecked = true;
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_fixture_fixture"));
@@ -475,7 +475,7 @@ internal static partial class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         settings = window.OpenSettingsViews.Single();
-        Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").IsChecked = false;
+        Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").IsChecked = false;
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => !Has(settings, "Settings_plugin_fixture_fixture"));
         static bool Gone<T>(IReadOnlyList<PluginRow<T>> rows) => rows.All(row => row.PluginId != "fixture");
@@ -494,9 +494,9 @@ internal static partial class PluginUiChecks
         // Rescan re-reads the plugin roots; a plugin deleted from disk leaves the roster.
         Directory.Delete(Path.Combine(plugins, "removable"), recursive: true);
         app.Click(Find<Button>(settings, "PluginsRescan"), freshGesture: false);
-        E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("removable") is null && settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture") is not null);
+        E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("removable") is null && settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture") is not null);
         settings.Close();
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any());
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any());
 
         // A tab whose viewer has gone offers to open the file as text.
         window.Layout.Select(window.Layout.View.FocusedCenter, "viewer:sample.fixture");

@@ -2,11 +2,11 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>
 /// The Claude Code plugin's host half: the configuration methods, the IDE bridge, the status route the hook plugin posts
@@ -148,7 +148,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             var scope = await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct);
             var declared = ClaudeResolver.Resolve(p.WorkspaceId, scope.Root, scope.PromptFiles).Capabilities
                 .Where(item => item.Kind == ClaudeCapabilityKind.Mcp).Select(item => item.Name).ToHashSet();
-            // The health check reports SharpRail's own MCP server broken unless it carries the token a real terminal would.
+            // The health check reports tereditor's own MCP server broken unless it carries the token a real terminal would.
             var probe = $"{LoopbackRoot()}/mcp/{context.TerminalToken(new(p.WorkspaceId, McpListProbeTabKey))}";
             var entries = await McpList.ListAsync(Command(), scope.Root, new Dictionary<string, string> { ["THINKRAIL_MCP_URL"] = probe });
             return new McpListResult(McpList.Capabilities(entries, declared, scope.Root));
@@ -234,7 +234,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             request =>
             {
                 // Addressed, not broadcast: the client that reported this workspace's editor owns the action.
-                if (!clientForWorkspace.TryGetValue(request.WorkspaceId, out var client)) throw new InvalidOperationException("No SharpRail client is connected");
+                if (!clientForWorkspace.TryGetValue(request.WorkspaceId, out var client)) throw new InvalidOperationException("No tereditor client is connected");
                 context.Publish(ClaudeCodeContract.IdeAction, request, client);
             },
             () => [.. workspaces.Values.Select(workspace => workspace.Path).Distinct()],
@@ -310,7 +310,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                 if (StartedByAnotherAgent(terminal) || ProcessTree.CaptureCommand(agentPid) is not { } command) return;
                 claudePidOfTab[terminal] = agentPid;
                 var existing = context.AgentRecord(terminal);
-                // A new process that names its session (SharpRail's --session-id, or --resume with an id) is in that
+                // A new process that names its session (tereditor's --session-id, or --resume with an id) is in that
                 // session from its first moment, before any hook reports; hooks then follow /clear, /resume and forks.
                 context.SetAgentRecord(terminal, new TerminalAgentRecord("claude", command)
                 {
@@ -367,16 +367,16 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             }
             // The revived terminal runs the agent as its program; a Windows host types it as an offer instead.
             if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer) { Program = true, Fresh = fresh };
-            // A revival is SharpRail's own launch, whatever started the session it resumes. The command comes from the
+            // A revival is tereditor's own launch, whatever started the session it resumes. The command comes from the
             // process table, which holds no environment, so the agent-view setting is applied again rather than carried.
             var agentView = context.Settings<ClaudeCodeSettings>().DisableAgentView ? "CLAUDE_CODE_DISABLE_AGENT_VIEW=true " : "";
-            return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer)
-            { Program = true, Fresh = fresh is null ? null : "SHARPRAIL_UI_LAUNCH=claude " + agentView + fresh };
+            return new RevivePrefill("TEREDITOR_UI_LAUNCH=claude " + agentView + offer)
+            { Program = true, Fresh = fresh is null ? null : "TEREDITOR_UI_LAUNCH=claude " + agentView + fresh };
         });
     }
 
     // A fresh session's baseline, measured where and how this tab's session started: its directory, its context-shaping
-    // flags (or, with no Claude in the tab, the flags SharpRail's launcher would pass), and the same SharpRail MCP address.
+    // flags (or, with no Claude in the tab, the flags tereditor's launcher would pass), and the same tereditor MCP address.
     private ContextRunSpec ContextSpec(string workspaceId, string? tabKey, ConfigScope scope)
     {
         var settings = context.Settings<ClaudeCodeSettings>();

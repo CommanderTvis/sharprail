@@ -9,12 +9,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>
 /// The Codex side tool: Context (the AGENTS.md chain and the offers), Settings (the trust line and the layered keys),
@@ -217,7 +217,7 @@ public static class CodexPanel
             }
             frame.FindControl<TextBlock>("ContextSize")!.Text = FormatSize(current.Instructions.Sum(file => file.Bytes));
             var rows = frame.FindControl<StackPanel>("Instructions")!;
-            // The launch file is SharpRail's instructions: drawn as their entry below, not as a file row.
+            // The launch file is tereditor's instructions: drawn as their entry below, not as a file row.
             var launch = current.Instructions.FirstOrDefault(file => file.Scope == CodexInstructionsScope.Launch);
             foreach (var file in current.Instructions.Where(file => file.Scope != CodexInstructionsScope.Launch))
             {
@@ -229,13 +229,13 @@ public static class CodexPanel
                 row.FindControl<TextBlock>("CodexInstructionsSize")!.Text = FormatSize(file.Bytes);
                 rows.Children.Add(row);
             }
-            // SharpRail's instructions: one entry sized by the launch file, expanding to the sections the project can turn off.
+            // tereditor's instructions: one entry sized by the launch file, expanding to the sections the project can turn off.
             if (launch is not null || context.Settings<CodexSettings>().AppendSystemPrompt)
             {
                 var view = new InstructionSectionsView("Codex",
                     () => context.RequestAsync(CodexContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = workspaceId }).AsTask(),
                     (id, enabled) => context.RequestAsync(CodexContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = workspaceId, Id = id, Enabled = enabled }).AsTask(),
-                    message => context.Notify(PluginNotificationKind.Error, "Couldn't change SharpRail's instructions", message));
+                    message => context.Notify(PluginNotificationKind.Error, "Couldn't change tereditor's instructions", message));
                 IDisposable? subscription = null;
                 view.AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(CodexContract.InstructionsChanged, _ => view.Refresh());
                 view.DetachedFromVisualTree += (_, _) => { subscription?.Dispose(); subscription = null; };
@@ -255,7 +255,7 @@ public static class CodexPanel
             frame.FindControl<TextBlock>("LspAvailability")!.Text = context.Host().HostPlatform == HostPlatform.Windows
                 ? "Automatic LSP MCP launch wiring is unavailable on Windows."
                 : context.Settings<CodexSettings>().Mcp
-                ? "LSP MCP is included in new SharpRail launches."
+                ? "LSP MCP is included in new tereditor launches."
                 : "LSP MCP is off for new launches. Enable MCP in Codex Settings.";
             frame.FindControl<ContentControl>("HooksAction")!.Content = current.HooksInstalled
                 ? ScopedSetting.ScopeChip("user")
@@ -263,7 +263,7 @@ public static class CodexPanel
                     () => Run(async () => await context.RequestAsync(CodexContract.InstallHooks, Scope())));
             frame.FindControl<TextBlock>("HooksDetail")!.Text = current.HooksInstalled
                 ? current.HooksTrusted ? "Installed and trusted." : "Installed; waiting for you to trust them in Codex."
-                : "Report running, waiting and done to SharpRail. Inert outside a SharpRail terminal.";
+                : "Report running, waiting and done to tereditor. Inert outside a tereditor terminal.";
             var rows = frame.FindControl<StackPanel>("Servers")!;
             foreach (var server in current.McpServers)
             {

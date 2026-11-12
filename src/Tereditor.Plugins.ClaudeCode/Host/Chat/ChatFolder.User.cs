@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 // User-role frames, classified the way the official extension's webview does (see "Chat semantics" in the plugin's SPEC):
 // by origin and text shape, not by role. Live frames and transcript lines take this one path.
@@ -185,7 +185,7 @@ internal sealed partial class ChatFolder
         var shown = origin is { Kind: not "human" } ? origin : null;
         if (items.GetValueOrDefault(promptId) is ChatUserItem existing)
         {
-            // The CLI's echo of a prompt SharpRail sent (or a replayed line): it only releases the held prompt.
+            // The CLI's echo of a prompt tereditor sent (or a replayed line): it only releases the held prompt.
             if (existing.Queued) Put(existing with { Queued = false });
             return;
         }

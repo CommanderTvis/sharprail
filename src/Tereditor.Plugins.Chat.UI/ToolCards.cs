@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// What a tool call's card says, by tool, after the extension's tool table (spec 3.4 and 3.5): the one-line header, the secondary line under it,
@@ -106,7 +106,7 @@ internal static class ToolCards
         var parts = name.Split("__", 3);
         var server = parts.Length > 1 ? parts[1] : name;
         var tool = parts.Length > 2 ? parts[2] : "";
-        if (IsSharpRail(server)) return new("SharpRail [" + SharpRailTool(tool) + "]", SharpRailSecondary(tool, input));
+        if (IsTereditor(server)) return new("tereditor [" + TereditorTool(tool) + "]", TereditorSecondary(tool, input));
         var title = server == "claude-in-chrome" ? "Claude in Chrome" : Humanise(server);
         var shown = server == "claude-in-chrome" ? Humanise(tool) : tool;
         var secondary = "";
@@ -126,17 +126,17 @@ internal static class ToolCards
         return new(title + " [" + shown + "]", secondary);
     }
 
-    /// <summary>SharpRail's own MCP server, as Claude names it (plugin_sharprail_sharprail, plugin:sharprail:sharprail) or plainly.</summary>
-    private static bool IsSharpRail(string server) => server is "sharprail" or "plugin_sharprail_sharprail" or "plugin:sharprail:sharprail";
+    /// <summary>tereditor's own MCP server, as Claude names it (plugin_tereditor_tereditor, plugin:tereditor:tereditor) or plainly.</summary>
+    private static bool IsTereditor(string server) => server is "tereditor" or "plugin_tereditor_tereditor" or "plugin:tereditor:tereditor";
 
     /// <summary>"LSP navigate" from "lsp_navigate": first word capitalised, acronyms upper-case.</summary>
-    internal static string SharpRailTool(string tool)
+    internal static string TereditorTool(string tool)
     {
         var words = tool.Split(['_', '-', ' '], StringSplitOptions.RemoveEmptyEntries);
         return string.Join(" ", words.Select((word, index) => word == "lsp" ? "LSP" : index == 0 ? char.ToUpperInvariant(word[0]) + word[1..] : word));
     }
 
-    private static string SharpRailSecondary(string tool, JsonElement input)
+    private static string TereditorSecondary(string tool, JsonElement input)
     {
         string Pick(params string[] keys) => keys.Select(key => Str(input, key)).FirstOrDefault(value => value.Length > 0) ?? "";
         var text = tool switch
@@ -334,7 +334,7 @@ internal static class ToolCards
         : tool.Name == "Workflow" ? (Str(tool.Input, "script") is { Length: > 0 } script ? script : Str(tool.Input, "scriptPath"))
         : tool.Name == "Monitor" && Str(tool.Input, "command") is { Length: > 0 } watch ? watch
         : tool.Input.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? ""
-        : tool.Name.StartsWith("mcp__", StringComparison.Ordinal) && IsSharpRail(tool.Name.Split("__", 3)[1]) && tool.Input.ValueKind == JsonValueKind.Object
+        : tool.Name.StartsWith("mcp__", StringComparison.Ordinal) && IsTereditor(tool.Name.Split("__", 3)[1]) && tool.Input.ValueKind == JsonValueKind.Object
             ? JsonSerializer.Serialize(tool.Input.EnumerateObject().Where(property => property.Name != "workspace").ToDictionary(property => property.Name, property => property.Value), ChatUIJson.Indented.DictionaryStringJsonElement)
         : JsonSerializer.Serialize(tool.Input, ChatUIJson.Indented.JsonElement);
 

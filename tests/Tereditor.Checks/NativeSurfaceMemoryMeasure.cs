@@ -8,7 +8,7 @@ using Avalonia.Controls;
 
 using Ghostty.Avalonia;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Measures this process's IOSurface and physical footprint (macOS <c>footprint</c>) as Metal terminals are shown,

@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Processes.UI;
+namespace Tereditor.Plugins.Processes.UI;
 
 /// <summary>A row's CPU trend: one polyline over its last samples, scaled to the row's own peak (at least 1 percent).</summary>
 internal sealed class Sparkline : Control

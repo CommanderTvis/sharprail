@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 internal enum McpListStatus { Connected, Disabled, Failed, NeedsAuth, Pending, Unknown }
 

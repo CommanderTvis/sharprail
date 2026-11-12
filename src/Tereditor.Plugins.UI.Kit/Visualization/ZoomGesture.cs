@@ -1,6 +1,6 @@
 using Avalonia.Input;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>Zoom clamping and gesture math shared by zoomable views, so every one zooms at the same pace and bounds.</summary>
 public static class ZoomGesture

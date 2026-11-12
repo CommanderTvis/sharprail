@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>
 /// The client methods an ACP agent calls: file reads and writes and terminals. The agent is untrusted, so every path and every

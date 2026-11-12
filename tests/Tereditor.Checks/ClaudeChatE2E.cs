@@ -7,15 +7,15 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.ClaudeCode.UI.Chat;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.ClaudeCode.UI.Chat;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The real chat view in a real workbench window against the real Claude Code host, reached over the plugin call path the
@@ -38,7 +38,7 @@ internal static class ClaudeChatE2E
         foreach (var (name, path) in new Dictionary<string, string>
         {
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
         })
         {
@@ -59,7 +59,7 @@ internal static class ClaudeChatE2E
         foreach (var (name, path) in new Dictionary<string, string>
         {
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
         })
         {
@@ -91,9 +91,9 @@ internal static class ClaudeChatE2E
             E2eWorkspace.Until(() => app.Window.Layout.State.Workspaces.Values.SelectMany(workspace => workspace.Documents.Values.SelectMany(tabs => tabs)).Count(item => item.Kind == "plugin") == made);
             E2eWorkspace.Until(() => View(app)?.Transcript.Header is { Status: ChatStatus.Idle });
         }
-        var buttons = app.Window.GetVisualDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible).ToArray();
+        var buttons = app.Window.GetVisualDescendants().OfType<Tereditor.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible).ToArray();
         Require(buttons.Length >= 2, $"Both chat tabs show in the strip ({buttons.Length}).");
-        SharpRail.UI.Docking.DockTabButton[] Buttons() => [.. app.Window.GetVisualDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible)];
+        Tereditor.UI.Docking.DockTabButton[] Buttons() => [.. app.Window.GetVisualDescendants().OfType<Tereditor.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible)];
         void ClickOther(string what)
         {
             var target = Buttons().Single(button => !button.IsSelected);
@@ -128,7 +128,7 @@ internal static class ClaudeChatE2E
         foreach (var (name, path) in new Dictionary<string, string>
         {
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             ["HOME"] = Path.Combine(directory, "gov-home"),
             ["PATH"] = governedBin + Path.PathSeparator + (Environment.GetEnvironmentVariable("PATH") ?? ""),
             [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
@@ -147,7 +147,7 @@ internal static class ClaudeChatE2E
         case "${1:-}" in
         --version) echo 'central 1.13.0 (commit: synthetic)' ;;
         status) echo 'Auth      E2E'; echo 'Proxy     running on port 19516' ;;
-        run) shift; { for a in "$@"; do printf 'arg:%s\n' "$a"; done; echo "env:SHARPRAIL_UI_LAUNCH=${SHARPRAIL_UI_LAUNCH-}"; echo "end"; } >> "RUN_LOG" ;;
+        run) shift; { for a in "$@"; do printf 'arg:%s\n' "$a"; done; echo "env:TEREDITOR_UI_LAUNCH=${TEREDITOR_UI_LAUNCH-}"; echo "end"; } >> "RUN_LOG" ;;
         *) exit 8 ;;
         esac
         """;
@@ -183,7 +183,7 @@ internal static class ClaudeChatE2E
             var box = dialog.GetLogicalDescendants().OfType<TextBox>().Single(item => item.Name == "WsPrompt");
             box.Text = text;
             box.Focus();
-            if (enter) SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single().KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            if (enter) Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single().KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
             else app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"), freshGesture: false);
         }
         void Started(string text, int spawns)
@@ -247,7 +247,7 @@ internal static class ClaudeChatE2E
         E2eWorkspace.Until(() => File.Exists(centralLog) && File.ReadAllText(centralLog).Contains("end", StringComparison.Ordinal));
         var launched = File.ReadAllLines(centralLog);
         Require(launched.Take(2).SequenceEqual(["arg:claude-code", "arg:--"]) && new[] { "arg:-p", "arg:--output-format", "arg:stream-json", "arg:--effort", "arg:high", "arg:--permission-mode", "arg:acceptEdits", "arg:--model", "arg:haiku" }.All(launched.Contains) &&
-            launched.Contains("env:SHARPRAIL_UI_LAUNCH=claude"), "A governed chat start runs through the contributed wrapper with the chat's arguments and environment: " + string.Join(" ", launched));
+            launched.Contains("env:TEREDITOR_UI_LAUNCH=claude"), "A governed chat start runs through the contributed wrapper with the chat's arguments and environment: " + string.Join(" ", launched));
 
         // Terminal mode starts a terminal as before.
         Settings(new { enabled = true, command = fake, mode = "Terminal" });
@@ -345,7 +345,7 @@ internal static class ClaudeChatE2E
             Require(!view.HistoryOpen, "The history overlay finds the streamed reply and closes on Escape.");
             view.ShowThread("toolu_task");
             E2eWorkspace.Until(() => view.ThreadTranscript is { } thread && thread.Rows.Any(row => row.Item is ChatAssistantItem { Text: "Inside" }));
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).ToArray()) owned.Dismiss();
+            foreach (var owned in Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).ToArray()) owned.Dismiss();
             app.UntilDialogsGone();
 
             // A permission card answered through the view reaches the child.

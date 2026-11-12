@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>The shape every ref passes before it reaches Git, whether a client sent it or the repository named it.</summary>
 /// <remarks>

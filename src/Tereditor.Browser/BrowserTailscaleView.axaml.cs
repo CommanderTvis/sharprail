@@ -2,10 +2,10 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.UI;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.UI;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>
 /// The browser's Tailscale option: an explicit download of the node (progress, cancel, cached per build), then sign-in in
@@ -14,7 +14,7 @@ namespace SharpRail.UI.Browser;
 internal sealed partial class BrowserTailscaleView : UserControl
 {
     // The pairing secret lives in the page's in-memory file system for the shared picker, mirrored to localStorage.
-    internal const string PairingPath = "/sharprail/tailscale-client.json";
+    internal const string PairingPath = "/tereditor/tailscale-client.json";
     private const string PairingKey = "tailscale-client";
     private readonly BrowserTailscaleNetwork network = BrowserTailscaleNetwork.Instance;
     private readonly TailscaleWasmModule module = BrowserTailscaleNetwork.Module;
@@ -217,7 +217,7 @@ internal sealed partial class BrowserTailscaleView : UserControl
         finally { busy = false; logout.IsEnabled = true; }
     }
 
-    /// <summary>Forgets this browser's SharpRail pairing secret (memory file system and localStorage).</summary>
+    /// <summary>Forgets this browser's tereditor pairing secret (memory file system and localStorage).</summary>
     internal static async Task ForgetPairingAsync()
     {
         BrowserInterop.Save(PairingKey, "");

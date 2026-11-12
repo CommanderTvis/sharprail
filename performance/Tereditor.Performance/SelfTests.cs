@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal static class SelfTests
 {
@@ -37,7 +37,7 @@ internal static class SelfTests
             catch (InvalidOperationException error) when (error.Message.Contains("values withheld", StringComparison.Ordinal)) { }
         }
         finally { Environment.SetEnvironmentVariable("COMPlus_ReadyToRun", previousOverride); }
-        var temporary = Path.Combine(Path.GetTempPath(), "sharprail-performance-" + Guid.NewGuid().ToString("N"));
+        var temporary = Path.Combine(Path.GetTempPath(), "tereditor-performance-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temporary);
         try
         {

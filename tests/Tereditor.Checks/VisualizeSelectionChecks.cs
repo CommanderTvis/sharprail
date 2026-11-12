@@ -9,18 +9,18 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Visualize pane's diagrams are pictures; these checks hold that their text still selects and copies like a
 // document's, that a tree view starts at the source's first node, that every surface draws diagrams readably in dark and
 // light themes, and that comparison cards are selectable text.
 internal static class VisualizeSelectionChecks
 {
-    private const string Tree = "treeView-beta\n    \"SharpRail tasks/\"\n        \"In progress/\"\n            \"Some item\"\n";
+    private const string Tree = "treeView-beta\n    \"tereditor tasks/\"\n        \"In progress/\"\n            \"Some item\"\n";
 
     internal static void Run()
     {
@@ -44,7 +44,7 @@ internal static class VisualizeSelectionChecks
         {
             foreach (var theme in new[] { "dark", "light" })
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(theme));
                 string? verdict = "unreported";
                 using var document = System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(new { type = "svg", title = "Hand", svg = Svg }));
                 var card = VisualizationCard.Create(document.RootElement, interactive: true, error => verdict = error);
@@ -130,7 +130,7 @@ internal static class VisualizeSelectionChecks
         var rendered = MermaidRenderer.Render(Tree, MermaidRenderer.Options());
         Require(rendered.Svg is not null, "The tree view renders: " + rendered.Error);
         var labels = Regex.Matches(rendered.Svg!, "<text[^>]*>([^<]*)</text>").Select(match => match.Groups[1].Value).ToArray();
-        Require(labels.SequenceEqual(["SharpRail tasks/", "In progress/", "Some item"]),
+        Require(labels.SequenceEqual(["tereditor tasks/", "In progress/", "Some item"]),
             "The tree view's first row is the source's first node, with no implicit \"/\" root: " + string.Join(" | ", labels));
         var annotated = MermaidRenderer.Render("treeView-beta\n    \"a\" :::highlight\n", MermaidRenderer.Options());
         Require(annotated.Error is { Length: > 0 }, "Merman 0.7 has no tree view annotations; the parser error reaches the caller instead of a wrong drawing.");
@@ -146,13 +146,13 @@ internal static class VisualizeSelectionChecks
         {
             foreach (var theme in new[] { "dark", "light" })
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(theme));
                 foreach (var (kind, source) in new[] { ("tree view", Tree), ("flowchart", "flowchart LR\n    Start[Begin here] --> Finish[All done]\n") })
                 {
                     var card = new MermaidView(source);
                     Surface($"{theme} {kind} in the Visualize card", card, "DiagramImage", "MermaidFullscreen", kind == "tree view");
-                    var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
-                    using var preview = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview("```mermaid\n" + source + "```\n", "README.md", context);
+                    var context = new Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
+                    using var preview = new Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview("```mermaid\n" + source + "```\n", "README.md", context);
                     Surface($"{theme} {kind} in Markdown preview", preview, "MermaidDiagram", "MermaidFullscreen", kind == "tree view");
                 }
             }
@@ -169,11 +169,11 @@ internal static class VisualizeSelectionChecks
         {
             Until(() => host.GetVisualDescendants().OfType<Image>().Any(control => control.Name == image && Diagram(control) is not null));
             Inspect(name, Diagram(host.GetVisualDescendants().OfType<Image>().First(control => control.Name == image))!, tree);
-            var owned = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count;
+            var owned = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count;
             host.GetVisualDescendants().OfType<Button>().First(control => control.Name == fullscreen)
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count > owned);
-            var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[^1];
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count > owned);
+            var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(window)[^1];
             Until(() => dialog.GetVisualDescendants().OfType<Image>().Any(control => control.Name == "DiagramImage" && Diagram(control) is not null));
             Inspect(name + ", full screen", Diagram(dialog.GetVisualDescendants().OfType<Image>().First(control => control.Name == "DiagramImage"))!, tree);
             dialog.Dismiss();
@@ -238,7 +238,7 @@ internal static class VisualizeSelectionChecks
         var pane = view.GetVisualDescendants().OfType<PanZoomView>().Single();
         var overlay = view.GetVisualDescendants().OfType<DiagramSelection>().Single();
         var text = pane.Text;
-        Require(string.Join("|", text.Runs.Select(run => run.Text)) == "SharpRail tasks/|In progress/|Some item",
+        Require(string.Join("|", text.Runs.Select(run => run.Text)) == "tereditor tasks/|In progress/|Some item",
             "The diagram's drawn labels are read in reading order: " + string.Join("|", text.Runs.Select(run => run.Text)));
 
         // Drag across one label at a zoom other than 100%, so the hit test must follow the displayed scale.
@@ -268,7 +268,7 @@ internal static class VisualizeSelectionChecks
         window.KeyPress(Key.A, command, PhysicalKey.A, null);
         window.KeyPress(Key.C, command, PhysicalKey.C, null);
         Dispatcher.UIThread.RunJobs();
-        const string outline = "SharpRail tasks/\n    In progress/\n        Some item";
+        const string outline = "tereditor tasks/\n    In progress/\n        Some item";
         Require(Clipboard(window) == outline, $"Select All and Copy take every label in order, as an indented outline, got '{Clipboard(window)}'.");
 
         // A press beside the labels pans and clears the selection rather than selecting.
@@ -296,7 +296,7 @@ internal static class VisualizeSelectionChecks
     private static void Comparison()
     {
         using var document = System.Text.Json.JsonDocument.Parse("""{"type":"comparison","title":"Pick","options":[{"name":"OptA","description":"First path","pros":["Fast"],"cons":["Costly"]}]}""");
-        var card = SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.Create(document.RootElement, interactive: true);
+        var card = Tereditor.Plugins.UI.Kit.Visualization.VisualizationCard.Create(document.RootElement, interactive: true);
         var window = new Window { Width = 600, Height = 400, Content = card };
         window.Show();
         Settle();

@@ -2,10 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Ghostty's undo close: a tab the user closed comes back in place within the host's undo timeout, a terminal with

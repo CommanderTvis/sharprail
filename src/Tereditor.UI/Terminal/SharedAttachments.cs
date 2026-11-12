@@ -1,8 +1,8 @@
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 /// <summary>
 /// Files another app shared into this one (Android's share sheet), waiting for an agent terminal to take them.

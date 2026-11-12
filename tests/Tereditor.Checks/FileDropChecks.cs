@@ -14,19 +14,19 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI;
-using SharpRail.UI.Terminal;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class FileDropChecks
 {
@@ -83,7 +83,7 @@ internal static class FileDropChecks
                     Require(!Path.Exists(Path.Combine(fixture, label + "-linked")), "A linked descendant must reject the whole copy.");
                     File.Delete(link);
                 }
-                Require(!Directory.EnumerateFileSystemEntries(fixture).Any(path => Path.GetFileName(path).StartsWith(".sharprail-transfer-", StringComparison.Ordinal)), "Completed and refused transfers leave no staging folders.");
+                Require(!Directory.EnumerateFileSystemEntries(fixture).Any(path => Path.GetFileName(path).StartsWith(".tereditor-transfer-", StringComparison.Ordinal)), "Completed and refused transfers leave no staging folders.");
             }
         }
         finally { await server.StopAsync(); }
@@ -93,7 +93,7 @@ internal static class FileDropChecks
     private static async Task Reject(Func<Task> action)
     {
         try { await action(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException or SharpRail.Host.Protocol.RpcException) { return; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException or Tereditor.Host.Protocol.RpcException) { return; }
         throw new InvalidOperationException("An invalid transfer was accepted.");
     }
 
@@ -120,7 +120,7 @@ internal static class FileDropChecks
         folder.RaiseEvent(new DragEventArgs(DragDrop.DropEvent, data, folder, new Point(60, 12), KeyModifiers.None));
         Until(() => File.Exists(Path.Combine(app.Root, "styles", "notes.txt")));
         Require(!File.Exists(Path.Combine(app.Root, "notes.txt")), "The tree's routed drop must perform the move.");
-        Until(() => !app.Window.GetVisualDescendants().OfType<SharpRail.UI.Panels.FileTransferProgress>().Any(progress => progress.Busy));
+        Until(() => !app.Window.GetVisualDescendants().OfType<Tereditor.UI.Panels.FileTransferProgress>().Any(progress => progress.Busy));
         using var moved = WorkbenchWindow.CreateWorkspaceFileData(new(app.Workbench, app.Root, "styles/notes.txt"), null);
         folder = app.FileRow("themes");
         var copyModifier = OperatingSystem.IsMacOS() ? KeyModifiers.Alt : KeyModifiers.Control;
@@ -258,10 +258,10 @@ internal static class FileDropChecks
                 "A workspace file is inserted like a dragged workspace file, unsent.");
             attached.RemoveRange(1, 2);
 
-            SharpRail.UI.Terminal.SharedAttachments.Add([new("shared.png", false, [9, 8, 7])]);
+            Tereditor.UI.Terminal.SharedAttachments.Add([new("shared.png", false, [9, 8, 7])]);
             Dispatcher.UIThread.RunJobs();
-            Require(attached.Count == 1 && SharpRail.UI.Terminal.SharedAttachments.HasPending, "A share waits while no agent terminal of the shown workspace is mounted.");
-            SharpRail.UI.Terminal.SharedAttachments.Take();
+            Require(attached.Count == 1 && Tereditor.UI.Terminal.SharedAttachments.HasPending, "A share waits while no agent terminal of the shown workspace is mounted.");
+            Tereditor.UI.Terminal.SharedAttachments.Take();
 
             backend.Displace(); Dispatcher.UIThread.RunJobs();
             Until(() => terminal.IsWatching);

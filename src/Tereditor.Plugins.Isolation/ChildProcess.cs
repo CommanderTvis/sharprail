@@ -7,9 +7,9 @@ using System.Text;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Plugins.Isolation.Native;
+using Tereditor.Plugins.Isolation.Native;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>What to start. The environment is the whole environment: nothing of the host's is inherited.</summary>
 public sealed class ChildProcessStart
@@ -161,7 +161,7 @@ public sealed class ChildProcess : IAsyncDisposable
                 Emit();
             }
         })
-        { IsBackground = true, Name = "SharpRail plugin runner output " + Pid }.Start();
+        { IsBackground = true, Name = "tereditor plugin runner output " + Pid }.Start();
     }
 
     [UnsupportedOSPlatform("windows")]
@@ -204,7 +204,7 @@ public sealed class ChildProcess : IAsyncDisposable
             }
             result.Exit(code);
         })
-        { IsBackground = true, Name = "SharpRail plugin runner wait " + pid }.Start();
+        { IsBackground = true, Name = "tereditor plugin runner wait " + pid }.Start();
         return result;
     }
 
@@ -252,7 +252,7 @@ public sealed class ChildProcess : IAsyncDisposable
             Check(Unix.FileActionsDup(actions, log, 1));
             Check(Unix.FileActionsDup(actions, log, 2));
             Check(Unix.FileActionsDup(actions, channel, 3));
-            // Linux: glibc 2.34 closes the rest in the child; before that, every SharpRail descriptor is close-on-exec.
+            // Linux: glibc 2.34 closes the rest in the child; before that, every tereditor descriptor is close-on-exec.
             Unix.TryCloseFrom(actions, 4);
             Check(Unix.FileActionsChdir(actions, start.WorkingDirectory));
             var argv = new string?[start.Arguments.Count + 2];
@@ -345,7 +345,7 @@ public sealed class ChildProcess : IAsyncDisposable
                 lock (result.gate) result.reaped = true;
                 result.Exit(code);
             })
-            { IsBackground = true, Name = "SharpRail plugin runner wait " + info.ProcessId }.Start();
+            { IsBackground = true, Name = "tereditor plugin runner wait " + info.ProcessId }.Start();
             server = null; logRead = null; process = null; job = null;
             return result;
         }

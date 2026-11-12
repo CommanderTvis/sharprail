@@ -151,7 +151,7 @@ static void closeSurface(void *data, bool alive) {
 static bool initialize(void) {
     if (app) return true;
     if (!MTLCreateSystemDefaultDevice()) return false;
-    // Only Ghostty's terminfo ships (SharpRail injects its own shell integration); Ghostty finds it as the sibling of
+    // Only Ghostty's terminfo ships (tereditor injects its own shell integration); Ghostty finds it as the sibling of
     // its resources directory, so name that directory beside it even though it does not exist.
     NSString *resources = [[NSBundle mainBundle] executablePath].stringByDeletingLastPathComponent;
     NSString *bundled = [NSBundle mainBundle].resourcePath;

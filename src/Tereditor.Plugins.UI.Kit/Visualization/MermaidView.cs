@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Svg.Skia;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>A Mermaid diagram, or hand-written SVG once sanitized and themed, rendered off the UI thread, with inline or pane pan and zoom and a render verdict.</summary>
 public sealed partial class MermaidView : ContentControl

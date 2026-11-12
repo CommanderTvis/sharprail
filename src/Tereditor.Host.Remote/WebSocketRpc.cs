@@ -2,9 +2,9 @@ using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>Authenticated WebSocket dispatch directly into the existing host adapters.</summary>
 public static class WebSocketRpc

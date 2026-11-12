@@ -8,7 +8,7 @@ using TextMateSharp.Internal.Types;
 using TextMateSharp.Registry;
 using TextMateSharp.Themes;
 
-namespace SharpRail.Plugins.UI.Kit.Editor;
+namespace Tereditor.Plugins.UI.Kit.Editor;
 
 /// <summary>How a displayed diff row contributes to the old and new source streams. The prefix counts UTF-16 units and is not source.</summary>
 public sealed record SyntaxLine(int PrefixLength, bool Old, bool New, bool Reset = false);
@@ -193,7 +193,7 @@ internal sealed class TextMateHighlighter
                     scope = new(inherited);
                     foreach (var pair in definitions)
                     {
-                        var name = "sharprail-rule-" + sequence++;
+                        var name = "tereditor-rule-" + sequence++;
                         scope[pair.Key] = name;
                         flattened[name] = pair.Value;
                     }
@@ -228,7 +228,7 @@ internal sealed class TextMateHighlighter
                 if (scopeName == "source.swift" && bundled is Raw raw) FlattenRepositories(raw);
                 return bundled;
             }
-            using var stream = typeof(TextMateHighlighter).Assembly.GetManifestResourceStream($"SharpRail.Plugins.UI.Kit.Editor.Grammars.{file}.json")!;
+            using var stream = typeof(TextMateHighlighter).Assembly.GetManifestResourceStream($"Tereditor.Plugins.UI.Kit.Editor.Grammars.{file}.json")!;
             using var reader = new StreamReader(stream);
             return GrammarReader.ReadGrammarSync(reader);
         }

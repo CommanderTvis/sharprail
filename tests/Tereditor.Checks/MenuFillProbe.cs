@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Records a context menu's items when it opens: a native popup keeps the size it measured then, so a menu whose

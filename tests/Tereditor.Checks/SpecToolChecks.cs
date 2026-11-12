@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.SpecDialect;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Observable contracts translated from the fork's spec-graph core and tools tests.</summary>
 internal static class SpecToolChecks

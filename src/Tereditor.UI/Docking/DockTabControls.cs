@@ -7,9 +7,9 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 /// <summary>
 /// One group's body. It is also the region's error boundary: a body that fails to build, measure or arrange

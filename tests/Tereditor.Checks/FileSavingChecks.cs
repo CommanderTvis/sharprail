@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class FileSavingChecks
 {
@@ -86,7 +86,7 @@ internal static class FileSavingChecks
         try { await host.SaveFileAsync(new(root, "code.cs", original, "stale")); throw new InvalidOperationException("A stale save was accepted."); }
         catch (HostException error) { Require(error.Code == HostErrorCode.FileChangedOnDisk && error.Message.StartsWith("The file changed on disk.", StringComparison.Ordinal), "A stale save must fail as FileChangedOnDisk, not as: " + error.GetType().Name + " " + error.Message); }
         await host.SaveFileAsync(new(root, "code.cs", original, "overwritten\n", Overwrite: true));
-        Require(File.ReadAllText(path) == "overwritten\n" && !Directory.EnumerateFiles(root, ".sharprail-save-*").Any(), "An overwriting save did not replace the changed file atomically.");
+        Require(File.ReadAllText(path) == "overwritten\n" && !Directory.EnumerateFiles(root, ".tereditor-save-*").Any(), "An overwriting save did not replace the changed file atomically.");
         if (!OperatingSystem.IsWindows()) Require(File.GetUnixFileMode(path) == mode, "An overwriting save changed executable permissions.");
         await Reject(host, new(root, "../outside.txt", "", "outside", true));
         await Reject(host, new(root, "missing.cs", "", "created", true));
@@ -101,7 +101,7 @@ internal static class FileSavingChecks
         catch (OperationCanceledException) { }
         catch (RpcException error) when (error.StatusCode == StatusCode.Cancelled) { }
         Require((await host.ReadFileAsync("code.cs")).Text == text, "A rejected save changed the file.");
-        Require(!Directory.EnumerateFiles(root, ".sharprail-save-*").Any(), "Save left temporary files behind.");
+        Require(!Directory.EnumerateFiles(root, ".tereditor-save-*").Any(), "Save left temporary files behind.");
         var large = new string('x', FileLimits.EditableBytes - 64) + "\n";
         await File.WriteAllTextAsync(Path.Combine(root, "large.txt"), large);
         Require((await host.ReadFileAsync("large.txt")).Text.Length == large.Length, "A file near the editing limit could not be opened.");

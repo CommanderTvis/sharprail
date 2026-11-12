@@ -1,10 +1,10 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Shows each revived agent tab's resume offer inside the tab. The host never resumes an agent on its own, since another
-/// SharpRail may have the same session open; any client's answer settles the offer for every client.
+/// tereditor may have the same session open; any client's answer settles the offer for every client.
 /// </summary>
 public sealed partial class WorkbenchWindow
 {
@@ -37,7 +37,7 @@ public sealed partial class WorkbenchWindow
         var agent = offer.Agent switch { "claude" => "Claude", "codex" => "Codex", "omp" => "omp", var other => other };
         var session = offer.SessionId.Length > 0 ? $"{agent} session {offer.SessionId[..Math.Min(8, offer.SessionId.Length)]}" : $"A {agent} session";
         var text = offer.OpenElsewhere
-            ? offer.OwnerText.Length > 0 ? $"{session} {offer.OwnerText}" : $"{session} is already open in another tab, SharpRail window or instance, so it is not resumed here."
+            ? offer.OwnerText.Length > 0 ? $"{session} {offer.OwnerText}" : $"{session} is already open in another tab, tereditor window or instance, so it is not resumed here."
             : $"{session} was running here.";
         return offer.Progress.Length > 0 ? $"{text} {offer.Progress}" : text;
     }

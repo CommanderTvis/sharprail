@@ -1,13 +1,13 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 /// <summary>Arguments of <c>context_search</c>.</summary>
 public sealed record ContextSearchParams(
     [property: Description("Detailed natural-language description of the behavior or implementation to locate.")] string Query)
 {
-    [Description("Absolute directory of the SharpRail workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
+    [Description("Absolute directory of the tereditor workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
     public string? Workspace { get; init; }
 
     [Description("Optional workspace-relative path filter. No external directories or repository URLs.")]
@@ -20,7 +20,7 @@ public sealed record ContextSearchParams(
 /// <summary>Arguments of <c>context_status</c>.</summary>
 public sealed record ContextStatusParams
 {
-    [Description("Absolute directory of the SharpRail workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
+    [Description("Absolute directory of the tereditor workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
     public string? Workspace { get; init; }
 
     [Description("Ask the vendor CLI for current index status; does not start indexing.")]
@@ -30,7 +30,7 @@ public sealed record ContextStatusParams
 /// <summary>Arguments of <c>context_index</c>.</summary>
 public sealed record ContextIndexParams
 {
-    [Description("Absolute directory of the SharpRail workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
+    [Description("Absolute directory of the tereditor workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
     public string? Workspace { get; init; }
 }
 

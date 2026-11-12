@@ -11,7 +11,7 @@ using Avalonia.Media;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 // Raw HTML in a Markdown document is read, never run: a short list of tags maps to native controls, text inside any
 // other tag is shown as text, and script, style and every attribute outside those read here are dropped.

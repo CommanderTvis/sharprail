@@ -4,17 +4,17 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
-/// <summary>SharpRail's own checks of the toast queue and of reverting from a diff tab; no upstream scenario is translated here.</summary>
+/// <summary>tereditor's own checks of the toast queue and of reverting from a diff tab; no upstream scenario is translated here.</summary>
 internal static class ChangeActionChecks
 {
     internal static void Run(string root)
@@ -22,8 +22,8 @@ internal static class ChangeActionChecks
         Queue();
         UnitText();
         using var git = new IsolatedGit(Path.Combine(root, "git"));
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_TRASH_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", Path.Combine(root, "trash"));
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_TRASH_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_TRASH_DIR", Path.Combine(root, "trash"));
         try
         {
             ToastCards(Path.Combine(root, "toasts"));
@@ -31,7 +31,7 @@ internal static class ChangeActionChecks
             ScopeMenu(Path.Combine(root, "scope-menu"));
             Reverts(Path.Combine(root, "reverts"));
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", previous); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_TRASH_DIR", previous); }
     }
 
     private static void Queue()
@@ -162,7 +162,7 @@ internal static class ChangeActionChecks
             "A failed open must say so in a notice with one button.");
         Require(!app.Find<TextBlock>("WorkspaceError").IsVisible && Cards(app).Length == 0, "The notice replaces the error line for a failed open.");
         app.Click(Part<Button>(notice, "NoticeDismiss"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(app.Window.ProjectRoot == project, "A failed open must leave the shown project in place.");
         Console.WriteLine("PASS a project that cannot be opened is reported in a single-button notice dialog");
     }

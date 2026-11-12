@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// Which executable a language server would run, and the rules that keep a project from choosing it.

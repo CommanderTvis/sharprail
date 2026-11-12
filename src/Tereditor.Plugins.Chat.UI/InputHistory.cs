@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>What the box should do with an Up, Down or Esc press.</summary>
 internal enum InputHistoryStep { None, CaretToStart, CaretToEnd, Show }

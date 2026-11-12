@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>One comparison option as the card draws it, with every missing or mistyped field defaulted.</summary>
 public sealed record ComparisonOptionView(string Name, string? Description, IReadOnlyList<string> Pros, IReadOnlyList<string> Cons, bool Recommended, string? Mermaid)

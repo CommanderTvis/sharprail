@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 /// <summary>
 /// Where a document or terminal tab sat when the user closed it: its workspace, group, index in the group's flat order,

@@ -3,9 +3,9 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>How completely a managed installation is pinned.</summary>
 internal enum Pinning
@@ -14,13 +14,13 @@ internal enum Pinning
     Archive,
     /// <summary>Exact versions of the whole npm graph with the registry integrity hashes of the embedded package-lock.json, installed with <c>npm ci</c>.</summary>
     Lockfile,
-    /// <summary>Exact version and a SHA-512 stored in this repository for every NuGet package of the tool (the pointer package and the runtime pack), downloaded and verified by SharpRail before <c>dotnet tool install</c> reads them from a local feed.</summary>
+    /// <summary>Exact version and a SHA-512 stored in this repository for every NuGet package of the tool (the pointer package and the runtime pack), downloaded and verified by tereditor before <c>dotnet tool install</c> reads them from a local feed.</summary>
     NuGet,
     /// <summary>Exact version and an embedded <c>go.mod</c>/<c>go.sum</c> whose <c>h1:</c> hashes cover the whole module graph, built with <c>-mod=readonly</c>; Go's checksum database is not bypassed.</summary>
     GoModule,
     /// <summary>Exact version, but integrity is verified only by the package manager's own mechanism, not by a hash stored here.</summary>
     Partial,
-    /// <summary>Nothing is installed by SharpRail: the server comes from the host's SDK toolchain.</summary>
+    /// <summary>Nothing is installed by tereditor: the server comes from the host's SDK toolchain.</summary>
     None
 }
 
@@ -172,7 +172,7 @@ internal static class ArtifactInstaller
     {
         if (artifact.Sha256.Length != 64 || !artifact.Sha256.All(char.IsAsciiHexDigitLower))
             throw new IOException($"{artifact.Server} has no pinned SHA-256 for {artifact.Platform}; it will not be installed.");
-        var marker = Path.Combine(root, ".sharprail-artifact.json");
+        var marker = Path.Combine(root, ".tereditor-artifact.json");
         if (File.Exists(marker))
         {
             if (JsonSerializer.Deserialize(await File.ReadAllTextAsync(marker, token), HostJson.Default.DictionaryStringString)?.GetValueOrDefault("sha256") == artifact.Sha256) return;
@@ -196,7 +196,7 @@ internal static class ArtifactInstaller
                     throw new IOException($"{artifact.Server} download failed verification: SHA-256 does not match the pinned value. Nothing was installed.");
                 await ExtractAsync(archive, staging, artifact, token);
             }
-            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Dictionary<string, string> { ["sha256"] = artifact.Sha256, ["url"] = artifact.Url }, HostJson.Default.DictionaryStringString), token);
+            await File.WriteAllTextAsync(Path.Combine(staging, ".tereditor-artifact.json"), JsonSerializer.Serialize(new Dictionary<string, string> { ["sha256"] = artifact.Sha256, ["url"] = artifact.Url }, HostJson.Default.DictionaryStringString), token);
             token.ThrowIfCancellationRequested();
             Directory.Move(staging, root);
             if (!OperatingSystem.IsWindows())
@@ -218,7 +218,7 @@ internal static class ArtifactInstaller
     private static string? Preinstalled(ManagedArtifact artifact)
     {
         var directory = Path.Combine(AppContext.BaseDirectory, "preinstalled", artifact.Server);
-        var marker = Path.Combine(directory, ".sharprail-artifact.json");
+        var marker = Path.Combine(directory, ".tereditor-artifact.json");
         if (!File.Exists(marker)) return null;
         try { return JsonSerializer.Deserialize(File.ReadAllText(marker), HostJson.Default.DictionaryStringString)?.GetValueOrDefault("sha256") == artifact.Sha256 ? directory : null; }
         catch (Exception error) when (error is IOException or JsonException) { return null; }
@@ -231,7 +231,7 @@ internal static class ArtifactInstaller
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
             if (new FileInfo(file).LinkTarget is not null) throw new IOException("A preinstalled artifact holds a symbolic link.");
-            if (Path.GetFileName(file) != ".sharprail-artifact.json") File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
+            if (Path.GetFileName(file) != ".tereditor-artifact.json") File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
         }
     }
 

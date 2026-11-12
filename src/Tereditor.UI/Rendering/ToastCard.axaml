@@ -1,6 +1,6 @@
 <Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:state="using:SharpRail.UI.State"
-        x:Class="SharpRail.UI.Rendering.ToastCard" x:DataType="state:Toast" x:ClassModifier="internal" Name="Toast"
+        xmlns:kit="using:Tereditor.Plugins.UI.Kit" xmlns:state="using:Tereditor.UI.State"
+        x:Class="Tereditor.UI.Rendering.ToastCard" x:DataType="state:Toast" x:ClassModifier="internal" Name="Toast"
         Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
         BorderThickness="0,1,1,1" CornerRadius="4" ClipToBounds="True">
   <Border.RenderTransform>

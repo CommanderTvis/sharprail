@@ -2,10 +2,10 @@
   "Settings": {
     "FileTypeIconsEnabled": false,
     "FileTypeIconStyle": "colored",
-    "Theme": "sharprail-dark",
+    "Theme": "tereditor-dark",
     "ThemeMode": "fixed",
-    "SystemLight": "sharprail-light",
-    "SystemDark": "sharprail-dark",
+    "SystemLight": "tereditor-light",
+    "SystemDark": "tereditor-dark",
     "FileLineWidth": 100,
     "FileLineWidthBounded": false,
     "MarkdownLineWidth": 80,
@@ -44,7 +44,7 @@
     { "Id": "p-1", "Path": "$ROOT/project", "Slug": "project", "LastOpened": 1780000000000 },
     { "Id": "p-2", "Path": "$ROOT/older", "Slug": "older", "LastOpened": 1770000000000 }
   ],
-  "SharprailExcludeDeclined": [ "$ROOT/project" ],
+  "TereditorExcludeDeclined": [ "$ROOT/project" ],
   "WorkspaceLanguages": {
     "$ROOT/project": "{\"csharp\":{\"autoStart\":true}}"
   },

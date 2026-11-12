@@ -1,8 +1,8 @@
 using System.Text.Json;
 
-using SharpRail.Host.Client;
+using Tereditor.Host.Client;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>
 /// The host this client connects to: what the connect screen asks for and the app remembers. A tailnet endpoint is

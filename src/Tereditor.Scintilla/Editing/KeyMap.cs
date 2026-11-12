@@ -1,5 +1,5 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-namespace SharpRail.Scintilla.Editing;
+namespace Tereditor.Scintilla.Editing;
 
 /// <summary>Keyboard commands the default key map binds (upstream SCI_* message numbers).</summary>
 internal enum EditorCommand
@@ -19,7 +19,7 @@ internal enum EditorCommand
 
 /// <summary>Default key bindings from upstream src/KeyMap.cxx, limited to the keys in <see cref="EditorKey"/>.</summary>
 /// <remarks>Rectangular-selection (Alt+Shift) and clipboard bindings (Shift+Delete, Shift+Insert, Ctrl+Insert) are
-/// left out: SharpRail has no rectangular selection and handles the clipboard in the control.</remarks>
+/// left out: tereditor has no rectangular selection and handles the clipboard in the control.</remarks>
 internal static class KeyMap
 {
     private const EditorModifiers None = EditorModifiers.None, Shift = EditorModifiers.Shift,

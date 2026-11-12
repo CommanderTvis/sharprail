@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Protocol/Tereditor.Host.Protocol.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Isolation/Tereditor.Plugins.Isolation.csproj" />
   </ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Tereditor.Checks" /></ItemGroup>
 </Project>

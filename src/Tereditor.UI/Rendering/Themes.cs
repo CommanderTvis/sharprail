@@ -7,9 +7,9 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
 
-using SharpRail.UI.State;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>The theme a preference resolves to; <paramref name="Fallback"/> marks an unavailable or wrong-appearance request.</summary>
 public sealed record ThemeResolution(string RequestedId, ThemeManifest Theme, bool Fallback, string? SystemAppearance);
@@ -52,7 +52,7 @@ public static class Themes
         get
         {
             if (all is not null) return true;
-            try { return AssetLoader.Exists(new Uri("avares://SharpRail.UI/Assets/theme.schema.json")); }
+            try { return AssetLoader.Exists(new Uri("avares://Tereditor.UI/Assets/theme.schema.json")); }
             catch (InvalidOperationException) { return false; }
         }
     }
@@ -101,10 +101,10 @@ public static class Themes
 
     private static List<ThemeManifest> Load()
     {
-        using (var schema = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/theme.schema.json")))
+        using (var schema = AssetLoader.Open(new Uri("avares://Tereditor.UI/Assets/theme.schema.json")))
         using (var json = JsonDocument.Parse(schema))
             RequireSchemaAgreement(json.RootElement);
-        var folder = new Uri("avares://SharpRail.UI/Assets/Themes/");
+        var folder = new Uri("avares://Tereditor.UI/Assets/Themes/");
         var themes = new List<ThemeManifest>();
         foreach (var uri in AssetLoader.GetAssets(folder, null).Where(uri => uri.AbsolutePath.EndsWith(".theme.json", StringComparison.Ordinal)))
         {

@@ -6,11 +6,11 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 
-using SharpRail.Host.Client;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>The byte fallback and the Git LFS pointer: cards that describe content the window does not draw.</summary>
 internal static partial class ResourceCards

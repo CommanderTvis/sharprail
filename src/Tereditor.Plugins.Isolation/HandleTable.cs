@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>What a handle id names on one connection.</summary>
 public enum HandleState { Never, Live, Released, Revoked }

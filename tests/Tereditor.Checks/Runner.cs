@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>What the runner was asked to do before the gate or a focused mode sees its own arguments.</summary>
 internal sealed record RunnerOptions(string[] Rest, int Lanes, Shard? Shard, Shard? Job, bool LastFailed, IReadOnlySet<string>? Cases, bool List)
@@ -53,12 +53,12 @@ internal sealed record RunnerOptions(string[] Rest, int Lanes, Shard? Shard, Sha
 internal static class Runner
 {
     /// <summary>Set on a lane to the pid of the runner that owns its signals and the idle-sleep assertion.</summary>
-    internal const string OwnerVariable = "SHARPRAIL_CHECKS_OWNER";
-    internal const string JobShardVariable = "SHARPRAIL_CHECKS_JOB_SHARD";
-    internal const string ResultVariable = "SHARPRAIL_CHECKS_RESULT";
+    internal const string OwnerVariable = "TEREDITOR_CHECKS_OWNER";
+    internal const string JobShardVariable = "TEREDITOR_CHECKS_JOB_SHARD";
+    internal const string ResultVariable = "TEREDITOR_CHECKS_RESULT";
 
     /// <summary>Set to <c>1</c> to run every selected case and report all failures instead of stopping at the first.</summary>
-    internal const string KeepGoingVariable = "SHARPRAIL_CHECKS_KEEP_GOING";
+    internal const string KeepGoingVariable = "TEREDITOR_CHECKS_KEEP_GOING";
 
     internal static string LastRun => Path.Combine(Directory.GetCurrentDirectory(), ".bench", "checks-last-run.txt");
 

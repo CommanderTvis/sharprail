@@ -7,10 +7,10 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// A chat's own zoom, like a terminal's font size and unlike the page zoom: pinch, Ctrl or Cmd with the wheel, and Mod+=, Mod+- and Mod+0

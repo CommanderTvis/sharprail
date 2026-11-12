@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed partial class LanguageSettingsWindow : Window
 {

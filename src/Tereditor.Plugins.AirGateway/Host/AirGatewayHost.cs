@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.AirGateway.Host;
+namespace Tereditor.Plugins.AirGateway.Host;
 
 /// <summary>The host half: detects the user's Central CLI and contributes `central run`, and the account those launches run under, to the agents' launches.</summary>
 public sealed class AirGatewayHost : PluginHostModule

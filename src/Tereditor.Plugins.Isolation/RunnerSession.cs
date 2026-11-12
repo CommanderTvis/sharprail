@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>The channel's handshake: the runner's <c>Hello</c>, the host's <c>Init</c> and the runner's <c>Ready</c>.</summary>
 public static class IsoProtocol

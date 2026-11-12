@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Consent to the terms of a language server in the headless host, with no window and no network: the refusal text, accept_terms with a wrong and the right
@@ -49,7 +49,7 @@ internal static partial class HeadlessChecks
         if (BoundaryChecks.Checkout() is { } checkout)
         {
             var dockerfile = File.ReadAllText(Path.Combine(checkout, "docker", "headless", "Dockerfile"));
-            Require(!dockerfile.Contains("SHARPRAIL_ACCEPT_TERMS", StringComparison.Ordinal) && !dockerfile.Contains("INTELLIJ_REGION", StringComparison.Ordinal), "The image must not bake in any acceptance.");
+            Require(!dockerfile.Contains("TEREDITOR_ACCEPT_TERMS", StringComparison.Ordinal) && !dockerfile.Contains("INTELLIJ_REGION", StringComparison.Ordinal), "The image must not bake in any acceptance.");
         }
 
         // Before the download has finished: the summary, the hash and where things stand, and no way to accept yet.
@@ -63,7 +63,7 @@ internal static partial class HeadlessChecks
         var refusal = none.Refusal(server);
         Require(refusal.Contains(hash, StringComparison.Ordinal) && refusal.Contains(server.Spec.Version, StringComparison.Ordinal) && refusal.Contains("accept_terms", StringComparison.Ordinal) && refusal.Contains(Fixture.Trim(), StringComparison.Ordinal)
             && refusal.Contains("Nothing was started", StringComparison.Ordinal) && refusal.Contains("region", StringComparison.Ordinal) && refusal.Contains("dataSharing", StringComparison.Ordinal)
-            && refusal.Contains("SHARPRAIL_ACCEPT_TERMS=intellij", StringComparison.Ordinal) && refusal.Contains("only after the user clearly said yes", StringComparison.OrdinalIgnoreCase), "The refusal text is incomplete:\n" + refusal);
+            && refusal.Contains("TEREDITOR_ACCEPT_TERMS=intellij", StringComparison.Ordinal) && refusal.Contains("only after the user clearly said yes", StringComparison.OrdinalIgnoreCase), "The refusal text is incomplete:\n" + refusal);
         await Prefetching(root, server);
 
         // Which calls need the terms: Java does, Kotlin keeps its own server until the terms are accepted, other languages never do.
@@ -103,15 +103,15 @@ internal static partial class HeadlessChecks
 
         // The environment variable: plain, strict, answers required; nothing is written, and removing it revokes.
         var answers = new Dictionary<string, string> { ["INTELLIJ_REGION"] = "europe", ["INTELLIJ_DATA_SHARING"] = "none" };
-        Dictionary<string, string> With(string value) => new(answers) { ["SHARPRAIL_ACCEPT_TERMS"] = value };
+        Dictionary<string, string> With(string value) => new(answers) { ["TEREDITOR_ACCEPT_TERMS"] = value };
         var environmentDirectory = Path.Combine(root, "environment");
         Require(NewConsent(environmentDirectory, With("intellij")).GrantFor(server) is { Source: "environment" } && NewConsent(environmentDirectory, With("other, intellij")).GrantFor(server) is not null
             && NewConsent(environmentDirectory, With("intellij:" + hash)).GrantFor(server) is not null, "The environment variable did not accept.");
         Require(NewConsent(environmentDirectory, With("intellij:" + new string('a', 64))).GrantFor(server) is null && NewConsent(environmentDirectory, With("intellij:" + new string('a', 64))).EnvironmentWarnings().Any(text => text.Contains("another terms hash", StringComparison.Ordinal)),
             "Strict mode accepted a hash that is not this build's, or said nothing.");
-        Require(NewConsent(environmentDirectory, new() { ["SHARPRAIL_ACCEPT_TERMS"] = "intellij" }).GrantFor(server) is null
-            && NewConsent(environmentDirectory, new() { ["SHARPRAIL_ACCEPT_TERMS"] = "intellij" }).EnvironmentWarnings().Any(text => text.Contains("INTELLIJ_REGION", StringComparison.Ordinal)), "The environment accepted without the user's answers.");
-        Require(NewConsent(environmentDirectory, new(answers) { ["SHARPRAIL_ACCEPT_TERMS"] = "intellij", ["INTELLIJ_REGION"] = "mars" }).GrantFor(server) is null
+        Require(NewConsent(environmentDirectory, new() { ["TEREDITOR_ACCEPT_TERMS"] = "intellij" }).GrantFor(server) is null
+            && NewConsent(environmentDirectory, new() { ["TEREDITOR_ACCEPT_TERMS"] = "intellij" }).EnvironmentWarnings().Any(text => text.Contains("INTELLIJ_REGION", StringComparison.Ordinal)), "The environment accepted without the user's answers.");
+        Require(NewConsent(environmentDirectory, new(answers) { ["TEREDITOR_ACCEPT_TERMS"] = "intellij", ["INTELLIJ_REGION"] = "mars" }).GrantFor(server) is null
             && NewConsent(environmentDirectory, With("nosuch")).EnvironmentWarnings().Any(text => text.Contains("nosuch", StringComparison.Ordinal)), "A bad answer or an unknown server was not refused.");
         Require(NewConsent(environmentDirectory, answers).GrantFor(server) is null && !Directory.Exists(environmentDirectory), "Without the variable there must be no consent, and the variable must write nothing.");
 
@@ -125,19 +125,19 @@ internal static partial class HeadlessChecks
         Require(!held.Text.Contains("Open Settings", StringComparison.Ordinal) && held.Text.Contains("INTELLIJ_SERVER_LICENSE_FILE", StringComparison.Ordinal) && held.Text.Contains("JETBRAINS_LICENSE_SERVER", StringComparison.Ordinal) && held.Text.Contains("no trial", StringComparison.Ordinal), "The unlicensed message must name the license routes: " + held.Text);
         if (BoundaryChecks.Checkout() is { } source)
         {
-            var everything = string.Join('\n', new[] { "src/SharpRail.Host.Headless", "src/SharpRail.Host.Core/Language", "src/SharpRail.Plugins.Lsp.IntelliJ", "docker", "scripts" }
+            var everything = string.Join('\n', new[] { "src/Tereditor.Host.Headless", "src/Tereditor.Host.Core/Language", "src/Tereditor.Plugins.Lsp.IntelliJ", "docker", "scripts" }
                 .SelectMany(folder => Directory.EnumerateFiles(Path.Combine(source, folder), "*", SearchOption.AllDirectories).Where(file => file.EndsWith(".cs", StringComparison.Ordinal) || file.EndsWith(".sh", StringComparison.Ordinal) || Path.GetFileName(file) == "Dockerfile"))
                 .Where(file => !file.Contains("/obj/", StringComparison.Ordinal) && !file.Contains("/bin/", StringComparison.Ordinal)).Select(File.ReadAllText));
             Require(!everything.Contains("AUTO_TRIAL", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.Matches(everything, "trial/startAnonymous").Count == 1,
                 "Only the desktop's trial action may start a trial, and no variable may exist for it.");
-            Require(!File.ReadAllText(Path.Combine(source, "src", "SharpRail.Host.Headless", "Program.cs")).Contains("\"trial\"", StringComparison.Ordinal), "The headless host must never invoke the trial action.");
+            Require(!File.ReadAllText(Path.Combine(source, "src", "Tereditor.Host.Headless", "Program.cs")).Contains("\"trial\"", StringComparison.Ordinal), "The headless host must never invoke the trial action.");
         }
         await Supersession(root, server);
         await Prompts(root, server);
         await Elicitation(root, server);
         await Absent(root, server);
         await ChildProcesses(root, server);
-        Console.WriteLine("PASS headless consent: refusal text with the hash, accept_terms refuses a wrong hash, version or answer and records the right one, SHARPRAIL_ACCEPT_TERMS plain and strict, elicitation accept, decline, unsupported and failed, state kept with a volume and not without, nothing accepted by default");
+        Console.WriteLine("PASS headless consent: refusal text with the hash, accept_terms refuses a wrong hash, version or answer and records the right one, TEREDITOR_ACCEPT_TERMS plain and strict, elicitation accept, decline, unsupported and failed, state kept with a volume and not without, nothing accepted by default");
     }
 
     /// <summary>A chosen IntelliJ that fails to start or is unlicensed stops serving: the previous server answers, and the answer says why. No server is started.</summary>
@@ -147,10 +147,10 @@ internal static partial class HeadlessChecks
         var workspace = Path.Combine(directory, "workspace");
         Directory.CreateDirectory(workspace);
         await File.WriteAllTextAsync(Path.Combine(workspace, "Main.java"), "class Main {}");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try { await SupersessionCore(directory, workspace, server); }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     private static async Task SupersessionCore(string directory, string workspace, LanguageServer server)
@@ -220,8 +220,8 @@ internal static partial class HeadlessChecks
         Require(broken.Refusal(server).Contains("The download failed: SHA-256 mismatch.", StringComparison.Ordinal), "A failed download must say why.");
 
         // The variable names what to download; a name without terms is reported.
-        var (named, warnings) = NewConsent(Path.Combine(root, "prefetch-env"), new() { ["SHARPRAIL_PREFETCH"] = "intellij, csharp" }).PrefetchRequests();
-        Require(named.Select(item => item.Id).SequenceEqual(["intellij"]) && warnings.Count == 1 && warnings[0].Contains("csharp", StringComparison.Ordinal), "SHARPRAIL_PREFETCH was not read.");
+        var (named, warnings) = NewConsent(Path.Combine(root, "prefetch-env"), new() { ["TEREDITOR_PREFETCH"] = "intellij, csharp" }).PrefetchRequests();
+        Require(named.Select(item => item.Id).SequenceEqual(["intellij"]) && warnings.Count == 1 && warnings[0].Contains("csharp", StringComparison.Ordinal), "TEREDITOR_PREFETCH was not read.");
         Require(NewConsent(Path.Combine(root, "prefetch-none")).PrefetchRequests().Servers.Count == 0, "Nothing may be downloaded unless asked.");
     }
 
@@ -238,7 +238,7 @@ internal static partial class HeadlessChecks
             var directory = Path.Combine(root, "stdio-" + name);
             var consent = NewConsent(directory);
             await consent.StartPrefetch(server);
-            var client = new SharpRail.Host.Headless.ClientChannel();
+            var client = new Tereditor.Host.Headless.ClientChannel();
             var tools = new LanguageConsentTools(consent, client, null);
             var inner = 0;
             IReadOnlyList<McpServer.McpTool> offered = [tools.Guard(new McpServer.McpTool("lsp_diagnostics", "t", "d", [], (_, _) => { inner++; return Task.FromResult(("ran", false)); })), tools.AcceptTool()];
@@ -246,7 +246,7 @@ internal static partial class HeadlessChecks
             using var serverInput = new System.IO.Pipes.AnonymousPipeClientStream(System.IO.Pipes.PipeDirection.In, toServer.ClientSafePipeHandle);
             using var fromServer = new System.IO.Pipes.AnonymousPipeServerStream(System.IO.Pipes.PipeDirection.Out);
             using var clientInput = new System.IO.Pipes.AnonymousPipeClientStream(System.IO.Pipes.PipeDirection.In, fromServer.ClientSafePipeHandle);
-            var stdio = new SharpRail.Host.Headless.StdioMcp(serverInput, fromServer, () => offered, "x", TextWriter.Null, client);
+            var stdio = new Tereditor.Host.Headless.StdioMcp(serverInput, fromServer, () => offered, "x", TextWriter.Null, client);
             using var stop = new CancellationTokenSource();
             var running = Task.Run(() => stdio.RunAsync(stop));
             using var writer = new StreamWriter(toServer, new System.Text.UTF8Encoding(false)) { AutoFlush = true };
@@ -366,12 +366,12 @@ internal static partial class HeadlessChecks
         File.WriteAllText(Path.Combine(directory, "EULA.txt"), eula);
         File.WriteAllText(Path.Combine(directory, "product-info.json"), $$"""{"name":"intellij-server","buildNumber":"{{server.Spec.Version}}","productCode":"ILS"}""");
         var eulaHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(eula)));
-        File.WriteAllText(Path.Combine(directory, ".sharprail-artifact.json"), $$"""{"ArchiveSha256":"{{artifact.Sha256}}","EulaSha256":"{{eulaHash}}"}""");
+        File.WriteAllText(Path.Combine(directory, ".tereditor-artifact.json"), $$"""{"ArchiveSha256":"{{artifact.Sha256}}","EulaSha256":"{{eulaHash}}"}""");
     }
 
-    /// <summary>A host that asked for IntelliJ (SHARPRAIL_PREFETCH), over a state directory that holds the installation fixture, so no download is attempted.</summary>
+    /// <summary>A host that asked for IntelliJ (TEREDITOR_PREFETCH), over a state directory that holds the installation fixture, so no download is attempted.</summary>
     private static Host ChildHost(string[] arguments, string state, Dictionary<string, string>? environment = null) =>
-        Host.Start(arguments, state, new(environment ?? []) { ["SHARPRAIL_PREFETCH"] = "intellij" });
+        Host.Start(arguments, state, new(environment ?? []) { ["TEREDITOR_PREFETCH"] = "intellij" });
 
     /// <summary>Without the flag IntelliJ does not exist: not a language, not a tool, not a word in the texts, no state, and Java and Kotlin route as if the plugin were absent.</summary>
     private static async Task Absent(string root, LanguageServer server)
@@ -475,7 +475,7 @@ internal static partial class HeadlessChecks
         // The environment variable, plain and strict; it writes nothing.
         var viaEnvironment = Path.Combine(root, "child-environment");
         SeedInstallation(viaEnvironment, server);
-        var variables = new Dictionary<string, string> { ["SHARPRAIL_ACCEPT_TERMS"] = "intellij", ["INTELLIJ_REGION"] = "europe", ["INTELLIJ_DATA_SHARING"] = "none" };
+        var variables = new Dictionary<string, string> { ["TEREDITOR_ACCEPT_TERMS"] = "intellij", ["INTELLIJ_REGION"] = "europe", ["INTELLIJ_DATA_SHARING"] = "none" };
         await using (var host = Host.Start(["mcp", "--workspace", workspace], viaEnvironment, variables))
         {
             Initialize(host, "{}");
@@ -485,7 +485,7 @@ internal static partial class HeadlessChecks
             host.CloseInput();
             await host.ExitAsync(TimeSpan.FromSeconds(30));
         }
-        var strict = new Dictionary<string, string>(variables) { ["SHARPRAIL_ACCEPT_TERMS"] = "intellij:" + new string('b', 64) };
+        var strict = new Dictionary<string, string>(variables) { ["TEREDITOR_ACCEPT_TERMS"] = "intellij:" + new string('b', 64) };
         await using (var host = Host.Start(["mcp", "--workspace", workspace], viaEnvironment, strict))
         {
             Initialize(host, "{}");
@@ -496,10 +496,10 @@ internal static partial class HeadlessChecks
             await host.ExitAsync(TimeSpan.FromSeconds(30));
         }
 
-        // SHARPRAIL_PREFETCH with the consent variable: the host downloads, finds the terms are not the pinned text and starts nothing.
+        // TEREDITOR_PREFETCH with the consent variable: the host downloads, finds the terms are not the pinned text and starts nothing.
         var unattended = Path.Combine(root, "child-unattended");
         SeedInstallation(unattended, server);
-        await using (var host = Host.Start(["mcp", "--workspace", workspace], unattended, new(variables) { ["SHARPRAIL_PREFETCH"] = "intellij" }))
+        await using (var host = Host.Start(["mcp", "--workspace", workspace], unattended, new(variables) { ["TEREDITOR_PREFETCH"] = "intellij" }))
         {
             Initialize(host, "{}");
             await host.ReplyAsync([1], TimeSpan.FromSeconds(60));
@@ -522,7 +522,7 @@ internal static partial class HeadlessChecks
             host.CloseInput();
             await host.ExitAsync(TimeSpan.FromSeconds(30));
         }
-        await using (var listing = Host.Start(["languages"], Path.Combine(root, "child-languages"), new() { ["SHARPRAIL_PREFETCH"] = "intellij" }))
+        await using (var listing = Host.Start(["languages"], Path.Combine(root, "child-languages"), new() { ["TEREDITOR_PREFETCH"] = "intellij" }))
         {
             Require(await listing.ExitAsync(TimeSpan.FromSeconds(30)) == 0 && listing.Lines.Single(line => line.StartsWith("intellij\t", StringComparison.Ordinal)).Split('\t')[3].Contains("agreement", StringComparison.Ordinal)
                 && listing.Lines.Where(line => !line.StartsWith("intellij\t", StringComparison.Ordinal)).All(line => line.Split('\t')[3].Length == 0), "The languages command does not say which server needs the user's agreement.");

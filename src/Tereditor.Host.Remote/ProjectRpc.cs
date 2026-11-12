@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IProjectRpc
 {
@@ -150,13 +150,13 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         return new DiffStatsReply { Added = stats.Added, Removed = stats.Removed };
     });
 
-    public ValueTask<SharprailDirectoryReply> GetSharprailDirectoryAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
-        Map(await Host(context).GetSharprailDirectoryAsync(context.CancellationToken)));
+    public ValueTask<TereditorDirectoryReply> GetTereditorDirectoryAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        Map(await Host(context).GetTereditorDirectoryAsync(context.CancellationToken)));
 
-    public ValueTask<SharprailDirectoryReply> ExcludeSharprailDirectoryAsync(ProjectRequest request, CallContext context = default)
-        => Replayed(context, request, async (host, token) => Map(await host.ExcludeSharprailDirectoryAsync(token)));
+    public ValueTask<TereditorDirectoryReply> ExcludeTereditorDirectoryAsync(ProjectRequest request, CallContext context = default)
+        => Replayed(context, request, async (host, token) => Map(await host.ExcludeTereditorDirectoryAsync(token)));
 
-    private static SharprailDirectoryReply Map(SharprailDirectoryStatus status) =>
+    private static TereditorDirectoryReply Map(TereditorDirectoryStatus status) =>
         new() { Exists = status.Exists, Tracked = status.Tracked, Ignored = status.Ignored, Written = status.Written, Detail = status.Detail };
 
     public ValueTask<BranchStatusReply> GetBranchStatusAsync(BranchStatusRequest request, CallContext context = default) => Execute(async () =>

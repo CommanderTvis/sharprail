@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Lets a view that zooms itself (a chat) keep Mod+=, Mod+- and Mod+0 while it has focus: the window's page-zoom chords stand aside for it.

@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// The one JSON shape of everything a plugin exchanges: manifests, method params and results, channel payloads,

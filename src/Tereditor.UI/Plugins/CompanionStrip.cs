@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The slim row at the top of a tab's body that stands for its companion: the icon, the drawing's title and a count, in

@@ -2,7 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Codex;
+namespace Tereditor.Plugins.Codex;
 
 /// <summary>Source-generated JSON metadata for the strings a launch line quotes as JSON.</summary>
 [JsonSerializable(typeof(string))]

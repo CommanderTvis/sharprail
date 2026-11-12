@@ -16,7 +16,7 @@ The plugin id is `lsp-swift`; it ships enabled. Its host half is a `LanguageServ
 the catalog, its sessions stop and its saved settings are kept. Implementation: SourceKit-LSP · Swift project.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 There is no managed installation: the server runs only from PATH, when the user allows PATH for it, falling back to `xcrun --find sourcekit-lsp` on macOS.
 

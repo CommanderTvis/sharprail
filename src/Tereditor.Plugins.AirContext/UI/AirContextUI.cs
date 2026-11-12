@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.AirContext.UI;
+namespace Tereditor.Plugins.AirContext.UI;
 
 /// <summary>The UI half: two sections of the Code Intelligence pages (account in Settings, workspace in the language servers pane); no side tool.</summary>
 public sealed class AirContextUI : PluginUIModule

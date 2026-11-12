@@ -14,7 +14,7 @@ Port the fork's `packages/plugin-blueprint` at `b2a6c75a6`. A blueprint is a Mar
 file at the workspace root, `BLUEPRINT.md`, whose real design decisions render as
 editable controls. Its author is an interactive Claude Code or Codex terminal beside the
 document. The host writes reader changes and tells that author to reconcile the rest.
-Pi remains outside SharpRail's scope, and a bundled AI chat is not ported yet. Their contract vocabulary
+Pi remains outside tereditor's scope, and a bundled AI chat is not ported yet. Their contract vocabulary
 can be read from old records, but authoring starts a visible Claude Code or Codex terminal.
 
 ## Boundary
@@ -84,7 +84,7 @@ has not been indexed with id/type/title metadata. It changes nothing.
 
 The host half contributes the `blueprint_check` item to the agent instructions (H20, order 30) on activation, so a disabled plugin leaves it out.
 
-It also writes the Blueprint format specification (frontmatter, control syntax, options with reasons, ids, rules, the reconcile rule, `blueprint_check`) to `blueprint-format.md` in the plugin's own directory under the state directory (`<stateDir>/plugin-state/blueprint/files/`) on every activation, a generated read-only file like the system prompt files, and contributes a short section (`blueprint-format`, order 30) naming its absolute path. That lets the user say "use a blueprint" in any Claude or Codex session, not only those the plugin starts. The file and the session appendix are built from the same text (`BlueprintPrompts.Format`), so they cannot drift. A disabled plugin, a project that turns the section off in `.sharprail/instructions.toml`, or a host without a state directory leaves no section. The headless host declares the plugin and writes the file the same way.
+It also writes the Blueprint format specification (frontmatter, control syntax, options with reasons, ids, rules, the reconcile rule, `blueprint_check`) to `blueprint-format.md` in the plugin's own directory under the state directory (`<stateDir>/plugin-state/blueprint/files/`) on every activation, a generated read-only file like the system prompt files, and contributes a short section (`blueprint-format`, order 30) naming its absolute path. That lets the user say "use a blueprint" in any Claude or Codex session, not only those the plugin starts. The file and the session appendix are built from the same text (`BlueprintPrompts.Format`), so they cannot drift. A disabled plugin, a project that turns the section off in `.tereditor/instructions.toml`, or a host without a state directory leaves no section. The headless host declares the plugin and writes the file the same way.
 
 ## UI
 
@@ -127,7 +127,7 @@ the lock mark. Passage edits commit on blur or Ctrl/Cmd+Enter, and Escape abando
 draft. Text remains staged until Confirm edits; Revert returns to disk.
 
 Properties are the shared Kit frontmatter editor (`FrontmatterEditor`, owned by
-`SharpRail.Plugins.UI.Kit/SPEC.md`) under a plain "Properties" expander header, the same control
+`Tereditor.Plugins.UI.Kit/SPEC.md`) under a plain "Properties" expander header, the same control
 the Markdown preview uses for any file with YAML frontmatter. Blueprint is only the adapter: it
 serializes the edited property list into the staged property-block edit and keeps the mounted
 editor (and focus) when the echoed content already matches it. Unreadable YAML stays a raw block.

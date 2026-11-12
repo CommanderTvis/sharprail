@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 /// <summary>
 /// Seeds a new workspace's IntelliJ index from a running session of the checkout it was created from. Each launch keeps its

@@ -1,12 +1,12 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Providers;
-using SharpRail.Plugins.Providers.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Providers;
+using Tereditor.Plugins.Providers.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
-// The Model providers plugin: keys for Pi (auth.json) and omp (the sharprail profile's .env) are written without disturbing
+// The Model providers plugin: keys for Pi (auth.json) and omp (the tereditor profile's .env) are written without disturbing
 // what else the files hold, are never returned, and a Claude subscription sign-in is never offered.
 internal static class ProvidersChecks
 {

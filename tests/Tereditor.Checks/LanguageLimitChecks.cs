@@ -7,13 +7,13 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Language-server limits with fake servers: idle stop and transparent restart, the per-kind cap evicting the least recently used idle
@@ -54,7 +54,7 @@ internal static class LanguageLimitChecks
     internal static async Task Run(string fixture)
     {
         var root = Path.Combine(fixture, "language-limits");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = await FakeHost(root);
         try
         {
@@ -197,7 +197,7 @@ internal static class LanguageLimitChecks
         finally
         {
             await state.StopLanguagesAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
         await Orphans(root);
     }
@@ -259,7 +259,7 @@ internal static class LanguageLimitChecks
     internal static void Ui(string fixture)
     {
         var root = Path.Combine(fixture, "language-limits-ui");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = Task.Run(() => FakeHost(root)).GetAwaiter().GetResult();
         try
         {
@@ -310,7 +310,7 @@ internal static class LanguageLimitChecks
         finally
         {
             Task.Run(async () => await state.StopLanguagesAsync()).GetAwaiter().GetResult();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 }

@@ -5,11 +5,11 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Panels;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Translates upstream's fixtures/app.ts helpers: a committed sample project opened at its
@@ -53,8 +53,8 @@ internal static class WorkspaceFixture
 
     internal static Window Dialog(E2eWorkspace app, string? name = null)
     {
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => name is null || Equals(window.Tag, name)));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => name is null || Equals(window.Tag, name));
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => name is null || Equals(window.Tag, name)));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => name is null || Equals(window.Tag, name));
         Settle(100);
         return dialog;
     }
@@ -69,9 +69,9 @@ internal static class WorkspaceFixture
     internal static string CreateWorkspaceViaDialog(E2eWorkspace app)
     {
         var before = WorktreePaths(app).ToHashSet();
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SingleOrDefault(window => Equals(window.Tag, "NewWorkspaceDialog")) ?? OpenNewWorkspaceDialog(app);
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).SingleOrDefault(window => Equals(window.Tag, "NewWorkspaceDialog")) ?? OpenNewWorkspaceDialog(app);
         app.Click(Named<Button>(dialog, "WsCreate"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome &&
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome &&
             app.Window.WorkspaceRoot != app.Window.ProjectRoot && !before.Contains(app.Window.WorkspaceRoot));
         var path = app.Window.WorkspaceRoot;
         Until(() => WorktreePaths(app).Contains(path) && app.Find<TextBlock>("BranchLabel").Text == Path.GetFileName(path));

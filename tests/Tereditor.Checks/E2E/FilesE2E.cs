@@ -5,12 +5,12 @@ using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class FilesE2E
 {
@@ -83,7 +83,7 @@ internal static class FilesE2E
         void Cancel(Window modal)
         {
             app.Click(modal.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" }));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         }
         void Transfer(string from, string to, bool copy)
         {
@@ -91,7 +91,7 @@ internal static class FilesE2E
             var modal = Dialog(app);
             Named<TextBox>(modal, "PathNameInput").Text = to;
             app.Click(Named<Button>(modal, "PathNameConfirm"));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         }
     }
 
@@ -193,7 +193,7 @@ internal static class FilesE2E
         Until(() => app.Window.GetLogicalDescendants().OfType<Border>().Any(card => card.Name == "BinaryResource" &&
             card.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("4 bytes", StringComparison.Ordinal))));
         Require(!app.Find<TextBlock>("WorkspaceError").IsVisible, "Opening a byte-only file is a card in its tab, not a window error.");
-        Console.WriteLine("PASS SharpRail: a byte-only file opens as a card with its size instead of failing");
+        Console.WriteLine("PASS tereditor: a byte-only file opens as a card with its size instead of failing");
 
         RowMenu(app, workspace);
         CreateInsideFolder(app, workspace);
@@ -202,7 +202,7 @@ internal static class FilesE2E
         if (OperatingSystem.IsMacOS()) DeleteToTrash(app, workspace);
     }
 
-    /// <summary>An open tab follows its file through a rename in the Files tree and one made outside SharpRail.</summary>
+    /// <summary>An open tab follows its file through a rename in the Files tree and one made outside tereditor.</summary>
     internal static void RenameFollows(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "rename-follows"));
@@ -213,8 +213,8 @@ internal static class FilesE2E
         var tabId = app.Tabs.Single(tab => tab.Path == "alpha.txt").Id;
         Control Mark() => app.Find<Control>("DockTab_" + tabId.Replace(':', '_').Replace('/', '_'))
             .GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "DeletedTab");
-        SharpRail.UI.Editor.CodeDocumentView View() => app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
-        Until(() => app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Any());
+        Tereditor.UI.Editor.CodeDocumentView View() => app.Window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
+        Until(() => app.Window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Any());
         var view = View();
         view.Editor.ReplaceRange(0, 0, "edited ");
         view.Editor.SelectRange(2, 3);
@@ -239,16 +239,16 @@ internal static class FilesE2E
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "PathNameInput").Text = "beta.cs";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         view.Editor.Focus();
         Follows("beta.cs", "Files rename");
         Settle(800);
         Follows("beta.cs", "Files rename after the watcher batch");
-        Console.WriteLine("PASS SharpRail: renaming an open file in the Files tree keeps its tab, edits and selection under the new name");
+        Console.WriteLine("PASS tereditor: renaming an open file in the Files tree keeps its tab, edits and selection under the new name");
 
         File.Move(Path.Combine(workspace, "beta.cs"), Path.Combine(workspace, "gamma.cs"));
         Follows("gamma.cs", "External mv");
-        Console.WriteLine("PASS SharpRail: an open file moved outside SharpRail keeps its tab, edits and selection under the new name");
+        Console.WriteLine("PASS tereditor: an open file moved outside tereditor keeps its tab, edits and selection under the new name");
 
         _ = app.Window.SaveSelectedAsync();
         Until(() => !view.HasPendingChanges);
@@ -256,7 +256,7 @@ internal static class FilesE2E
         Require(File.ReadAllText(Path.Combine(workspace, "gamma.cs")).StartsWith("edited alpha", StringComparison.Ordinal) &&
             !File.Exists(Path.Combine(workspace, "alpha.txt")) && !File.Exists(Path.Combine(workspace, "beta.cs")),
             "Saving after a rename writes the new path and never recreates an old one.");
-        Console.WriteLine("PASS SharpRail: saving a followed tab writes its new path");
+        Console.WriteLine("PASS tereditor: saving a followed tab writes its new path");
 
         File.WriteAllText(Path.Combine(workspace, "notes.md"), "# Notes\n\nbody\n");
         Node(app, "notes.md");
@@ -269,13 +269,13 @@ internal static class FilesE2E
         Settle(800);
         Require(!PreviewMark().IsVisible && !app.Find<TextBlock>("WorkspaceError").IsVisible && app.Window.Layout.Selected(app.Center)?.Path == "renamed-notes.md",
             "A renamed preview tab follows its file without an error state.");
-        Console.WriteLine("PASS SharpRail: a Markdown preview tab follows its file through an outside rename");
+        Console.WriteLine("PASS tereditor: a Markdown preview tab follows its file through an outside rename");
 
         app.Window.Layout.Select(app.Center, tabId);
         File.Delete(Path.Combine(workspace, "gamma.cs"));
         Until(() => Mark().IsVisible);
         Require(app.Tabs.Any(tab => tab.Path == "gamma.cs"), "A deleted file keeps its tab, marked deleted.");
-        Console.WriteLine("PASS SharpRail: a deleted file still marks its tab deleted");
+        Console.WriteLine("PASS tereditor: a deleted file still marks its tab deleted");
     }
 
     private static DrawnTreeEntry Node(E2eWorkspace app, string path)
@@ -333,7 +333,7 @@ internal static class FilesE2E
         input.Text = "notes.md";
         Until(() => !error.IsVisible && confirm.IsEnabled);
         app.Click(confirm);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         var created = Path.Combine("docs", "notes.md");
         Require(File.Exists(Path.Combine(workspace, created)), "New file must create the file inside the folder.");
         Until(() => app.Tabs.Any(tab => tab.Path == created && !tab.Preview));
@@ -350,7 +350,7 @@ internal static class FilesE2E
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "PathNameInput").Text = "assets";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(Directory.Exists(Path.Combine(workspace, "assets")), "New folder beside a file must create it in the file's folder.");
         Node(app, "assets");
 
@@ -361,7 +361,7 @@ internal static class FilesE2E
         Require(input.Text == "draft.txt" && input.SelectionStart == 0 && input.SelectionEnd == 5, "Rename must select the stem so typing keeps the extension.");
         input.Text = "final.txt";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(File.Exists(Path.Combine(workspace, "final.txt")) && !File.Exists(Path.Combine(workspace, "draft.txt")), "Rename must move the file.");
         Node(app, "final.txt");
         Console.WriteLine("PASS fork files.spec.ts: a file row creates a folder beside it, and renames itself");
@@ -395,7 +395,7 @@ internal static class FilesE2E
         var confirm = Dialog(app);
         Require(confirm.Title == "Delete gone-soon.txt?", "Deleting a file asks first.");
         app.Click(Named<Button>(confirm, "FileNodeDeleteConfirm"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !File.Exists(disposable));
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !File.Exists(disposable));
         Until(() => !app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile { Path: "gone-soon.txt" }));
         app.Open("README.md");
         Console.WriteLine("PASS fork files.spec.ts: deleting a previewed file leaves the workbench interactive");

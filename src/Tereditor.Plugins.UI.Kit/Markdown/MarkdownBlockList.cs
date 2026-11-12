@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// Top-level Markdown blocks laid out from estimated heights: only blocks near the viewport are mounted and measured,

@@ -5,10 +5,10 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

@@ -9,11 +9,11 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 internal sealed class ChangesReviewState
 {
@@ -643,7 +643,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || !ownsKeyboard() || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox or SharpRail.Scintilla.ScintillaEditor) return;
+        if (e.Handled || !ownsKeyboard() || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox or Tereditor.Scintilla.ScintillaEditor) return;
         if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Down or Key.Up) Step(e.Key == Key.Down ? 1 : -1);
         else if (e.KeyModifiers == KeyModifiers.None && e.Key == Key.J) NextUnviewed();
         else if (e.KeyModifiers == KeyModifiers.None && e.Key == Key.V && state.ActivePath is { } path)

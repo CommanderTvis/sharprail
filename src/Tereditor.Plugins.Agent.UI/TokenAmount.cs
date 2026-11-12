@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>
 /// A token count with its unit: "1 token" or "23.2k tokens" where the row has room, "1 tok" or "23.2k toks" where it is

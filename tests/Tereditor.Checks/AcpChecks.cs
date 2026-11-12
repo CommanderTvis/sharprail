@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Acp;
-using SharpRail.Plugins.Acp.Host;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Acp;
+using Tereditor.Plugins.Acp.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The ACP plugin. Protocol core: framing, version negotiation and a session flow against the in-process fake agent (AcpFakeAgent).
 internal static class AcpChecks
@@ -55,14 +55,14 @@ internal static class AcpChecks
     // The logomark: the glyph and the plugin's asset are one drawing, a square monochrome document that parses and draws something.
     internal static void Logo()
     {
-        var svg = System.Text.Encoding.UTF8.GetString(SharpRail.Plugins.Acp.UI.AcpGlyph.Svg);
+        var svg = System.Text.Encoding.UTF8.GetString(Tereditor.Plugins.Acp.UI.AcpGlyph.Svg);
         Require(svg.Contains("viewBox=\"0 -178 576 576\"", StringComparison.Ordinal) && svg.Contains("currentColor", StringComparison.Ordinal) && !svg.Contains("<script", StringComparison.OrdinalIgnoreCase) && !svg.Contains("href", StringComparison.OrdinalIgnoreCase), "The ACP logomark is a square, currentColor SVG with no script or reference.");
-        using var stream = new MemoryStream(SharpRail.Plugins.Acp.UI.AcpGlyph.Svg);
+        using var stream = new MemoryStream(Tereditor.Plugins.Acp.UI.AcpGlyph.Svg);
         using var source = Avalonia.Svg.Skia.SvgSource.LoadFromStream(stream);
         Require(source.Picture is { CullRect: { Width: > 0, Height: > 0 } }, "The ACP logomark parses and draws a non-empty picture.");
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            var asset = Path.Combine(directory.FullName, "src", "SharpRail.Plugins.Acp", "assets", "acp.svg");
+            var asset = Path.Combine(directory.FullName, "src", "Tereditor.Plugins.Acp", "assets", "acp.svg");
             if (!File.Exists(asset)) continue;
             Require(File.ReadAllText(asset).Trim() == svg.Trim(), "The plugin's acp.svg is the same drawing as the built-in glyph.");
             break;
@@ -75,7 +75,7 @@ internal static class AcpChecks
         var handler = new Recorder();
         await using var agent = new AcpFakeAgent();
         await using var client = new AcpClient(agent.ClientInput, agent.ClientOutput, handler);
-        var info = await client.InitializeAsync("SharpRail", "0.1", CancellationToken.None);
+        var info = await client.InitializeAsync("tereditor", "0.1", CancellationToken.None);
         Require(info is { ProtocolVersion: 1, LoadSession: true, Image: true, EmbeddedContext: true, Audio: false, Name: "Fake agent", Version: "1.0.0" }, "initialize reports the agent's version, capabilities and identity.");
         Require(info.AuthMethods.Single() is { Id: "login", Name: "Log in" }, "Authentication methods are listed, never asked for here.");
         Require(agent.ClientCapabilities!["fs"]!["readTextFile"]!.GetValue<bool>() && agent.ClientCapabilities["terminal"]!.GetValue<bool>(), "The client advertises the file and terminal methods it serves.");
@@ -117,7 +117,7 @@ internal static class AcpChecks
         await using var future = new AcpFakeAgent(protocolVersion: 2);
         await using var other = new AcpClient(future.ClientInput, future.ClientOutput, new Recorder());
         AcpVersionException? mismatch = null;
-        try { await other.InitializeAsync("SharpRail", "0.1", CancellationToken.None); } catch (AcpVersionException error) { mismatch = error; }
+        try { await other.InitializeAsync("tereditor", "0.1", CancellationToken.None); } catch (AcpVersionException error) { mismatch = error; }
         Require(mismatch is { AgentVersion: 2 }, "An agent on another protocol version is refused by name.");
     }
 
@@ -359,14 +359,14 @@ internal static class AcpChecks
     {
         var view = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "darwin-aarch64");
         var none = new List<AcpAgentEntry>();
-        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, null).Count == 5 && SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "  ").Count == 5, "A blank search lists every registry agent.");
-        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "GOOSE").Select(row => row.Agent.Id).SequenceEqual(["goose"]) && SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "nothing like it").Count == 0, "The search matches name, description and id without case.");
-        var rows = SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, [new AcpAgentEntry("goose", "goose", "x") { Origin = "registry", Version = "1.57.0" }, new AcpAgentEntry("pi-acp", "Pi", "npx") { Origin = "registry", Version = "0.0.1" }, new AcpAgentEntry("codex-acp", "mine", "x")], null);
+        Require(Tereditor.Plugins.Acp.UI.AcpRows.Registry(view, none, null).Count == 5 && Tereditor.Plugins.Acp.UI.AcpRows.Registry(view, none, "  ").Count == 5, "A blank search lists every registry agent.");
+        Require(Tereditor.Plugins.Acp.UI.AcpRows.Registry(view, none, "GOOSE").Select(row => row.Agent.Id).SequenceEqual(["goose"]) && Tereditor.Plugins.Acp.UI.AcpRows.Registry(view, none, "nothing like it").Count == 0, "The search matches name, description and id without case.");
+        var rows = Tereditor.Plugins.Acp.UI.AcpRows.Registry(view, [new AcpAgentEntry("goose", "goose", "x") { Origin = "registry", Version = "1.57.0" }, new AcpAgentEntry("pi-acp", "Pi", "npx") { Origin = "registry", Version = "0.0.1" }, new AcpAgentEntry("codex-acp", "mine", "x")], null);
         Require(rows.Single(row => row.Agent.Id == "goose") is { Status: "installed", CanInstall: false, ActionLabel: "Installed" }, "An installed agent of the same version says Installed and offers no button.");
         Require(rows.Single(row => row.Agent.Id == "pi-acp") is { Status: "update", CanInstall: true, ActionLabel: "Update ▷" }, "Another installed version offers an update.");
         Require(rows.Single(row => row.Agent.Id == "codex-acp") is { Status: "available", ActionLabel: "Install ▷" }, "A custom agent with the same id is not the registry install.");
         var plan9 = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "plan9-riscv");
-        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
+        Require(Tereditor.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
     }
 
     // Settings > ACP shows one list: installed agents pinned on top, then the registry agents that are not installed.
@@ -380,16 +380,16 @@ internal static class AcpChecks
             new("custom-zed", "Zed", "/bin/zed")
         };
         var none = new Dictionary<string, string>();
-        var all = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", null);
+        var all = Tereditor.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", null);
         Require(all.Installed.Select(row => row.Entry.Id).SequenceEqual(["goose", "pi-acp", "custom-zed"]), "Installed agents come first, by name, registry installs and custom ones together.");
         Require(all.Available.Count == 3 && all.Available.All(row => row.Agent.Id is not ("goose" or "pi-acp")), "An installed registry agent is not repeated in the registry group.");
         Require(all.Installed.Select(row => row.Entry.Id).Concat(all.Available.Select(row => row.Agent.Id)).Distinct().Count() == all.Installed.Count + all.Available.Count, "No agent appears twice in the list.");
         Require(all.Installed.Single(row => row.Entry.Id == "custom-zed").Tags[0] == "Custom", "A custom agent is marked Custom.");
-        var filtered = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "GOOSE");
+        var filtered = Tereditor.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "GOOSE");
         Require(filtered.Installed.Select(row => row.Entry.Id).SequenceEqual(["goose"]) && filtered.Available.Count == 0, "The search filters the installed group and the registry group, without bringing an installed agent back below.");
-        var zed = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "zed");
+        var zed = Tereditor.Plugins.Acp.UI.AcpRows.Combined(entries, view, none, "", "zed");
         Require(zed.Installed.Select(row => row.Entry.Id).SequenceEqual(["custom-zed"]), "The search matches a custom agent by name.");
-        var offline = SharpRail.Plugins.Acp.UI.AcpRows.Combined(entries, null, none, "", null);
+        var offline = Tereditor.Plugins.Acp.UI.AcpRows.Combined(entries, null, none, "", null);
         Require(offline.Installed.Count == 3 && offline.Available.Count == 0, "Without the registry list the installed agents still show.");
     }
 
@@ -405,39 +405,39 @@ internal static class AcpChecks
             new("codex-acp", "Codex", "/x/codex") { Origin = "registry", Version = "2.5.0" }
         };
         var problems = new Dictionary<string, string> { ["goose"] = "The program is missing: /x/goose" };
-        var rows = SharpRail.Plugins.Acp.UI.AcpRows.Agents(entries, view, problems, "goose");
+        var rows = Tereditor.Plugins.Acp.UI.AcpRows.Agents(entries, view, problems, "goose");
         Require(rows.Select(row => row.Entry.Id).SequenceEqual(new[] { "codex-acp", "goose", "pi-acp", "custom-zed" }), "Registry installs and custom agents are listed together by name.");
         Require(rows.Single(row => row.Entry.Id == "pi-acp").Tags.SequenceEqual(["Registry", "Not recommended", "Update available"]), "A registry install shows Registry, Not recommended and Update available.");
         Require(rows.Single(row => row.Entry.Id == "custom-zed").Tags.SequenceEqual(["Custom", "Off"]) && rows.Single(row => row.Entry.Id == "goose").Tags.SequenceEqual(["Registry", "Default"]) && rows.Single(row => row.Entry.Id == "codex-acp").Tags.SequenceEqual(["Registry"]), "Custom agents say Custom, a turned-off agent says Off, the default says Default, a current install has no extra tag.");
         Require(rows.Where(row => row.HasDot).Select(row => row.Entry.Id).SequenceEqual(["goose"]) && rows.Single(row => row.HasDot).Problem!.Contains("missing", StringComparison.Ordinal), "Only an agent with a problem gets a status dot, and the problem is its tooltip.");
-        Require(SharpRail.Plugins.Acp.UI.AcpRows.Agents(entries, null, problems, "").Single(row => row.Entry.Id == "pi-acp").Tags.SequenceEqual(["Registry"]), "Without the registry list there is no Not recommended or Update available tag.");
+        Require(Tereditor.Plugins.Acp.UI.AcpRows.Agents(entries, null, problems, "").Single(row => row.Entry.Id == "pi-acp").Tags.SequenceEqual(["Registry"]), "Without the registry list there is no Not recommended or Update available tag.");
 
-        var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[1], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[1], view), problems["goose"]);
+        var detail = new Tereditor.Plugins.Acp.UI.AcpAgentDetail(entries[1], Tereditor.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[1], view), problems["goose"]);
         Require(detail is { IsRegistry: true, License: "Apache-2.0", Website: "https://goose.example/", CanReinstall: true, CanUpdate: false, UpdateTo: null } && detail.Version == "Version 1.57.0" && detail.SourceLine.Contains("example.invalid", StringComparison.Ordinal) && detail.InstallStatus.Contains("missing", StringComparison.Ordinal) && detail.Location == "/x/goose", "The detail of a registry agent shows its version, source, links, license, status and where the program is.");
-        var pi = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[0], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[0], view), null);
+        var pi = new Tereditor.Plugins.Acp.UI.AcpAgentDetail(entries[0], Tereditor.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[0], view), null);
         Require(pi is { CanUpdate: true, CanReinstall: false, UpdateTo: "0.0.34" } && pi.InstallStatus.Contains("0.0.34", StringComparison.Ordinal) && pi.Location.StartsWith("bun x ", StringComparison.Ordinal), "An older install offers an update, and an npx agent says what runs it.");
-        var custom = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[2], null, null);
+        var custom = new Tereditor.Plugins.Acp.UI.AcpAgentDetail(entries[2], null, null);
         Require(custom is { IsRegistry: false, CanUpdate: false, CanReinstall: false, InstallStatus: "Custom" } && custom.SourceLine == "Added by you" && custom.CommandLine == "/bin/zed", "A custom agent has no update or reinstall.");
 
         var overridden = entries[1] with { CommandOverride = "/other/goose", UseDefaultArgs = false, ArgsOverride = ["acp", "--fast"], Args = ["acp"] };
         Require(overridden.LaunchCommand() == "/other/goose" && overridden.LaunchArgs().SequenceEqual(["acp", "--fast"]) && entries[1].LaunchCommand() == "/x/goose" && entries[1].LaunchArgs().Count == 0, "An executable override and own arguments replace the registry's; without them the registry's are used.");
         Require((entries[2] with { UseDefaultArgs = false, ArgsOverride = ["x"], Args = ["own"] }).LaunchArgs().SequenceEqual(["own"]), "A custom agent's own arguments are always used.");
         Require(AcpEntryText.ParseLines("a\r\n\n b c \n").SequenceEqual(["a", " b c "]), "Arguments are one per line, blank lines dropped.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("custom-zed", [entries[2], entries[3]]) is { Kind: "start", Agent.Id: "codex-acp" } && SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("", entries).All(entry => entry.Agent.Enabled), "A turned-off agent is not started from the button, even as the default.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("custom-zed", [entries[2], entries[3]]) is { Kind: "start", Agent.Id: "codex-acp" } && Tereditor.Plugins.Acp.UI.AcpLauncher.MenuEntries("", entries).All(entry => entry.Agent.Enabled), "A turned-off agent is not started from the button, even as the default.");
     }
 
     // The Add custom agent popup validates its form before anything is saved.
     internal static void CustomForm()
     {
         var existing = new List<AcpAgentEntry> { new("custom-mine", "Mine", "/bin/mine") };
-        var ok = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate(" My Agent ", " /usr/bin/agent ", "--flag \"two words\"", "A=1\nB=x=y", "/work", existing);
+        var ok = Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate(" My Agent ", " /usr/bin/agent ", "--flag \"two words\"", "A=1\nB=x=y", "/work", existing);
         Require(ok.Entry is { Id: "custom-my-agent", Name: "My Agent", Command: "/usr/bin/agent", Cwd: "/work", Origin: "custom", Enabled: true } entry && entry.Args.SequenceEqual(["--flag", "two words"]) && entry.Env.Count == 2 && ok.Errors.Count == 0, "A valid form becomes a custom entry with the same fields as before.");
-        var none = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("", "  ", null, null, null, existing);
+        var none = Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate("", "  ", null, null, null, existing);
         Require(none.Entry is null && none.Errors.Count == 2, "A name and a command are needed.");
-        Require(SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("mine", "x", "", "", "", existing).Errors.Single().Contains("already", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("MINE!", "x", "", "", "", existing).Errors.Count == 1, "A name already in the list is refused, so adding never replaces another agent.");
-        var bad = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x", "", "A=1\nnot a pair\n=x", "relative/dir", existing);
+        Require(Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate("mine", "x", "", "", "", existing).Errors.Single().Contains("already", StringComparison.Ordinal) && Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate("MINE!", "x", "", "", "", existing).Errors.Count == 1, "A name already in the list is refused, so adding never replaces another agent.");
+        var bad = Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x", "", "A=1\nnot a pair\n=x", "relative/dir", existing);
         Require(bad.Entry is null && bad.Errors.Count == 3 && bad.Errors[0].Contains("line 2", StringComparison.Ordinal) && bad.Errors[1].Contains("line 3", StringComparison.Ordinal), "Environment lines that are not NAME=value and a relative working directory are refused, each with its reason.");
-        Require(SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x\ny", "", "", "", existing).Errors.Count == 1, "The command is one line.");
+        Require(Tereditor.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x\ny", "", "", "", existing).Errors.Count == 1, "The command is one line.");
     }
 
     // What the registry ships to verify (checked against the live registry on 2026-11-06: an optional sha256 per binary target, no signature of any kind, every npx and uvx package pinned), and what is done with it.
@@ -453,10 +453,10 @@ internal static class AcpChecks
         Require(AcpRegistry.Plan(fixture, "goose", null, mac)!.Verification == AcpRegistry.Sha256Verified && AcpRegistry.Plan(fixture, "pi-acp", null, mac)!.Verification == AcpRegistry.Pinned && AcpRegistry.Plan(fixture, "fast-agent", null, mac)!.Verification == AcpRegistry.Pinned, "The plan says what will be verified: SHA-256, or a pinned version.");
         var runPlan = AcpRegistry.Plan(fixture, "pi-acp", null, mac)!;
         Require(runPlan.CommandLine.StartsWith("bun x pi-acp@0.0.34", StringComparison.Ordinal) && runPlan.Verification == AcpRegistry.Pinned && !runPlan.CommandLine.Contains("npx", StringComparison.Ordinal), "An npx agent's plan runs with Bun and keeps its pin verification.");
-        var (runner, runnerArgs) = SharpRail.Plugins.Acp.Host.AcpRunner.Bun("/opt/bun", ["-y", "@scope/pi-acp@0.0.34", "--acp"]);
-        Require(runner == "/opt/bun" && runnerArgs.SequenceEqual(["x", "@scope/pi-acp@0.0.34", "--acp"]) && SharpRail.Plugins.Acp.Host.AcpRunner.Bun("b", ["pi@1", "-y"]).Args.SequenceEqual(["x", "pi@1", "-y"]), "The npx arguments did not become the same package run by bun x.");
+        var (runner, runnerArgs) = Tereditor.Plugins.Acp.Host.AcpRunner.Bun("/opt/bun", ["-y", "@scope/pi-acp@0.0.34", "--acp"]);
+        Require(runner == "/opt/bun" && runnerArgs.SequenceEqual(["x", "@scope/pi-acp@0.0.34", "--acp"]) && Tereditor.Plugins.Acp.Host.AcpRunner.Bun("b", ["pi@1", "-y"]).Args.SequenceEqual(["x", "pi@1", "-y"]), "The npx arguments did not become the same package run by bun x.");
         var guardHome = Path.Combine(root, "bun-guard");
-        var guarded = SharpRail.Plugins.Acp.Host.AcpRunner.GuardedEnvironment(guardHome, new Dictionary<string, string> { ["TOKEN"] = "t", ["DO_NOT_TRACK"] = "0" });
+        var guarded = Tereditor.Plugins.Acp.Host.AcpRunner.GuardedEnvironment(guardHome, new Dictionary<string, string> { ["TOKEN"] = "t", ["DO_NOT_TRACK"] = "0" });
         Require(guarded["BUN_OPTIONS"].Contains("--no-env-file", StringComparison.Ordinal) && guarded["BUN_OPTIONS"].Contains(Path.Combine(guardHome, "empty-bunfig.toml"), StringComparison.Ordinal) && new FileInfo(Path.Combine(guardHome, "empty-bunfig.toml")).Length == 0 && guarded["BUN_INSTALL"] == guardHome && guarded["TOKEN"] == "t" && guarded["DO_NOT_TRACK"] == "0", "Bun was not kept from the workspace's bunfig and .env, or the agent's own environment was lost.");
         var loose = (JsonObject)fixture.DeepClone();
         loose["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "pi-acp")["distribution"]!["npx"]!["package"] = "pi-acp";
@@ -491,10 +491,10 @@ internal static class AcpChecks
         Require(pinned.Verification == AcpRegistry.Pinned, "A pinned package records Version pinned.");
 
         var plan = AcpRegistry.Plan(fixture, "goose", null, mac)!;
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(plan).Contains(AcpInstallPlan.TrustNote, StringComparison.Ordinal) && AcpInstallPlan.TrustNote.Contains("only install ones you trust", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(plan).Single(fact => fact.Label == "Checked").Value == AcpRegistry.Sha256Verified, "The install confirmation carries the trust notice and what is verified.");
+        Require(Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Explanation(plan).Contains(AcpInstallPlan.TrustNote, StringComparison.Ordinal) && AcpInstallPlan.TrustNote.Contains("only install ones you trust", StringComparison.Ordinal) && Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Facts(plan).Single(fact => fact.Label == "Checked").Value == AcpRegistry.Sha256Verified, "The install confirmation carries the trust notice and what is verified.");
         Require(AcpInstallPlan.TrustNote.Contains("third-party programs", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains("checksum", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains('—'), "The trust notice says registry agents are third-party programs to trust, without explaining checksums.");
-        var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(verified, null, null);
-        Require(detail.Verification == AcpRegistry.Sha256Verified && new SharpRail.Plugins.Acp.UI.AcpAgentDetail(new AcpAgentEntry("a", "A", "x") { Origin = "registry" }, null, null).Verification.StartsWith("Not recorded", StringComparison.Ordinal), "The detail pane shows what was verified, or that an older install has no record.");
+        var detail = new Tereditor.Plugins.Acp.UI.AcpAgentDetail(verified, null, null);
+        Require(detail.Verification == AcpRegistry.Sha256Verified && new Tereditor.Plugins.Acp.UI.AcpAgentDetail(new AcpAgentEntry("a", "A", "x") { Origin = "registry" }, null, null).Verification.StartsWith("Not recorded", StringComparison.Ordinal), "The detail pane shows what was verified, or that an older install has no record.");
     }
 
     private const string GoodIcon = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path fill="currentColor" d="M0 0h16v16H0z"/><circle r="3" fill="url(#g)" stroke="#123456"/></svg>""";
@@ -563,7 +563,7 @@ internal static class AcpChecks
         body = new string('x', AcpIconRules.MaxBytes + 1);
         Require((await new AcpIconCache(Path.Combine(root, "icons-big"), fetch, () => clock).LoadAsync(wanted, false, false, CancellationToken.None)).Count == 0, "An oversized answer is not kept.");
 
-        Require(!SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(null) && !SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(" ") && SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(GoodIcon), "Without an icon the generic glyph is drawn: custom agents, rejected, missing or not yet fetched icons.");
+        Require(!Tereditor.Plugins.Acp.UI.AcpGlyph.HasIcon(null) && !Tereditor.Plugins.Acp.UI.AcpGlyph.HasIcon(" ") && Tereditor.Plugins.Acp.UI.AcpGlyph.HasIcon(GoodIcon), "Without an icon the generic glyph is drawn: custom agents, rejected, missing or not yet fetched icons.");
     }
 
     // The install confirmation shows the same facts as before in the overlay dialog: name and version, source, command, checksum, license, repository, the plain explanation and the not-recommended line.
@@ -571,12 +571,12 @@ internal static class AcpChecks
     {
         var fixture = AcpRegistry.Parse(FixtureText())!;
         var goose = AcpRegistry.Plan(fixture, "goose", null, "darwin-aarch64")!;
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Title(goose) == "Install goose 1.57.0?", "The dialog is titled with the agent and version.");
-        var facts = SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(goose);
+        Require(Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Title(goose) == "Install goose 1.57.0?", "The dialog is titled with the agent and version.");
+        var facts = Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Facts(goose);
         Require(facts.Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "Checked", "SHA-256", "License", "Repository"]) && facts[1].Value == "./goose acp" && facts[2].Value == AcpRegistry.Sha256Verified, "A binary install lists source, command, checksum, license and repository.");
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "Checked", "License", "Repository"]), "Facts the registry does not give are left out.");
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains("SHA-256", StringComparison.Ordinal) && !SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "The explanation says what is verified, with no warning for a normal entry.");
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).EndsWith(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "A not-recommended agent adds the warning line.");
+        Require(Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Facts(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "Checked", "License", "Repository"]), "Facts the registry does not give are left out.");
+        Require(Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains("SHA-256", StringComparison.Ordinal) && !Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "The explanation says what is verified, with no warning for a normal entry.");
+        Require(Tereditor.Plugins.Acp.UI.AcpInstallConfirm.Explanation(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).EndsWith(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "A not-recommended agent adds the warning line.");
     }
 
     // The launcher: a left click starts the default agent, the right-click menu lists every agent with the default marked.
@@ -585,16 +585,16 @@ internal static class AcpChecks
         var one = new AcpAgentEntry("a", "A", "a");
         var two = new AcpAgentEntry("b", "B", "b");
         var three = new AcpAgentEntry("c", "C", "c");
-        var launcher = typeof(SharpRail.Plugins.Acp.UI.AcpLauncher);
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("b", [one, two, three]) is { Kind: "start", Agent.Id: "b" }, "A default that is configured starts at once, without the picker.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("", [one, two, three]) is { Kind: "ask", Agent: null }, "With no default and several agents the picker opens.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("", [one]) is { Kind: "start", Agent.Id: "a" }, "With no default the only agent starts.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one, two]) is { Kind: "ask" } && SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one]) is { Kind: "start", Agent.Id: "a" }, "A removed default falls back to today's behaviour.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("a", []) is { Kind: "none" }, "With no agent at all there is nothing to start.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("gone", [one]) && !SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("a", [one]) && !SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("", [one]), "Only a set default that no agent has counts as removed.");
-        var menu = SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("b", [one, two, three]);
+        var launcher = typeof(Tereditor.Plugins.Acp.UI.AcpLauncher);
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("b", [one, two, three]) is { Kind: "start", Agent.Id: "b" }, "A default that is configured starts at once, without the picker.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("", [one, two, three]) is { Kind: "ask", Agent: null }, "With no default and several agents the picker opens.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("", [one]) is { Kind: "start", Agent.Id: "a" }, "With no default the only agent starts.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one, two]) is { Kind: "ask" } && Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one]) is { Kind: "start", Agent.Id: "a" }, "A removed default falls back to today's behaviour.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.Resolve("a", []) is { Kind: "none" }, "With no agent at all there is nothing to start.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("gone", [one]) && !Tereditor.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("a", [one]) && !Tereditor.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("", [one]), "Only a set default that no agent has counts as removed.");
+        var menu = Tereditor.Plugins.Acp.UI.AcpLauncher.MenuEntries("b", [one, two, three]);
         Require(menu.Select(entry => entry.Agent.Id).SequenceEqual(["a", "b", "c"]) && menu.Where(entry => entry.IsDefault).Select(entry => entry.Agent.Id).SequenceEqual(["b"]), "The right-click menu lists every agent in order with the default marked.");
-        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("gone", [one, two]).All(entry => !entry.IsDefault) && new SharpRail.Plugins.Acp.AcpSettings().DefaultAgent == "", "A removed default marks nothing, and no default is the empty string.");
+        Require(Tereditor.Plugins.Acp.UI.AcpLauncher.MenuEntries("gone", [one, two]).All(entry => !entry.IsDefault) && new Tereditor.Plugins.Acp.AcpSettings().DefaultAgent == "", "A removed default marks nothing, and no default is the empty string.");
         Require(launcher.IsSealed || launcher.IsAbstract, "The launcher decisions are static.");
     }
 

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Wire/SharpRail.Wire.csproj" />
-    <Using Include="SharpRail.Wire" />
+    <ProjectReference Include="../Tereditor.Wire/Tereditor.Wire.csproj" />
+    <Using Include="Tereditor.Wire" />
   </ItemGroup>
 </Project>

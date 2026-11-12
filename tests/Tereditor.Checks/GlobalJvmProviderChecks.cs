@@ -10,12 +10,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class GlobalJvmProviderChecks
 {
@@ -50,13 +50,13 @@ internal static class GlobalJvmProviderChecks
         var left = Path.Combine(root, "left"); var right = Path.Combine(root, "right");
         Directory.CreateDirectory(left); Directory.CreateDirectory(right);
         var storage = Path.Combine(root, "state");
-        await using var server = remote ? RemoteServer.Create(left, IPAddress.Loopback, 0, "global-jvm-test", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
+        await using var server = remote ? RemoteServer.Create(left, IPAddress.Loopback, 0, "global-jvm-test", storage, plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
         using var remoteHost = endpoint is null ? null : new RemoteProjectAdapter(endpoint, "global-jvm-test");
         IProjectServices host = remoteHost ?? (IProjectServices)new LocalProjectAdapter(new ProjectServices(left, state));
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try
         {
             var executable = Environment.ProcessPath!;
@@ -106,13 +106,13 @@ internal static class GlobalJvmProviderChecks
             Require((await host.LanguageAsync(new(left, Operation: "servers"))).Servers.Single(item => item.Id == "java").State == "idle", "Global fallback did not restore standard routing.");
             Console.WriteLine("PASS global JVM provider migration, exclusivity, consent and persistence " + (remote ? "remote" : "local"));
         }
-        finally { await state.StopLanguagesAsync(); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { await state.StopLanguagesAsync(); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     internal static void RunUi(string root)
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(root, "global-jvm-ui"), openFiles: false);
-        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new Tereditor.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
         try

@@ -7,20 +7,20 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ChangesE2E
 {
     internal static void Run(string root)
     {
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))
         {
-            Console.WriteLine("SKIP upstream Changes: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream Changes: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         var directory = WorkspaceTabsE2E.Repository(root, "changes-tree", source);
@@ -85,8 +85,8 @@ internal static class ChangesE2E
         app.Click(row, mouseButton: MouseButton.Right); Until(() => row.ContextMenu.IsOpen);
         app.Click(row.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "View")), freshGesture: false);
         Until(() => app.Tabs.Any(tab => tab.Kind == "changes") &&
-            app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().Any(pane => pane.DiffFor("docs/notes.md") is not null));
-        var review = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().Single();
+            app.Window.GetLogicalDescendants().OfType<Tereditor.UI.ChangesReviewPane>().Any(pane => pane.DiffFor("docs/notes.md") is not null));
+        var review = app.Window.GetLogicalDescendants().OfType<Tereditor.UI.ChangesReviewPane>().Single();
         Require(review.DiffFor("docs/notes.md")!.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DiffCopy"),
             "View must reveal the file's diff in the continuous review.");
         app.Click(app.Find<ToggleButton>("ChangesTree"));

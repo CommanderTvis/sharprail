@@ -1,11 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

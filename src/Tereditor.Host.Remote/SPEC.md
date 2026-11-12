@@ -47,18 +47,18 @@ The platform choice belongs to Core's process backend, not to the wire protocol.
 
 ## Startup
 
-`Program.cs` reads `SHARPRAIL_ROOT` (default the working directory),
-`SHARPRAIL_BIND` (default `127.0.0.1`), `SHARPRAIL_PORT` (default 54123),
-`SHARPRAIL_TOKEN` (required) and `SHARPRAIL_STATE_DIR` (default
-`~/.sharprail/host` on the host machine). It prints `SHARPRAIL_HOST_READY
+`Program.cs` reads `TEREDITOR_ROOT` (default the working directory),
+`TEREDITOR_BIND` (default `127.0.0.1`), `TEREDITOR_PORT` (default 54123),
+`TEREDITOR_TOKEN` (required) and `TEREDITOR_STATE_DIR` (default
+`~/.tereditor/host` on the host machine). It prints `TEREDITOR_HOST_READY
 <unix ms>` once listening, for launchers and checks to wait on. Binding beyond
-loopback is an explicit opt-in via `SHARPRAIL_BIND`.
+loopback is an explicit opt-in via `TEREDITOR_BIND`.
 
 `scripts/mise run host` builds and launches only this host, binding to `0.0.0.0`.
-It defaults to Release and uses `SHARPRAIL_TOKEN` or generates a fresh session token, and prints a terminal
-QR code and `sharprail://connect?host=…&token=…` link for the Android client.
+It defaults to Release and uses `TEREDITOR_TOKEN` or generates a fresh session token, and prints a terminal
+QR code and `tereditor://connect?host=…&token=…` link for the Android client.
 The advertised address is the first active non-loopback IPv4 address; set
-`SHARPRAIL_CONNECT_HOST` to override its hostname/IP. The port, root, state directory
+`TEREDITOR_CONNECT_HOST` to override its hostname/IP. The port, root, state directory
 and build configuration retain their environment overrides. The QR helper uses
 the pinned QRCoder package through the checkout's .NET file-based app support.
 
@@ -104,12 +104,12 @@ dependencies from such a call.
 - `RequestReplayCache` deduplicates mutations: the project service's save, Git action, workspace action,
   revert, undo, pull-request opening and open-in-editor, and the state service's change. Spec authoring
   and the terminal catalog's writes are not replayed yet. A call carrying
-  `x-sharprail-client` and `x-sharprail-request` runs once per pair, detached from the call so a dropped
+  `x-tereditor-client` and `x-tereditor-request` runs once per pair, detached from the call so a dropped
   connection cannot abandon it half done (it ends with the host instead); a replay of the pair awaits and
   returns the same outcome, success or failure. The request's method and serialized bytes are its
   fingerprint: an id reused with another payload is `InvalidArgument`. The bytes are hashed and replies
   weighed as the codec streams or measures them, never held whole, so a replayed upload costs no second
-  copy outside the connection's byte budget. Each call's `x-sharprail-resume`
+  copy outside the connection's byte budget. Each call's `x-tereditor-resume`
   names the client's still-unresolved ids and every other settled result is released. A client may hold
   512 requests (`ResourceExhausted` beyond) and 16 MiB of serialized replies; a reply over that budget is
   not kept and a replay of it is `FailedPrecondition`, never a second run. At most 64 clients are
@@ -173,7 +173,7 @@ dependencies from such a call.
   terminal's token is 404 before any protocol handling. The host bearer token is never involved and never
   reaches a shell.
 - The protocol is Core's `McpServer` (see
-  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)); all tools come from active plugins for that terminal;
+  [Specs.SPEC.md](../Tereditor.Host.Core/Specs.SPEC.md)); all tools come from active plugins for that terminal;
   the route only resolves the token and relays JSON.
 
 ## Workspace file changes
@@ -194,7 +194,7 @@ Git metadata invalidation and rescan requests. They end on client cancellation o
 - Expected failures (I/O, argument, invalid operation, access) become
   `FailedPrecondition` or `InvalidArgument` with the message as detail; other
   exceptions stay internal errors. A `HostException` from the project or state service additionally
-  names its code in the `x-sharprail-error-code` trailer.
+  names its code in the `x-tereditor-error-code` trailer.
 
 ## Not yet ported
 
@@ -207,7 +207,7 @@ Git metadata invalidation and rescan requests. They end on client cancellation o
 
 ## Tailscale pairing
 
-The optional [Tailscale plugin](../SharpRail.Plugins.Tailscale/SPEC.md) supplies approved client-token
+The optional [Tailscale plugin](../Tereditor.Plugins.Tailscale/SPEC.md) supplies approved client-token
 validation through its injected serving bridge. The listener accepts those tokens alongside its configured
 master token, rejects revoked tokens, and aborts existing calls within one second of revocation. Embedded
 serving can start on the Tailscale address after approval; standalone serving retains its configured bind
@@ -226,8 +226,8 @@ The normal host endpoint accepts WebSocket RPC at `/rpc` for desktop, Android an
 `WebSocketRpc` authenticates each call's bearer metadata and dispatches the generated method table
 directly into the existing RPC adapters. Paired Tailscale credentials are rechecked while calls run.
 Tokens never travel in URLs. The desktop listener's endpoint and token work for every client.
-The standalone host can serve public browser assets from `SHARPRAIL_BROWSER_ROOT` on the same port,
-with COOP/COEP isolation headers. `SHARPRAIL_PORT` configures that single endpoint.
+The standalone host can serve public browser assets from `TEREDITOR_BROWSER_ROOT` on the same port,
+with COOP/COEP isolation headers. `TEREDITOR_PORT` configures that single endpoint.
 `BrowserAssets` negotiates precompressed Brotli/gzip sidecars for GET/HEAD using Accept-Encoding
 quality values, with Brotli preferred at equal quality. Content types describe the original asset;
 Vary: Accept-Encoding and representation-specific static-file ETags preserve cache correctness.
@@ -281,7 +281,7 @@ also exposes navigation, diagnostics and status; workspace overrides are restric
 Git project. Host shutdown ends language processes, while stopping an embedded listener leaves them alive.
 
 The terminal-authenticated MCP route exposes the three core LSP tools to both Codex and Claude tokens,
-independently of enabled SharpRail plugins. Claude CLI discovery uses its bundled plugin declaration.
+independently of enabled tereditor plugins. Claude CLI discovery uses its bundled plugin declaration.
 
 Language RPC carries explicit diagnostic scopes, file sets and per-file coverage. Agent MCP
 diagnostics defaults to a project source scan; `paths` selects edited files and `path` selects one.
@@ -302,7 +302,7 @@ persisted workspace configuration to connected clients.
 
 The authenticated project RPC carries user-interface IntelliJ terms review/acknowledgement separately from LSP MCP. Server-side identity checks and storage stay on the host; no agent acceptance tool is exported.
 
-The standalone host may explicitly enable `SHARPRAIL_HEADLESS_MCP=1` to expose
+The standalone host may explicitly enable `TEREDITOR_HEADLESS_MCP=1` to expose
 POST `/mcp` with the production language tools and the configured root as default
 workspace, without a GUI, terminal or agent. It requires the host bearer token
 using constant-time digest comparison. This grants host-level workspace access;
@@ -316,4 +316,4 @@ Context consent is authenticated project RPC only, delegating review and explici
 Language RPC maps detected project roots and provenance; lsp_status supports operation projects with bounded pagination. It starts no servers.
 
 
-The explicit headless MCP route serves the language tools and the tools of the enabled plugins for its fixed workspace, read per request so a plugin turned off stops serving at once. Air Context's tools (context_search/status/index) are the plugin's, bound to the calling workspace; see its [module](../SharpRail.Plugins.AirContext/SPEC.md).
+The explicit headless MCP route serves the language tools and the tools of the enabled plugins for its fixed workspace, read per request so a plugin turned off stops serving at once. Air Context's tools (context_search/status/index) are the plugin's, bound to the calling workspace; see its [module](../Tereditor.Plugins.AirContext/SPEC.md).

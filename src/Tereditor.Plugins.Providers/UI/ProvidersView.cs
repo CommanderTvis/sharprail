@@ -4,11 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Providers.UI;
+namespace Tereditor.Plugins.Providers.UI;
 
 /// <summary>
 /// Settings › Model providers: Pi's or omp's providers (a switch at the top), the connected ones with Remove, the rest with

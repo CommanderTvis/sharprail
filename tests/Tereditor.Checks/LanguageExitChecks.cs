@@ -7,13 +7,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Every language-server death is explained: the exit record carries the exit code, decoded signal, stderr tail, recent JSON-RPC
@@ -188,8 +188,8 @@ internal static class LanguageExitChecks
         var storage = Path.Combine(root, "state");
         var executable = Environment.ProcessPath!;
         string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
-        await using var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "exit-test", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
+        await using var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "exit-test", storage, plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
@@ -251,13 +251,13 @@ internal static class LanguageExitChecks
                 crashed.Details.Contains("fixture stderr line 100\n", StringComparison.Ordinal) && !crashed.Details.Contains("fixture stderr line 99\n", StringComparison.Ordinal) && crashed.Details.Length < 60_000,
                 "The stderr tail is not the last 200 lines.");
 
-            // (c) a hung server killed by SharpRail names who asked and why, and does not notify.
+            // (c) a hung server killed by tereditor names who asked and why, and does not notify.
             var deathsBefore = (await Deaths()).Count; var lastDeath = (await Deaths())[workspace + "\0typescript"];
             await StartDying(new { hang = true });
             await Trigger(300);
             await host.LanguageAsync(new(workspace, Operation: "stop", Server: "typescript"));
             var stopped = await Died(crashed.Time);
-            Require(!stopped.Unexpected && stopped.Initiator.Contains("a stop was requested", StringComparison.Ordinal) && stopped.Reason.StartsWith("Stopped by SharpRail", StringComparison.Ordinal) &&
+            Require(!stopped.Unexpected && stopped.Initiator.Contains("a stop was requested", StringComparison.Ordinal) && stopped.Reason.StartsWith("Stopped by tereditor", StringComparison.Ordinal) &&
                 stopped.Details.Contains("cancelled or timed out", StringComparison.Ordinal), "A stop of a hung server was not recorded as requested: " + stopped.Reason);
             Require((await Row()).State == "stopped" && (await Row()).Detail.StartsWith("Last run: ", StringComparison.Ordinal), "A requested stop is described as a failure.");
             await Task.Delay(300);
@@ -301,7 +301,7 @@ internal static class LanguageExitChecks
         {
             await state.StopLanguagesAsync();
             if (reopened is not null) await reopened.StopLanguagesAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 }

@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Svg.Skia;
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>Full-screen Mermaid view: 100% fits the viewer width, with drag panning, pinch and 25–600% zoom as in the reference.</summary>
 public static class MermaidDialog

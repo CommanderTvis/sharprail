@@ -8,12 +8,12 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class SwitchChecks
 {

@@ -1,6 +1,6 @@
 using Avalonia;
 
-namespace SharpRail.UI.Resources.Pdf;
+namespace Tereditor.UI.Resources.Pdf;
 
 internal static partial class PdfEngine
 {

@@ -287,763 +287,763 @@
           "SkiaSharp": "[4.148.0, )"
         }
       },
-      "sharprail.host.abstractions": {
+      "tereditor.host.abstractions": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.host.client": {
+      "tereditor.host.client": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Host.Abstractions": "[1.0.0, )",
-          "SharpRail.Host.Protocol": "[1.0.0, )",
-          "SharpRail.Plugins.Isolation": "[1.0.0, )"
+          "Tereditor.Host.Abstractions": "[1.0.0, )",
+          "Tereditor.Host.Protocol": "[1.0.0, )",
+          "Tereditor.Plugins.Isolation": "[1.0.0, )"
         }
       },
-      "sharprail.host.core": {
+      "tereditor.host.core": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Host.Abstractions": "[1.0.0, )",
-          "SharpRail.Plugins.Acp.Host": "[1.0.0, )",
-          "SharpRail.Plugins.AirContext.Host": "[1.0.0, )",
-          "SharpRail.Plugins.AirGateway.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Blueprint.Host": "[1.0.0, )",
-          "SharpRail.Plugins.BranchGraph.Host": "[1.0.0, )",
-          "SharpRail.Plugins.ClaudeCode.Host": "[1.0.0, )",
-          "SharpRail.Plugins.CodeIntelligence.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Codex.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Env.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvDirenv.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvJavaScript.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvJvm.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvMise.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvPython.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Epub.Host": "[1.0.0, )",
-          "SharpRail.Plugins.GitHub.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Isolation": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.CSharp": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Clangd": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Css": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Dart": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Go": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.IntelliJ": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Java": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Kotlin": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Php": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.PowerShell": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Python": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.R": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Ruby": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Rust": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Scala": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Shell": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.Swift": "[1.0.0, )",
-          "SharpRail.Plugins.Lsp.TypeScript": "[1.0.0, )",
-          "SharpRail.Plugins.Omp.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Pi.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Processes.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Providers.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Review.Host": "[1.0.0, )",
-          "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
+          "Tereditor.Host.Abstractions": "[1.0.0, )",
+          "Tereditor.Plugins.Acp.Host": "[1.0.0, )",
+          "Tereditor.Plugins.AirContext.Host": "[1.0.0, )",
+          "Tereditor.Plugins.AirGateway.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Blueprint.Host": "[1.0.0, )",
+          "Tereditor.Plugins.BranchGraph.Host": "[1.0.0, )",
+          "Tereditor.Plugins.ClaudeCode.Host": "[1.0.0, )",
+          "Tereditor.Plugins.CodeIntelligence.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Codex.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Discord.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Env.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvDirenv.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvJavaScript.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvJvm.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvMise.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvPython.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Epub.Host": "[1.0.0, )",
+          "Tereditor.Plugins.GitHub.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Isolation": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.CSharp": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Clangd": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Css": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Dart": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Go": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.IntelliJ": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Java": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Kotlin": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Php": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.PowerShell": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Python": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.R": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Ruby": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Rust": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Scala": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Shell": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.Swift": "[1.0.0, )",
+          "Tereditor.Plugins.Lsp.TypeScript": "[1.0.0, )",
+          "Tereditor.Plugins.Omp.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Pi.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Processes.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Providers.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Review.Host": "[1.0.0, )",
+          "Tereditor.Plugins.SpecDialect.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Tailscale.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Visualize.Host": "[1.0.0, )",
           "Tomlyn": "[2.10.1, )"
         }
       },
-      "sharprail.host.protocol": {
+      "tereditor.host.protocol": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Wire": "[1.0.0, )"
+          "Tereditor.Wire": "[1.0.0, )"
         }
       },
-      "sharprail.host.remote": {
+      "tereditor.host.remote": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Host.Core": "[1.0.0, )",
-          "SharpRail.Host.Protocol": "[1.0.0, )"
+          "Tereditor.Host.Core": "[1.0.0, )",
+          "Tereditor.Host.Protocol": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.acp": {
+      "tereditor.plugins.acp": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.acp.host": {
+      "tereditor.plugins.acp.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Acp": "[1.0.0, )",
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Acp": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.acp.ui": {
-        "type": "Project",
-        "dependencies": {
-          "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Acp": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.agent.ui": {
+      "tereditor.plugins.acp.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Acp": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Chat.UI": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.aircontext": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.aircontext.host": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.AirContext": "[1.0.0, )",
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.aircontext.ui": {
+      "tereditor.plugins.agent.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.AirContext": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.airgateway": {
+      "tereditor.plugins.aircontext": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.airgateway.host": {
+      "tereditor.plugins.aircontext.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.AirGateway": "[1.0.0, )",
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.AirContext": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.airgateway.ui": {
+      "tereditor.plugins.aircontext.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.AirGateway": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.AirContext": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.api": {
+      "tereditor.plugins.airgateway": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.airgateway.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.AirGateway": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.airgateway.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "Tereditor.Plugins.AirGateway": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.api": {
         "type": "Project"
       },
-      "sharprail.plugins.api.host": {
+      "tereditor.plugins.api.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.api.ui": {
+      "tereditor.plugins.api.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.blueprint": {
+      "tereditor.plugins.blueprint": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.blueprint.host": {
+      "tereditor.plugins.blueprint.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Blueprint": "[1.0.0, )",
-          "SharpRail.Plugins.SpecDialect": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Blueprint": "[1.0.0, )",
+          "Tereditor.Plugins.SpecDialect": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.blueprint.ui": {
+      "tereditor.plugins.blueprint.ui": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Blueprint": "[1.0.0, )",
-          "SharpRail.Plugins.SpecDialect": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Blueprint": "[1.0.0, )",
+          "Tereditor.Plugins.SpecDialect": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.branchgraph": {
+      "tereditor.plugins.branchgraph": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.branchgraph.host": {
+      "tereditor.plugins.branchgraph.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.BranchGraph": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.BranchGraph": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.branchgraph.ui": {
-        "type": "Project",
-        "dependencies": {
-          "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.BranchGraph": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.chat": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.chat.ui": {
+      "tereditor.plugins.branchgraph.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.BranchGraph": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.claudecode": {
+      "tereditor.plugins.chat": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.claudecode.host": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.ClaudeCode": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.claudecode.ui": {
+      "tereditor.plugins.chat.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
-          "SharpRail.Plugins.ClaudeCode": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Agent.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.codeintelligence": {
+      "tereditor.plugins.claudecode": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.codeintelligence.host": {
+      "tereditor.plugins.claudecode.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.CodeIntelligence": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.ClaudeCode": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.codex": {
+      "tereditor.plugins.claudecode.ui": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Avalonia": "[12.1.4, )",
+          "Tereditor.Plugins.Agent.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Chat.UI": "[1.0.0, )",
+          "Tereditor.Plugins.ClaudeCode": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.codex.host": {
+      "tereditor.plugins.codeintelligence": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Codex": "[1.0.0, )",
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.codeintelligence.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.CodeIntelligence": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.codex": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.codex.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Codex": "[1.0.0, )",
           "Tomlyn": "[2.10.1, )"
         }
       },
-      "sharprail.plugins.codex.ui": {
+      "tereditor.plugins.codex.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Codex": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Agent.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Codex": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.discord": {
+      "tereditor.plugins.discord": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.discord.host": {
+      "tereditor.plugins.discord.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Discord": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Discord": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.discord.ui": {
-        "type": "Project",
-        "dependencies": {
-          "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Discord": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.env": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.env.host": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Env": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.env.ui": {
+      "tereditor.plugins.discord.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Env": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Discord": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envdirenv": {
+      "tereditor.plugins.env": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envdirenv.host": {
+      "tereditor.plugins.env.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvDirenv": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Env": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envjavascript": {
+      "tereditor.plugins.env.ui": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Avalonia": "[12.1.4, )",
+          "Tereditor.Plugins.Agent.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Env": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envjavascript.host": {
+      "tereditor.plugins.envdirenv": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvJavaScript": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envjvm": {
+      "tereditor.plugins.envdirenv.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvDirenv": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envjvm.host": {
+      "tereditor.plugins.envjavascript": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvJvm": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envmise": {
+      "tereditor.plugins.envjavascript.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvJavaScript": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envmise.host": {
+      "tereditor.plugins.envjvm": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvMise": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envpython": {
+      "tereditor.plugins.envjvm.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvJvm": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envpython.host": {
+      "tereditor.plugins.envmise": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvPython": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.epub": {
+      "tereditor.plugins.envmise.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvMise": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.epub.host": {
+      "tereditor.plugins.envpython": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Epub": "[1.0.0, )",
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.envpython.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.EnvPython": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.epub": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.epub.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Epub": "[1.0.0, )",
           "VersOne.Epub": "[3.3.6, )"
         }
       },
-      "sharprail.plugins.epub.ui": {
+      "tereditor.plugins.epub.ui": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Epub": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Epub": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.github": {
+      "tereditor.plugins.github": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.github.host": {
+      "tereditor.plugins.github.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.GitHub": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.GitHub": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.github.ui": {
+      "tereditor.plugins.github.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.GitHub": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.GitHub": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.isolation": {
+      "tereditor.plugins.isolation": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Wire": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Wire": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.clangd": {
+      "tereditor.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
           "System.IO.Hashing": "[10.0.12, )"
         }
       },
-      "sharprail.plugins.lsp.csharp": {
+      "tereditor.plugins.lsp.csharp": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.css": {
+      "tereditor.plugins.lsp.css": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.dart": {
+      "tereditor.plugins.lsp.dart": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.go": {
+      "tereditor.plugins.lsp.go": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.intellij": {
+      "tereditor.plugins.lsp.intellij": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.java": {
+      "tereditor.plugins.lsp.java": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.kotlin": {
+      "tereditor.plugins.lsp.kotlin": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.php": {
+      "tereditor.plugins.lsp.php": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.powershell": {
+      "tereditor.plugins.lsp.powershell": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.python": {
+      "tereditor.plugins.lsp.python": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.r": {
+      "tereditor.plugins.lsp.r": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.ruby": {
+      "tereditor.plugins.lsp.ruby": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.rust": {
+      "tereditor.plugins.lsp.rust": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.scala": {
+      "tereditor.plugins.lsp.scala": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.shell": {
+      "tereditor.plugins.lsp.shell": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.swift": {
+      "tereditor.plugins.lsp.swift": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.lsp.typescript": {
+      "tereditor.plugins.lsp.typescript": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.omp": {
+      "tereditor.plugins.omp": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.omp.host": {
+      "tereditor.plugins.omp.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Omp": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Omp": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.omp.ui": {
+      "tereditor.plugins.omp.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Omp": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Omp": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.pi": {
+      "tereditor.plugins.pi": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.pi.host": {
+      "tereditor.plugins.pi.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Pi": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Pi": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.pi.ui": {
-        "type": "Project",
-        "dependencies": {
-          "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Pi": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.processes": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.processes.host": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Processes": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.processes.ui": {
+      "tereditor.plugins.pi.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Processes": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Chat.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Pi": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.providers": {
+      "tereditor.plugins.processes": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.providers.host": {
+      "tereditor.plugins.processes.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Providers": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Processes": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.providers.ui": {
-        "type": "Project",
-        "dependencies": {
-          "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Providers": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.review": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.review.host": {
-        "type": "Project",
-        "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Review": "[1.0.0, )"
-        }
-      },
-      "sharprail.plugins.review.ui": {
+      "tereditor.plugins.processes.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Review": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Processes": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.specdialect": {
+      "tereditor.plugins.providers": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.specdialect.host": {
+      "tereditor.plugins.providers.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.SpecDialect": "[1.0.0, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Providers": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.providers.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Providers": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.review": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.review.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Review": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.review.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Review": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.specdialect": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "tereditor.plugins.specdialect.host": {
+        "type": "Project",
+        "dependencies": {
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.SpecDialect": "[1.0.0, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },
-      "sharprail.plugins.specdialect.ui": {
+      "tereditor.plugins.specdialect.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.SpecDialect": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.SpecDialect": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.tailscale": {
+      "tereditor.plugins.tailscale": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.tailscale.host": {
+      "tereditor.plugins.tailscale.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Tailscale": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Tailscale": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.tailscale.ui": {
+      "tereditor.plugins.tailscale.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Tailscale": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Tailscale": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.ui.kit": {
+      "tereditor.plugins.ui.kit": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "Avalonia.Themes.Fluent": "[12.1.4, )",
           "Markdig": "[1.4.0, )",
-          "SharpRail.Scintilla": "[1.0.0, )",
+          "Tereditor.Scintilla": "[1.0.0, )",
           "SkiaSharp": "[4.148.0, )",
           "Svg.Controls.Skia.Avalonia": "[12.0.0.17, )",
           "TextMateSharp": "[2.0.4, )",
           "TextMateSharp.Grammars": "[2.0.4, )"
         }
       },
-      "sharprail.plugins.visualize": {
+      "tereditor.plugins.visualize": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.visualize.host": {
+      "tereditor.plugins.visualize.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Visualize": "[1.0.0, )"
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
+          "Tereditor.Plugins.Visualize": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.visualize.ui": {
+      "tereditor.plugins.visualize.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )",
-          "SharpRail.Plugins.Visualize": "[1.0.0, )"
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )",
+          "Tereditor.Plugins.Visualize": "[1.0.0, )"
         }
       },
-      "sharprail.scintilla": {
+      "tereditor.scintilla": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
@@ -1052,7 +1052,7 @@
           "SkiaSharp": "[4.148.0, )"
         }
       },
-      "sharprail.wire": {
+      "tereditor.wire": {
         "type": "Project"
       },
       "Avalonia.HarfBuzz": {

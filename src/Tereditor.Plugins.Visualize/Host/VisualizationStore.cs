@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Visualize.Host;
+namespace Tereditor.Plugins.Visualize.Host;
 
 /// <summary>
 /// The per-terminal drawings, keyed by workspace and tab, and their record per agent session. It lives as long as
@@ -21,7 +21,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     internal const string FilesStateName = "visualization-files";
 
     internal const string ToolDescription =
-        "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal or chat (in a Visualization tab when your chat has none open) — " +
+        "Render a rich visualization in the tereditor workbench, in a live view beside this terminal or chat (in a Visualization tab when your chat has none open) — " +
         "instead of ASCII art or a plain markdown table. Four kinds, chosen by `type`: 'diagram' renders a " +
         "mermaid diagram (set `mermaid` to raw mermaid source of any kind — flowchart, sequenceDiagram, " +
         "classDiagram, stateDiagram, erDiagram, gantt); 'svg' renders hand-written SVG (set `svg` to a " +
@@ -314,6 +314,6 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             return new PluginToolResult($"The diagram did not render: {failure}\nFix the {(arguments.Type == VisualizationType.Svg ? "SVG" : "mermaid")} source and call visualize again.") { IsError = true };
         }
         lock (gate) rejected.Remove((owner.WorkspaceId, owner.TabKey));
-        return new PluginToolResult($"Rendered \"{visualization.Title}\" in {(visualization.Detached ? "a Visualization tab" : "SharpRail")} (revision {visualization.Revision}). Call visualize again to update it in place.");
+        return new PluginToolResult($"Rendered \"{visualization.Title}\" in {(visualization.Detached ? "a Visualization tab" : "tereditor")} (revision {visualization.Revision}). Call visualize again to update it in place.");
     }
 }

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Words a number with its unit so a line break never separates them: the two are joined by a no-break space.</summary>
 public static class Units

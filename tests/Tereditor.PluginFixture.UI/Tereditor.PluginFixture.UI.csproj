@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The fixture plugin's UI half: a check-only builtin the checks compose, never shipped in the app. -->
   <ItemGroup>
-    <ProjectReference Include="../../src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
     <PackageReference Include="Avalonia" />
   </ItemGroup>
 </Project>

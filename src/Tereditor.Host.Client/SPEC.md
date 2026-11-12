@@ -15,7 +15,7 @@ Upstream: apps/web/src/transport/SPEC.md (revision: [STATUS.md](../../STATUS.md#
 The UI's only route to a host. Each host abstraction has two implementations of
 the same interface: a direct local adapter delegating to Core in-process, and a
 remote proxy over code-first WebSocket RPC. The composition root (`App.cs`) picks one per
-service from `SHARPRAIL_REMOTE`; nothing downstream knows which it got, which is
+service from `TEREDITOR_REMOTE`; nothing downstream knows which it got, which is
 what makes remoteness an adapter choice rather than a mandatory daemon.
 
 ## Boundary
@@ -31,7 +31,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
-- Allowed deps: Abstractions, Protocol, System.Net.WebSockets, and `SharpRail.Plugins.Isolation` for the session and
+- Allowed deps: Abstractions, Protocol, System.Net.WebSockets, and `Tereditor.Plugins.Isolation` for the session and
   surface interfaces and the frame caps the remote isolated UI adapter implements and applies (no Avalonia).
 - Forbidden: Core, Remote, the UI or Avalonia; requesting or persisting
   current-layout state.
@@ -127,10 +127,10 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - The remote state adapter sends the client's protocol version in the handshake and maps `Unimplemented`
   to version 0. `HostCapabilities.Supports(version, introducedAt)` treats no handshake (null) and a lower
   version as unsupported.
-- The project adapter rethrows a change write refusal (the `x-sharprail-change-code` trailer) as the
+- The project adapter rethrows a change write refusal (the `x-tereditor-change-code` trailer) as the
   `ChangeException` the embedded host throws, so callers branch on one type.
 - `HostCalls.cs` holds the interceptor every unary call of the project and state proxies passes through.
-  It rethrows a failure carrying the `x-sharprail-error-code` trailer as `HostException`; any other failure
+  It rethrows a failure carrying the `x-tereditor-error-code` trailer as `HostException`; any other failure
   stays an `RpcException`, so having a code is how a caller tells a specific failure from a failed call.
 - One channel per adapter; ordering is per WebSocket RPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.

@@ -2,13 +2,13 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api;
-using SharpRail.UI.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.UI.Plugins;
 
-using Origin = SharpRail.Plugins.Api.PluginOrigin;
-using Status = SharpRail.Plugins.Api.PluginStatus;
+using Origin = Tereditor.Plugins.Api.PluginOrigin;
+using Status = Tereditor.Plugins.Api.PluginStatus;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// One roster entry on Settings › Plugins, kept per plugin id for the page's life: a roster change updates it in place

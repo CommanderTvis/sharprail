@@ -3,9 +3,9 @@ using System.Text;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Scintilla;
+using Tereditor.Scintilla;
 
-namespace SharpRail.Plugins.UI.Kit.Editor;
+namespace Tereditor.Plugins.UI.Kit.Editor;
 
 public sealed partial class EditorFrame
 {

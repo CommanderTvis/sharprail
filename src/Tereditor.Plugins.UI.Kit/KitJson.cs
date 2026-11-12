@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.UI.Kit.Editor;
+using Tereditor.Plugins.UI.Kit.Editor;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Source-generated JSON metadata, with the serializer's default options, for the values the kit reads and writes itself.</summary>
 [JsonSerializable(typeof(CustomGrammar[]))]

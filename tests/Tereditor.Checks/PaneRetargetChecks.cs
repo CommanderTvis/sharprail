@@ -5,13 +5,13 @@ using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The Claude Code, Codex and omp panes and the Language pane are one instance each: switching workspaces of one project and
@@ -43,20 +43,20 @@ internal static class PaneRetargetChecks
             var field = type.GetField(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             return (field?.GetValue(owner) as Delegate)?.GetInvocationList().Length ?? 0;
         }
-        return Count(app.Workbench, typeof(SharpRail.UI.Workbench), "ProjectionChanged") +
-            Count(app.Workbench.PluginRegistry, typeof(SharpRail.UI.Plugins.PluginRegistry), "Changed") +
-            Count(app.Workbench.State, typeof(SharpRail.UI.State.SharedState), "Changed") +
+        return Count(app.Workbench, typeof(Tereditor.UI.Workbench), "ProjectionChanged") +
+            Count(app.Workbench.PluginRegistry, typeof(Tereditor.UI.Plugins.PluginRegistry), "Changed") +
+            Count(app.Workbench.State, typeof(Tereditor.UI.State.SharedState), "Changed") +
             Count(null, typeof(Ui), "ThemeChanged");
     }
 
     /// <summary>The instruction sections update their rows in place: same controls, open disclosures and text kept, only the changed part differs.</summary>
     internal static void InstructionSections()
     {
-        SharpRail.Plugins.Api.InstructionSection Section(string id, string title, bool enabled, string text) =>
-            new() { Id = id, Source = "core", SourceName = "SharpRail", Title = title, Description = "about " + id, Text = text, Enabled = enabled };
-        var current = new SharpRail.Plugins.Api.InstructionSectionList { Path = "/p/instructions.toml", Sections = [Section("core.a", "A", true, "text a"), Section("core.b", "B", true, "text b")] };
+        Tereditor.Plugins.Api.InstructionSection Section(string id, string title, bool enabled, string text) =>
+            new() { Id = id, Source = "core", SourceName = "tereditor", Title = title, Description = "about " + id, Text = text, Enabled = enabled };
+        var current = new Tereditor.Plugins.Api.InstructionSectionList { Path = "/p/instructions.toml", Sections = [Section("core.a", "A", true, "text a"), Section("core.b", "B", true, "text b")] };
         var loads = 0;
-        var view = new SharpRail.Plugins.Agent.UI.InstructionSectionsView("Fake", () => { loads++; return Task.FromResult(current); },
+        var view = new Tereditor.Plugins.Agent.UI.InstructionSectionsView("Fake", () => { loads++; return Task.FromResult(current); },
             (_, _) => Task.FromResult(current), _ => { });
         var window = new Window { Content = view, Width = 600, Height = 600 };
         window.Show();
@@ -109,9 +109,9 @@ internal static class PaneRetargetChecks
             _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(id, true));
         var tools = new (string Tool, string Name)[]
         {
-            (SharpRail.Plugins.Omp.OmpManifest.ContextTool, "OmpPanel"),
-            (SharpRail.Plugins.ClaudeCode.ClaudeCodeManifest.ConfigTool, "ClaudeConfigPanel"),
-            (SharpRail.Plugins.Codex.CodexManifest.ConfigTool, "CodexConfig"),
+            (Tereditor.Plugins.Omp.OmpManifest.ContextTool, "OmpPanel"),
+            (Tereditor.Plugins.ClaudeCode.ClaudeCodeManifest.ConfigTool, "ClaudeConfigPanel"),
+            (Tereditor.Plugins.Codex.CodexManifest.ConfigTool, "CodexConfig"),
             ("lsp", "LspPanel")
         };
         foreach (var (tool, _) in tools) Until(() => window.Layout.IsToolAvailable(tool));

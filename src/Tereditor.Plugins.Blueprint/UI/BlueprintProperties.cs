@@ -3,10 +3,10 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Plugins.Blueprint.UI;
+namespace Tereditor.Plugins.Blueprint.UI;
 
 internal sealed partial class BlueprintProperties : UserControl
 {

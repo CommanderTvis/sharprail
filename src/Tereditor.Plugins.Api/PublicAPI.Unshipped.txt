@@ -1,547 +1,547 @@
 #nullable enable
-abstract SharpRail.Plugins.Api.PluginToolDefinition.RunAsync(object! parameters, SharpRail.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>
-const SharpRail.Plugins.Api.PluginIdentity.IdPattern = "^[a-z0-9]+(?:-[a-z0-9]+)*$" -> string!
-const SharpRail.Plugins.Api.PluginApi.Generation = 2 -> int
-const SharpRail.Plugins.Api.PluginManifest.FileName = "sharprail-plugin.json" -> string!
-override SharpRail.Plugins.Api.HostProject.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.HostProject.GetHashCode() -> int
-override SharpRail.Plugins.Api.HostProject.ToString() -> string!
-override SharpRail.Plugins.Api.HostWorkspace.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.HostWorkspace.GetHashCode() -> int
-override SharpRail.Plugins.Api.HostWorkspace.ToString() -> string!
-override SharpRail.Plugins.Api.PluginContributions.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginContributions.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginContributions.ToString() -> string!
-override SharpRail.Plugins.Api.PluginDependency.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginDependency.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginDependency.ToString() -> string!
-override SharpRail.Plugins.Api.PluginFileViewerContribution.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginFileViewerContribution.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginFileViewerContribution.ToString() -> string!
-override SharpRail.Plugins.Api.PluginManifest.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginManifest.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginManifest.ToString() -> string!
-override SharpRail.Plugins.Api.PluginPiBlock.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginPiBlock.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginPiBlock.ToString() -> string!
-override SharpRail.Plugins.Api.PluginRosterChannel.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginRosterChannel.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginRosterChannel.ToString() -> string!
-override SharpRail.Plugins.Api.PluginRosterEntry.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginRosterEntry.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginRosterEntry.ToString() -> string!
-override SharpRail.Plugins.Api.PluginSideToolContribution.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginSideToolContribution.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginSideToolContribution.ToString() -> string!
-override SharpRail.Plugins.Api.PluginTool<TParams>.RunAsync(object! parameters, SharpRail.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>
-override SharpRail.Plugins.Api.PluginToolContext.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginToolContext.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginToolContext.ToString() -> string!
-override SharpRail.Plugins.Api.PluginToolResult.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.PluginToolResult.GetHashCode() -> int
-override SharpRail.Plugins.Api.PluginToolResult.ToString() -> string!
-override SharpRail.Plugins.Api.TerminalAgentRecord.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.TerminalAgentRecord.GetHashCode() -> int
-override SharpRail.Plugins.Api.TerminalAgentRecord.ToString() -> string!
-override SharpRail.Plugins.Api.TerminalRef.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.TerminalRef.GetHashCode() -> int
-override SharpRail.Plugins.Api.TerminalRef.ToString() -> string!
-SharpRail.Plugins.Api.HostKind
-SharpRail.Plugins.Api.HostKind.OperatingSystem = 0 -> SharpRail.Plugins.Api.HostKind
-SharpRail.Plugins.Api.HostKind.PureWeb = 1 -> SharpRail.Plugins.Api.HostKind
-SharpRail.Plugins.Api.HostKind.Headless = 2 -> SharpRail.Plugins.Api.HostKind
-SharpRail.Plugins.Api.HeadlessSupport
-SharpRail.Plugins.Api.HeadlessSupport.Undeclared = 0 -> SharpRail.Plugins.Api.HeadlessSupport
-SharpRail.Plugins.Api.HeadlessSupport.No = 1 -> SharpRail.Plugins.Api.HeadlessSupport
-SharpRail.Plugins.Api.HeadlessSupport.Yes = 2 -> SharpRail.Plugins.Api.HeadlessSupport
-SharpRail.Plugins.Api.HostPlatform
-SharpRail.Plugins.Api.HostPlatform.Linux = 1 -> SharpRail.Plugins.Api.HostPlatform
-SharpRail.Plugins.Api.HostPlatform.MacOS = 0 -> SharpRail.Plugins.Api.HostPlatform
-SharpRail.Plugins.Api.HostPlatform.Windows = 2 -> SharpRail.Plugins.Api.HostPlatform
-SharpRail.Plugins.Api.HostProject
-SharpRail.Plugins.Api.HostProject.<Clone>$() -> SharpRail.Plugins.Api.HostProject!
-SharpRail.Plugins.Api.HostProject.Deconstruct(out string! Id, out string! Name, out string! Path) -> void
-SharpRail.Plugins.Api.HostProject.Equals(SharpRail.Plugins.Api.HostProject? other) -> bool
-SharpRail.Plugins.Api.HostProject.HostProject(string! Id, string! Name, string! Path) -> void
-SharpRail.Plugins.Api.HostProject.Id.get -> string!
-SharpRail.Plugins.Api.HostProject.Id.init -> void
-SharpRail.Plugins.Api.HostProject.Name.get -> string!
-SharpRail.Plugins.Api.HostProject.Name.init -> void
-SharpRail.Plugins.Api.HostProject.Path.get -> string!
-SharpRail.Plugins.Api.HostProject.Path.init -> void
-SharpRail.Plugins.Api.HostProject.ScratchDirectory.get -> string!
-SharpRail.Plugins.Api.HostProject.ScratchDirectory.init -> void
-SharpRail.Plugins.Api.HostProject.WorktreesDirectory.get -> string!
-SharpRail.Plugins.Api.HostProject.WorktreesDirectory.init -> void
-SharpRail.Plugins.Api.HostWorkspace
-SharpRail.Plugins.Api.HostWorkspace.<Clone>$() -> SharpRail.Plugins.Api.HostWorkspace!
-SharpRail.Plugins.Api.HostWorkspace.Branch.get -> string!
-SharpRail.Plugins.Api.HostWorkspace.Branch.init -> void
-SharpRail.Plugins.Api.HostWorkspace.Deconstruct(out string! Id, out string! ProjectId, out string! Name, out string! Branch, out string! Path, out bool IsDefault) -> void
-SharpRail.Plugins.Api.HostWorkspace.Equals(SharpRail.Plugins.Api.HostWorkspace? other) -> bool
-SharpRail.Plugins.Api.HostWorkspace.HostWorkspace(string! Id, string! ProjectId, string! Name, string! Branch, string! Path, bool IsDefault) -> void
-SharpRail.Plugins.Api.HostWorkspace.Id.get -> string!
-SharpRail.Plugins.Api.HostWorkspace.Id.init -> void
-SharpRail.Plugins.Api.HostWorkspace.IsDefault.get -> bool
-SharpRail.Plugins.Api.HostWorkspace.IsDefault.init -> void
-SharpRail.Plugins.Api.HostWorkspace.Name.get -> string!
-SharpRail.Plugins.Api.HostWorkspace.Name.init -> void
-SharpRail.Plugins.Api.HostWorkspace.Path.get -> string!
-SharpRail.Plugins.Api.HostWorkspace.Path.init -> void
-SharpRail.Plugins.Api.HostWorkspace.ProjectId.get -> string!
-SharpRail.Plugins.Api.HostWorkspace.ProjectId.init -> void
-SharpRail.Plugins.Api.IPluginDependencyHandle
-SharpRail.Plugins.Api.IPluginDependencyHandle.RequestAsync<TParams, TResult>(SharpRail.Plugins.Api.PluginMethod<TParams, TResult>! method, TParams parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResult>
-SharpRail.Plugins.Api.IPluginDependencyHandle.Subscribe<TPayload>(SharpRail.Plugins.Api.PluginChannel<TPayload>! channel, System.Action<TPayload>! handler) -> System.IDisposable!
-SharpRail.Plugins.Api.PluginApi
-SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallError.Disabled = 1 -> SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallError.Failed = 3 -> SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallError.InvalidParams = 2 -> SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallError.Unknown = 0 -> SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallException
-SharpRail.Plugins.Api.PluginCallException.Error.get -> SharpRail.Plugins.Api.PluginCallError
-SharpRail.Plugins.Api.PluginCallException.PluginCallException(SharpRail.Plugins.Api.PluginCallError error, string! message) -> void
-SharpRail.Plugins.Api.PluginChannel<TPayload>
-SharpRail.Plugins.Api.PluginChannelKind
-SharpRail.Plugins.Api.PluginChannelKind.Event = 1 -> SharpRail.Plugins.Api.PluginChannelKind
-SharpRail.Plugins.Api.PluginChannelKind.State = 0 -> SharpRail.Plugins.Api.PluginChannelKind
-SharpRail.Plugins.Api.PluginChannelSpec
-SharpRail.Plugins.Api.PluginChannelSpec.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginChannelSpec.Kind.get -> SharpRail.Plugins.Api.PluginChannelKind
-SharpRail.Plugins.Api.PluginChannelSpec.Name.get -> string!
-SharpRail.Plugins.Api.PluginChannelSpec.PayloadType.get -> System.Type!
-SharpRail.Plugins.Api.PluginChannelSpec.Snapshot.get -> string?
-SharpRail.Plugins.Api.PluginContract
-SharpRail.Plugins.Api.PluginContract.Channels.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>!
-SharpRail.Plugins.Api.PluginContract.Json.get -> System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>!
-SharpRail.Plugins.Api.PluginContract.Id.get -> string!
-SharpRail.Plugins.Api.PluginContract.Methods.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>!
-SharpRail.Plugins.Api.PluginContract.SettingsType.get -> System.Type?
-SharpRail.Plugins.Api.PluginContract.WireVersion.get -> int
-SharpRail.Plugins.Api.PluginContributions
-SharpRail.Plugins.Api.PluginContributions.<Clone>$() -> SharpRail.Plugins.Api.PluginContributions!
-SharpRail.Plugins.Api.PluginContributions.Equals(SharpRail.Plugins.Api.PluginContributions? other) -> bool
-SharpRail.Plugins.Api.PluginContributions.FileViewers.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginFileViewerContribution!>!
-SharpRail.Plugins.Api.PluginContributions.FileViewers.set -> void
-SharpRail.Plugins.Api.PluginContributions.PluginContributions() -> void
-SharpRail.Plugins.Api.PluginContributions.SideTools.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginSideToolContribution!>!
-SharpRail.Plugins.Api.PluginContributions.SideTools.set -> void
-SharpRail.Plugins.Api.PluginDependency
-SharpRail.Plugins.Api.PluginDependency.<Clone>$() -> SharpRail.Plugins.Api.PluginDependency!
-SharpRail.Plugins.Api.PluginDependency.Deconstruct(out string! Id, out int WireVersion) -> void
-SharpRail.Plugins.Api.PluginDependency.Equals(SharpRail.Plugins.Api.PluginDependency? other) -> bool
-SharpRail.Plugins.Api.PluginDependency.Id.get -> string!
-SharpRail.Plugins.Api.PluginDependency.Id.init -> void
-SharpRail.Plugins.Api.PluginDependency.PluginDependency(string! Id, int WireVersion) -> void
-SharpRail.Plugins.Api.PluginDependency.WireVersion.get -> int
-SharpRail.Plugins.Api.PluginDependency.WireVersion.init -> void
-SharpRail.Plugins.Api.PluginFileRead
-SharpRail.Plugins.Api.PluginFileRead.None = 1 -> SharpRail.Plugins.Api.PluginFileRead
-SharpRail.Plugins.Api.PluginFileRead.Text = 0 -> SharpRail.Plugins.Api.PluginFileRead
-SharpRail.Plugins.Api.PluginFileViewerContribution
-SharpRail.Plugins.Api.PluginFileViewerContribution.<Clone>$() -> SharpRail.Plugins.Api.PluginFileViewerContribution!
-SharpRail.Plugins.Api.PluginFileViewerContribution.Equals(SharpRail.Plugins.Api.PluginFileViewerContribution? other) -> bool
-SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.set -> void
-SharpRail.Plugins.Api.PluginFileViewerContribution.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginFileViewerContribution.Names.set -> void
-SharpRail.Plugins.Api.PluginFileViewerContribution.PluginFileViewerContribution() -> void
-SharpRail.Plugins.Api.PluginFileViewerContribution.Read.get -> SharpRail.Plugins.Api.PluginFileRead
-SharpRail.Plugins.Api.PluginFileViewerContribution.Read.set -> void
-SharpRail.Plugins.Api.PluginIdentity
-SharpRail.Plugins.Api.PluginJson
-SharpRail.Plugins.Api.PluginJson.EnumConverter<TEnum>
-SharpRail.Plugins.Api.PluginJson.EnumConverter<TEnum>.EnumConverter() -> void
-SharpRail.Plugins.Api.PluginManifest
-SharpRail.Plugins.Api.PluginManifest.<Clone>$() -> SharpRail.Plugins.Api.PluginManifest!
-SharpRail.Plugins.Api.PluginManifest.ApiGeneration.get -> int
-SharpRail.Plugins.Api.PluginManifest.ApiGeneration.init -> void
-SharpRail.Plugins.Api.PluginManifest.Assets.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Assets.init -> void
-SharpRail.Plugins.Api.PluginManifest.Contributes.get -> SharpRail.Plugins.Api.PluginContributions!
-SharpRail.Plugins.Api.PluginManifest.Contributes.set -> void
-SharpRail.Plugins.Api.PluginManifest.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int ApiGeneration, out int WireVersion) -> void
-SharpRail.Plugins.Api.PluginManifest.DependsOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginDependency!>!
-SharpRail.Plugins.Api.PluginManifest.DependsOn.set -> void
-SharpRail.Plugins.Api.PluginManifest.Description.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Description.init -> void
-SharpRail.Plugins.Api.PluginManifest.EnabledByDefault.get -> bool
-SharpRail.Plugins.Api.PluginManifest.EnabledByDefault.init -> void
-SharpRail.Plugins.Api.PluginManifest.Equals(SharpRail.Plugins.Api.PluginManifest? other) -> bool
-SharpRail.Plugins.Api.PluginManifest.Host.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Host.init -> void
-SharpRail.Plugins.Api.PluginManifest.Icon.get -> string!
-SharpRail.Plugins.Api.PluginManifest.Icon.init -> void
-SharpRail.Plugins.Api.PluginManifest.Id.get -> string!
-SharpRail.Plugins.Api.PluginManifest.Id.init -> void
-SharpRail.Plugins.Api.PluginManifest.Label.get -> string!
-SharpRail.Plugins.Api.PluginManifest.Label.init -> void
-SharpRail.Plugins.Api.PluginManifest.Pi.get -> SharpRail.Plugins.Api.PluginPiBlock?
-SharpRail.Plugins.Api.PluginManifest.Pi.init -> void
-SharpRail.Plugins.Api.PluginManifest.PluginManifest(string! Id, string! Label, string! Icon, string! Version, int ApiGeneration, int WireVersion) -> void
-SharpRail.Plugins.Api.PluginManifest.Ui.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Ui.init -> void
-SharpRail.Plugins.Api.PluginManifest.Version.get -> string!
-SharpRail.Plugins.Api.PluginManifest.Version.init -> void
-SharpRail.Plugins.Api.PluginManifest.WireVersion.get -> int
-SharpRail.Plugins.Api.PluginManifest.WireVersion.init -> void
-SharpRail.Plugins.Api.PluginMethod<TParams, TResult>
-SharpRail.Plugins.Api.PluginMethod<TParams, TResult>.PluginMethod(string! name) -> void
-SharpRail.Plugins.Api.PluginMethodSpec
-SharpRail.Plugins.Api.PluginMethodSpec.Name.get -> string!
-SharpRail.Plugins.Api.PluginMethodSpec.ParamsType.get -> System.Type!
-SharpRail.Plugins.Api.PluginMethodSpec.ResultType.get -> System.Type!
-SharpRail.Plugins.Api.PluginOrigin
-SharpRail.Plugins.Api.PluginOrigin.Builtin = 0 -> SharpRail.Plugins.Api.PluginOrigin
-SharpRail.Plugins.Api.PluginOrigin.External = 1 -> SharpRail.Plugins.Api.PluginOrigin
-SharpRail.Plugins.Api.PluginPiBlock
-SharpRail.Plugins.Api.PluginPiBlock.<Clone>$() -> SharpRail.Plugins.Api.PluginPiBlock!
-SharpRail.Plugins.Api.PluginPiBlock.Equals(SharpRail.Plugins.Api.PluginPiBlock? other) -> bool
-SharpRail.Plugins.Api.PluginPiBlock.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginPiBlock.Extensions.set -> void
-SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.get -> bool
-SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.init -> void
-SharpRail.Plugins.Api.PluginPiBlock.PluginPiBlock() -> void
-SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.get -> bool
-SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.init -> void
-SharpRail.Plugins.Api.PluginPiBlock.Skills.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginPiBlock.Skills.set -> void
-SharpRail.Plugins.Api.PluginRosterChannel
-SharpRail.Plugins.Api.PluginRosterChannel.<Clone>$() -> SharpRail.Plugins.Api.PluginRosterChannel!
-SharpRail.Plugins.Api.PluginRosterChannel.Deconstruct(out SharpRail.Plugins.Api.PluginChannelKind Kind, out string? Snapshot, out System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
-SharpRail.Plugins.Api.PluginRosterChannel.Equals(SharpRail.Plugins.Api.PluginRosterChannel? other) -> bool
-SharpRail.Plugins.Api.PluginRosterChannel.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginRosterChannel.Key.init -> void
-SharpRail.Plugins.Api.PluginRosterChannel.Kind.get -> SharpRail.Plugins.Api.PluginChannelKind
-SharpRail.Plugins.Api.PluginRosterChannel.Kind.init -> void
-SharpRail.Plugins.Api.PluginRosterChannel.PluginRosterChannel(SharpRail.Plugins.Api.PluginChannelKind Kind, string? Snapshot, System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
-SharpRail.Plugins.Api.PluginRosterChannel.Snapshot.get -> string?
-SharpRail.Plugins.Api.PluginRosterChannel.Snapshot.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry
-SharpRail.Plugins.Api.PluginRosterEntry.<Clone>$() -> SharpRail.Plugins.Api.PluginRosterEntry!
-SharpRail.Plugins.Api.PluginRosterEntry.Assets.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Assets.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Channels.get -> System.Collections.Generic.IReadOnlyDictionary<string!, SharpRail.Plugins.Api.PluginRosterChannel!>!
-SharpRail.Plugins.Api.PluginRosterEntry.Channels.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Contributes.get -> SharpRail.Plugins.Api.PluginContributions!
-SharpRail.Plugins.Api.PluginRosterEntry.Contributes.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int WireVersion, out SharpRail.Plugins.Api.PluginOrigin Origin, out SharpRail.Plugins.Api.PluginStatus Status) -> void
-SharpRail.Plugins.Api.PluginRosterEntry.DependsOn.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginRosterEntry.DependsOn.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Description.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Description.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Equals(SharpRail.Plugins.Api.PluginRosterEntry? other) -> bool
-SharpRail.Plugins.Api.PluginRosterEntry.Icon.get -> string!
-SharpRail.Plugins.Api.PluginRosterEntry.Icon.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Id.get -> string!
-SharpRail.Plugins.Api.PluginRosterEntry.Id.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Label.get -> string!
-SharpRail.Plugins.Api.PluginRosterEntry.Label.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Origin.get -> SharpRail.Plugins.Api.PluginOrigin
-SharpRail.Plugins.Api.PluginRosterEntry.Origin.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.PluginRosterEntry(string! Id, string! Label, string! Icon, string! Version, int WireVersion, SharpRail.Plugins.Api.PluginOrigin Origin, SharpRail.Plugins.Api.PluginStatus Status) -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Reason.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Reason.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Status.get -> SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginRosterEntry.Status.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Version.get -> string!
-SharpRail.Plugins.Api.PluginRosterEntry.Version.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.WireVersion.get -> int
-SharpRail.Plugins.Api.PluginRosterEntry.WireVersion.init -> void
-SharpRail.Plugins.Api.PluginSideToolContribution
-SharpRail.Plugins.Api.PluginSideToolContribution.<Clone>$() -> SharpRail.Plugins.Api.PluginSideToolContribution!
-SharpRail.Plugins.Api.PluginSideToolContribution.Deconstruct(out string! Tool, out string! Label, out string! Icon, out SharpRail.Plugins.Api.PluginToolSide DefaultSide) -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.DefaultSide.get -> SharpRail.Plugins.Api.PluginToolSide
-SharpRail.Plugins.Api.PluginSideToolContribution.DefaultSide.init -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.Equals(SharpRail.Plugins.Api.PluginSideToolContribution? other) -> bool
-SharpRail.Plugins.Api.PluginSideToolContribution.Icon.get -> string!
-SharpRail.Plugins.Api.PluginSideToolContribution.Icon.init -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.Label.get -> string!
-SharpRail.Plugins.Api.PluginSideToolContribution.Label.init -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.PluginSideToolContribution(string! Tool, string! Label, string! Icon, SharpRail.Plugins.Api.PluginToolSide DefaultSide) -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.RequiresGit.get -> bool
-SharpRail.Plugins.Api.PluginSideToolContribution.RequiresGit.init -> void
-SharpRail.Plugins.Api.PluginSideToolContribution.Tool.get -> string!
-SharpRail.Plugins.Api.PluginSideToolContribution.Tool.init -> void
-SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginStatus.Active = 0 -> SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginStatus.Disabled = 1 -> SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginStatus.Failed = 2 -> SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginStatus.Refused = 3 -> SharpRail.Plugins.Api.PluginStatus
-SharpRail.Plugins.Api.PluginTool<TParams>
-SharpRail.Plugins.Api.PluginTool<TParams>.PluginTool(string! name, string! label, string! description, System.Func<TParams, SharpRail.Plugins.Api.PluginToolContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>>! run) -> void
-SharpRail.Plugins.Api.PluginToolContext
-SharpRail.Plugins.Api.PluginToolContext.<Clone>$() -> SharpRail.Plugins.Api.PluginToolContext!
-SharpRail.Plugins.Api.PluginToolContext.Cwd.get -> string!
-SharpRail.Plugins.Api.PluginToolContext.Cwd.init -> void
-SharpRail.Plugins.Api.PluginToolContext.Deconstruct(out string! Cwd, out string? WorkspaceId, out SharpRail.Plugins.Api.TerminalRef? Terminal) -> void
-SharpRail.Plugins.Api.PluginToolContext.Equals(SharpRail.Plugins.Api.PluginToolContext? other) -> bool
-SharpRail.Plugins.Api.PluginToolContext.PluginToolContext(string! Cwd, string? WorkspaceId, SharpRail.Plugins.Api.TerminalRef? Terminal) -> void
-SharpRail.Plugins.Api.PluginToolContext.Terminal.get -> SharpRail.Plugins.Api.TerminalRef?
-SharpRail.Plugins.Api.PluginToolContext.Terminal.init -> void
-SharpRail.Plugins.Api.PluginToolContext.WorkspaceId.get -> string?
-SharpRail.Plugins.Api.PluginToolContext.WorkspaceId.init -> void
-SharpRail.Plugins.Api.PluginToolDefinition
-SharpRail.Plugins.Api.PluginToolDefinition.Description.get -> string!
-SharpRail.Plugins.Api.PluginToolDefinition.Label.get -> string!
-SharpRail.Plugins.Api.PluginToolDefinition.Name.get -> string!
-SharpRail.Plugins.Api.PluginToolDefinition.ParametersType.get -> System.Type!
-SharpRail.Plugins.Api.PluginToolResult
-SharpRail.Plugins.Api.PluginToolResult.<Clone>$() -> SharpRail.Plugins.Api.PluginToolResult!
-SharpRail.Plugins.Api.PluginToolResult.Deconstruct(out string! Text) -> void
-SharpRail.Plugins.Api.PluginToolResult.Details.get -> object?
-SharpRail.Plugins.Api.PluginToolResult.Details.init -> void
-SharpRail.Plugins.Api.PluginToolResult.Equals(SharpRail.Plugins.Api.PluginToolResult? other) -> bool
-SharpRail.Plugins.Api.PluginToolResult.IsError.get -> bool
-SharpRail.Plugins.Api.PluginToolResult.IsError.init -> void
-SharpRail.Plugins.Api.PluginToolResult.PluginToolResult(string! Text) -> void
-SharpRail.Plugins.Api.PluginToolResult.Text.get -> string!
-SharpRail.Plugins.Api.PluginToolResult.Text.init -> void
-SharpRail.Plugins.Api.PluginToolSide
-SharpRail.Plugins.Api.PluginToolSide.Left = 0 -> SharpRail.Plugins.Api.PluginToolSide
-SharpRail.Plugins.Api.PluginToolSide.Right = 1 -> SharpRail.Plugins.Api.PluginToolSide
-SharpRail.Plugins.Api.TerminalAgentRecord
-SharpRail.Plugins.Api.TerminalAgentRecord.<Clone>$() -> SharpRail.Plugins.Api.TerminalAgentRecord!
-SharpRail.Plugins.Api.TerminalAgentRecord.Command.get -> string!
-SharpRail.Plugins.Api.TerminalAgentRecord.Command.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.Cwd.get -> string?
-SharpRail.Plugins.Api.TerminalAgentRecord.Cwd.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.Deconstruct(out string! Kind, out string! Command) -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.Equals(SharpRail.Plugins.Api.TerminalAgentRecord? other) -> bool
-SharpRail.Plugins.Api.TerminalAgentRecord.Kind.get -> string!
-SharpRail.Plugins.Api.TerminalAgentRecord.Kind.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.Model.get -> string?
-SharpRail.Plugins.Api.TerminalAgentRecord.Model.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.Effort.get -> string?
-SharpRail.Plugins.Api.TerminalAgentRecord.Effort.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.LaunchedByUi.get -> bool?
-SharpRail.Plugins.Api.TerminalAgentRecord.LaunchedByUi.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.get -> string?
-SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.init -> void
-SharpRail.Plugins.Api.TerminalAgentRecord.TerminalAgentRecord(string! Kind, string! Command) -> void
-SharpRail.Plugins.Api.TerminalRef
-SharpRail.Plugins.Api.TerminalRef.<Clone>$() -> SharpRail.Plugins.Api.TerminalRef!
-SharpRail.Plugins.Api.TerminalRef.Deconstruct(out string! WorkspaceId, out string! TabKey) -> void
-SharpRail.Plugins.Api.TerminalRef.Equals(SharpRail.Plugins.Api.TerminalRef? other) -> bool
-SharpRail.Plugins.Api.TerminalRef.TabKey.get -> string!
-SharpRail.Plugins.Api.TerminalRef.TabKey.init -> void
-SharpRail.Plugins.Api.TerminalRef.TerminalRef(string! WorkspaceId, string! TabKey) -> void
-SharpRail.Plugins.Api.TerminalRef.WorkspaceId.get -> string!
-SharpRail.Plugins.Api.TerminalRef.WorkspaceId.init -> void
-static SharpRail.Plugins.Api.HostProject.operator !=(SharpRail.Plugins.Api.HostProject? left, SharpRail.Plugins.Api.HostProject? right) -> bool
-static SharpRail.Plugins.Api.HostProject.operator ==(SharpRail.Plugins.Api.HostProject? left, SharpRail.Plugins.Api.HostProject? right) -> bool
-static SharpRail.Plugins.Api.HostWorkspace.operator !=(SharpRail.Plugins.Api.HostWorkspace? left, SharpRail.Plugins.Api.HostWorkspace? right) -> bool
-static SharpRail.Plugins.Api.HostWorkspace.operator ==(SharpRail.Plugins.Api.HostWorkspace? left, SharpRail.Plugins.Api.HostWorkspace? right) -> bool
-static SharpRail.Plugins.Api.PluginChannel<TPayload>.Event(string! name) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
-static SharpRail.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, SharpRail.Plugins.Api.PluginMethod<TParams, System.Collections.Generic.IReadOnlyList<TPayload>!>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
-static SharpRail.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, SharpRail.Plugins.Api.PluginMethod<TParams, TPayload>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
-static SharpRail.Plugins.Api.PluginContributions.operator !=(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
-static SharpRail.Plugins.Api.PluginContract.Create(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> SharpRail.Plugins.Api.PluginContract!
-static SharpRail.Plugins.Api.PluginContract.Create<TSettings>(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> SharpRail.Plugins.Api.PluginContract!
-static SharpRail.Plugins.Api.PluginContributions.operator ==(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
-static SharpRail.Plugins.Api.PluginDependency.operator !=(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
-static SharpRail.Plugins.Api.PluginDependency.operator ==(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
-static SharpRail.Plugins.Api.PluginFileViewerContribution.operator !=(SharpRail.Plugins.Api.PluginFileViewerContribution? left, SharpRail.Plugins.Api.PluginFileViewerContribution? right) -> bool
-static SharpRail.Plugins.Api.PluginFileViewerContribution.operator ==(SharpRail.Plugins.Api.PluginFileViewerContribution? left, SharpRail.Plugins.Api.PluginFileViewerContribution? right) -> bool
-static SharpRail.Plugins.Api.PluginIdentity.ChannelName(string! id, string! name) -> string!
-static SharpRail.Plugins.Api.PluginIdentity.IsPluginId(string! value) -> bool
-static SharpRail.Plugins.Api.PluginIdentity.MethodName(string! id, string! name) -> string!
-static SharpRail.Plugins.Api.PluginIdentity.ParseToolId(string! value) -> (string! PluginId, string! Tool)?
-static SharpRail.Plugins.Api.PluginIdentity.PreferenceKey(string! id, string! key) -> string!
-static SharpRail.Plugins.Api.PluginIdentity.Route(string! id, string! subpath = "") -> string!
-static SharpRail.Plugins.Api.PluginIdentity.StateFile(string! id, string! name) -> string!
-static SharpRail.Plugins.Api.PluginIdentity.ToolId(string! id, string! tool) -> string!
-static SharpRail.Plugins.Api.PluginJson.Convert<T>(object? value) -> T
-static SharpRail.Plugins.Api.PluginJson.ToElement(object? value) -> System.Text.Json.JsonElement
-static SharpRail.Plugins.Api.PluginJson.TypeInfo(System.Type! type) -> System.Text.Json.Serialization.Metadata.JsonTypeInfo!
-static SharpRail.Plugins.Api.PluginJson.TypeInfo<T>() -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>!
-static SharpRail.Plugins.Api.PluginJson.Serialize<T>(T value) -> string!
-static SharpRail.Plugins.Api.PluginJson.SerializeToElement<T>(T value) -> System.Text.Json.JsonElement
-static SharpRail.Plugins.Api.PluginJson.SerializeToUtf8Bytes<T>(T value) -> byte[]!
-static SharpRail.Plugins.Api.PluginJson.Register(System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver! resolver) -> void
-static SharpRail.Plugins.Api.PluginJson.Deserialize<T>(System.Text.Json.JsonElement element) -> T?
-static SharpRail.Plugins.Api.PluginJson.Deserialize<T>(string! json) -> T?
-static SharpRail.Plugins.Api.PluginJson.Options.get -> System.Text.Json.JsonSerializerOptions!
-static SharpRail.Plugins.Api.PluginManifest.operator !=(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
-static SharpRail.Plugins.Api.PluginManifest.operator ==(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
-static SharpRail.Plugins.Api.PluginPiBlock.operator !=(SharpRail.Plugins.Api.PluginPiBlock? left, SharpRail.Plugins.Api.PluginPiBlock? right) -> bool
-static SharpRail.Plugins.Api.PluginPiBlock.operator ==(SharpRail.Plugins.Api.PluginPiBlock? left, SharpRail.Plugins.Api.PluginPiBlock? right) -> bool
-static SharpRail.Plugins.Api.PluginRosterChannel.operator !=(SharpRail.Plugins.Api.PluginRosterChannel? left, SharpRail.Plugins.Api.PluginRosterChannel? right) -> bool
-static SharpRail.Plugins.Api.PluginRosterChannel.operator ==(SharpRail.Plugins.Api.PluginRosterChannel? left, SharpRail.Plugins.Api.PluginRosterChannel? right) -> bool
-static SharpRail.Plugins.Api.PluginRosterEntry.operator !=(SharpRail.Plugins.Api.PluginRosterEntry? left, SharpRail.Plugins.Api.PluginRosterEntry? right) -> bool
-static SharpRail.Plugins.Api.PluginRosterEntry.operator ==(SharpRail.Plugins.Api.PluginRosterEntry? left, SharpRail.Plugins.Api.PluginRosterEntry? right) -> bool
-static SharpRail.Plugins.Api.PluginSideToolContribution.operator !=(SharpRail.Plugins.Api.PluginSideToolContribution? left, SharpRail.Plugins.Api.PluginSideToolContribution? right) -> bool
-static SharpRail.Plugins.Api.PluginSideToolContribution.operator ==(SharpRail.Plugins.Api.PluginSideToolContribution? left, SharpRail.Plugins.Api.PluginSideToolContribution? right) -> bool
-static SharpRail.Plugins.Api.PluginToolContext.operator !=(SharpRail.Plugins.Api.PluginToolContext? left, SharpRail.Plugins.Api.PluginToolContext? right) -> bool
-static SharpRail.Plugins.Api.PluginToolContext.operator ==(SharpRail.Plugins.Api.PluginToolContext? left, SharpRail.Plugins.Api.PluginToolContext? right) -> bool
-static SharpRail.Plugins.Api.PluginToolResult.operator !=(SharpRail.Plugins.Api.PluginToolResult? left, SharpRail.Plugins.Api.PluginToolResult? right) -> bool
-static SharpRail.Plugins.Api.PluginToolResult.operator ==(SharpRail.Plugins.Api.PluginToolResult? left, SharpRail.Plugins.Api.PluginToolResult? right) -> bool
-static SharpRail.Plugins.Api.TerminalAgentRecord.operator !=(SharpRail.Plugins.Api.TerminalAgentRecord? left, SharpRail.Plugins.Api.TerminalAgentRecord? right) -> bool
-static SharpRail.Plugins.Api.TerminalAgentRecord.operator ==(SharpRail.Plugins.Api.TerminalAgentRecord? left, SharpRail.Plugins.Api.TerminalAgentRecord? right) -> bool
-static SharpRail.Plugins.Api.TerminalRef.operator !=(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool
-static SharpRail.Plugins.Api.TerminalRef.operator ==(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool
-SharpRail.Plugins.Api.AgentLaunchComposition
-SharpRail.Plugins.Api.AgentLaunchContribution
-SharpRail.Plugins.Api.AgentLaunchContribution.<Clone>$() -> SharpRail.Plugins.Api.AgentLaunchContribution!
-SharpRail.Plugins.Api.AgentLaunchContribution.AgentLaunchContribution() -> void
-SharpRail.Plugins.Api.AgentLaunchContribution.Arguments.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.AgentLaunchContribution.Arguments.init -> void
-SharpRail.Plugins.Api.AgentLaunchContribution.Environment.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
-SharpRail.Plugins.Api.AgentLaunchContribution.Environment.init -> void
-SharpRail.Plugins.Api.AgentLaunchContribution.Equals(SharpRail.Plugins.Api.AgentLaunchContribution? other) -> bool
-SharpRail.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.get -> bool
-SharpRail.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.init -> void
-SharpRail.Plugins.Api.AgentLaunchContribution.Wrapper.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.AgentLaunchContribution.Wrapper.init -> void
-override SharpRail.Plugins.Api.AgentLaunchContribution.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.AgentLaunchContribution.GetHashCode() -> int
-override SharpRail.Plugins.Api.AgentLaunchContribution.ToString() -> string!
-static SharpRail.Plugins.Api.AgentLaunchComposition.Apply(string! commandLine, string! executable, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>! contributions, bool windows = false) -> string!
-static SharpRail.Plugins.Api.AgentLaunchContribution.operator !=(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool
-static SharpRail.Plugins.Api.AgentLaunchContribution.operator ==(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool
-SharpRail.Plugins.Api.AgentLaunchContribution.Account.get -> SharpRail.Plugins.Api.AgentAccountSource?
-SharpRail.Plugins.Api.AgentLaunchContribution.Account.init -> void
-SharpRail.Plugins.Api.AgentAccountSource
-SharpRail.Plugins.Api.AgentAccountSource.AgentAccountSource(string! Name, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
-SharpRail.Plugins.Api.AgentAccountSource.Name.get -> string!
-SharpRail.Plugins.Api.AgentAccountSource.Name.init -> void
-SharpRail.Plugins.Api.AgentAccountSource.Read.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>!
-SharpRail.Plugins.Api.AgentAccountSource.Read.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount
-SharpRail.Plugins.Api.AgentGovernedAccount.AgentGovernedAccount(string! Source, string? Identity = null, string? Plan = null, double? Remaining = null, double? Total = null, double TopUp = 0, long? RefillNext = null, string? Problem = null) -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Identity.get -> string?
-SharpRail.Plugins.Api.AgentGovernedAccount.Identity.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Plan.get -> string?
-SharpRail.Plugins.Api.AgentGovernedAccount.Plan.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Problem.get -> string?
-SharpRail.Plugins.Api.AgentGovernedAccount.Problem.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Remaining.get -> double?
-SharpRail.Plugins.Api.AgentGovernedAccount.Remaining.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.RefillNext.get -> long?
-SharpRail.Plugins.Api.AgentGovernedAccount.RefillNext.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Source.get -> string!
-SharpRail.Plugins.Api.AgentGovernedAccount.Source.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.TopUp.get -> double
-SharpRail.Plugins.Api.AgentGovernedAccount.TopUp.init -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Total.get -> double?
-SharpRail.Plugins.Api.AgentGovernedAccount.Total.init -> void
-SharpRail.Plugins.Api.AgentAccountSource.<Clone>$() -> SharpRail.Plugins.Api.AgentAccountSource!
-SharpRail.Plugins.Api.AgentAccountSource.Deconstruct(out string! Name, out System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
-SharpRail.Plugins.Api.AgentAccountSource.Equals(SharpRail.Plugins.Api.AgentAccountSource? other) -> bool
-override SharpRail.Plugins.Api.AgentAccountSource.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.AgentAccountSource.GetHashCode() -> int
-override SharpRail.Plugins.Api.AgentAccountSource.ToString() -> string!
-static SharpRail.Plugins.Api.AgentAccountSource.operator !=(SharpRail.Plugins.Api.AgentAccountSource? left, SharpRail.Plugins.Api.AgentAccountSource? right) -> bool
-static SharpRail.Plugins.Api.AgentAccountSource.operator ==(SharpRail.Plugins.Api.AgentAccountSource? left, SharpRail.Plugins.Api.AgentAccountSource? right) -> bool
-SharpRail.Plugins.Api.AgentGovernedAccount.<Clone>$() -> SharpRail.Plugins.Api.AgentGovernedAccount!
-SharpRail.Plugins.Api.AgentGovernedAccount.Deconstruct(out string! Source, out string? Identity, out string? Plan, out double? Remaining, out double? Total, out double TopUp, out long? RefillNext, out string? Problem) -> void
-SharpRail.Plugins.Api.AgentGovernedAccount.Equals(SharpRail.Plugins.Api.AgentGovernedAccount? other) -> bool
-override SharpRail.Plugins.Api.AgentGovernedAccount.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.AgentGovernedAccount.GetHashCode() -> int
-override SharpRail.Plugins.Api.AgentGovernedAccount.ToString() -> string!
-static SharpRail.Plugins.Api.AgentGovernedAccount.operator !=(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
-static SharpRail.Plugins.Api.AgentGovernedAccount.operator ==(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
-SharpRail.Plugins.Api.PluginManifest.Category.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Category.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Category.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Category.init -> void
-SharpRail.Plugins.Api.PluginCategories
-const SharpRail.Plugins.Api.PluginCategories.Agents = "Agents" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Documents = "Specs & Documents" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Environment = "Environment" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Integrations = "Integrations" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Cpp = "C & C++" -> string!
-const SharpRail.Plugins.Api.PluginCategories.CSharp = "C#" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Css = "CSS" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Dart = "Dart" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Go = "Go" -> string!
-const SharpRail.Plugins.Api.PluginCategories.JavaScript = "JavaScript & TypeScript" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Jvm = "JVM" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Php = "PHP" -> string!
-const SharpRail.Plugins.Api.PluginCategories.PowerShell = "PowerShell" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Python = "Python" -> string!
-const SharpRail.Plugins.Api.PluginCategories.R = "R" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Ruby = "Ruby" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Rust = "Rust" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Shell = "Shell" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Swift = "Swift" -> string!
-const SharpRail.Plugins.Api.PluginCategories.Other = "Other" -> string!
-const SharpRail.Plugins.Api.PluginCategories.VersionControl = "Version Control" -> string!
-static SharpRail.Plugins.Api.PluginCategories.Order.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.InstructionSection
-SharpRail.Plugins.Api.InstructionSection.Description.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Description.set -> void
-SharpRail.Plugins.Api.InstructionSection.Enabled.get -> bool
-SharpRail.Plugins.Api.InstructionSection.Enabled.set -> void
-SharpRail.Plugins.Api.InstructionSection.Id.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Id.init -> void
-SharpRail.Plugins.Api.InstructionSection.InstructionSection() -> void
-SharpRail.Plugins.Api.InstructionSection.Source.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Source.init -> void
-SharpRail.Plugins.Api.InstructionSection.SourceName.get -> string!
-SharpRail.Plugins.Api.InstructionSection.SourceName.init -> void
-SharpRail.Plugins.Api.InstructionSection.Text.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Text.init -> void
-SharpRail.Plugins.Api.InstructionSection.Title.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Title.init -> void
-SharpRail.Plugins.Api.InstructionSectionList
-SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.set -> void
-SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.get -> string?
-SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.init -> void
-SharpRail.Plugins.Api.InstructionSectionList.InstructionSectionList() -> void
-SharpRail.Plugins.Api.InstructionSectionList.Path.get -> string!
-SharpRail.Plugins.Api.InstructionSectionList.Path.set -> void
-SharpRail.Plugins.Api.InstructionSectionList.Sections.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.InstructionSection!>!
-SharpRail.Plugins.Api.InstructionSectionList.Sections.set -> void
-SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.set -> void
-SharpRail.Plugins.Api.InstructionSectionQuery
-SharpRail.Plugins.Api.InstructionSectionQuery.InstructionSectionQuery() -> void
-SharpRail.Plugins.Api.InstructionSectionQuery.WorkspaceId.get -> string!
-SharpRail.Plugins.Api.InstructionSectionQuery.WorkspaceId.init -> void
-SharpRail.Plugins.Api.InstructionSectionToggle
-SharpRail.Plugins.Api.InstructionSectionToggle.Enabled.get -> bool
-SharpRail.Plugins.Api.InstructionSectionToggle.Enabled.init -> void
-SharpRail.Plugins.Api.InstructionSectionToggle.Id.get -> string!
-SharpRail.Plugins.Api.InstructionSectionToggle.Id.init -> void
-SharpRail.Plugins.Api.InstructionSectionToggle.InstructionSectionToggle() -> void
-SharpRail.Plugins.Api.InstructionSectionToggle.WorkspaceId.get -> string!
-SharpRail.Plugins.Api.InstructionSectionToggle.WorkspaceId.init -> void
-SharpRail.Plugins.Api.InstructionSectionsChanged
-SharpRail.Plugins.Api.InstructionSectionsChanged.InstructionSectionsChanged() -> void
-SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.get -> string!
-SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void
-SharpRail.Plugins.Api.PluginManifest.Support.get -> string?
-SharpRail.Plugins.Api.PluginManifest.Support.init -> void
-SharpRail.Plugins.Api.PluginManifest.Headless.get -> SharpRail.Plugins.Api.HeadlessSupport
-SharpRail.Plugins.Api.PluginManifest.Headless.init -> void
-SharpRail.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.get -> bool?
-SharpRail.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.init -> void
-SharpRail.Plugins.Api.PluginManifest.UnavailableOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostKind>!
-SharpRail.Plugins.Api.PluginManifest.UnavailableOn.set -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Support.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Support.init -> void
-SharpRail.Plugins.Api.PluginSupportLevels
-const SharpRail.Plugins.Api.PluginSupportLevels.Early = "early" -> string!
-SharpRail.Plugins.Api.PluginAmbientAttribute
-SharpRail.Plugins.Api.PluginAmbientAttribute.PluginAmbientAttribute() -> void
-SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.Blocking = 4 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.Live = 2 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.LocalInRunner = 5 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.Mirrored = 0 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.Resolver = 1 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.Unavailable = 6 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossing.UnderLock = 3 -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossingAttribute
-SharpRail.Plugins.Api.PluginCrossingAttribute.Crossing.get -> SharpRail.Plugins.Api.PluginCrossing
-SharpRail.Plugins.Api.PluginCrossingAttribute.IsolatedShape.get -> string?
-SharpRail.Plugins.Api.PluginCrossingAttribute.IsolatedShape.init -> void
-SharpRail.Plugins.Api.PluginCrossingAttribute.PluginCrossingAttribute(SharpRail.Plugins.Api.PluginCrossing crossing) -> void
-SharpRail.Plugins.Api.PluginPermissionAttribute
-SharpRail.Plugins.Api.PluginPermissionAttribute.Name.get -> string!
-SharpRail.Plugins.Api.PluginPermissionAttribute.PluginPermissionAttribute(string! name) -> void
-SharpRail.Plugins.Api.PluginPermissionAttribute.Condition.get -> string?
-SharpRail.Plugins.Api.PluginPermissionAttribute.Condition.init -> void
+abstract Tereditor.Plugins.Api.PluginToolDefinition.RunAsync(object! parameters, Tereditor.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.PluginToolResult!>
+const Tereditor.Plugins.Api.PluginIdentity.IdPattern = "^[a-z0-9]+(?:-[a-z0-9]+)*$" -> string!
+const Tereditor.Plugins.Api.PluginApi.Generation = 2 -> int
+const Tereditor.Plugins.Api.PluginManifest.FileName = "tereditor-plugin.json" -> string!
+override Tereditor.Plugins.Api.HostProject.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.HostProject.GetHashCode() -> int
+override Tereditor.Plugins.Api.HostProject.ToString() -> string!
+override Tereditor.Plugins.Api.HostWorkspace.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.HostWorkspace.GetHashCode() -> int
+override Tereditor.Plugins.Api.HostWorkspace.ToString() -> string!
+override Tereditor.Plugins.Api.PluginContributions.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginContributions.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginContributions.ToString() -> string!
+override Tereditor.Plugins.Api.PluginDependency.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginDependency.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginDependency.ToString() -> string!
+override Tereditor.Plugins.Api.PluginFileViewerContribution.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginFileViewerContribution.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginFileViewerContribution.ToString() -> string!
+override Tereditor.Plugins.Api.PluginManifest.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginManifest.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginManifest.ToString() -> string!
+override Tereditor.Plugins.Api.PluginPiBlock.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginPiBlock.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginPiBlock.ToString() -> string!
+override Tereditor.Plugins.Api.PluginRosterChannel.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginRosterChannel.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginRosterChannel.ToString() -> string!
+override Tereditor.Plugins.Api.PluginRosterEntry.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginRosterEntry.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginRosterEntry.ToString() -> string!
+override Tereditor.Plugins.Api.PluginSideToolContribution.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginSideToolContribution.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginSideToolContribution.ToString() -> string!
+override Tereditor.Plugins.Api.PluginTool<TParams>.RunAsync(object! parameters, Tereditor.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.PluginToolResult!>
+override Tereditor.Plugins.Api.PluginToolContext.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginToolContext.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginToolContext.ToString() -> string!
+override Tereditor.Plugins.Api.PluginToolResult.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.PluginToolResult.GetHashCode() -> int
+override Tereditor.Plugins.Api.PluginToolResult.ToString() -> string!
+override Tereditor.Plugins.Api.TerminalAgentRecord.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.TerminalAgentRecord.GetHashCode() -> int
+override Tereditor.Plugins.Api.TerminalAgentRecord.ToString() -> string!
+override Tereditor.Plugins.Api.TerminalRef.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.TerminalRef.GetHashCode() -> int
+override Tereditor.Plugins.Api.TerminalRef.ToString() -> string!
+Tereditor.Plugins.Api.HostKind
+Tereditor.Plugins.Api.HostKind.OperatingSystem = 0 -> Tereditor.Plugins.Api.HostKind
+Tereditor.Plugins.Api.HostKind.PureWeb = 1 -> Tereditor.Plugins.Api.HostKind
+Tereditor.Plugins.Api.HostKind.Headless = 2 -> Tereditor.Plugins.Api.HostKind
+Tereditor.Plugins.Api.HeadlessSupport
+Tereditor.Plugins.Api.HeadlessSupport.Undeclared = 0 -> Tereditor.Plugins.Api.HeadlessSupport
+Tereditor.Plugins.Api.HeadlessSupport.No = 1 -> Tereditor.Plugins.Api.HeadlessSupport
+Tereditor.Plugins.Api.HeadlessSupport.Yes = 2 -> Tereditor.Plugins.Api.HeadlessSupport
+Tereditor.Plugins.Api.HostPlatform
+Tereditor.Plugins.Api.HostPlatform.Linux = 1 -> Tereditor.Plugins.Api.HostPlatform
+Tereditor.Plugins.Api.HostPlatform.MacOS = 0 -> Tereditor.Plugins.Api.HostPlatform
+Tereditor.Plugins.Api.HostPlatform.Windows = 2 -> Tereditor.Plugins.Api.HostPlatform
+Tereditor.Plugins.Api.HostProject
+Tereditor.Plugins.Api.HostProject.<Clone>$() -> Tereditor.Plugins.Api.HostProject!
+Tereditor.Plugins.Api.HostProject.Deconstruct(out string! Id, out string! Name, out string! Path) -> void
+Tereditor.Plugins.Api.HostProject.Equals(Tereditor.Plugins.Api.HostProject? other) -> bool
+Tereditor.Plugins.Api.HostProject.HostProject(string! Id, string! Name, string! Path) -> void
+Tereditor.Plugins.Api.HostProject.Id.get -> string!
+Tereditor.Plugins.Api.HostProject.Id.init -> void
+Tereditor.Plugins.Api.HostProject.Name.get -> string!
+Tereditor.Plugins.Api.HostProject.Name.init -> void
+Tereditor.Plugins.Api.HostProject.Path.get -> string!
+Tereditor.Plugins.Api.HostProject.Path.init -> void
+Tereditor.Plugins.Api.HostProject.ScratchDirectory.get -> string!
+Tereditor.Plugins.Api.HostProject.ScratchDirectory.init -> void
+Tereditor.Plugins.Api.HostProject.WorktreesDirectory.get -> string!
+Tereditor.Plugins.Api.HostProject.WorktreesDirectory.init -> void
+Tereditor.Plugins.Api.HostWorkspace
+Tereditor.Plugins.Api.HostWorkspace.<Clone>$() -> Tereditor.Plugins.Api.HostWorkspace!
+Tereditor.Plugins.Api.HostWorkspace.Branch.get -> string!
+Tereditor.Plugins.Api.HostWorkspace.Branch.init -> void
+Tereditor.Plugins.Api.HostWorkspace.Deconstruct(out string! Id, out string! ProjectId, out string! Name, out string! Branch, out string! Path, out bool IsDefault) -> void
+Tereditor.Plugins.Api.HostWorkspace.Equals(Tereditor.Plugins.Api.HostWorkspace? other) -> bool
+Tereditor.Plugins.Api.HostWorkspace.HostWorkspace(string! Id, string! ProjectId, string! Name, string! Branch, string! Path, bool IsDefault) -> void
+Tereditor.Plugins.Api.HostWorkspace.Id.get -> string!
+Tereditor.Plugins.Api.HostWorkspace.Id.init -> void
+Tereditor.Plugins.Api.HostWorkspace.IsDefault.get -> bool
+Tereditor.Plugins.Api.HostWorkspace.IsDefault.init -> void
+Tereditor.Plugins.Api.HostWorkspace.Name.get -> string!
+Tereditor.Plugins.Api.HostWorkspace.Name.init -> void
+Tereditor.Plugins.Api.HostWorkspace.Path.get -> string!
+Tereditor.Plugins.Api.HostWorkspace.Path.init -> void
+Tereditor.Plugins.Api.HostWorkspace.ProjectId.get -> string!
+Tereditor.Plugins.Api.HostWorkspace.ProjectId.init -> void
+Tereditor.Plugins.Api.IPluginDependencyHandle
+Tereditor.Plugins.Api.IPluginDependencyHandle.RequestAsync<TParams, TResult>(Tereditor.Plugins.Api.PluginMethod<TParams, TResult>! method, TParams parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResult>
+Tereditor.Plugins.Api.IPluginDependencyHandle.Subscribe<TPayload>(Tereditor.Plugins.Api.PluginChannel<TPayload>! channel, System.Action<TPayload>! handler) -> System.IDisposable!
+Tereditor.Plugins.Api.PluginApi
+Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallError.Disabled = 1 -> Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallError.Failed = 3 -> Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallError.InvalidParams = 2 -> Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallError.Unknown = 0 -> Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallException
+Tereditor.Plugins.Api.PluginCallException.Error.get -> Tereditor.Plugins.Api.PluginCallError
+Tereditor.Plugins.Api.PluginCallException.PluginCallException(Tereditor.Plugins.Api.PluginCallError error, string! message) -> void
+Tereditor.Plugins.Api.PluginChannel<TPayload>
+Tereditor.Plugins.Api.PluginChannelKind
+Tereditor.Plugins.Api.PluginChannelKind.Event = 1 -> Tereditor.Plugins.Api.PluginChannelKind
+Tereditor.Plugins.Api.PluginChannelKind.State = 0 -> Tereditor.Plugins.Api.PluginChannelKind
+Tereditor.Plugins.Api.PluginChannelSpec
+Tereditor.Plugins.Api.PluginChannelSpec.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginChannelSpec.Kind.get -> Tereditor.Plugins.Api.PluginChannelKind
+Tereditor.Plugins.Api.PluginChannelSpec.Name.get -> string!
+Tereditor.Plugins.Api.PluginChannelSpec.PayloadType.get -> System.Type!
+Tereditor.Plugins.Api.PluginChannelSpec.Snapshot.get -> string?
+Tereditor.Plugins.Api.PluginContract
+Tereditor.Plugins.Api.PluginContract.Channels.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginChannelSpec!>!
+Tereditor.Plugins.Api.PluginContract.Json.get -> System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>!
+Tereditor.Plugins.Api.PluginContract.Id.get -> string!
+Tereditor.Plugins.Api.PluginContract.Methods.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginMethodSpec!>!
+Tereditor.Plugins.Api.PluginContract.SettingsType.get -> System.Type?
+Tereditor.Plugins.Api.PluginContract.WireVersion.get -> int
+Tereditor.Plugins.Api.PluginContributions
+Tereditor.Plugins.Api.PluginContributions.<Clone>$() -> Tereditor.Plugins.Api.PluginContributions!
+Tereditor.Plugins.Api.PluginContributions.Equals(Tereditor.Plugins.Api.PluginContributions? other) -> bool
+Tereditor.Plugins.Api.PluginContributions.FileViewers.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginFileViewerContribution!>!
+Tereditor.Plugins.Api.PluginContributions.FileViewers.set -> void
+Tereditor.Plugins.Api.PluginContributions.PluginContributions() -> void
+Tereditor.Plugins.Api.PluginContributions.SideTools.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginSideToolContribution!>!
+Tereditor.Plugins.Api.PluginContributions.SideTools.set -> void
+Tereditor.Plugins.Api.PluginDependency
+Tereditor.Plugins.Api.PluginDependency.<Clone>$() -> Tereditor.Plugins.Api.PluginDependency!
+Tereditor.Plugins.Api.PluginDependency.Deconstruct(out string! Id, out int WireVersion) -> void
+Tereditor.Plugins.Api.PluginDependency.Equals(Tereditor.Plugins.Api.PluginDependency? other) -> bool
+Tereditor.Plugins.Api.PluginDependency.Id.get -> string!
+Tereditor.Plugins.Api.PluginDependency.Id.init -> void
+Tereditor.Plugins.Api.PluginDependency.PluginDependency(string! Id, int WireVersion) -> void
+Tereditor.Plugins.Api.PluginDependency.WireVersion.get -> int
+Tereditor.Plugins.Api.PluginDependency.WireVersion.init -> void
+Tereditor.Plugins.Api.PluginFileRead
+Tereditor.Plugins.Api.PluginFileRead.None = 1 -> Tereditor.Plugins.Api.PluginFileRead
+Tereditor.Plugins.Api.PluginFileRead.Text = 0 -> Tereditor.Plugins.Api.PluginFileRead
+Tereditor.Plugins.Api.PluginFileViewerContribution
+Tereditor.Plugins.Api.PluginFileViewerContribution.<Clone>$() -> Tereditor.Plugins.Api.PluginFileViewerContribution!
+Tereditor.Plugins.Api.PluginFileViewerContribution.Equals(Tereditor.Plugins.Api.PluginFileViewerContribution? other) -> bool
+Tereditor.Plugins.Api.PluginFileViewerContribution.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginFileViewerContribution.Extensions.set -> void
+Tereditor.Plugins.Api.PluginFileViewerContribution.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginFileViewerContribution.Names.set -> void
+Tereditor.Plugins.Api.PluginFileViewerContribution.PluginFileViewerContribution() -> void
+Tereditor.Plugins.Api.PluginFileViewerContribution.Read.get -> Tereditor.Plugins.Api.PluginFileRead
+Tereditor.Plugins.Api.PluginFileViewerContribution.Read.set -> void
+Tereditor.Plugins.Api.PluginIdentity
+Tereditor.Plugins.Api.PluginJson
+Tereditor.Plugins.Api.PluginJson.EnumConverter<TEnum>
+Tereditor.Plugins.Api.PluginJson.EnumConverter<TEnum>.EnumConverter() -> void
+Tereditor.Plugins.Api.PluginManifest
+Tereditor.Plugins.Api.PluginManifest.<Clone>$() -> Tereditor.Plugins.Api.PluginManifest!
+Tereditor.Plugins.Api.PluginManifest.ApiGeneration.get -> int
+Tereditor.Plugins.Api.PluginManifest.ApiGeneration.init -> void
+Tereditor.Plugins.Api.PluginManifest.Assets.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Assets.init -> void
+Tereditor.Plugins.Api.PluginManifest.Contributes.get -> Tereditor.Plugins.Api.PluginContributions!
+Tereditor.Plugins.Api.PluginManifest.Contributes.set -> void
+Tereditor.Plugins.Api.PluginManifest.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int ApiGeneration, out int WireVersion) -> void
+Tereditor.Plugins.Api.PluginManifest.DependsOn.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginDependency!>!
+Tereditor.Plugins.Api.PluginManifest.DependsOn.set -> void
+Tereditor.Plugins.Api.PluginManifest.Description.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Description.init -> void
+Tereditor.Plugins.Api.PluginManifest.EnabledByDefault.get -> bool
+Tereditor.Plugins.Api.PluginManifest.EnabledByDefault.init -> void
+Tereditor.Plugins.Api.PluginManifest.Equals(Tereditor.Plugins.Api.PluginManifest? other) -> bool
+Tereditor.Plugins.Api.PluginManifest.Host.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Host.init -> void
+Tereditor.Plugins.Api.PluginManifest.Icon.get -> string!
+Tereditor.Plugins.Api.PluginManifest.Icon.init -> void
+Tereditor.Plugins.Api.PluginManifest.Id.get -> string!
+Tereditor.Plugins.Api.PluginManifest.Id.init -> void
+Tereditor.Plugins.Api.PluginManifest.Label.get -> string!
+Tereditor.Plugins.Api.PluginManifest.Label.init -> void
+Tereditor.Plugins.Api.PluginManifest.Pi.get -> Tereditor.Plugins.Api.PluginPiBlock?
+Tereditor.Plugins.Api.PluginManifest.Pi.init -> void
+Tereditor.Plugins.Api.PluginManifest.PluginManifest(string! Id, string! Label, string! Icon, string! Version, int ApiGeneration, int WireVersion) -> void
+Tereditor.Plugins.Api.PluginManifest.Ui.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Ui.init -> void
+Tereditor.Plugins.Api.PluginManifest.Version.get -> string!
+Tereditor.Plugins.Api.PluginManifest.Version.init -> void
+Tereditor.Plugins.Api.PluginManifest.WireVersion.get -> int
+Tereditor.Plugins.Api.PluginManifest.WireVersion.init -> void
+Tereditor.Plugins.Api.PluginMethod<TParams, TResult>
+Tereditor.Plugins.Api.PluginMethod<TParams, TResult>.PluginMethod(string! name) -> void
+Tereditor.Plugins.Api.PluginMethodSpec
+Tereditor.Plugins.Api.PluginMethodSpec.Name.get -> string!
+Tereditor.Plugins.Api.PluginMethodSpec.ParamsType.get -> System.Type!
+Tereditor.Plugins.Api.PluginMethodSpec.ResultType.get -> System.Type!
+Tereditor.Plugins.Api.PluginOrigin
+Tereditor.Plugins.Api.PluginOrigin.Builtin = 0 -> Tereditor.Plugins.Api.PluginOrigin
+Tereditor.Plugins.Api.PluginOrigin.External = 1 -> Tereditor.Plugins.Api.PluginOrigin
+Tereditor.Plugins.Api.PluginPiBlock
+Tereditor.Plugins.Api.PluginPiBlock.<Clone>$() -> Tereditor.Plugins.Api.PluginPiBlock!
+Tereditor.Plugins.Api.PluginPiBlock.Equals(Tereditor.Plugins.Api.PluginPiBlock? other) -> bool
+Tereditor.Plugins.Api.PluginPiBlock.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginPiBlock.Extensions.set -> void
+Tereditor.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.get -> bool
+Tereditor.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.init -> void
+Tereditor.Plugins.Api.PluginPiBlock.PluginPiBlock() -> void
+Tereditor.Plugins.Api.PluginPiBlock.ReachesSubagents.get -> bool
+Tereditor.Plugins.Api.PluginPiBlock.ReachesSubagents.init -> void
+Tereditor.Plugins.Api.PluginPiBlock.Skills.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginPiBlock.Skills.set -> void
+Tereditor.Plugins.Api.PluginRosterChannel
+Tereditor.Plugins.Api.PluginRosterChannel.<Clone>$() -> Tereditor.Plugins.Api.PluginRosterChannel!
+Tereditor.Plugins.Api.PluginRosterChannel.Deconstruct(out Tereditor.Plugins.Api.PluginChannelKind Kind, out string? Snapshot, out System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
+Tereditor.Plugins.Api.PluginRosterChannel.Equals(Tereditor.Plugins.Api.PluginRosterChannel? other) -> bool
+Tereditor.Plugins.Api.PluginRosterChannel.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginRosterChannel.Key.init -> void
+Tereditor.Plugins.Api.PluginRosterChannel.Kind.get -> Tereditor.Plugins.Api.PluginChannelKind
+Tereditor.Plugins.Api.PluginRosterChannel.Kind.init -> void
+Tereditor.Plugins.Api.PluginRosterChannel.PluginRosterChannel(Tereditor.Plugins.Api.PluginChannelKind Kind, string? Snapshot, System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
+Tereditor.Plugins.Api.PluginRosterChannel.Snapshot.get -> string?
+Tereditor.Plugins.Api.PluginRosterChannel.Snapshot.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry
+Tereditor.Plugins.Api.PluginRosterEntry.<Clone>$() -> Tereditor.Plugins.Api.PluginRosterEntry!
+Tereditor.Plugins.Api.PluginRosterEntry.Assets.get -> string?
+Tereditor.Plugins.Api.PluginRosterEntry.Assets.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Channels.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Tereditor.Plugins.Api.PluginRosterChannel!>!
+Tereditor.Plugins.Api.PluginRosterEntry.Channels.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Contributes.get -> Tereditor.Plugins.Api.PluginContributions!
+Tereditor.Plugins.Api.PluginRosterEntry.Contributes.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int WireVersion, out Tereditor.Plugins.Api.PluginOrigin Origin, out Tereditor.Plugins.Api.PluginStatus Status) -> void
+Tereditor.Plugins.Api.PluginRosterEntry.DependsOn.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.PluginRosterEntry.DependsOn.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Description.get -> string?
+Tereditor.Plugins.Api.PluginRosterEntry.Description.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Equals(Tereditor.Plugins.Api.PluginRosterEntry? other) -> bool
+Tereditor.Plugins.Api.PluginRosterEntry.Icon.get -> string!
+Tereditor.Plugins.Api.PluginRosterEntry.Icon.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Id.get -> string!
+Tereditor.Plugins.Api.PluginRosterEntry.Id.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Label.get -> string!
+Tereditor.Plugins.Api.PluginRosterEntry.Label.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Origin.get -> Tereditor.Plugins.Api.PluginOrigin
+Tereditor.Plugins.Api.PluginRosterEntry.Origin.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.PluginRosterEntry(string! Id, string! Label, string! Icon, string! Version, int WireVersion, Tereditor.Plugins.Api.PluginOrigin Origin, Tereditor.Plugins.Api.PluginStatus Status) -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Reason.get -> string?
+Tereditor.Plugins.Api.PluginRosterEntry.Reason.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Status.get -> Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginRosterEntry.Status.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Version.get -> string!
+Tereditor.Plugins.Api.PluginRosterEntry.Version.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.WireVersion.get -> int
+Tereditor.Plugins.Api.PluginRosterEntry.WireVersion.init -> void
+Tereditor.Plugins.Api.PluginSideToolContribution
+Tereditor.Plugins.Api.PluginSideToolContribution.<Clone>$() -> Tereditor.Plugins.Api.PluginSideToolContribution!
+Tereditor.Plugins.Api.PluginSideToolContribution.Deconstruct(out string! Tool, out string! Label, out string! Icon, out Tereditor.Plugins.Api.PluginToolSide DefaultSide) -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.DefaultSide.get -> Tereditor.Plugins.Api.PluginToolSide
+Tereditor.Plugins.Api.PluginSideToolContribution.DefaultSide.init -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.Equals(Tereditor.Plugins.Api.PluginSideToolContribution? other) -> bool
+Tereditor.Plugins.Api.PluginSideToolContribution.Icon.get -> string!
+Tereditor.Plugins.Api.PluginSideToolContribution.Icon.init -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.Label.get -> string!
+Tereditor.Plugins.Api.PluginSideToolContribution.Label.init -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.PluginSideToolContribution(string! Tool, string! Label, string! Icon, Tereditor.Plugins.Api.PluginToolSide DefaultSide) -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.RequiresGit.get -> bool
+Tereditor.Plugins.Api.PluginSideToolContribution.RequiresGit.init -> void
+Tereditor.Plugins.Api.PluginSideToolContribution.Tool.get -> string!
+Tereditor.Plugins.Api.PluginSideToolContribution.Tool.init -> void
+Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginStatus.Active = 0 -> Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginStatus.Disabled = 1 -> Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginStatus.Failed = 2 -> Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginStatus.Refused = 3 -> Tereditor.Plugins.Api.PluginStatus
+Tereditor.Plugins.Api.PluginTool<TParams>
+Tereditor.Plugins.Api.PluginTool<TParams>.PluginTool(string! name, string! label, string! description, System.Func<TParams, Tereditor.Plugins.Api.PluginToolContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.PluginToolResult!>>! run) -> void
+Tereditor.Plugins.Api.PluginToolContext
+Tereditor.Plugins.Api.PluginToolContext.<Clone>$() -> Tereditor.Plugins.Api.PluginToolContext!
+Tereditor.Plugins.Api.PluginToolContext.Cwd.get -> string!
+Tereditor.Plugins.Api.PluginToolContext.Cwd.init -> void
+Tereditor.Plugins.Api.PluginToolContext.Deconstruct(out string! Cwd, out string? WorkspaceId, out Tereditor.Plugins.Api.TerminalRef? Terminal) -> void
+Tereditor.Plugins.Api.PluginToolContext.Equals(Tereditor.Plugins.Api.PluginToolContext? other) -> bool
+Tereditor.Plugins.Api.PluginToolContext.PluginToolContext(string! Cwd, string? WorkspaceId, Tereditor.Plugins.Api.TerminalRef? Terminal) -> void
+Tereditor.Plugins.Api.PluginToolContext.Terminal.get -> Tereditor.Plugins.Api.TerminalRef?
+Tereditor.Plugins.Api.PluginToolContext.Terminal.init -> void
+Tereditor.Plugins.Api.PluginToolContext.WorkspaceId.get -> string?
+Tereditor.Plugins.Api.PluginToolContext.WorkspaceId.init -> void
+Tereditor.Plugins.Api.PluginToolDefinition
+Tereditor.Plugins.Api.PluginToolDefinition.Description.get -> string!
+Tereditor.Plugins.Api.PluginToolDefinition.Label.get -> string!
+Tereditor.Plugins.Api.PluginToolDefinition.Name.get -> string!
+Tereditor.Plugins.Api.PluginToolDefinition.ParametersType.get -> System.Type!
+Tereditor.Plugins.Api.PluginToolResult
+Tereditor.Plugins.Api.PluginToolResult.<Clone>$() -> Tereditor.Plugins.Api.PluginToolResult!
+Tereditor.Plugins.Api.PluginToolResult.Deconstruct(out string! Text) -> void
+Tereditor.Plugins.Api.PluginToolResult.Details.get -> object?
+Tereditor.Plugins.Api.PluginToolResult.Details.init -> void
+Tereditor.Plugins.Api.PluginToolResult.Equals(Tereditor.Plugins.Api.PluginToolResult? other) -> bool
+Tereditor.Plugins.Api.PluginToolResult.IsError.get -> bool
+Tereditor.Plugins.Api.PluginToolResult.IsError.init -> void
+Tereditor.Plugins.Api.PluginToolResult.PluginToolResult(string! Text) -> void
+Tereditor.Plugins.Api.PluginToolResult.Text.get -> string!
+Tereditor.Plugins.Api.PluginToolResult.Text.init -> void
+Tereditor.Plugins.Api.PluginToolSide
+Tereditor.Plugins.Api.PluginToolSide.Left = 0 -> Tereditor.Plugins.Api.PluginToolSide
+Tereditor.Plugins.Api.PluginToolSide.Right = 1 -> Tereditor.Plugins.Api.PluginToolSide
+Tereditor.Plugins.Api.TerminalAgentRecord
+Tereditor.Plugins.Api.TerminalAgentRecord.<Clone>$() -> Tereditor.Plugins.Api.TerminalAgentRecord!
+Tereditor.Plugins.Api.TerminalAgentRecord.Command.get -> string!
+Tereditor.Plugins.Api.TerminalAgentRecord.Command.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.Cwd.get -> string?
+Tereditor.Plugins.Api.TerminalAgentRecord.Cwd.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.Deconstruct(out string! Kind, out string! Command) -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.Equals(Tereditor.Plugins.Api.TerminalAgentRecord? other) -> bool
+Tereditor.Plugins.Api.TerminalAgentRecord.Kind.get -> string!
+Tereditor.Plugins.Api.TerminalAgentRecord.Kind.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.Model.get -> string?
+Tereditor.Plugins.Api.TerminalAgentRecord.Model.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.Effort.get -> string?
+Tereditor.Plugins.Api.TerminalAgentRecord.Effort.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.LaunchedByUi.get -> bool?
+Tereditor.Plugins.Api.TerminalAgentRecord.LaunchedByUi.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.SessionId.get -> string?
+Tereditor.Plugins.Api.TerminalAgentRecord.SessionId.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.TerminalAgentRecord(string! Kind, string! Command) -> void
+Tereditor.Plugins.Api.TerminalRef
+Tereditor.Plugins.Api.TerminalRef.<Clone>$() -> Tereditor.Plugins.Api.TerminalRef!
+Tereditor.Plugins.Api.TerminalRef.Deconstruct(out string! WorkspaceId, out string! TabKey) -> void
+Tereditor.Plugins.Api.TerminalRef.Equals(Tereditor.Plugins.Api.TerminalRef? other) -> bool
+Tereditor.Plugins.Api.TerminalRef.TabKey.get -> string!
+Tereditor.Plugins.Api.TerminalRef.TabKey.init -> void
+Tereditor.Plugins.Api.TerminalRef.TerminalRef(string! WorkspaceId, string! TabKey) -> void
+Tereditor.Plugins.Api.TerminalRef.WorkspaceId.get -> string!
+Tereditor.Plugins.Api.TerminalRef.WorkspaceId.init -> void
+static Tereditor.Plugins.Api.HostProject.operator !=(Tereditor.Plugins.Api.HostProject? left, Tereditor.Plugins.Api.HostProject? right) -> bool
+static Tereditor.Plugins.Api.HostProject.operator ==(Tereditor.Plugins.Api.HostProject? left, Tereditor.Plugins.Api.HostProject? right) -> bool
+static Tereditor.Plugins.Api.HostWorkspace.operator !=(Tereditor.Plugins.Api.HostWorkspace? left, Tereditor.Plugins.Api.HostWorkspace? right) -> bool
+static Tereditor.Plugins.Api.HostWorkspace.operator ==(Tereditor.Plugins.Api.HostWorkspace? left, Tereditor.Plugins.Api.HostWorkspace? right) -> bool
+static Tereditor.Plugins.Api.PluginChannel<TPayload>.Event(string! name) -> Tereditor.Plugins.Api.PluginChannel<TPayload>!
+static Tereditor.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, Tereditor.Plugins.Api.PluginMethod<TParams, System.Collections.Generic.IReadOnlyList<TPayload>!>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> Tereditor.Plugins.Api.PluginChannel<TPayload>!
+static Tereditor.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, Tereditor.Plugins.Api.PluginMethod<TParams, TPayload>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> Tereditor.Plugins.Api.PluginChannel<TPayload>!
+static Tereditor.Plugins.Api.PluginContributions.operator !=(Tereditor.Plugins.Api.PluginContributions? left, Tereditor.Plugins.Api.PluginContributions? right) -> bool
+static Tereditor.Plugins.Api.PluginContract.Create(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> Tereditor.Plugins.Api.PluginContract!
+static Tereditor.Plugins.Api.PluginContract.Create<TSettings>(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> Tereditor.Plugins.Api.PluginContract!
+static Tereditor.Plugins.Api.PluginContributions.operator ==(Tereditor.Plugins.Api.PluginContributions? left, Tereditor.Plugins.Api.PluginContributions? right) -> bool
+static Tereditor.Plugins.Api.PluginDependency.operator !=(Tereditor.Plugins.Api.PluginDependency? left, Tereditor.Plugins.Api.PluginDependency? right) -> bool
+static Tereditor.Plugins.Api.PluginDependency.operator ==(Tereditor.Plugins.Api.PluginDependency? left, Tereditor.Plugins.Api.PluginDependency? right) -> bool
+static Tereditor.Plugins.Api.PluginFileViewerContribution.operator !=(Tereditor.Plugins.Api.PluginFileViewerContribution? left, Tereditor.Plugins.Api.PluginFileViewerContribution? right) -> bool
+static Tereditor.Plugins.Api.PluginFileViewerContribution.operator ==(Tereditor.Plugins.Api.PluginFileViewerContribution? left, Tereditor.Plugins.Api.PluginFileViewerContribution? right) -> bool
+static Tereditor.Plugins.Api.PluginIdentity.ChannelName(string! id, string! name) -> string!
+static Tereditor.Plugins.Api.PluginIdentity.IsPluginId(string! value) -> bool
+static Tereditor.Plugins.Api.PluginIdentity.MethodName(string! id, string! name) -> string!
+static Tereditor.Plugins.Api.PluginIdentity.ParseToolId(string! value) -> (string! PluginId, string! Tool)?
+static Tereditor.Plugins.Api.PluginIdentity.PreferenceKey(string! id, string! key) -> string!
+static Tereditor.Plugins.Api.PluginIdentity.Route(string! id, string! subpath = "") -> string!
+static Tereditor.Plugins.Api.PluginIdentity.StateFile(string! id, string! name) -> string!
+static Tereditor.Plugins.Api.PluginIdentity.ToolId(string! id, string! tool) -> string!
+static Tereditor.Plugins.Api.PluginJson.Convert<T>(object? value) -> T
+static Tereditor.Plugins.Api.PluginJson.ToElement(object? value) -> System.Text.Json.JsonElement
+static Tereditor.Plugins.Api.PluginJson.TypeInfo(System.Type! type) -> System.Text.Json.Serialization.Metadata.JsonTypeInfo!
+static Tereditor.Plugins.Api.PluginJson.TypeInfo<T>() -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>!
+static Tereditor.Plugins.Api.PluginJson.Serialize<T>(T value) -> string!
+static Tereditor.Plugins.Api.PluginJson.SerializeToElement<T>(T value) -> System.Text.Json.JsonElement
+static Tereditor.Plugins.Api.PluginJson.SerializeToUtf8Bytes<T>(T value) -> byte[]!
+static Tereditor.Plugins.Api.PluginJson.Register(System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver! resolver) -> void
+static Tereditor.Plugins.Api.PluginJson.Deserialize<T>(System.Text.Json.JsonElement element) -> T?
+static Tereditor.Plugins.Api.PluginJson.Deserialize<T>(string! json) -> T?
+static Tereditor.Plugins.Api.PluginJson.Options.get -> System.Text.Json.JsonSerializerOptions!
+static Tereditor.Plugins.Api.PluginManifest.operator !=(Tereditor.Plugins.Api.PluginManifest? left, Tereditor.Plugins.Api.PluginManifest? right) -> bool
+static Tereditor.Plugins.Api.PluginManifest.operator ==(Tereditor.Plugins.Api.PluginManifest? left, Tereditor.Plugins.Api.PluginManifest? right) -> bool
+static Tereditor.Plugins.Api.PluginPiBlock.operator !=(Tereditor.Plugins.Api.PluginPiBlock? left, Tereditor.Plugins.Api.PluginPiBlock? right) -> bool
+static Tereditor.Plugins.Api.PluginPiBlock.operator ==(Tereditor.Plugins.Api.PluginPiBlock? left, Tereditor.Plugins.Api.PluginPiBlock? right) -> bool
+static Tereditor.Plugins.Api.PluginRosterChannel.operator !=(Tereditor.Plugins.Api.PluginRosterChannel? left, Tereditor.Plugins.Api.PluginRosterChannel? right) -> bool
+static Tereditor.Plugins.Api.PluginRosterChannel.operator ==(Tereditor.Plugins.Api.PluginRosterChannel? left, Tereditor.Plugins.Api.PluginRosterChannel? right) -> bool
+static Tereditor.Plugins.Api.PluginRosterEntry.operator !=(Tereditor.Plugins.Api.PluginRosterEntry? left, Tereditor.Plugins.Api.PluginRosterEntry? right) -> bool
+static Tereditor.Plugins.Api.PluginRosterEntry.operator ==(Tereditor.Plugins.Api.PluginRosterEntry? left, Tereditor.Plugins.Api.PluginRosterEntry? right) -> bool
+static Tereditor.Plugins.Api.PluginSideToolContribution.operator !=(Tereditor.Plugins.Api.PluginSideToolContribution? left, Tereditor.Plugins.Api.PluginSideToolContribution? right) -> bool
+static Tereditor.Plugins.Api.PluginSideToolContribution.operator ==(Tereditor.Plugins.Api.PluginSideToolContribution? left, Tereditor.Plugins.Api.PluginSideToolContribution? right) -> bool
+static Tereditor.Plugins.Api.PluginToolContext.operator !=(Tereditor.Plugins.Api.PluginToolContext? left, Tereditor.Plugins.Api.PluginToolContext? right) -> bool
+static Tereditor.Plugins.Api.PluginToolContext.operator ==(Tereditor.Plugins.Api.PluginToolContext? left, Tereditor.Plugins.Api.PluginToolContext? right) -> bool
+static Tereditor.Plugins.Api.PluginToolResult.operator !=(Tereditor.Plugins.Api.PluginToolResult? left, Tereditor.Plugins.Api.PluginToolResult? right) -> bool
+static Tereditor.Plugins.Api.PluginToolResult.operator ==(Tereditor.Plugins.Api.PluginToolResult? left, Tereditor.Plugins.Api.PluginToolResult? right) -> bool
+static Tereditor.Plugins.Api.TerminalAgentRecord.operator !=(Tereditor.Plugins.Api.TerminalAgentRecord? left, Tereditor.Plugins.Api.TerminalAgentRecord? right) -> bool
+static Tereditor.Plugins.Api.TerminalAgentRecord.operator ==(Tereditor.Plugins.Api.TerminalAgentRecord? left, Tereditor.Plugins.Api.TerminalAgentRecord? right) -> bool
+static Tereditor.Plugins.Api.TerminalRef.operator !=(Tereditor.Plugins.Api.TerminalRef? left, Tereditor.Plugins.Api.TerminalRef? right) -> bool
+static Tereditor.Plugins.Api.TerminalRef.operator ==(Tereditor.Plugins.Api.TerminalRef? left, Tereditor.Plugins.Api.TerminalRef? right) -> bool
+Tereditor.Plugins.Api.AgentLaunchComposition
+Tereditor.Plugins.Api.AgentLaunchContribution
+Tereditor.Plugins.Api.AgentLaunchContribution.<Clone>$() -> Tereditor.Plugins.Api.AgentLaunchContribution!
+Tereditor.Plugins.Api.AgentLaunchContribution.AgentLaunchContribution() -> void
+Tereditor.Plugins.Api.AgentLaunchContribution.Arguments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.AgentLaunchContribution.Arguments.init -> void
+Tereditor.Plugins.Api.AgentLaunchContribution.Environment.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Tereditor.Plugins.Api.AgentLaunchContribution.Environment.init -> void
+Tereditor.Plugins.Api.AgentLaunchContribution.Equals(Tereditor.Plugins.Api.AgentLaunchContribution? other) -> bool
+Tereditor.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.get -> bool
+Tereditor.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.init -> void
+Tereditor.Plugins.Api.AgentLaunchContribution.Wrapper.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.AgentLaunchContribution.Wrapper.init -> void
+override Tereditor.Plugins.Api.AgentLaunchContribution.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.AgentLaunchContribution.GetHashCode() -> int
+override Tereditor.Plugins.Api.AgentLaunchContribution.ToString() -> string!
+static Tereditor.Plugins.Api.AgentLaunchComposition.Apply(string! commandLine, string! executable, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.AgentLaunchContribution!>! contributions, bool windows = false) -> string!
+static Tereditor.Plugins.Api.AgentLaunchContribution.operator !=(Tereditor.Plugins.Api.AgentLaunchContribution? left, Tereditor.Plugins.Api.AgentLaunchContribution? right) -> bool
+static Tereditor.Plugins.Api.AgentLaunchContribution.operator ==(Tereditor.Plugins.Api.AgentLaunchContribution? left, Tereditor.Plugins.Api.AgentLaunchContribution? right) -> bool
+Tereditor.Plugins.Api.AgentLaunchContribution.Account.get -> Tereditor.Plugins.Api.AgentAccountSource?
+Tereditor.Plugins.Api.AgentLaunchContribution.Account.init -> void
+Tereditor.Plugins.Api.AgentAccountSource
+Tereditor.Plugins.Api.AgentAccountSource.AgentAccountSource(string! Name, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
+Tereditor.Plugins.Api.AgentAccountSource.Name.get -> string!
+Tereditor.Plugins.Api.AgentAccountSource.Name.init -> void
+Tereditor.Plugins.Api.AgentAccountSource.Read.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.AgentGovernedAccount!>>!
+Tereditor.Plugins.Api.AgentAccountSource.Read.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount
+Tereditor.Plugins.Api.AgentGovernedAccount.AgentGovernedAccount(string! Source, string? Identity = null, string? Plan = null, double? Remaining = null, double? Total = null, double TopUp = 0, long? RefillNext = null, string? Problem = null) -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Identity.get -> string?
+Tereditor.Plugins.Api.AgentGovernedAccount.Identity.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Plan.get -> string?
+Tereditor.Plugins.Api.AgentGovernedAccount.Plan.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Problem.get -> string?
+Tereditor.Plugins.Api.AgentGovernedAccount.Problem.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Remaining.get -> double?
+Tereditor.Plugins.Api.AgentGovernedAccount.Remaining.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.RefillNext.get -> long?
+Tereditor.Plugins.Api.AgentGovernedAccount.RefillNext.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Source.get -> string!
+Tereditor.Plugins.Api.AgentGovernedAccount.Source.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.TopUp.get -> double
+Tereditor.Plugins.Api.AgentGovernedAccount.TopUp.init -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Total.get -> double?
+Tereditor.Plugins.Api.AgentGovernedAccount.Total.init -> void
+Tereditor.Plugins.Api.AgentAccountSource.<Clone>$() -> Tereditor.Plugins.Api.AgentAccountSource!
+Tereditor.Plugins.Api.AgentAccountSource.Deconstruct(out string! Name, out System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<Tereditor.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
+Tereditor.Plugins.Api.AgentAccountSource.Equals(Tereditor.Plugins.Api.AgentAccountSource? other) -> bool
+override Tereditor.Plugins.Api.AgentAccountSource.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.AgentAccountSource.GetHashCode() -> int
+override Tereditor.Plugins.Api.AgentAccountSource.ToString() -> string!
+static Tereditor.Plugins.Api.AgentAccountSource.operator !=(Tereditor.Plugins.Api.AgentAccountSource? left, Tereditor.Plugins.Api.AgentAccountSource? right) -> bool
+static Tereditor.Plugins.Api.AgentAccountSource.operator ==(Tereditor.Plugins.Api.AgentAccountSource? left, Tereditor.Plugins.Api.AgentAccountSource? right) -> bool
+Tereditor.Plugins.Api.AgentGovernedAccount.<Clone>$() -> Tereditor.Plugins.Api.AgentGovernedAccount!
+Tereditor.Plugins.Api.AgentGovernedAccount.Deconstruct(out string! Source, out string? Identity, out string? Plan, out double? Remaining, out double? Total, out double TopUp, out long? RefillNext, out string? Problem) -> void
+Tereditor.Plugins.Api.AgentGovernedAccount.Equals(Tereditor.Plugins.Api.AgentGovernedAccount? other) -> bool
+override Tereditor.Plugins.Api.AgentGovernedAccount.Equals(object? obj) -> bool
+override Tereditor.Plugins.Api.AgentGovernedAccount.GetHashCode() -> int
+override Tereditor.Plugins.Api.AgentGovernedAccount.ToString() -> string!
+static Tereditor.Plugins.Api.AgentGovernedAccount.operator !=(Tereditor.Plugins.Api.AgentGovernedAccount? left, Tereditor.Plugins.Api.AgentGovernedAccount? right) -> bool
+static Tereditor.Plugins.Api.AgentGovernedAccount.operator ==(Tereditor.Plugins.Api.AgentGovernedAccount? left, Tereditor.Plugins.Api.AgentGovernedAccount? right) -> bool
+Tereditor.Plugins.Api.PluginManifest.Category.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Category.init -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Category.get -> string?
+Tereditor.Plugins.Api.PluginRosterEntry.Category.init -> void
+Tereditor.Plugins.Api.PluginCategories
+const Tereditor.Plugins.Api.PluginCategories.Agents = "Agents" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Documents = "Specs & Documents" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Environment = "Environment" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Integrations = "Integrations" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Cpp = "C & C++" -> string!
+const Tereditor.Plugins.Api.PluginCategories.CSharp = "C#" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Css = "CSS" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Dart = "Dart" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Go = "Go" -> string!
+const Tereditor.Plugins.Api.PluginCategories.JavaScript = "JavaScript & TypeScript" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Jvm = "JVM" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Php = "PHP" -> string!
+const Tereditor.Plugins.Api.PluginCategories.PowerShell = "PowerShell" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Python = "Python" -> string!
+const Tereditor.Plugins.Api.PluginCategories.R = "R" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Ruby = "Ruby" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Rust = "Rust" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Shell = "Shell" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Swift = "Swift" -> string!
+const Tereditor.Plugins.Api.PluginCategories.Other = "Other" -> string!
+const Tereditor.Plugins.Api.PluginCategories.VersionControl = "Version Control" -> string!
+static Tereditor.Plugins.Api.PluginCategories.Order.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.InstructionSection
+Tereditor.Plugins.Api.InstructionSection.Description.get -> string!
+Tereditor.Plugins.Api.InstructionSection.Description.set -> void
+Tereditor.Plugins.Api.InstructionSection.Enabled.get -> bool
+Tereditor.Plugins.Api.InstructionSection.Enabled.set -> void
+Tereditor.Plugins.Api.InstructionSection.Id.get -> string!
+Tereditor.Plugins.Api.InstructionSection.Id.init -> void
+Tereditor.Plugins.Api.InstructionSection.InstructionSection() -> void
+Tereditor.Plugins.Api.InstructionSection.Source.get -> string!
+Tereditor.Plugins.Api.InstructionSection.Source.init -> void
+Tereditor.Plugins.Api.InstructionSection.SourceName.get -> string!
+Tereditor.Plugins.Api.InstructionSection.SourceName.init -> void
+Tereditor.Plugins.Api.InstructionSection.Text.get -> string!
+Tereditor.Plugins.Api.InstructionSection.Text.init -> void
+Tereditor.Plugins.Api.InstructionSection.Title.get -> string!
+Tereditor.Plugins.Api.InstructionSection.Title.init -> void
+Tereditor.Plugins.Api.InstructionSectionList
+Tereditor.Plugins.Api.InstructionSectionList.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.InstructionSectionList.Diagnostics.set -> void
+Tereditor.Plugins.Api.InstructionSectionList.IgnoredEditsPath.get -> string?
+Tereditor.Plugins.Api.InstructionSectionList.IgnoredEditsPath.init -> void
+Tereditor.Plugins.Api.InstructionSectionList.InstructionSectionList() -> void
+Tereditor.Plugins.Api.InstructionSectionList.Path.get -> string!
+Tereditor.Plugins.Api.InstructionSectionList.Path.set -> void
+Tereditor.Plugins.Api.InstructionSectionList.Sections.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.InstructionSection!>!
+Tereditor.Plugins.Api.InstructionSectionList.Sections.set -> void
+Tereditor.Plugins.Api.InstructionSectionList.UnknownDisabled.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.Api.InstructionSectionList.UnknownDisabled.set -> void
+Tereditor.Plugins.Api.InstructionSectionQuery
+Tereditor.Plugins.Api.InstructionSectionQuery.InstructionSectionQuery() -> void
+Tereditor.Plugins.Api.InstructionSectionQuery.WorkspaceId.get -> string!
+Tereditor.Plugins.Api.InstructionSectionQuery.WorkspaceId.init -> void
+Tereditor.Plugins.Api.InstructionSectionToggle
+Tereditor.Plugins.Api.InstructionSectionToggle.Enabled.get -> bool
+Tereditor.Plugins.Api.InstructionSectionToggle.Enabled.init -> void
+Tereditor.Plugins.Api.InstructionSectionToggle.Id.get -> string!
+Tereditor.Plugins.Api.InstructionSectionToggle.Id.init -> void
+Tereditor.Plugins.Api.InstructionSectionToggle.InstructionSectionToggle() -> void
+Tereditor.Plugins.Api.InstructionSectionToggle.WorkspaceId.get -> string!
+Tereditor.Plugins.Api.InstructionSectionToggle.WorkspaceId.init -> void
+Tereditor.Plugins.Api.InstructionSectionsChanged
+Tereditor.Plugins.Api.InstructionSectionsChanged.InstructionSectionsChanged() -> void
+Tereditor.Plugins.Api.InstructionSectionsChanged.ProjectRoot.get -> string!
+Tereditor.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void
+Tereditor.Plugins.Api.PluginManifest.Support.get -> string?
+Tereditor.Plugins.Api.PluginManifest.Support.init -> void
+Tereditor.Plugins.Api.PluginManifest.Headless.get -> Tereditor.Plugins.Api.HeadlessSupport
+Tereditor.Plugins.Api.PluginManifest.Headless.init -> void
+Tereditor.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.get -> bool?
+Tereditor.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.init -> void
+Tereditor.Plugins.Api.PluginManifest.UnavailableOn.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.HostKind>!
+Tereditor.Plugins.Api.PluginManifest.UnavailableOn.set -> void
+Tereditor.Plugins.Api.PluginRosterEntry.Support.get -> string?
+Tereditor.Plugins.Api.PluginRosterEntry.Support.init -> void
+Tereditor.Plugins.Api.PluginSupportLevels
+const Tereditor.Plugins.Api.PluginSupportLevels.Early = "early" -> string!
+Tereditor.Plugins.Api.PluginAmbientAttribute
+Tereditor.Plugins.Api.PluginAmbientAttribute.PluginAmbientAttribute() -> void
+Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.Blocking = 4 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.Live = 2 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.LocalInRunner = 5 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.Mirrored = 0 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.Resolver = 1 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.Unavailable = 6 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossing.UnderLock = 3 -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossingAttribute
+Tereditor.Plugins.Api.PluginCrossingAttribute.Crossing.get -> Tereditor.Plugins.Api.PluginCrossing
+Tereditor.Plugins.Api.PluginCrossingAttribute.IsolatedShape.get -> string?
+Tereditor.Plugins.Api.PluginCrossingAttribute.IsolatedShape.init -> void
+Tereditor.Plugins.Api.PluginCrossingAttribute.PluginCrossingAttribute(Tereditor.Plugins.Api.PluginCrossing crossing) -> void
+Tereditor.Plugins.Api.PluginPermissionAttribute
+Tereditor.Plugins.Api.PluginPermissionAttribute.Name.get -> string!
+Tereditor.Plugins.Api.PluginPermissionAttribute.PluginPermissionAttribute(string! name) -> void
+Tereditor.Plugins.Api.PluginPermissionAttribute.Condition.get -> string?
+Tereditor.Plugins.Api.PluginPermissionAttribute.Condition.init -> void

@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp;
+namespace Tereditor.Plugins.Lsp;
 
 /// <summary>The initialization the JetBrains JVM servers share; the IntelliJ plugin keeps the same copy, since plugins never reference each other.</summary>
 internal static class JvmInitialization

@@ -2,12 +2,12 @@
 using System.Diagnostics;
 using System.Text;
 
-using SharpRail.Scintilla.Core;
-using SharpRail.Scintilla.View;
-
 using SkiaSharp;
 
-namespace SharpRail.Scintilla.Editing;
+using Tereditor.Scintilla.Core;
+using Tereditor.Scintilla.View;
+
+namespace Tereditor.Scintilla.Editing;
 
 /// <summary>Keys the editor handles (Scintilla SCK_* values, as ScintillaEditor.Input sends).</summary>
 internal enum EditorKey { Escape = 7, Back = 8, Tab = 9, Return = 13, Down = 300, Up = 301, Left = 302, Right = 303, Home = 304, End = 305, Prior = 306, Next = 307, Delete = 308, Insert = 309 }

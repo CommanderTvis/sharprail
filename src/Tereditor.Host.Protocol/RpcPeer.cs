@@ -3,7 +3,7 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-namespace SharpRail.Host.Protocol;
+namespace Tereditor.Host.Protocol;
 
 /// <summary>One multiplexed connection. The receive pump never waits for an individual call's consumer.</summary>
 public sealed class RpcPeer : IAsyncDisposable

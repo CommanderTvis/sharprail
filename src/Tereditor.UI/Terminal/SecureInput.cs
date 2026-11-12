@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 /// <summary>The system call behind secure keyboard entry; checks substitute a counting fake.</summary>
 public interface ISecureEventInput

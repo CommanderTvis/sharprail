@@ -1,5 +1,5 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>A position plus virtual space (upstream SelectionPosition). <see cref="Invalid"/> is position -1.</summary>
 internal record struct SelectionPosition(int Position, int VirtualSpace = 0) : IComparable<SelectionPosition>
@@ -165,7 +165,7 @@ internal record struct SelectionRange
 }
 
 /// <summary>Single stream selection with anchor and caret (upstream src/Selection.h/.cxx, main range only).</summary>
-/// <remarks>Multiple, rectangular and thin selections are not used by SharpRail and are not ported.</remarks>
+/// <remarks>Multiple, rectangular and thin selections are not used by tereditor and are not ported.</remarks>
 internal sealed class Selection
 {
     private SelectionRange range = new(0);

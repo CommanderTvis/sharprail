@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Panels.LanguageProviderView">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.UI.Panels.LanguageProviderView">
     <StackPanel x:Name="ProviderChoiceSection" Spacing="4" IsVisible="False">
       <TextBlock x:Name="ProviderChoiceHeading" Text="Language provider · all projects on this host" FontWeight="SemiBold" />
       <ComboBox x:Name="ProviderChoice" HorizontalAlignment="Stretch" SelectionChanged="ProviderChoiceChanged" />

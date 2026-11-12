@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Isolation;
-using SharpRail.Plugins.Isolation.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Isolation;
+using Tereditor.Plugins.Isolation.UI;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// <c>plugin</c>: one external plugin's process. It loads the UI half named in <c>Init</c> before it answers

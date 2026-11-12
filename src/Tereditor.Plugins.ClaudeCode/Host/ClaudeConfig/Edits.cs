@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>Plans a configuration edit as a diff against the file it lands in, and applies exactly the plan the user approved.</summary>
 internal static partial class ClaudeEdits

@@ -19,8 +19,8 @@ Host.Protocol SPEC lists under Payload codec.
 
 ## Boundary
 
-- Everything but the two attributes is internal. Only `SharpRail.Host.Protocol` (the client↔host RPC) and
-  `SharpRail.Plugins.Isolation` (the host↔plugin-runner channel) see it, through `InternalsVisibleTo`. It adds no
+- Everything but the two attributes is internal. Only `Tereditor.Host.Protocol` (the client↔host RPC) and
+  `Tereditor.Plugins.Isolation` (the host↔plugin-runner channel) see it, through `InternalsVisibleTo`. It adds no
   public surface beyond the attributes, which moved here from Host.Protocol.
 - The primitives know no message, service or exception of either user. A writer is given its byte limit and the
   exception to throw past it, so the RPC still fails with `ResourceExhausted` and the plugin channel with its own error.
@@ -29,7 +29,7 @@ Host.Protocol SPEC lists under Payload codec.
 ## Codecs
 
 `scripts/generate-rpc.cs` emits one codec per root, from the `[ProtoContract]` classes in that project's directory:
-`src/SharpRail.Host.Protocol/RpcCodec.Generated.cs` and `src/SharpRail.Plugins.Isolation/IsoCodec.Generated.cs`.
+`src/Tereditor.Host.Protocol/RpcCodec.Generated.cs` and `src/Tereditor.Plugins.Isolation/IsoCodec.Generated.cs`.
 Repeated `long` fields (unpacked, one field per item) are a shape only the plugin channel uses. A `double` is
 fixed64 (a fixed32 `float` widens on read); the RPC's plugin surface messages use it. The move from
 Host.Protocol kept the RPC bytes: the regenerated RPC codec differs only by its `using`, and `--rpc-codec` passes

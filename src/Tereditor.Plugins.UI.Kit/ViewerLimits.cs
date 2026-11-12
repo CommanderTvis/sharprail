@@ -3,7 +3,7 @@ using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Sizes, in characters, past which a viewer degrades instead of stalling the window.</summary>
 public static class ViewerLimits

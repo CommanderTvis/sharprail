@@ -11,7 +11,7 @@ tags: [ui, plugins]
 # Agent UI
 
 Shared presentation code for the Codex and Claude Code plugins lives in
-`SharpRail.Plugins.Agent.UI`. Both plugin UI projects reference this module;
+`Tereditor.Plugins.Agent.UI`. Both plugin UI projects reference this module;
 neither depends on the other plugin.
 
 ## Boundary
@@ -31,7 +31,7 @@ the module owns no session, account or terminal state.
   the rows included, is the kit's `Chips` family and takes its gap from the `ChipGap` layout role: rows share one left
   edge and one row gap. A chip is filled with the terminal background nudged 10% towards the text colour and its label is in the normal text
   colour; the chat's chip strip is exactly the terminal's default background, so the chips float on it in every theme.
-- `InstructionSectionsView` is SharpRail's instructions as one context-table entry: a row with the PROJECT
+- `InstructionSectionsView` is tereditor's instructions as one context-table entry: a row with the PROJECT
   scope chip, a muted count (`8 sections · 1 off · Choose…`) and a size and source line the provider fills
   (`SetEntry`). The row is a button (hand cursor, hover fill, keyboard-activatable) which opens an in-window overlay dialog (the settings editor's `DialogWindow`: fixed title and Close, a body that
   scrolls, Escape closes) holding the instruction sections for one agent and workspace, grouped by source; nothing expands inline in the table. Each

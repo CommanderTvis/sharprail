@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Providers.Host;
+namespace Tereditor.Plugins.Providers.Host;
 
 /// <summary>The Model providers plugin's host half: it edits the credential files of Pi and omp on this host.</summary>
 public sealed class ProvidersHost : PluginHostModule

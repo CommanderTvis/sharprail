@@ -2,12 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Isolation;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 public sealed class PluginRpc(PluginRuntime plugins, PluginSurfaceSessions sessions, IHostApplicationLifetime lifetime) : IPluginRpc
 {

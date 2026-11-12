@@ -1,5 +1,5 @@
 #!/bin/bash
-# Tests for the SharpRail Claude Code plugin hook scripts.
+# Tests for the tereditor Claude Code plugin hook scripts.
 #
 # Validates that each hook script produces correctly structured JSON payloads
 # by piping mock Claude Code hook input into the scripts and reading what they
@@ -7,13 +7,13 @@
 
 set -uo pipefail
 
-# Every hook only speaks inside a SharpRail terminal; the host stamps this on the PTY.
-export SHARPRAIL_TERMINAL=1
+# Every hook only speaks inside a tereditor terminal; the host stamps this on the PTY.
+export TEREDITOR_TERMINAL=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
 source "$SCRIPT_DIR/build-payload.sh"
 
-# A hook reports by POSTing to the address SharpRail stamped into the terminal, so the tests stand a
+# A hook reports by POSTing to the address tereditor stamped into the terminal, so the tests stand a
 # fake `curl` in front of it and read what would have gone over the wire.
 STUB_DIR=$(mktemp -d)
 POSTED="$STUB_DIR/posted.json"
@@ -31,7 +31,7 @@ CURL_EOF
 chmod +x "$STUB_DIR/curl"
 export POSTED_FILE="$POSTED"
 export PATH="$STUB_DIR:$PATH"
-export SHARPRAIL_AGENT_STATUS_URL="http://127.0.0.1:1/agent-status/test-token"
+export TEREDITOR_AGENT_STATUS_URL="http://127.0.0.1:1/agent-status/test-token"
 
 HOOK_DIR="$SCRIPT_DIR"
 run_hook() {
@@ -112,8 +112,8 @@ report_status '{"event":"stop"}'
 assert_eq "a report reaches the address the terminal was given" '{"event":"stop"}' "$(cat "$POSTED")"
 
 : >"$POSTED"
-SHARPRAIL_AGENT_STATUS_URL= report_status '{"event":"stop"}'
-# Outside a SharpRail terminal there is no address, and a report is simply not made — the whole reason
+TEREDITOR_AGENT_STATUS_URL= report_status '{"event":"stop"}'
+# Outside a tereditor terminal there is no address, and a report is simply not made — the whole reason
 # this is a POST and not an escape sequence some other terminal would render.
 assert_eq "no address, no report" "" "$(cat "$POSTED")"
 

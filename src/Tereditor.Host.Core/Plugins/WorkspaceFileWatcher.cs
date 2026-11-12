@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
 /// Watches one workspace for a plugin activation and delivers coalesced batches of changed paths, relative to

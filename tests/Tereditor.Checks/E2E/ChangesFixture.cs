@@ -12,16 +12,16 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Scintilla;
-using SharpRail.UI.Docking;
+using Tereditor.Scintilla;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ChangesFixture
 {
-    internal static string? Source => Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE") is { Length: > 0 } source ? source : null;
+    internal static string? Source => Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE") is { Length: > 0 } source ? source : null;
 
     internal static (E2eWorkspace App, string Worktree) Open(string root, string name, string source)
     {

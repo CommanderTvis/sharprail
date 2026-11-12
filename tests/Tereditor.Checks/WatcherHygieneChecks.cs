@@ -1,16 +1,16 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Blueprint;
-using SharpRail.Plugins.Blueprint.Host;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Blueprint;
+using Tereditor.Plugins.Blueprint.Host;
+using Tereditor.Plugins.SpecDialect;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class WatcherHygieneChecks
 {
@@ -148,7 +148,7 @@ internal static class WatcherHygieneChecks
         public ConcurrentQueue<string> Errors => LazyInitializer.EnsureInitialized(ref errors);
         protected override void OnEventSourceCreated(EventSource source)
         {
-            if (source.Name == "SharpRail-WorkspaceWatchers") EnableEvents(source, EventLevel.Informational);
+            if (source.Name == "tereditor-WorkspaceWatchers") EnableEvents(source, EventLevel.Informational);
         }
         protected override void OnEventWritten(EventWrittenEventArgs data)
         {

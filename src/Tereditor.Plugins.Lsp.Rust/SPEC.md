@@ -16,6 +16,6 @@ The plugin id is `lsp-rust`; it ships enabled. Its host half is a `LanguageServe
 the catalog, its sessions stop and its saved settings are kept. Implementation: rust-analyzer · Rust project.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 It shows rust-analyzer's `experimental/serverStatus` while the Cargo graph loads and links the discovered Cargo or rust-project manifests unless `linkedProjects` is set.

@@ -58,7 +58,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Copy absolute path, Start work, Open existing worktree…, separator,
   Rename…, Close project; Open existing worktree… and Rename… are plain text, the others carry icons. Rename (ThinkRail #764) opens the name dialog on the shown name and
   sends `HostStateChange.RenameProject`; every window follows the broadcast, restyling the row's text in place.
-  Upstream renames inline in the row; SharpRail uses its name dialog, which also refuses leading or trailing spaces. Create is exactly the `+` flow (opening the project's home first if
+  Upstream renames inline in the row; tereditor uses its name dialog, which also refuses leading or trailing spaces. Create is exactly the `+` flow (opening the project's home first if
   needed).
 - Open existing worktree… opens a chooser (`Panels/ExistingWorktreeDialog.cs`) fed by the host's list of
   unattached worktrees: branch and absolute path per row, detached-HEAD rows visible but disabled, an empty
@@ -110,7 +110,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 - Right-click, or the menu key or Shift+F10 on the focused row, opens the workspace menu (rows have no three-dots button): Copy absolute path (first, with the CopyAbsolutePath icon), Copy link (enabled for the active workspace only), “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
   found” rows), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
-  managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from SharpRail, whose
+  managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from tereditor, whose
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.
 - A plain folder has no workspace row: its tabs and terminal/agent actions sit directly beneath the
@@ -178,8 +178,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 
 ## Welcome and Project Home
 
-- With no project shown, the clean Welcome shows the SharpRail wordmark, one line saying to open a folder on
-  the computer running SharpRail, and an Open project card with the shared Add project menu.
+- With no project shown, the clean Welcome shows the tereditor wordmark, one line saying to open a folder on
+  the computer running tereditor, and an Open project card with the shared Add project menu.
 - Project Home shows a `PROJECT HOME` eyebrow, the project's name as the heading, one explanatory line naming
   the Create workspace chord, and the mode fork as two actions: Create workspace (isolated worktree, primary)
   and Work in project folder (enters the Default workspace directly, no dialog).
@@ -239,14 +239,14 @@ reveal Files and select Changed in one step. The Changed label carries the scope
   every folder of Changed's Tree view when it has a change; it is disabled in Changed's List view.
 - Not ported from #779: auto-reveal and highlight of the active editor tab's file, per-view scroll memory across
   reloads (scroll survives within a session through pane retention), and the host-side `/` path fix and
-  `git check-ignore` reader (SharpRail's host already lists `/`-compatible relative paths on macOS and Linux and
+  `git check-ignore` reader (tereditor's host already lists `/`-compatible relative paths on macOS and Linux and
   reports ignored state itself).
 
 Git-ignored Files rows remain openable and show a muted icon and chevron, a subtle italic label, and an “Ignored by git” tooltip. Icon-plugin refreshes preserve the ignored appearance.
 
 - A lazily populated tree of the workspace. Directories read one level at a time through
   `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Dotfiles are listed like any
-  other entry; the host leaves out only `.git` and `.tools`; the project's `.sharprail` shows with its ignored local state muted.
+  other entry; the host leaves out only `.git` and `.tools`; the project's `.tereditor` shows with its ignored local state muted.
   A run of directories that each hold exactly one directory is one `a/b/c`
   row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
 - Loaded entries are data in the kit's virtualized drawn tree. Only viewport rows acquire
@@ -260,7 +260,7 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
   tab (media type, size and hash, see [Rendering/SPEC.md](Rendering/SPEC.md)) rather than a window error; a
   clean open file that turns byte-only on disk is replaced by the same card.
 - Pointing at or focusing another workspace's row asks the host to pre-warm its watcher (see
-  [Files.SPEC.md](../SharpRail.Host.Core/Files.SPEC.md)); a failure is ignored.
+  [Files.SPEC.md](../Tereditor.Host.Core/Files.SPEC.md)); a failure is ignored.
 - A single click on a directory row toggles it; the built-in double-tap toggle is suppressed so a double
   click does not undo the first click. A file row single click previews and double click (or Enter) keeps.
 - Expansion lives above the rows and is keyed by directory path, so a rebuild or a watcher refresh re-reads
@@ -411,14 +411,14 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
   Tab identity includes scope and commit, so changing the sidebar scope leaves existing tabs alone.
   Changing the comparison target re-points branch reviews and individual diffs. Sidebar highlighting
   follows the focused review's active section, and viewed files carry a check and dimmed path in List and Tree.
-- An untracked `.sharprail` path (host protocol 8) adds Exclude locally (.git/info/exclude) to its row menu.
-  When a Git refresh first lists `.sharprail` as untracked in a workspace, the window asks the host
-  (`GetSharprailDirectoryAsync`, off the UI thread, dropped if the workspace changed) and, if it is neither
+- An untracked `.tereditor` path (host protocol 8) adds Exclude locally (.git/info/exclude) to its row menu.
+  When a Git refresh first lists `.tereditor` as untracked in a workspace, the window asks the host
+  (`GetTereditorDirectoryAsync`, off the UI thread, dropped if the workspace changed) and, if it is neither
   tracked nor ignored and the project has not declined, raises one toast per workspace and window offering
-  Add to .git/info/exclude or Keep it in the repo. Keep records `HostState.SharprailExcludeDeclined` for the
+  Add to .git/info/exclude or Keep it in the repo. Keep records `HostState.TereditorExcludeDeclined` for the
   project (every window and client stops asking); closing the toast records nothing. The action excludes in
   the shared `info/exclude`, never `.gitignore`, then refreshes Git. The host watcher reports
-  `.sharprail` and its contents like any directory, so its appearance and config edits refresh the panel.
+  `.tereditor` and its contents like any directory, so its appearance and config edits refresh the panel.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
 
 ## Changes review
@@ -467,7 +467,7 @@ whose diffs load and unload editors. These are synthetic results, not native pre
 
 - Markdown file tabs render, don't read. A `.md`/`.markdown` file tab (from the file tree or the Specs
   panel — same open path) opens rendered by default and shows a slim `Preview | Source` header.
-  Source is the lazy read-only editor: SharpRail uses the shared Scintilla frame on macOS in place of
+  Source is the lazy read-only editor: tereditor uses the shared Scintilla frame on macOS in place of
   upstream's `MonacoEditor`, with selectable text as the other-platform fallback. Source shows the
   complete file, including frontmatter and fenced code. The choice is per tab, survives tab switches,
   and is not persisted across reload. Renderer behavior and lifecycle live in [Rendering/SPEC.md](Rendering/SPEC.md).
@@ -567,7 +567,7 @@ whose diffs load and unload editors. These are synthetic results, not native pre
   block of a source view carries its own Revert on the block's first row, on the modified side when split.
   A block is a run of added and removed lines with its line span on both sides; a file that is all added or
   all deleted has no block, only the file. Buttons follow the editor as it scrolls and are created when
-  their row first comes into view. SharpRail has no Ask agent action beside them. The rendered Markdown view
+  their row first comes into view. tereditor has no Ask agent action beside them. The rendered Markdown view
   and the other-platform text fallback offer Revert file only. The controls show only while the connected
   host reports `HostProtocol.ChangeWritePath` (`SharedState.Supports`): they are absent until the handshake
   answers, go while the host is disconnected and return in place, and the Undo action is offered under the
@@ -585,10 +585,10 @@ whose diffs load and unload editors. These are synthetic results, not native pre
 
 The tool summarises the changed-file count on the current branch, offers Show Changes (which reveals or
 restores Files and selects Changed) and, through the repo hosting registration (W28, `ReviewPullRequestHost`), hosts the branch's pull
-request section contributed by the repo hosting provider that owns the remote ([GitHub](../SharpRail.Plugins.GitHub/SPEC.md)
+request section contributed by the repo hosting provider that owns the remote ([GitHub](../Tereditor.Plugins.GitHub/SPEC.md)
 today): a deterministic host flow of push plus the provider's calls (see Git.SPEC.md). The slot is empty, and only
 Show Changes remains, while no provider is enabled or recognizes the remote. The bullets below describe that
-section, whose code lives in the plugin's UI half. Upstream hangs this flow on its plan pane; SharpRail has no plan, so it lives here and the
+section, whose code lives in the plugin's UI half. Upstream hangs this flow on its plan pane; tereditor has no plan, so it lives here and the
 description comes from the host's draft (branch name and commit subjects).
 
 - The open pull request is one state per workspace and branch, first looked up when the panel is drawn for
@@ -684,7 +684,7 @@ disappearance shows.
 
 Settings › Host offers a dedicated Tailscale client instance; plugin-owned Settings › Tailscale shows
 verified pairing requests and remembered-device revocation. See
-[Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+[Tailscale](../Tereditor.Plugins.Tailscale/SPEC.md).
 
 
 ### Local browser connection consent
@@ -703,6 +703,6 @@ The Java/Kotlin provider selector applies to every project on the connected host
 
 The Language pane is one control for every workspace and project of a window: a switch calls its `Retarget`, which drops the old workspace's inventory, rows, added or expanded servers, status line and plugin-slot sections, cancels its requests (the pane's lifetime is replaced, so replies are rejected), closes its settings windows and reads the new inventory at once. Configuration views are kept per workspace and server, so an unsaved draft stays with its workspace and returns with it, and is never saved into another; views of workspaces that no longer exist are dropped.
 
-Each language-server configuration view also offers a project-wide start-before-agent checkbox. It saves immediately and does not alter workspace settings; see [language services](../SharpRail.Host.Core/Language/SPEC.md).
+Each language-server configuration view also offers a project-wide start-before-agent checkbox. It saves immediately and does not alter workspace settings; see [language services](../Tereditor.Host.Core/Language/SPEC.md).
 
 Settings names its language-service category “Code Intelligence”. Server rows abbreviate “Language Server” and “LSP” to “LS” in display names and convey runtime status only with the left-hand vector mark or spinner, with a status tooltip and accessible name. Error and configuration details and actions remain visible. Protocol names, server identifiers and acquisition metadata retain their original spelling.

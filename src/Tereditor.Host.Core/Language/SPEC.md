@@ -11,10 +11,10 @@ parent: module-host-core
 ## Providers are plugins
 
 Every language server comes from a plugin (Plugin API H21): one builtin plugin per server,
-`src/SharpRail.Plugins.Lsp.<Name>` with id `lsp-<server id>`, all enabled by default. The catalog is the
+`src/Tereditor.Plugins.Lsp.<Name>` with id `lsp-<server id>`, all enabled by default. The catalog is the
 servers that active plugins provide, in roster order, which decides file ownership (Java and Kotlin before
 IntelliJ). Disabling a plugin removes its server from listings and agent instructions and stops its sessions;
-settings, `.sharprail/language.toml` entries and project files naming it stay valid. Until the plugin runtime's
+settings, `.tereditor/language.toml` entries and project files naming it stay valid. Until the plugin runtime's
 first reconcile settles, the host serves the builtin servers that are about to activate, so startup requests are
 not refused; a host without a plugin runtime (checks, a bare `HostStateStore`) serves the builtin servers.
 
@@ -133,7 +133,7 @@ process scoped. Roslyn's persistent storage (`storage.ide`, SQLite) is not prime
 user-data `Microsoft/VisualStudio/Roslyn/Cache/<server-hash>/<solution-name>-<opaque hash>/`, has no launch
 argument or supported variable to relocate it (`ROSLYN_CACHE_PATH` belongs to the compiler), and the folder
 name hashes private inputs including the server install, so a primer would have to reproduce a private hash.
-Measured on SharpRail.slnx at a fresh path, a warm store saved about 2 s of 17 s (queries 4.8 s to 3.8 s). LSP itself supplies no portable index-sharing API, and sharing mutable databases or
+Measured on Tereditor.slnx at a fresh path, a warm store saved about 2 s of 17 s (queries 4.8 s to 3.8 s). LSP itself supplies no portable index-sharing API, and sharing mutable databases or
 rewriting branch paths would give incorrect results. The opt-in integration inventory classifies every
 catalog provider and records the exact native probes; package downloads and compiler artifacts never
 count as semantic reuse.
@@ -163,7 +163,7 @@ used as given. The `resolution` operation (workspace plus server id; `Configurat
 what a server would run without starting or installing anything; for PATH and override executables
 it asks `--version` with a three-second limit. Settings reads it off the UI thread.
 
-Project files cannot choose executables. `.sharprail/language.toml` copies only the portable keys
+Project files cannot choose executables. `.tereditor/language.toml` copies only the portable keys
 (`autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`,
 `initializationOptions`, `settings`); host-specific keys and anything named like a command,
 executable, path, `allowPath` or `managed` is ignored with a diagnostic. `arguments` from any source
@@ -194,7 +194,7 @@ and node lookups all use it, so a path is honoured by the probe and the launch a
 every declared tool on the host (answers reused for 30 s; a fresh probe runs before every start; the workspace file census behind "Suggested by file" is also reused for 30 s and forgotten on retry, restart, stop and configure, so the pane's poll does no tree walk or tool search in steady state) and returns them on each row, as does `catalog` for
 an existing absolute workspace (for Settings): a tool is required
 only for the managed launch, and an install-only tool only until the managed installation exists. A start refuses
-before installing while a required tool is missing, with `Needs <name>.` (the tool's install hint and Use path… sit under it, not repeated in it; a tool the launch does not need is not listed). Bun is the one tool SharpRail fetches itself: when it is not on PATH the row says it is downloaded on first use and no error shows; other tools are never downloaded by default (see Managed runtimes). `--lsp-dependencies`
+before installing while a required tool is missing, with `Needs <name>.` (the tool's install hint and Use path… sit under it, not repeated in it; a tool the launch does not need is not listed). Bun is the one tool tereditor fetches itself: when it is not on PATH the row says it is downloaded on first use and no error shows; other tools are never downloaded by default (see Managed runtimes). `--lsp-dependencies`
 covers the probe with a fake PATH, the refusal, a tool appearing on PATH, and setting, persisting, launching with
 and clearing a path.
 
@@ -208,7 +208,7 @@ and `ManagedArtifacts.Describe` say exactly which:
 | TypeScript, Python, PHP, CSS, Shell | `bun install --frozen-lockfile --ignore-scripts` (or `npm ci --ignore-scripts` for a `node` server) from the plugin's embedded `package-lock.json` (`Locks/`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
 | clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the plugin's `Artifacts` (JDT from `jdtls/milestones/<version>`, not the rolling snapshots) | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
 | IntelliJ | The IntelliJ plugin's own distribution code (`TermsAsync` and `LaunchAsync`) | Version and SHA-256 per platform, plus acceptance of its terms recorded by the host |
-| C# | The pointer package and the platform's runtime pack of `roslyn-language-server`, fetched by SharpRail from `api.nuget.org` and installed by `dotnet tool install --source <local feed>` with a private package cache | Version and SHA-512 (NuGet catalog `packageHash`) of every package, verified before dotnet reads it; no Linux musl pack is pinned |
+| C# | The pointer package and the platform's runtime pack of `roslyn-language-server`, fetched by tereditor from `api.nuget.org` and installed by `dotnet tool install --source <local feed>` with a private package cache | Version and SHA-512 (NuGet catalog `packageHash`) of every package, verified before dotnet reads it; no Linux musl pack is pinned |
 | Go | `go install golang.org/x/tools/gopls` in a module made from the Go plugin's embedded `go.mod` and `go.sum`, `-mod=readonly`, `GOSUMDB=sum.golang.org`, `GOTOOLCHAIN=local`, and `GONOSUMDB`, `GONOSUMCHECK`, `GOPRIVATE`, `GOINSECURE`, `GONOPROXY`, `GOENV` and `GOWORK` neutralised | Version and `h1:` hashes of the whole module graph; the Go toolchain itself is the host's |
 | Ruby, Scala, R | Package manager (`gem`, Coursier, CRAN) | Managed, partially pinned: exact version only. Ruby: RubyGems resolves ruby-lsp's dependencies at install and checks no stored hash (a frozen `Gemfile.lock` with checksums needs Bundler 2.6+ and Ruby 3.x to generate and verify). Scala: Coursier checks Maven Central's own published checksums but no jar hash is stored here (a lock would need `cs fetch` output pinned per platform). R: `remotes` is installed unpinned to reach `install_version`, and CRAN dependencies float. Not verified on the 2026-10-19 pass because the host had no Ruby 3 or R |
 | Swift, Dart | Host SDK | Not managed |
@@ -232,7 +232,7 @@ add) and one pin per version and platform: exact version, URL on an allow-listed
 before extraction, and the publisher's SHA-512 recorded beside it. Installation reuses `ArtifactInstaller`: hash
 first, bounded extraction, an atomic move into `runtimes/<id>/<version>-<hash prefix>`, nothing left behind on a
 mismatch, and a repeated install is a no-op. The cache root is the host's language directory, or
-`SHARPRAIL_MANAGED_CACHE` when set to an absolute path (the container points it at `/cache`).
+`TEREDITOR_MANAGED_CACHE` when set to an absolute path (the container points it at `/cache`).
 
 Pins are made with `scripts/pin-dotnet-sdk.cs <versions>`, which downloads each archive, requires the publisher's
 SHA-512 from the official release metadata to match, and prints the entries with our SHA-256, so a refresh is
@@ -242,11 +242,11 @@ pin by its `rollForward` policy; with none, the newest pin is used. When nothing
 the project asks for and the versions that are pinned.
 
 `[toolchains] source` is `path` (the default, so desktop behaviour is unchanged), `managed` or `managed-then-path`.
-`SHARPRAIL_TOOLCHAINS` overrides the setting, and the headless host sets it to `managed`. `LanguageServers.ProbeTool`
+`TEREDITOR_TOOLCHAINS` overrides the setting, and the headless host sets it to `managed`. `LanguageServers.ProbeTool`
 resolves in this order: the user's explicit path, then the managed runtime (only for `managed` and
 `managed-then-path`), then the home variable (`DOTNET_ROOT`), then PATH. `managed` stops after the managed step for
 a tool that has a pinned runtime, so the host's PATH is never consulted for it; a tool no runtime provides yet keeps the
-`path` order. A start installs a missing pinned runtime first (`SHARPRAIL_OFFLINE=1` makes that fail at once, naming
+`path` order. A start installs a missing pinned runtime first (`TEREDITOR_OFFLINE=1` makes that fail at once, naming
 the missing artifact), and `ManagedRuntimes.WarmAsync` installs every pin of a platform ahead of time for the container
 build and the headless `warm` command, reporting progress through a callback.
 
@@ -268,7 +268,7 @@ behave as above), the resolution order, the environment and the shipped pins' sh
 Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog id, with
 `command` and an `arguments` array to override a launcher, `allowPath: true` to allow PATH for that
 server. This file is host-owned, never read from a repository.
-`SHARPRAIL_LSP_DISABLE=1` disables language startup, including in ordinary check fixtures.
+`TEREDITOR_LSP_DISABLE=1` disables language startup, including in ordinary check fixtures.
 There is no per-server allow/deny setting: every catalog server may start, and a server is in the catalog
 only while its language server plugin (`lsp-<id>`) is enabled. On load, host state migrates the retired
 per-server `disabled: true` once into that plugin disabled (an explicit plugin choice wins) and drops the
@@ -324,17 +324,17 @@ idle seconds, memory, started by) with a summary (budget, whether automatic, tot
 pressure, limits, default caps); `release` (workspace + server) stops one the same way, refusing a busy
 one. The Code Intelligence tool window's Running section shows the list; Settings › Code Intelligence reads the summary only for the budget and default caps (UI SPEC).
 
-Process hygiene: every launch carries `SHARPRAIL_LANGUAGE_REGISTRY`, and its pid, start time and process
+Process hygiene: every launch carries `TEREDITOR_LANGUAGE_REGISTRY`, and its pid, start time and process
 name are recorded in `language/processes/<host pid>-<host start ms>.pids` until it exits. On Unix the first
 launch starts one `/bin/sh` watchdog per host that polls the host pid every 2 s and kills the recorded
 servers once the host process is gone, however it ended. Each host start sweeps the directory off the
 caller's thread: records of hosts that are no longer running are killed when the pid still has the
 recorded name and a start time within 2 s (a reused pid is spared), then deleted; records of a running host
-(another SharpRail on the same storage) are kept. Windows has no watchdog: servers end with their closed
+(another tereditor on the same storage) are kept. Windows has no watchdog: servers end with their closed
 stdin, and the next start sweeps.
 
 Footprint: C# launches set `DOTNET_gcServer=0` and `DOTNET_GCConserveMemory=7` unless the user exported
-them (Roslyn ships with server GC). Measured on SharpRail.slnx (74 projects, macOS arm64, physical
+them (Roslyn ships with server GC). Measured on Tereditor.slnx (74 projects, macOS arm64, physical
 footprint after the project graph loaded, a document opened and a workspace symbol search, settled):
 server GC 810–855 MiB; workstation GC 519–556 MiB; workstation GC with conserve-memory 514 MiB (about −38%; conserve-memory
 adds little over workstation GC alone).
@@ -344,7 +344,7 @@ references and diagnostics are unchanged (the freshness checks pass).
 
 Each running server records who started it, as information only (it never changes how long the server
 runs): `human` (the pane, Settings, an editor request), `config` (`autoStart` in a workspace's
-settings or the project's `.sharprail/language.toml`, or the project's local autostart list),
+settings or the project's `.tereditor/language.toml`, or the project's local autostart list),
 `workspace creation` (`workspace_create` with `languageServers`) or `agent` (an `lsp_*` tool call that
 started it on demand). It is `LanguageServerState.StartedBy`, `startedBy` in `lsp_status` operation
 `servers`, and `LanguageExit.StartedBy` plus a "Started by" line in the exit details.
@@ -449,10 +449,10 @@ thread) and the memory the host process may use. Reasons separate facts from sus
 reads "killed by SIGKILL ... often the OOM killer or jetsam, but also a manual kill -9; the cause is not
 confirmed". A server may also exit with such a number by itself.
 
-Every stop SharpRail causes names its reason before the kill (a stop or restart request, a Java/Kotlin
+Every stop tereditor causes names its reason before the kill (a stop or restart request, a Java/Kotlin
 provider switch, suspension, workspace removal ("workspace removed"), host shutdown, a failed start, a failed draft restore, or a stdin write that failed or was cancelled and
 left the JSON-RPC stream unusable). Those records are `Unexpected = false` except failures. Anything
-else, including exit 0 nobody asked for, is `Unexpected = true`. SharpRail sends no `shutdown`/`exit`
+else, including exit 0 nobody asked for, is `Unexpected = true`. tereditor sends no `shutdown`/`exit`
 handshake; it kills the process tree.
 
 The newest record per workspace and server is stored in `<state>/language/exits.json` (atomic
@@ -465,7 +465,7 @@ lastMemoryBytes, details). The record travels in `LanguageServerDto.Exit`. An un
 also published once as `HostState.LanguageDeaths` (never persisted, `workspace NUL server` to
 `time|reason`); each client window raises one error toast per new value. Requested stops raise none.
 The LSP pane shows red detail text with Details (inline copyable report), Copy details and View logs.
-The log keeps an `exit:` line with the same reason. The server's own log files are not read: SharpRail
+The log keeps an `exit:` line with the same reason. The server's own log files are not read: tereditor
 passes no log directory, and Roslyn's `window/logMessage` output already reaches the logs. A server that writes its own `*.log` into its
 per-workspace state directory (PowerShell's `server.log`) has it capped at launch: over 4 MiB it moves to `.1`, replacing
 the previous one.
@@ -619,7 +619,7 @@ do not acquire whole-project semantic references merely from a workspace root.
 
 Cross-file acceptance uses real TypeScript path aliases, Python imports and clangd compilation
 commands with unopened consumer files. Real Roslyn acceptance covers first-ready references in an
-unopened dependent project and five files in the SharpRail solution. Remaining provider policies
+unopened dependent project and five files in the tereditor solution. Remaining provider policies
 are fixture-verified only; no catalog-wide semantic-index completeness claim is made.
 
 ## Optional IntelliJ Java/Kotlin provider
@@ -641,7 +641,7 @@ terms acknowledgement, including when another workspace first uses the selected 
 The provider follows JetBrains' official Neovim client approach, explicitly approved on 2026-10-16:
 user EULA acknowledgement, an unmodified native server over stdio, and vendor-enforced build
 validity. No independent entitlement or revocation service is claimed. Licensing is the server's own
-(see Licensing below); SharpRail keeps no entitlement of its own. Existing providers remain available through explicit opt-out.
+(see Licensing below); tereditor keeps no entitlement of its own. Existing providers remain available through explicit opt-out.
 
 ### Artifact and legal boundary
 
@@ -652,7 +652,7 @@ and were verified against the CDN `.sha256` file beside each archive. The macOS 
 `ea728da71e3511939b4cb8e4af4aa5e4dda6e0ab7c2bdd1830a5d110bdf2bbec`; its exact EULA (JetBrains User Agreement 2.0,
 effective April 16, 2025) SHA-256 is `cd82e6cdaf2790f1aa1a4e08479828a2cd8d790d14f702f2a6edd884410c9a25`. The build is
 released and licensed by JetBrains: a free 30-day trial per build, then an IntelliJ IDEA Ultimate subscription. The
-server enforces this itself; SharpRail keeps no local clock or entitlement. The user reviews the actual artifact's terms.
+server enforces this itself; tereditor keeps no local clock or entitlement. The user reviews the actual artifact's terms.
 
 Downloads go directly from JetBrains to the workspace host; no server binaries or proprietary
 terms are bundled, mirrored or committed. Apache client attribution and notices remain separate in
@@ -687,7 +687,7 @@ the host is read again, and a new server version drops it.
 The `provision` language operation installs a server's pinned managed distribution without starting it (the headless `warm` path); a server with terms is installed only once its exact terms were accepted, and a failure returns an `error` result with the message.
 
 The dedicated UI terms-review operation prepares the managed distribution when no installation
-is configured. An absolute user installation is read directly and never deleted by SharpRail.
+is configured. An absolute user installation is read directly and never deleted by tereditor.
 Managed provisioning validates pinned SHA-256, bounded ZIP/tar contents, paths and links,
 product/version/launcher/EULA; preserves executable modes and notices; serializes installs with
 an exclusive lease; and publishes atomically with cancellable staging cleanup. Unsupported
@@ -757,7 +757,7 @@ explicit per-project importer overrides remain intact. Logs identify selection
 provenance without claiming it explains a build-import failure. The bundled JVM
 that runs the server is unchanged.
 
-`tests/SharpRail.Language.Integration` is an opt-in Node runner using actual MCP
+`tests/Tereditor.Language.Integration` is an opt-in Node runner using actual MCP
 calls against the standalone host, pinned third-party project revisions and real
 provisioners. It is never registered in the argument-free check gate. Its manifest
 states whether a scenario proves cross-file references or document-only behavior;
@@ -767,7 +767,7 @@ freshness and bounded server logs. Ruby cold bundle setup has the same bounded
 navigation request budget. Expensive corpus runs do not replace fast protocol,
 transport, lifecycle and UI fixtures.
 
-Workspace metadata loading enumerates only SharpRail's 64-hex workspace metadata
+Workspace metadata loading enumerates only tereditor's 64-hex workspace metadata
 directories and their immediate JSON records. Provider-owned cache subdirectories
 (for example PowerShell `session.json`) are not configuration records and cannot
 crash a later host startup. Malformed owned identities report a metadata error.
@@ -858,11 +858,11 @@ an agent. Arbitrary agent commands manually typed into a shell have no prelaunch
 
 ## Project language file
 
-`.sharprail/language.toml` in the project root (the Default checkout, so every workspace and every
+`.tereditor/language.toml` in the project root (the Default checkout, so every workspace and every
 client of the project agrees; a remote host reads its own copy) holds the project's portable
 language-server choices, committed and edited by the team and agents. The directory holds only
-shareable configuration: SharpRail writes nothing else into it and never creates a `.gitignore`
-there. The one exception is the opt-in headless run log, `.sharprail/runs/`, written only when the project's
+shareable configuration: tereditor writes nothing else into it and never creates a `.gitignore`
+there. The one exception is the opt-in headless run log, `.tereditor/runs/`, written only when the project's
 `mcp.toml` enables it ([headless design](../../../docs/develop/headless-design.md)). Nothing is written until Settings > Code Intelligence saves with "Share with the project"
 checked; opening a project, saving workspace-local settings and agent `configure` never create it.
 

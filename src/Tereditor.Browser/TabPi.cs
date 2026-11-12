@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices.JavaScript;
 
-using SharpRail.Plugins.Pi.Host;
+using Tereditor.Plugins.Pi.Host;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>Pi running inside this tab (<c>tabpi</c> in <c>tabhost.js</c>), reached as the lines it would have written to a pipe.</summary>
 internal sealed partial class TabPiLink : IPiLink

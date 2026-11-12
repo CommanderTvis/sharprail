@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Where a setting's value is declared: its scope and the file, or no file for a value nothing on disk holds.</summary>
 public sealed record ScopedSettingSource(string Scope, string? Path);

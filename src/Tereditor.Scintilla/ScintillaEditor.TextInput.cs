@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Input.TextInput;
 using Avalonia.Threading;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 public sealed partial class ScintillaEditor
 {

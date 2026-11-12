@@ -1,9 +1,9 @@
 using System.Text;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Finds what a program asks the terminal's viewers for in its live output: OSC 9;4 progress, OSC 9 and
 // OSC 777;notify notifications, BEL outside control strings, and a full reset (RIS), which removes the progress.

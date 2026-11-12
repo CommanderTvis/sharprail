@@ -1,12 +1,12 @@
 using System.Net;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // A reader that stops reading must cost the host a bounded amount of memory and preserve the byte stream
 // once it reads again; a connection that goes silent without closing must be noticed and resumed.

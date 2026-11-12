@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>The host this client connects to: what the connect screen asks for and the app remembers.</summary>
 public sealed record HostEndpoint(string Address, string Token)

@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Discord.Host;
+namespace Tereditor.Plugins.Discord.Host;
 
 /// <param name="Details">The line above the project; absent when there is no file name to show.</param>
 internal sealed record DiscordActivity(string? Details, string State, long StartedAt);
@@ -30,7 +30,7 @@ internal sealed class DiscordIpc : IDisposable
     // environment (an app launched outside a login shell), so the OS is asked as well before falling back to /tmp.
     private static IEnumerable<string> CandidateDirectories()
     {
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR") is { Length: > 0 } overridden) return [overridden];
+        if (Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR") is { Length: > 0 } overridden) return [overridden];
         string?[] bases = [Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR"), Environment.GetEnvironmentVariable("TMPDIR"),
             Environment.GetEnvironmentVariable("TMP"), Environment.GetEnvironmentVariable("TEMP"), DarwinUserTempDir.Value, "/tmp"];
         return bases.OfType<string>().Where(dir => dir.Length > 0)

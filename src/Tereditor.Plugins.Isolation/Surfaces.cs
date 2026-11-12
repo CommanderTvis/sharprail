@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>
 /// The surface protocol's caps (Security.SPEC.md, UI halves). The host's relay holds a plugin's frames to them before
@@ -255,7 +255,7 @@ public static class SurfaceProtocol
     /// a fresh render of a surface and the bounds of its named controls (<see cref="SurfaceCapture"/>).
     /// </summary>
     public static readonly int Capture = IsoMember.Id("surface.capture");
-    public const string DiagnosticsVariable = "SHARPRAIL_RUNNER_DIAGNOSTICS";
+    public const string DiagnosticsVariable = "TEREDITOR_RUNNER_DIAGNOSTICS";
 
     public static string Encode<T>(T value) => JsonSerializer.Serialize(value, (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)SurfaceJsonContext.Default.GetTypeInfo(typeof(T))!);
 

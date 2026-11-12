@@ -80,7 +80,7 @@ afterwards. A dialog's primary button takes `PrimaryDisabledFill` from the dialo
 
 Surfaces that bake colours cannot bind a brush. They read the same roles, as colours, and rebuild on
 `Ui.ThemeChanged`. Scintilla and Ghostty.Avalonia are independent libraries that take their colours as
-input and reference no SharpRail project, so the app's adapters to them are where the contract applies:
+input and reference no tereditor project, so the app's adapters to them are where the contract applies:
 
 | Consumer | We set | The rest comes from |
 | --- | --- | --- |

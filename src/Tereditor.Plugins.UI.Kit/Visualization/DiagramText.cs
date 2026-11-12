@@ -6,7 +6,7 @@ using SkiaSharp;
 
 using Shim = ShimSkiaSharp;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>
 /// The text a rendered diagram draws, read once from its drawing commands: each label run with one box per character

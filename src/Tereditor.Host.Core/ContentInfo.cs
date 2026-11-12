@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>The host's one definition of a resource's identity (SHA-256) and of what counts as text.</summary>
 public static class ContentInfo

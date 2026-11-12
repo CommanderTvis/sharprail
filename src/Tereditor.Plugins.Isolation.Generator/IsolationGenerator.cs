@@ -6,29 +6,29 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace SharpRail.Plugins.Isolation.Generator;
+namespace Tereditor.Plugins.Isolation.Generator;
 
 /// <summary>
 /// Generates the isolated runtime's member tables, proxies and dispatchers from the plugin API's symbols and its crossing
 /// attributes, and fails the build on what cannot cross (SRI001 to SRI006). A project opts in with the MSBuild property
-/// <c>SharpRailIsolation</c>: <c>runner</c> (proxies the plugin sees, for both contexts), <c>trusted-host</c> (the host
+/// <c>TereditorIsolation</c>: <c>runner</c> (proxies the plugin sees, for both contexts), <c>trusted-host</c> (the host
 /// context's table and dispatcher) or <c>trusted-ui</c> (the UI context's). <c>isolation-pending.txt</c>, an additional
 /// file, lists the members the isolated runtime does not implement yet.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class IsolationGenerator : IIncrementalGenerator
 {
-    public const string HostContext = "SharpRail.Plugins.Api.Host.IPluginHostContext";
-    public const string UIContext = "SharpRail.Plugins.Api.UI.IPluginUIContext";
+    public const string HostContext = "Tereditor.Plugins.Api.Host.IPluginHostContext";
+    public const string UIContext = "Tereditor.Plugins.Api.UI.IPluginUIContext";
     public const string PendingFile = "isolation-pending.txt";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var options = context.AnalyzerConfigOptionsProvider.Select((provider, _) =>
         {
-            provider.GlobalOptions.TryGetValue("build_property.SharpRailIsolation", out var mode);
+            provider.GlobalOptions.TryGetValue("build_property.TereditorIsolation", out var mode);
             provider.GlobalOptions.TryGetValue("build_property.RootNamespace", out var space);
-            return (Mode: mode ?? "", Namespace: string.IsNullOrEmpty(space) ? "SharpRail.Plugins.Isolation" : space!);
+            return (Mode: mode ?? "", Namespace: string.IsNullOrEmpty(space) ? "Tereditor.Plugins.Isolation" : space!);
         });
         var pending = context.AdditionalTextsProvider.Where(text => System.IO.Path.GetFileName(text.Path) == PendingFile).Collect();
         context.RegisterSourceOutput(context.CompilationProvider.Combine(options).Combine(pending),

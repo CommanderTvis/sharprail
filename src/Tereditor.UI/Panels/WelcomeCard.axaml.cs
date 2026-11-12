@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// One of Welcome's action cards, as the reference draws them: icon top-left, title and explainer bottom-left. The

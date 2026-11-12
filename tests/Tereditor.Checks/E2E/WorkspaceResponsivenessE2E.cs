@@ -3,13 +3,13 @@ using System.Diagnostics;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
-/// Creating and deleting a workspace of a project with a large ignored tree listed in <c>.sharprail/workspace.toml</c> must leave
+/// Creating and deleting a workspace of a project with a large ignored tree listed in <c>.tereditor/workspace.toml</c> must leave
 /// the dispatcher responsive: a heartbeat on the UI thread records the longest gap between two beats across both operations.
 /// </summary>
 internal static class WorkspaceResponsivenessE2E
@@ -76,7 +76,7 @@ internal static class WorkspaceResponsivenessE2E
             // Git is deleting the checkout now; the window re-syncs its worktrees as activation does.
             Until(() => ItemText(app, path, "WorkspaceBranch") == "Removing…");
             Settle(300);
-            typeof(SharpRail.UI.WorkbenchWindow).GetMethod("RefreshProjectWorkspaces", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            typeof(Tereditor.UI.WorkbenchWindow).GetMethod("RefreshProjectWorkspaces", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
                 .Invoke(app.Window, null);
             Settle(200);
             var stillMounted = !unmounted;
@@ -100,8 +100,8 @@ internal static class WorkspaceResponsivenessE2E
     {
         var project = Path.Combine(directory, "sample-project");
         IsolatedGit.Repository(project);
-        Directory.CreateDirectory(Path.Combine(project, ".sharprail"));
-        File.WriteAllText(Path.Combine(project, ".sharprail", "workspace.toml"), "version = 1\n\n[clone]\ninclude = [\"cache\"]\n");
+        Directory.CreateDirectory(Path.Combine(project, ".tereditor"));
+        File.WriteAllText(Path.Combine(project, ".tereditor", "workspace.toml"), "version = 1\n\n[clone]\ninclude = [\"cache\"]\n");
         File.WriteAllText(Path.Combine(project, ".gitignore"), "cache/\n");
         for (var folder = 0; folder < 1500; folder++)
         {

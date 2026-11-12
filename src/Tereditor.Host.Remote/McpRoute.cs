@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 // The host's loopback HTTP/1.1 server, which processes on the host machine reach: workspace and active plugin tools
 // over MCP at /mcp/{token}, where the per-terminal token is the only identity and an unknown one is 404,

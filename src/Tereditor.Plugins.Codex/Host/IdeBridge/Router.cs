@@ -1,7 +1,7 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Codex.Host.IdeBridge;
+namespace Tereditor.Plugins.Codex.Host.IdeBridge;
 
 /// <summary>
 /// The router a bridge owns when none is listening: client initialization, discovery, request/reply forwarding with

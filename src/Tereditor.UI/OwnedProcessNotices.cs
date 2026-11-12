@@ -1,9 +1,9 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
-/// <summary>Tells the user about each process an agent reports with <c>owned_process_report</c>, which SharpRail stops with the terminal or on quit.</summary>
+/// <summary>Tells the user about each process an agent reports with <c>owned_process_report</c>, which tereditor stops with the terminal or on quit.</summary>
 public sealed partial class WorkbenchWindow
 {
     private void NotifyOwnedProcesses(HostState previous, HostState next)
@@ -12,7 +12,7 @@ public sealed partial class WorkbenchWindow
         {
             var tab = next.TerminalTitles.FirstOrDefault(title => title.Terminal == owned.Terminal)?.Title is { } named ? TabNames.Quote(named) : "An agent terminal";
             var what = owned.Description.Length > 0 ? $"{owned.Description} (pid {owned.Pid})" : $"pid {owned.Pid}";
-            Toasts.Push(ToastVariant.Info, $"{tab} reported {what}. SharpRail stops it when that terminal closes or SharpRail quits.", "Background process reported");
+            Toasts.Push(ToastVariant.Info, $"{tab} reported {what}. tereditor stops it when that terminal closes or tereditor quits.", "Background process reported");
         }
     }
 

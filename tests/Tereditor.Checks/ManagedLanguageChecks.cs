@@ -4,10 +4,10 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Managed-by-default language servers: the catalog is pinned and checksummed, installers fail closed, PATH is a per-server
@@ -88,7 +88,7 @@ internal static class ManagedLanguageChecks
 
         var installed = Path.Combine(root, "ok", "server");
         await ArtifactInstaller.InstallAsync(Artifact(good), installed, Serve(good), default);
-        Require(File.ReadAllText(Path.Combine(installed, "README")) == "hello" && File.Exists(Path.Combine(installed, ".sharprail-artifact.json")), "A verified artifact was not installed.");
+        Require(File.ReadAllText(Path.Combine(installed, "README")) == "hello" && File.Exists(Path.Combine(installed, ".tereditor-artifact.json")), "A verified artifact was not installed.");
         if (!OperatingSystem.IsWindows())
             Require((File.GetUnixFileMode(Path.Combine(installed, "README")) & (UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) == 0, "Installed files are writable.");
         await ArtifactInstaller.InstallAsync(Artifact(good), installed, Serve([]), default); // idempotent: no download for an installed artifact
@@ -113,8 +113,8 @@ internal static class ManagedLanguageChecks
         Require(await Failure(Artifact(hard, "tar.gz"), Serve(hard), "hard") is not null, "A hard link entry was accepted.");
 
         // An installation that no longer matches the pinned artifact is never reused.
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(Path.Combine(installed, ".sharprail-artifact.json"), UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        File.WriteAllText(Path.Combine(installed, ".sharprail-artifact.json"), """{"sha256":"abc"}""");
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(Path.Combine(installed, ".tereditor-artifact.json"), UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        File.WriteAllText(Path.Combine(installed, ".tereditor-artifact.json"), """{"sha256":"abc"}""");
         var stale = false;
         try { await ArtifactInstaller.InstallAsync(Artifact(good), installed, Serve(good), default); }
         catch (IOException) { stale = true; }
@@ -143,7 +143,7 @@ internal static class ManagedLanguageChecks
     {
         if (OperatingSystem.IsWindows()) return; // Shell-script executables and symbolic links need POSIX.
         var workspace = Path.Combine(root, "workspace"); Directory.CreateDirectory(workspace);
-        var outside = Directory.CreateTempSubdirectory("sharprail-managed-").FullName;
+        var outside = Directory.CreateTempSubdirectory("tereditor-managed-").FullName;
         var previousPath = Environment.GetEnvironmentVariable("PATH");
         var python = LanguageServers.Catalog.Single(server => server.Id == "python");
         var swift = LanguageServers.Catalog.Single(server => server.Id == "swift");

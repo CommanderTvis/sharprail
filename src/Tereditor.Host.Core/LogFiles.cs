@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>Size cap for log files kept on disk: an oversized log moves to <c>.1</c> (replacing the previous one), so at most two files remain.</summary>
 internal static class LogFiles

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// The categories builtin plugins use, and the order Settings › Plugins lists them in: one per language (all the plugins of

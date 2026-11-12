@@ -2,12 +2,12 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Programs' signals in a terminal's live output (OSC 9;4 progress, OSC 9 and OSC 777 notifications, BEL) reach every
 // client of the host, locally and over RPC, and a shell's exit removes its progress.

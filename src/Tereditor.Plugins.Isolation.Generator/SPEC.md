@@ -13,16 +13,16 @@ tags: [plugins, security]
 ## Responsibility
 
 A Roslyn incremental generator that reads the plugin API's symbols, its `[PluginAmbient]`, `[PluginPermission]` and
-`[PluginCrossing]` attributes and `src/SharpRail.Plugins.Api/isolation-pending.txt`, and writes the code that
-carries the API across the plugin channel. [Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md) under
+`[PluginCrossing]` attributes and `src/Tereditor.Plugins.Api/isolation-pending.txt`, and writes the code that
+carries the API across the plugin channel. [Security.SPEC.md](../Tereditor.Plugins.Api/Security.SPEC.md) under
 "Classified in source" states what is classified and the rules SRI001 to SRI006; this project applies them and
 reports each as a build error.
 
-A project opts in by importing `Isolation.Generator.props` and setting `SharpRailIsolation`:
+A project opts in by importing `Isolation.Generator.props` and setting `TereditorIsolation`:
 
-- `trusted-host` (`SharpRail.Plugins.Isolation`): the host context's member table and dispatcher.
-- `trusted-ui` (`SharpRail.Plugins.Isolation.UI`): the UI context's member table and dispatcher.
-- `runner` (`SharpRail.Plugins.Runner`): both tables; for each root context the proxy (`IsolatedPluginUIContext`),
+- `trusted-host` (`Tereditor.Plugins.Isolation`): the host context's member table and dispatcher.
+- `trusted-ui` (`Tereditor.Plugins.Isolation.UI`): the UI context's member table and dispatcher.
+- `runner` (`Tereditor.Plugins.Runner`): both tables; for each root context the proxy (`IsolatedPluginUIContext`),
   the interface of what the runner implements itself (`IPluginUIContextLocal`), the invoker of lent callbacks
   (`PluginUIContextCallbacks`), and a proxy for each interface a `LocalInRunner` member hands out
   (`IsolatedPluginPreference`).

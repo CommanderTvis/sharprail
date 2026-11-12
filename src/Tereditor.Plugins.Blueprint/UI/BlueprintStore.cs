@@ -1,8 +1,8 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.SpecDialect;
 
-namespace SharpRail.Plugins.Blueprint.UI;
+namespace Tereditor.Plugins.Blueprint.UI;
 
 internal sealed class BlueprintStore(IPluginUIContext context) : IDisposable
 {

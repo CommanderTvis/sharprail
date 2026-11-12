@@ -3,12 +3,12 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Isolation;
 
-using RunnerProcess = SharpRail.Plugins.Isolation.ChildProcess;
+using RunnerProcess = Tereditor.Plugins.Isolation.ChildProcess;
 
-namespace SharpRail.Host.Core.Plugins.Isolation;
+namespace Tereditor.Host.Core.Plugins.Isolation;
 
 /// <summary>
 /// The isolated runtime's seam (Security.SPEC.md): null in shipping compositions, set only by the checks until external

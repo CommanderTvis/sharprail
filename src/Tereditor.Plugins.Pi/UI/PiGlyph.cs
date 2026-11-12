@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Pi.UI;
+namespace Tereditor.Plugins.Pi.UI;
 
 /// <summary>
 /// Pi's mark, from https://pi.dev/press-kit (the square badge), with its fill taken from the theme. It is the same

@@ -8,26 +8,26 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The packaged gate's run of the shipped NativeAOT binaries, which the in-process checks cannot load: the standalone host
-/// (<c>SHARPRAIL_PACKAGED_HOST</c>, macOS and Windows) starts and answers RPC, and on Linux the shipped app
-/// (<c>SHARPRAIL_PACKAGED_CLIENT</c>) relays a host terminal as every terminal tab runs it. Without the variables the relay
+/// (<c>TEREDITOR_PACKAGED_HOST</c>, macOS and Windows) starts and answers RPC, and on Linux the shipped app
+/// (<c>TEREDITOR_PACKAGED_CLIENT</c>) relays a host terminal as every terminal tab runs it. Without the variables the relay
 /// half runs this checks program's own relay, so the probe itself is checked wherever the checks run.
 /// </summary>
 internal static class PackagedBinaries
 {
-    internal const string HostVariable = "SHARPRAIL_PACKAGED_HOST";
-    internal const string ClientVariable = "SHARPRAIL_PACKAGED_CLIENT";
-    internal const string HeadlessVariable = "SHARPRAIL_PACKAGED_HEADLESS";
-    internal const string ChecksVariable = "SHARPRAIL_PACKAGED_CHECKS";
+    internal const string HostVariable = "TEREDITOR_PACKAGED_HOST";
+    internal const string ClientVariable = "TEREDITOR_PACKAGED_CLIENT";
+    internal const string HeadlessVariable = "TEREDITOR_PACKAGED_HEADLESS";
+    internal const string ChecksVariable = "TEREDITOR_PACKAGED_CHECKS";
 
     private static void Require(bool value, string message)
     { if (!value) throw new InvalidOperationException("Packaged binaries: " + message); }
@@ -39,15 +39,15 @@ internal static class PackagedBinaries
         if (Environment.GetEnvironmentVariable(HeadlessVariable) is { Length: > 0 } headless)
         {
             // The headless image has no .NET runtime, and external plugins are not supported for it: its publish must be one NativeAOT binary.
-            PackagedApp.RequireNativeAot(headless, "sharprail-headless", PackagedApp.Identity);
-            Console.WriteLine("PASS packaged sharprail-headless: a NativeAOT binary, no managed assemblies");
+            PackagedApp.RequireNativeAot(headless, "tereditor-headless", PackagedApp.Identity);
+            Console.WriteLine("PASS packaged tereditor-headless: a NativeAOT binary, no managed assemblies");
         }
         var checks = Environment.GetEnvironmentVariable(ChecksVariable) is { Length: > 0 } published ? published : null;
-        foreach (var (directory, executable) in new[] { (client, "SharpRail.UI"), (host, "SharpRail.Host.Remote") })
+        foreach (var (directory, executable) in new[] { (client, "Tereditor.UI"), (host, "Tereditor.Host.Remote") })
         {
             if (directory is null) continue;
             PackagedApp.RequireNativeAot(directory, executable, PackagedApp.Identity);
-            if (checks is not null) RequireShipped(directory, checks, executable == "SharpRail.UI");
+            if (checks is not null) RequireShipped(directory, checks, executable == "Tereditor.UI");
             if (!OperatingSystem.IsWindows()) GcSettingsChecks.VerifyCompiledIn(Path.Combine(directory, executable));
             if (OperatingSystem.IsLinux()) RequireGlibcFloor(directory, executable);
             Console.WriteLine($"PASS packaged {executable}: a NativeAOT binary" + (OperatingSystem.IsWindows() ? "" : " with the desktop GC settings compiled in") +
@@ -57,7 +57,7 @@ internal static class PackagedBinaries
         if (OperatingSystem.IsWindows()) return;
         // The shipped app is started only on Linux, where nothing else of it runs windowless; elsewhere the checks relay.
         if (client is not null && !OperatingSystem.IsLinux()) return;
-        await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, "SharpRail.UI"));
+        await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, "Tereditor.UI"));
     }
 
     /// <summary>The AppImages promise glibc 2.31: no ELF file in a Linux payload may need a glibc symbol version newer than that.</summary>
@@ -82,7 +82,7 @@ internal static class PackagedBinaries
     /// </summary>
     private static void RequireShipped(string payload, string checks, bool app)
     {
-        using var deps = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(Path.Combine(checks, "SharpRail.Checks.deps.json")));
+        using var deps = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(Path.Combine(checks, "Tereditor.Checks.deps.json")));
         var runtime = deps.RootElement.GetProperty("targets").EnumerateObject().SelectMany(target => target.Value.EnumerateObject())
             .Where(library => library.Name.StartsWith("runtimepack.", StringComparison.Ordinal) && library.Value.TryGetProperty("native", out _))
             .SelectMany(library => library.Value.GetProperty("native").EnumerateObject().Select(native => Path.GetFileName(native.Name)))
@@ -107,8 +107,8 @@ internal static class PackagedBinaries
             if (name.StartsWith("terminfo/", StringComparison.Ordinal)) return app;
             if (name.Contains('/', StringComparison.Ordinal)) return false;
             // The headless host ships as one NativeAOT binary, so the managed files the checks' publish of it leaves are not asked for.
-            if (name.StartsWith("sharprail-headless.", StringComparison.Ordinal) && Path.GetExtension(name) is ".dll" or ".pdb" or ".json") return false;
-            if (name.StartsWith("sharprail-", StringComparison.Ordinal)) return true;
+            if (name.StartsWith("tereditor-headless.", StringComparison.Ordinal) && Path.GetExtension(name) is ".dll" or ".pdb" or ".json") return false;
+            if (name.StartsWith("tereditor-", StringComparison.Ordinal)) return true;
             if (!app || name is "libTerminalEvents.dylib" || runtime.Contains(name) || Path.GetExtension(name) is ".pdb" or ".xml" or ".json") return false;
             // Not a managed assembly, nor the native launcher of one (the checks' own executable).
             var launched = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
@@ -125,7 +125,7 @@ internal static class PackagedBinaries
 
     private static async Task Host(string root, string directory)
     {
-        var executable = Path.Combine(directory, OperatingSystem.IsWindows() ? "SharpRail.Host.Remote.exe" : "SharpRail.Host.Remote");
+        var executable = Path.Combine(directory, OperatingSystem.IsWindows() ? "Tereditor.Host.Remote.exe" : "Tereditor.Host.Remote");
         Require(File.Exists(executable), "no host binary at " + executable);
         var workspace = Path.Combine(root, "packaged-host λ");
         Directory.CreateDirectory(workspace);
@@ -133,11 +133,11 @@ internal static class PackagedBinaries
         var port = FreePort();
         const string token = "packaged-host-token";
         var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = workspace };
-        start.Environment["SHARPRAIL_ROOT"] = workspace;
-        start.Environment["SHARPRAIL_STATE_DIR"] = Path.Combine(root, "packaged-host-state");
-        start.Environment["SHARPRAIL_BIND"] = "127.0.0.1";
-        start.Environment["SHARPRAIL_PORT"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        start.Environment["SHARPRAIL_TOKEN"] = token;
+        start.Environment["TEREDITOR_ROOT"] = workspace;
+        start.Environment["TEREDITOR_STATE_DIR"] = Path.Combine(root, "packaged-host-state");
+        start.Environment["TEREDITOR_BIND"] = "127.0.0.1";
+        start.Environment["TEREDITOR_PORT"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        start.Environment["TEREDITOR_TOKEN"] = token;
         var output = new StringBuilder();
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var clock = Stopwatch.StartNew();
@@ -146,7 +146,7 @@ internal static class PackagedBinaries
         {
             if (line is null) return;
             lock (output) output.AppendLine(line);
-            if (line.StartsWith("SHARPRAIL_HOST_READY ", StringComparison.Ordinal)) ready.TrySetResult();
+            if (line.StartsWith("TEREDITOR_HOST_READY ", StringComparison.Ordinal)) ready.TrySetResult();
         }
         process.OutputDataReceived += (_, data) => Line(data.Data);
         process.ErrorDataReceived += (_, data) => Line(data.Data);

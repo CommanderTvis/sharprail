@@ -1,11 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Review.UI;
+namespace Tereditor.Plugins.Review.UI;
 
 /// <summary>
 /// The Review tool window: a one-line summary of the workspace's changes, the repo host's pull request review section and a button

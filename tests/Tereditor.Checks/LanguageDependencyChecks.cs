@@ -1,13 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>System dependencies of language servers: probed per declared tool with a fake PATH, shown on the row before any start, and fulfilled by a host-wide path.</summary>
 internal static class LanguageDependencyChecks
@@ -29,8 +29,8 @@ internal static class LanguageDependencyChecks
         var workspace = Path.Combine(root, "workspace"); Directory.CreateDirectory(workspace);
         File.WriteAllText(Path.Combine(workspace, "main.go"), "package main\n");
         var bin = Path.Combine(root, "bin"); Directory.CreateDirectory(bin);
-        var savedPath = Environment.GetEnvironmentVariable("PATH"); var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("PATH", bin); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var savedPath = Environment.GetEnvironmentVariable("PATH"); var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("PATH", bin); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try
         {
             Links();
@@ -38,13 +38,13 @@ internal static class LanguageDependencyChecks
             Ui(root, workspace);
             Settings(root, bin, savedPath);
         }
-        finally { Environment.SetEnvironmentVariable("PATH", savedPath); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+        finally { Environment.SetEnvironmentVariable("PATH", savedPath); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled); }
     }
 
     /// <summary>URLs in hint text are links to the right target, the words around them stay plain, and trailing punctuation is left out.</summary>
     private static void Links()
     {
-        var text = new SharpRail.Plugins.UI.Kit.LinkedTextBlock { Source = "Install PowerShell 7 from https://aka.ms/powershell or your package manager." };
+        var text = new Tereditor.Plugins.UI.Kit.LinkedTextBlock { Source = "Install PowerShell 7 from https://aka.ms/powershell or your package manager." };
         var links = text.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Select(inline => (Control)inline.Child!).ToArray();
         Require(links.Length == 1 && Avalonia.Automation.AutomationProperties.GetName(links[0]) == "https://aka.ms/powershell", "The hint's URL did not become one link named by the URL.");
         Require(text.Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text).SequenceEqual(["Install PowerShell 7 from ", " or your package manager."]), "The words around the link were not plain text.");
@@ -52,10 +52,10 @@ internal static class LanguageDependencyChecks
         text.LinkClicked += (_, e) => opened = e.Url;
         links[0].RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, Source = links[0] });
         Require(opened?.AbsoluteUri == "https://aka.ms/powershell" && links[0].Focusable && links[0].Cursor is not null, "Clicking the link did not raise it with the right target, focusable with a pointer cursor.");
-        static string[] Urls(string value) => SharpRail.Plugins.UI.Kit.LinkedTextBlock.Split(value).Where(part => part.Url is not null).Select(part => part.Text).ToArray();
+        static string[] Urls(string value) => Tereditor.Plugins.UI.Kit.LinkedTextBlock.Split(value).Where(part => part.Url is not null).Select(part => part.Text).ToArray();
         Require(Urls("See https://a.example/x. Then (https://b.example/y), or https://c.example/z?q=(1).").SequenceEqual(["https://a.example/x", "https://b.example/y", "https://c.example/z?q=(1)"]),
             "Trailing punctuation became part of a link, or two URLs in one hint were not both found.");
-        Require(Urls("no links here, not even http or xhttps://x").Length == 0 && new SharpRail.Plugins.UI.Kit.LinkedTextBlock { Source = "Needs Go" }.Text == "Needs Go", "Plain text was changed.");
+        Require(Urls("no links here, not even http or xhttps://x").Length == 0 && new Tereditor.Plugins.UI.Kit.LinkedTextBlock { Source = "Needs Go" }.Text == "Needs Go", "Plain text was changed.");
         Console.WriteLine("PASS URLs in hints are links with the right target, plain words around them, and no trailing punctuation");
     }
 
@@ -121,7 +121,7 @@ internal static class LanguageDependencyChecks
         var state = new HostStateStore(Path.Combine(root, "ui-state"));
         using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
         shared.Start();
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(workspace, state)), workspace, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(workspace, state)), workspace, _ => Task.CompletedTask, shared);
         var window = new Window { Width = 520, Height = 900, Content = pane };
         var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
         window.Show();
@@ -142,8 +142,8 @@ internal static class LanguageDependencyChecks
             Require(Needs().Text == "Needs Go" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
                 "The Go row did not show Needs Go exactly once.");
             Console.WriteLine("PASS the Go row shows Needs Go once, with Use path… and the install hint before any start");
-            Require(SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs Go. Install Go from https://go.dev/dl/ or your package manager.", "Needs Go")
-                && !SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs Go"), "A failed start's detail repeating Needs Go was not recognised, so the row would show it twice.");
+            Require(Tereditor.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs Go. Install Go from https://go.dev/dl/ or your package manager.", "Needs Go")
+                && !Tereditor.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs Go"), "A failed start's detail repeating Needs Go was not recognised, so the row would show it twice.");
             Console.WriteLine("PASS a failed row whose detail opens with Needs Go drops the short line");
             var mine = Tool(Path.Combine(root, "ui-mine"), "go");
             shared.ChangeAsync(HostStateChange.Setting("language-tool:go", mine)).GetAwaiter().GetResult();
@@ -163,11 +163,11 @@ internal static class LanguageDependencyChecks
         if (git is not null && !File.Exists(Path.Combine(git, OperatingSystem.IsWindows() ? "go.exe" : "go"))) Environment.SetEnvironmentVariable("PATH", bin + Path.PathSeparator + git);
         using var app = new E2E.E2eWorkspace(Path.Combine(root, "settings-workspace"), openFiles: false);
         var shared = app.Workbench.State;
-        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(app.Root, app.State!)), app.Root, _ => Task.CompletedTask, shared);
+        var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(app.Root, app.State!)), app.Root, _ => Task.CompletedTask, shared);
         File.WriteAllText(Path.Combine(app.Root, "main.go"), "package main\n");
         var paneWindow = new Window { Width = 520, Height = 900, Content = pane };
         paneWindow.Show();
-        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new Tereditor.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         try
         {
@@ -190,17 +190,17 @@ internal static class LanguageDependencyChecks
             Console.WriteLine("PASS Settings shows Needs Go with the rail marker before any start, and nothing for a server without dependencies");
             Select("go");
             var launched = new List<Uri>();
-            var launcher = SharpRail.UI.Panels.LanguageProviderLinks.Launch;
-            SharpRail.UI.Panels.LanguageProviderLinks.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
+            var launcher = Tereditor.UI.Panels.LanguageProviderLinks.Launch;
+            Tereditor.UI.Panels.LanguageProviderLinks.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
             try
             {
                 E2E.E2eWorkspace.Until(() => Shows("Needs Go"), "The Go row was not shown.");
-                var hint = settings.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.LinkedTextBlock>().Single(block => block.Name == "DependencyHint" && block.IsEffectivelyVisible);
+                var hint = settings.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.LinkedTextBlock>().Single(block => block.Name == "DependencyHint" && block.IsEffectivelyVisible);
                 var link = hint.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Single().Child!;
                 link.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, Source = link });
                 Require(launched.Select(uri => uri.AbsoluteUri).SequenceEqual(["https://go.dev/dl/"]), "The Go hint's URL did not open through the app's launcher.");
             }
-            finally { SharpRail.UI.Panels.LanguageProviderLinks.Launch = launcher; }
+            finally { Tereditor.UI.Panels.LanguageProviderLinks.Launch = launcher; }
             var servers = pane.FindControl<ListBox>("Servers")!;
             bool PaneNeeds() => Enumerable.Range(0, servers.ItemCount).Any(index => servers.Items[index]?.ToString() == "Go (gopls)" && servers.ContainerFromIndex(index) is ListBoxItem row
                 && row.GetLogicalDescendants().OfType<TextBlock>().Any(block => block.Name == "ServerNeeds" && block.IsEffectivelyVisible));

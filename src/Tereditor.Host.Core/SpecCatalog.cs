@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>The spec indexes of the workspaces this host has read, one per root, dropped when a workspace is removed.</summary>
 internal static class SpecCatalog

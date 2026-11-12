@@ -1,17 +1,17 @@
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Running text that names a tab quotes it through <see cref="TabNames.Quote"/>; the listed sites never splice a raw title.</summary>
 internal static class TabNameChecks
 {
     private static readonly (string File, string Raw)[] Sites =
     [
-        ("src/SharpRail.UI/UndoClose.cs", "\"Closed \" + closed.Tab.Title"),
-        ("src/SharpRail.UI/CenterTabsInProjects.cs", "\"Open \" + tab.Title"),
-        ("src/SharpRail.UI/Docking/DockGroups.cs", "\"Open \" + Session.ToolTitle(tab)"),
-        ("src/SharpRail.UI/OwnedProcessNotices.cs", "?.Title ?? \"An agent terminal\""),
-        ("src/SharpRail.UI/WorkspaceUnread.cs", "“{TabTitle("),
-        ("src/SharpRail.Plugins.Codex/UI/CodexPanel.cs", "tab “{"),
-        ("src/SharpRail.Plugins.ClaudeCode/UI/ClaudeConfigPanel.cs", "tab “{"),
+        ("src/Tereditor.UI/UndoClose.cs", "\"Closed \" + closed.Tab.Title"),
+        ("src/Tereditor.UI/CenterTabsInProjects.cs", "\"Open \" + tab.Title"),
+        ("src/Tereditor.UI/Docking/DockGroups.cs", "\"Open \" + Session.ToolTitle(tab)"),
+        ("src/Tereditor.UI/OwnedProcessNotices.cs", "?.Title ?? \"An agent terminal\""),
+        ("src/Tereditor.UI/WorkspaceUnread.cs", "“{TabTitle("),
+        ("src/Tereditor.Plugins.Codex/UI/CodexPanel.cs", "tab “{"),
+        ("src/Tereditor.Plugins.ClaudeCode/UI/ClaudeConfigPanel.cs", "tab “{"),
     ];
 
     internal static void Run()

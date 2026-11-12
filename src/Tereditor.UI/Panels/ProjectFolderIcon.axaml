@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.UI.Panels.ProjectFolderIcon" Width="14" Height="14" IsHitTestVisible="False">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.UI.Panels.ProjectFolderIcon" Width="14" Height="14" IsHitTestVisible="False">
   <Grid>
     <Grid Width="14" Height="14" VerticalAlignment="Center">
       <ContentControl x:Name="FolderIcon" />

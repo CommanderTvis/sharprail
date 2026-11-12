@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The host's filesystem watchers, one set per workspace root however many subscriptions listen. A set is
@@ -228,7 +228,7 @@ internal static partial class WorkspaceWatches
                 Error(error);
             }
         }
-        // The project's .sharprail is reported like any directory: its config is edited in Files and its appearance refreshes Git.
+        // The project's .tereditor is reported like any directory: its config is edited in Files and its appearance refreshes Git.
         Watch(root, true, path =>
             !Path.GetRelativePath(root, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".tools" or "node_modules" or ".DS_Store" || part.StartsWith(ProjectServices.FileTransferPrefix, StringComparison.Ordinal)), true);
         var (gitDirectory, commonDirectory) = ProjectServices.ResolveGitDirectories(root);

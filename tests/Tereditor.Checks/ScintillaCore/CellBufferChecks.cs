@@ -1,9 +1,9 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 using System.Text;
 
-using SharpRail.Scintilla.Core;
+using Tereditor.Scintilla.Core;
 
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Port of Scintilla test/unit/testCellBuffer.cxx (CellBuffer and UndoHistory). Not ported: ScrapStack,
 /// ScaledVector and UndoActions (replaced by a List of actions), tentative undo (IME only), Unicode line ends,

@@ -5,11 +5,11 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.Plugins.Visualize.UI;
+namespace Tereditor.Plugins.Visualize.UI;
 
 /// <summary>The companion pane: the terminal's drawing through the kit's card, reporting the render verdict back to the host once per shown revision.</summary>
 internal sealed partial class VisualizationPane : Border

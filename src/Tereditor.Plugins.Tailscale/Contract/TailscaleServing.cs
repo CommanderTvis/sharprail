@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 /// <summary>The builtin plugin's bridge to its owner's listener; it never owns the host itself.</summary>
 public sealed class TailscaleServing

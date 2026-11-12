@@ -2,9 +2,9 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>An edit the host refuses whole; <see cref="State"/> is the result state the caller reports.</summary>
 internal sealed class EditRefused(string state, string message) : Exception(message)
@@ -136,7 +136,7 @@ internal static class WorkspaceEdits
                             }
                         case null:
                             {
-                                var uri = change["textDocument"]?["uri"]?.ToString() ?? throw new EditRefused("unsupported", "The edit uses a form SharpRail does not apply.");
+                                var uri = change["textDocument"]?["uri"]?.ToString() ?? throw new EditRefused("unsupported", "The edit uses a form tereditor does not apply.");
                                 if (change["textDocument"]!["version"] is JsonValue version && open(uri) is { } current && version.GetValue<int>() != current.Version)
                                     throw new EditRefused("stale", "The edit belongs to an older version of the document.");
                                 Apply(File(uri), change["edits"] as JsonArray ?? []);
@@ -160,7 +160,7 @@ internal static class WorkspaceEdits
             var parsed = new List<(int Start, int End, int Index, string New)>();
             foreach (var entry in list)
             {
-                if (entry?["range"] is not { } range || entry["newText"] is not JsonValue replacement) throw new EditRefused("unsupported", "The edit uses a form SharpRail does not apply (snippet or unknown edit).");
+                if (entry?["range"] is not { } range || entry["newText"] is not JsonValue replacement) throw new EditRefused("unsupported", "The edit uses a form tereditor does not apply (snippet or unknown edit).");
                 var value = replacement.ToString();
                 chars += value.Length;
                 if (chars > MaxEditChars) throw new EditRefused("failed", "The edit carries more than 5 MiB of text.");
@@ -233,7 +233,7 @@ internal static class WorkspaceEdits
             foreach (var file in changed.Where(file => file.Text is not null))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(file.Full)!);
-                var temporary = file.Full + ".sharprail-edit";
+                var temporary = file.Full + ".tereditor-edit";
                 System.IO.File.WriteAllBytes(temporary, file.Bytes());
                 var original = file.Original; var full = file.Full;
                 undo.Add(() => { if (original is null) System.IO.File.Delete(full); else System.IO.File.WriteAllBytes(full, original); });
@@ -252,7 +252,7 @@ internal static class WorkspaceEdits
             for (var i = undo.Count - 1; i >= 0; i--)
                 try { undo[i](); }
                 catch (Exception restore) when (restore is IOException or UnauthorizedAccessException) { failed.Add(restore.Message); }
-            foreach (var file in changed) try { System.IO.File.Delete(file.Full + ".sharprail-edit"); } catch (Exception) { }
+            foreach (var file in changed) try { System.IO.File.Delete(file.Full + ".tereditor-edit"); } catch (Exception) { }
             throw new EditRefused("failed", $"Writing failed ({error.Message}); " + (failed.Count == 0 ? "the files written so far were restored." : "restoring failed for some files: " + string.Join("; ", failed)));
         }
     }

@@ -12,23 +12,23 @@ Ports fork `packages/plugin-codex` at `177abd30c`, with hook report fields refre
 fork tip `1c7c90a5a` (workspace naming and its prompt/last-message report fields were removed), and
 session-scoped context and launch instructions from fork tip `867bffea5` (wire version 3).
 Disabled by default. Host and UI communicate only through plugin contracts. Pi subscription
-invitation is excluded by the SharpRail product contract; a Codex chat component is not ported yet.
+invitation is excluded by the tereditor product contract; a Codex chat component is not ported yet.
 
 ## Acceptance contract
 
 - The host persists the latest session model and effort from status reports and rollout turn
   contexts. Sparse reports preserve known choices for that session; a different session id starts
   fresh. Revival restores its recorded model and effort, replacing older launch overrides.
-- Settings supplies optional model and effort defaults for new SharpRail launches. Empty choices
+- Settings supplies optional model and effort defaults for new tereditor launches. Empty choices
   use Codex's defaults. Model uses `--model`; effort uses the per-launch
   `-c model_reasoning_effort="…"` override. Generic launcher selections, model presets and custom
   arguments take precedence without editing Codex's saved configuration or a running session.
   Unset defaults persist as empty strings so merged settings updates clear earlier overrides.
-  SharpRail wire version 5 covers this and the daemon extension below: mismatched host/UI halves stay dormant
+  tereditor wire version 5 covers this and the daemon extension below: mismatched host/UI halves stay dormant
   rather than having the older strict schema silently fall back to defaults.
 - Settings › Codex has "Use the shared Codex daemon" (`SharedDaemon`, host state, default on). Off, every
   UI launch and revival adds `--no-daemon` (standalone). On, a launch attaches with `--remote unix://` only
-  when the `daemon` method reports the daemon running at the CLI's own version; SharpRail never starts,
+  when the `daemon` method reports the daemon running at the CLI's own version; tereditor never starts,
   stops or restarts the daemon. A missing, stopped, mismatched, slow or unqueryable daemon falls back to
   `--no-daemon`, and the launcher menu's start shows an info notice with the reason. The `daemon` method runs
   `codex app-server daemon version` off the caller's thread with a 5 s timeout (the process is killed) and
@@ -54,7 +54,7 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   codex CLI (0.163.0) has no way to preassign a session id, so Codex keeps discovering its id from hooks
   and the rollout, and revival without one keeps `resume --last`. The host offers the revival and runs it only on
   Resume (Host Plugins.SPEC, Terminals); the hook's `Fresh` command is the same launch without `resume`. IDE slash commands submit Enter separately after 250ms.
-  The embedded MCP server is registered as `sharprail`, matching Claude Code and the protocol identity.
+  The embedded MCP server is registered as `tereditor`, matching Claude Code and the protocol identity.
   Revival replaces launcher-owned overrides under both the current name and legacy `thinkrail`;
   the existing `THINKRAIL_MCP_URL` environment contract remains compatible with running shells.
   Launcher MCP configuration always approves `set_title`, `spec_get`, `spec_graph`, `spec_grep`,
@@ -73,18 +73,18 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   Through the host's `core.workspace-emigrate` section it also describes `workspace_emigrate`: only on the user's
   explicit request for a new workspace and with certainty of never touching the original one, the agent may move its
   own tab into a workspace it created; the host relaunches it there through this plugin's revive hook (Codex's resume).
-  See the [Workspaces SPEC](../SharpRail.Host.Core/Workspaces.SPEC.md).
+  See the [Workspaces SPEC](../Tereditor.Host.Core/Workspaces.SPEC.md).
   It also asks the agent to title its terminal's tab through the host's `set_title` when the task is clear;
   the first title also names an untouched generated managed workspace; manual names are preserved. Cleanup goes through the host's `workspace_delete`
   rather than `git worktree remove`, so Projects follows immediately.
-  The appendix also documents the project's `.sharprail/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
+  The appendix also documents the project's `.tereditor/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
   The appendix permits `shipping-a-pr` only when the user's prompt indicates pull-request work;
   a request to commit and/or push alone does not trigger the skill.
-- POSIX UI launches carry the command-scoped `SHARPRAIL_UI_LAUNCH=codex` marker even when MCP and
+- POSIX UI launches carry the command-scoped `TEREDITOR_UI_LAUNCH=codex` marker even when MCP and
   the prompt appendix are disabled. Process detection records the launch origin independently of those
   settings and rechecks it when the process changes. It skips zombie processes (`ps` state Z), so an exited agent not
   yet reaped clears its record. Manual sessions show a persistent terminal notice:
-  SharpRail intentionally does not apply launcher settings, tools or the prompt appendix to typed CLI
+  tereditor intentionally does not apply launcher settings, tools or the prompt appendix to typed CLI
   commands; the workspace launcher applies the user's settings. Existing hooks and separately configured
   MCP/IDE connections may still work. Unknown origins (including unavailable process inspection on Windows)
   are not labelled manual. Origin persists and crosses local/remote host state; status reports retain it.
@@ -98,23 +98,23 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   the worktree keep relative editor paths; others open by their registered absolute paths, and the
   external-file registry covers every live Codex tab's chain. Edits and creation offers stay
   workspace-scoped.
-- **Tell Codex it is running in SharpRail** defaults on for POSIX launches. Activation refreshes
+- **Tell Codex it is running in tereditor** defaults on for POSIX launches. Activation refreshes
   `<stateDir>/codex/thinkrail-prompt-codex.md` with the running build's text; it is generated, never the
   user's. The Context pane ends with the shared instructions view (Agent UI `InstructionSectionsView`): one
   entry with the PROJECT chip (and, while a prompted session is shown, the launch file's size and path) that
   and a muted count (`N sections · M off · Choose…`) opens a popup (flyout) of the sections Codex sessions in the workspace get, by source, each a compact checkbox with size and
-  a summary disclosing its read-only text; ticking writes the project's `.sharprail/instructions.toml` disable-list through the
+  a summary disclosing its read-only text; ticking writes the project's `.tereditor/instructions.toml` disable-list through the
   host (`instructionsList`, `instructionsSet`, `instructionsChanged`; schema in
-  [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Nothing offers free-text
+  [Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Nothing offers free-text
   editing: the file is rewritten on activation and before every terminal, overwriting hand edits, and opens read-only
-  under SharpRail's notice. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
+  under tereditor's notice. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
   before it is regenerated; the copy is never used or deleted, and the view notes it while it exists. Spec tools are suggested only when available and the project uses a spec graph;
   projects without specs require no spec workflow or unsolicited spec creation.
-  The file describes SharpRail's tools and the project's
-  worktree folder (`SHARPRAIL_WORKTREES_DIR`), like Claude Code's appended system prompt. Prompted launches also pass
-  `--add-dir "$SHARPRAIL_SCRATCH_DIR"`: the workspace's host-side scratch directory (`<state>/scratch/<project>/<workspace>`,
+  The file describes tereditor's tools and the project's
+  worktree folder (`TEREDITOR_WORKTREES_DIR`), like Claude Code's appended system prompt. Prompted launches also pass
+  `--add-dir "$TEREDITOR_SCRATCH_DIR"`: the workspace's host-side scratch directory (`<state>/scratch/<project>/<workspace>`,
   created by the host, nothing inside the project) stays writable under Codex's workspace-write sandbox. Each terminal
-  gets the file's text as the JSON string `SHARPRAIL_CODEX_PROMPT_JSON`, which the launch line expands
+  gets the file's text as the JSON string `TEREDITOR_CODEX_PROMPT_JSON`, which the launch line expands
   into Codex's additional `developer_instructions`; a launcher-supplied prompt continues the same
   string rather than adding a second override. Only these launches tag their inherited status URL with
   `thinkrail_prompt=1`, so the first hook records the fact in the agent's command; process detection
@@ -126,11 +126,11 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   and `add-highlighting` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
   user's skills; there is no session-scoped skill root to point a launch at, so every Codex session sees
   them while the plugin is active. The text is the fork's `packages/pi-thinkrail-workflow/skills` and JetBrains ThinkRail's
-  workflow and spec-graph skills as adapted in `src/SharpRail.Plugins.Agent.Skills`, the one source shared with Claude Code (see that
-  plugin's spec for the adaptation); the fork ships skills to pi only. `<stateDir>/codex/skills.sharprail-default`
-  holds a SHA-256 stamp per installed file. A file matching its stamp is SharpRail's: refreshed when the
+  workflow and spec-graph skills as adapted in `src/Tereditor.Plugins.Agent.Skills`, the one source shared with Claude Code (see that
+  plugin's spec for the adaptation); the fork ships skills to pi only. `<stateDir>/codex/skills.tereditor-default`
+  holds a SHA-256 stamp per installed file. A file matching its stamp is tereditor's: refreshed when the
   shipped text changes, restored when missing, removed when no longer shipped. An edited file is the
-  user's and is never overwritten or removed, and a skill directory whose `SKILL.md` SharpRail never wrote
+  user's and is never overwritten or removed, and a skill directory whose `SKILL.md` tereditor never wrote
   is left whole. Disabling the plugin removes the unedited files and the directories that leaves empty.
   The disposer cannot tell disabling from host shutdown, so the files may also go when the app quits and
   return on the next start; a second running host is not considered.
@@ -180,7 +180,7 @@ compiled frames too; the kit's shared setting rows and chips stay kit-owned. Set
 reattachment covered by WebSocket RPC checks.
 The terminal-driving per-session model picker is retired for the same reasons as Claude Code's (screen-scraped, no
 authoritative live source). The terminal shows ONE model-and-effort chip (unlike Claude's two): `TerminalFacts.OpenerChip` in Agent.UI owns the look, the tooltips, the disabled-while-Running rule and the accessible name. It reads `gpt-5.5 · high` from what Codex last reported (the model; `CodexStatusPush.Effort`: the hook payload's `reasoning_effort`/`effort`, else the rollout turn context's effort; kept across sparse pushes), omits the effort while unknown, and reads `model` before Codex has reported anything, so it is always present. Its tooltip is "Change model and effort (/model)" plus the reported value. Codex has no separate effort command, so a click only opens Codex's own `/model` picker: `CodexTerminalCommands.SubmitAsync` types `/model`, then Enter separately, and
-the terminal is focused; SharpRail never picks a model. The click and the `/ide` chip first read the screen tail and `PromptGuard.Classify` with Codex's `›` glyph and example prompts (`CodexTerminalCommands.Prompt`): a draft refuses with "Clear the prompt first: it holds a draft.", no recognisable prompt (including an open `› 1.` picker) refuses with "Not at the prompt.". Codex draws no box border, so a draft whose first line is empty is not seen; the session-start automatic `/ide on` is not guarded. The chip is disabled while the session is Running. The `/ide
+the terminal is focused; tereditor never picks a model. The click and the `/ide` chip first read the screen tail and `PromptGuard.Classify` with Codex's `›` glyph and example prompts (`CodexTerminalCommands.Prompt`): a draft refuses with "Clear the prompt first: it holds a draft.", no recognisable prompt (including an open `› 1.` picker) refuses with "Not at the prompt.". Codex draws no box border, so a draft whose first line is empty is not seen; the session-start automatic `/ide on` is not guarded. The chip is disabled while the session is Running. The `/ide
 on|off` entry uses the same submit under a `HoldInput()` hold released on every outcome. `--codex` covers the typed
 bytes and the release with a fake terminal, and the E2E clicks the chip against the command-input fixture.
 The earlier descendant snapshot teardown passed its resistant-child regression. Its replacement
@@ -218,7 +218,7 @@ Private protocol fixtures do not establish compatibility with an installed real 
 ## Shared agent presentation
 
 Account and terminal fact, usage, plan, picker, attachment and IDE-toggle components
-come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract values and
+come from `Tereditor.Plugins.Agent.UI`. The plugin adapts its own contract values and
 retains all provider state and commands; generic settings controls remain kit-owned.
 
 A Codex terminal tab's menu offers Copy session ID (Plugin API W26) while the host's agent record carries the session id
@@ -239,7 +239,7 @@ that path and the inspection instructions. Launch and revival approve these thre
 
 Capabilities explicitly lists `lsp_navigate`, `lsp_diagnostics` and `lsp_status` under the injected
 thinkrail MCP server, states whether new-launch MCP is enabled, and explains workspace/subagent routing.
-Its guidance follows the [workbench’s LSP configuration guidance](../SharpRail.UI/SPEC.md#language-intelligence).
+Its guidance follows the [workbench’s LSP configuration guidance](../Tereditor.UI/SPEC.md#language-intelligence).
 The Windows launcher limitation is explicit; this description does not claim a live connection.
 
 Agent instructions request `lsp_diagnostics` with `paths` for every edited file or
@@ -257,19 +257,19 @@ The system prompt advertises workspace LSP configuration inspection, save and ta
 including library settings and clangd compiler configuration. Saved configuration is visible in
 the workspace LSP pane and copied independently from Default for new workspaces.
 
-A separate paragraph of the system prompt documents the project's `.sharprail/language.toml` (portable
-server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
+A separate paragraph of the system prompt documents the project's `.tereditor/language.toml` (portable
+server options shared through the project; see the [language services](../Tereditor.Host.Core/Language/SPEC.md#project-language-file)
 spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
-The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal's `developer_instructions` carry its workspace's composition, less the sections its project turns off.
+The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.tereditor/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal's `developer_instructions` carry its workspace's composition, less the sections its project turns off.
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
 
-SharpRail prompt appendices carry the tool guidance enabled plugins contribute (Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. Launch commands preapprove the three Air Context tools through the terminal-local MCP override whether or not the plugin is enabled, since the override names tools and the plugin may be turned on later; global Codex configuration is unchanged. The Air Context plugin triggers indexing only for recognized UI-launched agents.
+tereditor prompt appendices carry the tool guidance enabled plugins contribute (Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. Launch commands preapprove the three Air Context tools through the terminal-local MCP override whether or not the plugin is enabled, since the override names tools and the plugin may be turned on later; global Codex configuration is unchanged. The Air Context plugin triggers indexing only for recognized UI-launched agents.
 
-Revival removes and regenerates the three Context approval overrides with the existing SharpRail MCP flags, so repeated resumes cannot accumulate them.
+Revival removes and regenerates the three Context approval overrides with the existing tereditor MCP flags, so repeated resumes cannot accumulate them.
 
 Generated MCP flags use shell continuation lines below the canonical PTY input limit, preserving individual overrides. Revival recognizes those standalone continuations; initial agent launch does not depend on the shell entering raw input mode first.
 
@@ -292,4 +292,4 @@ rules and a requirement to report its `lsp_navigate`/`lsp_diagnostics` call coun
 none for code work. Air Context's paragraph (only while enabled) adds MUST `context_search` first. `PromptChecks` asserts these
 phrases in both agents and their absence with the feature or plugin off.
 
-Agent detection never descends through another SharpRail app (`SharpRail.UI`/`SharpRail` process): a Codex in a nested SharpRail's terminal does not mark the outer tab. The Omp copy follows the same rule.
+Agent detection never descends through another tereditor app (`Tereditor.UI`/`tereditor` process): a Codex in a nested tereditor's terminal does not mark the outer tab. The Omp copy follows the same rule.

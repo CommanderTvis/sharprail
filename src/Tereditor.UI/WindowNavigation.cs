@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Where a window is: Welcome, a project's home, a workspace, or a file in a workspace. It serializes to a

@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Agents never have to start language servers by hand: the tools start the owning server, wait a bounded time, report honestly and never hang.
@@ -30,7 +30,7 @@ internal static class LanguageOnDemandChecks
             Directory.CreateDirectory(Workspace);
             await File.WriteAllTextAsync(Path.Combine(Workspace, "code.ts"), "😀 target");
             await File.WriteAllTextAsync(Path.Combine(Workspace, "agent.py"), "broken = missing");
-            disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+            disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
             State = new HostStateStore(Path.Combine(root, "state"));
             var executable = Environment.ProcessPath!;
             string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
@@ -53,7 +53,7 @@ internal static class LanguageOnDemandChecks
         public async ValueTask DisposeAsync()
         {
             await State.StopLanguagesAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 
@@ -191,9 +191,9 @@ internal static class LanguageOnDemandChecks
         var root = Path.Combine(fixture, "language-lifetime");
         using var git = new IsolatedGit(Path.Combine(root, "git"));
         var repo = IsolatedGit.Repository(Path.Combine(root, "project"), ("code.ts", "const target = 1;"));
-        Directory.CreateDirectory(Path.Combine(repo, ".sharprail"));
-        await File.WriteAllTextAsync(Path.Combine(repo, ".sharprail", "language.toml"), "version = 1\n\n[servers.typescript]\nautoStart = true\n");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        Directory.CreateDirectory(Path.Combine(repo, ".tereditor"));
+        await File.WriteAllTextAsync(Path.Combine(repo, ".tereditor", "language.toml"), "version = 1\n\n[servers.typescript]\nautoStart = true\n");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(Path.Combine(root, "state"));
         try
         {
@@ -241,7 +241,7 @@ internal static class LanguageOnDemandChecks
         finally
         {
             await state.StopLanguagesAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 }

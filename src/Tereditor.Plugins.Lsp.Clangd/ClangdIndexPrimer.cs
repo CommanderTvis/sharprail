@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.IO.Hashing;
 using System.Text;
 
-namespace SharpRail.Plugins.Lsp.Clangd;
+namespace Tereditor.Plugins.Lsp.Clangd;
 
 /// <summary>
 /// Seeds a new checkout's clangd background index from another checkout of the same repository. clangd keys each shard

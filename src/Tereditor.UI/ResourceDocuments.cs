@@ -2,13 +2,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Editor;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.Resources;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Editor;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.Resources;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -28,7 +28,7 @@ public sealed partial class WorkbenchWindow
             View = view => new MarkdownPreviewBody(view, text =>
             {
                 var document = new MarkdownDocumentView(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), _ => CodeBody(view));
-                if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+                if (Tereditor.Scintilla.ScintillaEditor.IsSupported)
                     document.EnableFrontmatterEditing(next =>
                     {
                         if (document.EnsureSource() is not CodeDocumentView code) return;
@@ -52,7 +52,7 @@ public sealed partial class WorkbenchWindow
             }),
             Diff = RenderMergedAsync
         });
-        registry.Register(new("sharprail/pdf", "PDF", new(Glob: ["*.pdf"]), 120)
+        registry.Register(new("tereditor/pdf", "PDF", new(Glob: ["*.pdf"]), 120)
         {
             View = view => new Resources.Pdf.PdfPreview(
                 token => workbench.ReadWorkspaceFileAsync(view.Resource.Workspace, view.Resource.Path, token),
@@ -76,7 +76,7 @@ public sealed partial class WorkbenchWindow
     private IReadOnlyList<ResourceRenderer> ViewCandidates(ResourceDescriptor resource, FileDocument document)
     {
         var candidates = Renderers.Resolve(resource, ResourceIntent.View).Where(renderer =>
-            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !SharpRail.Scintilla.ScintillaEditor.IsSupported).ToArray();
+            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !Tereditor.Scintilla.ScintillaEditor.IsSupported).ToArray();
         return candidates.Any(renderer => renderer.Id == ResourceRegistry.Markdown)
             ? [.. candidates.Where(renderer => renderer.Id != ResourceRegistry.Code)] : candidates;
     }
@@ -113,7 +113,7 @@ public sealed partial class WorkbenchWindow
         var key = view.Resource.Workspace + ":" + view.TabId;
         var document = documents[key];
         var hasPreview = view.TabId.StartsWith("markdown:", StringComparison.Ordinal) && document.Text.Length <= ViewerLimits.RenderedMarkdown;
-        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
+        if (!Tereditor.Scintilla.ScintillaEditor.IsSupported)
             return new PlainSourceBody(document.Text) { Name = hasPreview ? "MarkdownSource" : null };
         var code = CodeDocument(document, view.TabId, key, !hasPreview);
         if (hasPreview)

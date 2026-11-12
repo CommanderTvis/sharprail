@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.UI.Panels.LocalBrowserApprovalFields">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.UI.Panels.LocalBrowserApprovalFields">
   <StackPanel Spacing="16">
     <SelectableTextBlock x:Name="LocalBrowserOrigin" TextWrapping="Wrap" />
     <TextBlock Text="Allow this browser to access this app’s projects, files, settings, plugins and terminals? Access lasts until you revoke it or stop listening."

@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>
 /// The opt-in call log: one JSON line per tool call in <c>&lt;dir&gt;/&lt;session&gt;.jsonl</c>, between a <c>start</c> and an <c>end</c> line.
@@ -133,7 +133,7 @@ internal sealed class CallLog : IAsyncDisposable
                 if (!final && written + bytes.Length > (long)config.Log.MaxFileKb * 1024)
                 {
                     stopped = true;
-                    stderr.WriteLine($"sharprail-headless: the call log reached {config.Log.MaxFileKb} KB and stops here");
+                    stderr.WriteLine($"tereditor-headless: the call log reached {config.Log.MaxFileKb} KB and stops here");
                     continue;
                 }
                 await file.WriteAsync(bytes);
@@ -144,7 +144,7 @@ internal sealed class CallLog : IAsyncDisposable
         catch (Exception error)
         {
             stopped = true;
-            try { stderr.WriteLine("sharprail-headless: the call log stopped: " + error.Message); } catch (Exception) { }
+            try { stderr.WriteLine("tereditor-headless: the call log stopped: " + error.Message); } catch (Exception) { }
         }
     }
 

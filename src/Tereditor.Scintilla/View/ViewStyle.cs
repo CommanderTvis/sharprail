@@ -3,7 +3,7 @@
 // Owned by the skeleton; both wave-3 components may add fields, never change existing ones.
 using SkiaSharp;
 
-namespace SharpRail.Scintilla.View;
+namespace Tereditor.Scintilla.View;
 
 /// <summary>A resolved font request; the shaper maps it to an SKFont of the editor typeface.</summary>
 internal readonly record struct FontSpec(float Size, int Weight, bool Italic);
@@ -42,7 +42,7 @@ internal sealed class Margin
 /// <summary>Element ids with settable colours (SC_ELEMENT_*).</summary>
 internal enum Element { SelectionText = 10, SelectionBack = 11, SelectionInactiveText = 16, SelectionInactiveBack = 17, Caret = 40, CaretLineBack = 50 }
 
-/// <summary>Everything painting reads besides the document (upstream src/ViewStyle.h, trimmed to SharpRail's use).</summary>
+/// <summary>Everything painting reads besides the document (upstream src/ViewStyle.h, trimmed to tereditor's use).</summary>
 internal sealed class ViewStyle
 {
     public const int Default = 32, LineNumber = 33, MaxStyles = 256, MaxIndicators = 36, MaxMargins = 5;

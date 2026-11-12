@@ -1,6 +1,6 @@
 <DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-           xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-           x:Class="SharpRail.Plugins.Omp.UI.OmpPanelFrame" x:ClassModifier="internal"
+           xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+           x:Class="Tereditor.Plugins.Omp.UI.OmpPanelFrame" x:ClassModifier="internal"
            Name="OmpPanel" Background="{x:Static kit:Ui.Sidebar}">
   <DockPanel.Styles>
     <Style Selector="TextBlock">
@@ -22,16 +22,16 @@
   </DockPanel>
   <StackPanel x:Name="OmpMissing" DockPanel.Dock="Top" Margin="8,4" Spacing="4" IsVisible="False">
     <TextBlock x:Name="OmpMissingText" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" />
-    <TextBlock FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="SharpRail uses the omp on your PATH and does not install it." />
+    <TextBlock FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="tereditor uses the omp on your PATH and does not install it." />
     <ContentControl x:Name="OmpInstallLink" />
   </StackPanel>
   <StackPanel x:Name="OmpNotes" DockPanel.Dock="Top" Margin="8,4" Spacing="4">
     <TextBlock x:Name="OmpCodeIntelligence" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
     <TextBlock x:Name="OmpProfileNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
     <StackPanel x:Name="OmpSignIn" Spacing="4" IsVisible="False">
-      <Button x:Name="OmpImportSignIn" HorizontalAlignment="Left" Content="Use my omp sign-in in SharpRail"
-              ToolTip.Tip="Runs omp auth export into omp --profile sharprail auth import on the host; SharpRail never stores the credentials."
-              AutomationProperties.Name="Use my omp sign-in in SharpRail" />
+      <Button x:Name="OmpImportSignIn" HorizontalAlignment="Left" Content="Use my omp sign-in in tereditor"
+              ToolTip.Tip="Runs omp auth export into omp --profile tereditor auth import on the host; tereditor never stores the credentials."
+              AutomationProperties.Name="Use my omp sign-in in tereditor" />
       <TextBlock x:Name="OmpSignInResult" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
     </StackPanel>
   </StackPanel>

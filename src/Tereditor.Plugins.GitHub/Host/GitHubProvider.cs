@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.GitHub.Host;
+namespace Tereditor.Plugins.GitHub.Host;
 
 /// <summary>Runs a tool with the host's bounded runner; <see cref="IPluginHostContext.RunToolAsync"/> in the product.</summary>
 public delegate ValueTask<RepoHostToolResult> ToolRunner(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
@@ -21,7 +21,7 @@ public sealed class GitHubProvider(ToolRunner run) : RepoHostProvider
     private static readonly ConcurrentDictionary<string, (IReadOnlyList<string> Methods, long At)> MergeMethodCache = new();
     private static readonly Dictionary<string, string?> GhEnvironment = new() { ["GH_PROMPT_DISABLED"] = "1", ["GIT_TERMINAL_PROMPT"] = "0", ["NO_COLOR"] = "1" };
 
-    private static bool Offline => Environment.GetEnvironmentVariable("SHARPRAIL_GH_OFFLINE") == "1";
+    private static bool Offline => Environment.GetEnvironmentVariable("TEREDITOR_GH_OFFLINE") == "1";
 
     public override bool Recognizes(string remoteUrl) => Repository(remoteUrl) is not null;
 

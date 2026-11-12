@@ -1,9 +1,9 @@
 using System.IO.Pipelines;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Acp.Host;
+using Tereditor.Plugins.Acp.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // An in-process ACP agent for the checks: it speaks the real framing over a pipe pair and plays scripted turns chosen by the prompt text.
 //   "hello"   thought, two message chunks, a tool call that completes with a diff, a plan; ends the turn.

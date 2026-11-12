@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>One Codex hook's stdin, as the hook command POSTs it verbatim.</summary>
 public sealed record CodexHookReport(string Event, CodexStatus Status)

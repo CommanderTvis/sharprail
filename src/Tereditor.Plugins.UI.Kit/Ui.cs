@@ -13,7 +13,7 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 public static partial class Ui
 {
@@ -21,9 +21,9 @@ public static partial class Ui
     public static readonly LinearGradientBrush FadeToElevated = Fade();
     /// <summary>Resource key for the selected-text foreground; null when the theme keeps the native foreground.</summary>
     public const string SelectionForegroundKey = "ThemeSelectionForeground";
-    public static readonly FontFamily InterfaceFont = new("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts#Geist");
+    public static readonly FontFamily InterfaceFont = new("avares://Tereditor.Plugins.UI.Kit/Assets/Fonts#Geist");
     public const FontWeight InterfaceWeight = (FontWeight)370;
-    public static readonly FontFamily CodeFont = new("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts#JetBrains Mono");
+    public static readonly FontFamily CodeFont = new("avares://Tereditor.Plugins.UI.Kit/Assets/Fonts#JetBrains Mono");
     private static readonly Dictionary<string, IBrush> Icons = [];
 
     /// <summary>The applied manifest. Consumers that paint outside these brushes rebuild on <see cref="ThemeChanged"/>. The kit has no
@@ -142,7 +142,7 @@ public static partial class Ui
     {
         if (!Icons.TryGetValue(name, out var mask))
         {
-            using var stream = AssetLoader.Open(new Uri($"avares://SharpRail.Plugins.UI.Kit/Assets/Icons/{name}.{(name == "brand" ? "png" : "svg")}"));
+            using var stream = AssetLoader.Open(new Uri($"avares://Tereditor.Plugins.UI.Kit/Assets/Icons/{name}.{(name == "brand" ? "png" : "svg")}"));
             if (name == "brand") mask = new ImageBrush(new Bitmap(stream));
             else
             {

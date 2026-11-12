@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Omp.UI;
+namespace Tereditor.Plugins.Omp.UI;
 
 /// <summary>Settings › omp: the command, the documented launch flags with their suggested values, the MCP profile and code intelligence.</summary>
 internal sealed partial class OmpSettingsView : StackPanel

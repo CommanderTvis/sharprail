@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>How the RPC call running on this async flow reached the host; unset for direct (embedded) calls.</summary>
 public static class RpcConnection

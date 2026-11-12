@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Platform;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// Registers a stub windowing platform the way a custom remote backend would (an [Unstable] interface bound through the

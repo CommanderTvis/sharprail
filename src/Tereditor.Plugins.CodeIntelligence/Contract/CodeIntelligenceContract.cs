@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.CodeIntelligence;
+namespace Tereditor.Plugins.CodeIntelligence;
 
 /// <summary>The Code Intelligence plugin: the switch for every language feature the app shows. It has no methods or settings of its own.</summary>
 public static class CodeIntelligenceContract
@@ -15,6 +15,6 @@ public static class CodeIntelligenceContract
         Description = "The language features of the app: the Code Intelligence settings and tool window, and hover, go to definition, usages and diagnostics in the editor. The language server plugins and Air Context require it.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
-        Host = "SharpRail.Plugins.CodeIntelligence.Host.dll"
+        Host = "Tereditor.Plugins.CodeIntelligence.Host.dll"
     };
 }

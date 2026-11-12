@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>How a client-supplied project path becomes a host path, and what is found there.</summary>
 internal static class ProjectPaths

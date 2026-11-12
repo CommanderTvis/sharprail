@@ -17,7 +17,7 @@ url = "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip"
 checksum = "sha256:601246087a682d1944e1e16dd85bc6e49560fe8b6d61255be2829178c8ed15d9"
 
 # Merman's Android archive (the same release as the desktop pin in mise.toml): its jni/<abi>/libmerman_ffi.so are the C
-# ABI the desktop dylib exports, 16 KB aligned, which the Android client packages as libSharpRailMermaid.so. The release's
+# ABI the desktop dylib exports, 16 KB aligned, which the Android client packages as libTereditorMermaid.so. The release's
 # sha256.sum does not list the .aar; the checksum is GitHub's published asset digest and matches the downloaded file.
 [tools."http:merman-android"]
 version = "0.7.0"

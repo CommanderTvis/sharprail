@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.UI;
+namespace Tereditor.Plugins.Api.UI;
 
 /// <summary>Editor operations and events (W12).</summary>
 public interface IPluginEditors

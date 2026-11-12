@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.EnvPython.Host;
+namespace Tereditor.Plugins.EnvPython.Host;
 
 /// <summary>
 /// Activates a workspace's Python environment the way <c>activate</c> would, for the main ways of making one: an

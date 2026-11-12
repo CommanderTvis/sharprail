@@ -3,13 +3,13 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Checks.E2E;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Plugins' file actions (W21) in the context menus of the Files panel, the code editor and the Markdown preview.</summary>
 internal static class FileActionChecks
@@ -68,10 +68,10 @@ internal static class FileActionChecks
         if (OperatingSystem.IsMacOS())
         {
             File.WriteAllText(Path.Combine(app.Root, "lines.txt"), "one\ntwo\nthree\nfour\n");
-            Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "lines.txt" }));
+            Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is Tereditor.Host.Abstractions.ProjectFile { Path: "lines.txt" }));
             app.Open("lines.txt", keep: true);
-            Until(() => app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(candidate => candidate.IsEffectivelyVisible && candidate.Text.StartsWith("one", StringComparison.Ordinal)));
-            var editor = app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single(candidate => candidate.IsEffectivelyVisible);
+            Until(() => app.Window.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Any(candidate => candidate.IsEffectivelyVisible && candidate.Text.StartsWith("one", StringComparison.Ordinal)));
+            var editor = app.Window.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single(candidate => candidate.IsEffectivelyVisible);
             app.Click(editor, mouseButton: MouseButton.Right);
             Choose(editor.ContextMenu!, "Probe lines.txt");
             // "two\nthree\n": the selection stops at the start of line four, which it does not include.

@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
-namespace SharpRail.Plugins.Tailscale.UI;
+namespace Tereditor.Plugins.Tailscale.UI;
 
 /// <summary>The builtin's pre-connection surface; it runs without a host projection or plugin RPC.</summary>
 public sealed partial class TailscaleConnectView : UserControl
@@ -87,7 +87,7 @@ public sealed partial class TailscaleConnectView : UserControl
         using var current = new CancellationTokenSource(TimeSpan.FromSeconds(75));
         attempt = current;
         Busy(true);
-        progress.Text = "Looking for SharpRail hosts…";
+        progress.Text = "Looking for tereditor hosts…";
         try
         {
             using var client = createClient();

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>How a background usage read ended: it ran, it failed, or it did not run (no CLI, not signed in).</summary>
 internal enum UsagePoll { Ok, Failed, Skipped }

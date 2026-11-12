@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed partial class SettingsView
 {
@@ -131,7 +131,7 @@ public sealed partial class SettingsView
             codeImage.Text = State.HostLink.Format(reachable, listener.Token);
             codeDetail.Text = IPAddress.TryParse(endpoint.Host, out var bound) && IPAddress.IsLoopback(bound)
                 ? "This host listens on this computer only, so another device cannot reach it. Listen on a network address to connect a phone."
-                : $"Scan this in SharpRail on a phone to connect to {reachable}. It contains the session token: show it only to devices you trust.";
+                : $"Scan this in tereditor on a phone to connect to {reachable}. It contains the session token: show it only to devices you trust.";
             code.IsVisible = true;
         };
         copyEndpoint.Click += async (_, _) =>

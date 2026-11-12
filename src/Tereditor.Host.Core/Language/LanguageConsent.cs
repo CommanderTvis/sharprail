@@ -2,9 +2,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// Consent to the terms of a language server in a host with no window and no terminal (headless). The desktop shows the terms of an installed server in a
@@ -18,14 +18,14 @@ internal sealed class LanguageConsent(string storage, Func<IReadOnlyList<Languag
     Func<LanguageServer, bool, CancellationToken, Task<LanguageServerTerms>>? reader = null, Func<LanguageServer, string>? pinned = null)
 {
     /// <summary>The environment variable listing servers to download at start, before anyone is asked: <c>intellij</c>, comma separated. A download executes nothing.</summary>
-    internal const string PrefetchVariable = "SHARPRAIL_PREFETCH";
+    internal const string PrefetchVariable = "TEREDITOR_PREFETCH";
 
     internal string PinnedHash(LanguageServer server) => Pinned(server);
 
     private string Pinned(LanguageServer server) => pinned?.Invoke(server) ?? server.Spec.TermsSha256;
 
     /// <summary>The environment variable listing servers the user accepts at start: <c>intellij</c>, or <c>intellij:&lt;terms hash&gt;</c> for strict mode, comma separated.</summary>
-    internal const string EnvironmentVariable = "SHARPRAIL_ACCEPT_TERMS";
+    internal const string EnvironmentVariable = "TEREDITOR_ACCEPT_TERMS";
 
     /// <summary>What a host may rely on to start a server: the terms hash consent was given to, and the answers to the provider's questions.</summary>
     internal sealed record Grant(string TextSha256, IReadOnlyDictionary<string, string> Answers, string Source);

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>
 /// One headless Claude Code child: a stdout line reader, a serialized stdin writer, captured stderr and a kill that takes
@@ -52,7 +52,7 @@ internal sealed class ChatProcess
     }
 
     /// <summary>The launcher that makes its child a session leader, so the whole group it starts can be signalled.</summary>
-    internal static string GroupLauncher => Path.Combine(AppContext.BaseDirectory, "sharprail-claude-process-group");
+    internal static string GroupLauncher => Path.Combine(AppContext.BaseDirectory, "tereditor-claude-process-group");
 
     /// <summary>Starts the child; the caller runs this off the UI thread.</summary>
     public static ChatProcess Start(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment, string cwd, Func<string, Task> onLine, Action<string> onError)

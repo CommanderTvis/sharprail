@@ -36,22 +36,22 @@ authorization and available subagent tools.
 Through the host's `core.workspace-emigrate` section it also describes `workspace_emigrate`: only on the user's explicit
 request for a new workspace and with certainty of never touching the original one, the agent may move its own tab into a
 workspace it created; the host relaunches it there through this plugin's revive hook (`--resume <id>`). See the
-[Workspaces SPEC](../SharpRail.Host.Core/Workspaces.SPEC.md).
+[Workspaces SPEC](../Tereditor.Host.Core/Workspaces.SPEC.md).
 It also asks the agent to title its terminal's tab through the host's `set_title` when the task is clear;
 the first title also names an untouched generated managed workspace; manual names are preserved. Cleanup goes through the host's `workspace_delete`
 rather than `git worktree remove`, so Projects follows immediately.
-The appendix also documents the project's `.sharprail/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
+The appendix also documents the project's `.tereditor/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
 The appendix permits `shipping-a-pr` only when the user's prompt indicates pull-request work;
 a request to commit and/or push alone does not trigger the skill.
 
-POSIX UI launches carry the command-scoped `SHARPRAIL_UI_LAUNCH=claude` marker independently of
+POSIX UI launches carry the command-scoped `TEREDITOR_UI_LAUNCH=claude` marker independently of
 the prompt and agent-view settings. Process detection records the launch origin and rechecks it when
 the process changes. A manual session shows a persistent terminal notice explaining that typed CLI
-commands do not get SharpRail's launcher settings, tools and prompt appendix, with the
+commands do not get tereditor's launcher settings, tools and prompt appendix, with the
 workspace launcher offered as the way to apply them. Installed hooks and independently configured
 MCP/IDE connections may still work. Unknown origins, including unavailable environment inspection
 on Windows, are not labelled manual. Origin persists and crosses local/remote host state; hook reports
-retain it. A revival is SharpRail's own launch and always carries the UI marker, whatever origin the
+retain it. A revival is tereditor's own launch and always carries the UI marker, whatever origin the
 revived session had, so a revived session is never labelled manual. It also reapplies the current
 agent-view setting, which the process table the command is rebuilt from does not hold.
 
@@ -60,12 +60,12 @@ Revival uses those recorded choices rather than the defaults for new launches an
 older model/effort flags in the recorded command. Sparse reports preserve known choices; a different
 session id starts a fresh set of choices.
 
-Settings supplies optional model and effort defaults for new SharpRail launches, passed with
+Settings supplies optional model and effort defaults for new tereditor launches, passed with
 `--model` and `--effort`. Empty choices use the CLI's defaults. Generic launcher selections and
 workspace-launcher arguments take precedence over these defaults without editing Claude's saved
 configuration or a running session.
 Settings also holds a default permission mode, mirroring Codex's default permissions mode: a chosen
-mode adds `--permission-mode <mode>` to every SharpRail launch (workspace launcher and generic
+mode adds `--permission-mode <mode>` to every tereditor launch (workspace launcher and generic
 launcher); the empty "Claude Code's default" omits the flag so `permissions.defaultMode` in the
 user's `~/.claude/settings.json` (named in that entry's label when set) decides. The workspace
 launcher's right-click Permission mode submenu picks a mode for one run, replacing the saved one,
@@ -93,8 +93,8 @@ fall back to defaults, so mismatched host/UI halves stay dormant.
 
 ## Chat mode (host)
 
-The `Mode` setting (Terminal by default, or Chat) says how a SharpRail launch is presented; the host serves chat whatever
-the setting says, and the view chooses by it. The wire is `ChatContract` (in `SharpRail.Plugins.Chat`, merged into `ClaudeCodeContract`): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
+The `Mode` setting (Terminal by default, or Chat) says how a tereditor launch is presented; the host serves chat whatever
+the setting says, and the view chooses by it. The wire is `ChatContract` (in `Tereditor.Plugins.Chat`, merged into `ClaudeCodeContract`): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
 methods open, snapshot, send, interrupt, close, set model, set permission mode, set effort, answer, rewind, fork, stop task,
 item detail, sessions and files. Chat mode drives Claude Code over its stream-json protocol, as the official VS Code
 extension does. The host half lives in `Host/Chat`. Messages to the CLI are built as JSON nodes and the host's other JSON
@@ -105,7 +105,7 @@ Process. A chat's child is `claude -p --output-format stream-json --verbose --in
 --include-partial-messages --replay-user-messages --permission-prompt-tool=stdio`, plus the settings' model, effort,
 permission mode, advisor, Chrome and appended prompt file, the bundled plugin directory, and the session flags below. It
 gets the environment a terminal launch gets (the prompt file, scratch and worktree directories, `CLAUDE_CODE_SSE_PORT` for
-the IDE bridge, `SHARPRAIL_UI_LAUNCH=claude`, `THINKRAIL_MCP_URL` bound to the chat) and every other plugin's
+the IDE bridge, `TEREDITOR_UI_LAUNCH=claude`, `THINKRAIL_MCP_URL` bound to the chat) and every other plugin's
 launch contribution (wrapper, arguments, environment) composed as `AgentLaunchComposition` does for a command line; the
 hook plugin's status URL is blanked because the chat reports its own status. The IDE bridge is unchanged and still serves terminals, but a headless chat child does not reach it. Probed against the
 real CLI (2.1.310): a `-p` child ignores `CLAUDE_CODE_SSE_PORT` plus the lock file, with or without `--ide` or
@@ -115,7 +115,7 @@ itself". So in chat mode open-diff, diagnostics and selection do not travel the 
 `FilePath` for the view to open the diff itself, and the permission request is the approval point. The bridge's
 workspace placement is not extended to chat children. Stdout lines are read and stdin written off the UI thread (one serialized
 writer); stderr becomes warning notices. Off Windows the child starts behind a setsid launcher
-(`sharprail-claude-process-group`, built from the Codex plugin's `process-group.c`), and closing stdin, then SIGTERM and
+(`tereditor-claude-process-group`, built from the Codex plugin's `process-group.c`), and closing stdin, then SIGTERM and
 SIGKILL to its group, ends it and anything it started; Windows kills the process tree.
 
 Folding. One folder turns messages into the ordered, id-keyed item list, live and from a transcript alike. Streamed partials
@@ -146,7 +146,7 @@ Windows) and the environment a terminal of the workspace gets (`IPluginHostConte
 environment steps put on PATH are put in front again after the login profile ran), with stdin closed and no timeout. It is the user's own command, so
 it asks no permission; it is reachable by the same clients that can send a message. The card is a `bash-output` notice that streams
 (throttled by the session's flush) with `Running` set and ends with the exit code of a failure, or `stopped`; `chatStopShell` signals the
-command's whole process group (the `sharprail-claude-process-group` launcher makes it a group leader), SIGTERM and then SIGKILL after a second. Each stream
+command's whole process group (the `tereditor-claude-process-group` launcher makes it a group leader), SIGTERM and then SIGKILL after a second. Each stream
 keeps at most 16 KiB (`ChatContract.OutputLimit`), the rest being counted in a visible `… N more characters not shown` line. A finished command is
 held by the session and the next `chatSend` puts it in front of the prompt as text blocks of the same user message, in the CLI's wrapping: `<bash-input>cmd</bash-input>`, then
 `<bash-stdout>…</bash-stdout><bash-stderr>…</bash-stderr>` with `<bash-exit-code>` after them for a failure, then the prompt. The cards are re-keyed to the
@@ -175,7 +175,7 @@ session with `--effort` and a notice. A chip never shows an arrow: a change unde
 replays the transcript up to the chosen prompt and resumes the CLI at the message before it with `--fork-session`.
 A fork is a new chat record that branches the same way when first opened.
 
-Shared draft. `chatSetDraft` and the `ChatDraftPush` on `chatUpdates` (rules in `src/SharpRail.Plugins.Chat/SPEC.md`, "Shared draft") are
+Shared draft. `chatSetDraft` and the `ChatDraftPush` on `chatUpdates` (rules in `src/Tereditor.Plugins.Chat/SPEC.md`, "Shared draft") are
 served by `ChatDrafts` in `Host/Chat`, independent of whether the chat's child runs. Drafts persist in the plugin's user state (`drafts.json`
 under the plugin state directory, never in a project) as one map keyed by workspace and chat, each entry with text, revision, the revision
 the last send consumed and a last-change time. The write is atomic (the plugin state mechanism) and debounced: it happens 500 ms after the last
@@ -189,7 +189,7 @@ user state (`chats.json` under the plugin state directory, never in a project). 
 resumes with `--resume <id>` when the transcript exists (`AgentResume.SessionExists`) and otherwise starts afresh with
 `--session-id <id>`, both with the recorded choices. Before the child is ready the host replays the transcript
 (`~/.claude/projects/<slug>/<id>.jsonl` and the `<id>/subagents/agent-*.jsonl` files, whose meta file names the Task call they
-hang from) into items, sending a reset push first. A revived chat is SharpRail's own launch.
+hang from) into items, sending a reset push first. A revived chat is tereditor's own launch.
 
 Status. A chat feeds the same status store and `Status` channel as a terminal, keyed by its chat id as the tab key, with the
 hook events' mapping (`ClaudeValues.StatusForAgentEvent`): `prompt_submit` when a turn starts, `permission_request` while
@@ -270,15 +270,15 @@ then the workspace root. Every configuration/read/write/edit/CLI operation carri
 terminal key. The host uses the detected process's current directory, its reported directory, then
 the workspace root. Appended system prompt files are additional instruction layers.
 
-SharpRail's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`, with each
+tereditor's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`, with each
 workspace's composition under `workspaces/`. They are generated, never the user's: activation and every started
-terminal regenerate them, overwriting any hand edit, and they open read-only under SharpRail's notice
-([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Their content is shaped only by turning sections off for a project: the context table shows
+terminal regenerate them, overwriting any hand edit, and they open read-only under tereditor's notice
+([Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Their content is shaped only by turning sections off for a project: the context table shows
 them as one entry, the shared instructions view (Agent UI `InstructionSectionsView`) with the PROJECT chip, the
 appended file's tokens, its path and a muted count (`8 sections · 1 off · Choose…`); the whole row is a button opening an in-window overlay dialog, like the settings editor (fixed title and Close, scrolling body, Escape closes), of the sections Claude's sessions in that workspace get, grouped by
-source (SharpRail, then each enabled plugin), each a compact checkbox with title and size and a one-line summary that
-discloses the section's read-only text. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
-the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections));
+source (tereditor, then each enabled plugin), each a compact checkbox with title and size and a one-line summary that
+discloses the section's read-only text. Ticking writes the project's `.tereditor/instructions.toml` disable-list through
+the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#agent-instruction-sections));
 the view shows that file's path and that running sessions keep their prompt until
 restarted, and it re-reads on `instructionsChanged`. Nothing offers free-text editing. A shared file the user edited
 under an earlier version (its SHA-256 stamp no longer matches) is copied once to `thinkrail-prompt-claude.custom.md`
@@ -293,7 +293,7 @@ The Context surface's context table is the one place for baseline costs, in toke
 Its rows are everything a fresh session started like the tab's pays for, as `/context` counts it: the memory and
 instruction files the resolver lists (a file `/context` does not list says "not loaded", an on-demand rule shows a
 dash), files `/context` lists that the resolver does not (nested instructions, rules, imports) with its source label,
-SharpRail's instructions entry (the appended prompt file; never a separate file row), then Claude Code's own system prompt (less the appended file), built-in tools, MCP
+tereditor's instructions entry (the appended prompt file; never a separate file row), then Claude Code's own system prompt (less the appended file), built-in tools, MCP
 tools, MCP server instructions and skills; deferred tools, the `/context` message itself, free space and the
 autocompact reserve are not rows. MCP tools open, in the table's own row style with a chevron, into servers (heaviest
 first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
@@ -319,7 +319,7 @@ report in `result`; the host parses its tables by section title. It runs on the 
 directory, with the tab process's context-shaping flags (`--append-system-prompt-file`, `--plugin-dir`, `--add-dir`,
 `--model`, `--effort`, `--mcp-config`, `--settings`, `--setting-sources`, `--system-prompt-file`, `--strict-mcp-config`;
 session and prompt arguments are dropped, so the tab's conversation is never touched) or, with no Claude in the tab,
-the flags the launcher would pass; with SharpRail's MCP probe address, the agent-view variable and an empty status
+the flags the launcher would pass; with tereditor's MCP probe address, the agent-view variable and an empty status
 URL. Results are cached in host memory per (binary, directory, flags), shared by tabs; a run is background,
 single-flight per key, killed after 90 s and cancelled on deactivation, and a failure keeps the previous breakdown
 and shows an inline error with Retry. A run starts when a request finds no entry, when the stat fingerprint of its
@@ -347,14 +347,14 @@ and `claude --help` (`--permission-mode` choices). The edit review names its sco
 Every mutation is composed, scoped to user/project/local, planned as a diff, reviewed and then
 applied with the plan's content hash. Changing scope invalidates its preview; stale files require a
 new review. Source links expose only discovered files and reveal JSON key paths in current editor
-contents. CLI plugin/marketplace changes show the exact command before execution. SharpRail’s own integration
+contents. CLI plugin/marketplace changes show the exact command before execution. tereditor’s own integration
 is loaded only for app-started Claude processes through `--plugin-dir`; activation never installs or updates it in Claude’s user settings.
 
 ## Status and recovery
 
 Activation owns the process poll, bridge, terminal environment, revive hook and status route.
 Disable removes them and stops reading Claude configuration and polling processes. Nested agents
-do not replace an outer terminal agent record, and the descendant search never descends through another SharpRail app (`SharpRail.UI`/`SharpRail` process), so agents in a nested SharpRail's terminals never mark the outer tab. The poll skips zombie processes (`ps` state Z): an agent that exited
+do not replace an outer terminal agent record, and the descendant search never descends through another tereditor app (`Tereditor.UI`/`tereditor` process), so agents in a nested tereditor's terminals never mark the outer tab. The poll skips zombie processes (`ps` state Z): an agent that exited
 but is not yet reaped keeps its name, and must still clear its record.
 
 The status URL includes a host-minted terminal token. Its POST resolves the terminal, reads known
@@ -371,7 +371,7 @@ you", "Claude finished", "Claude hit an error", with the reported project); the 
 summary, response, query or error type, else a pointer to the terminal. Hydrated snapshot rows and
 facts-only pushes never ask, an interrupted run settles idle and so stays silent, and a request is
 dropped when the terminal's status has moved on before it is shown. Whether it is shown is core's
-decision: only while no SharpRail window is focused and the host's notification setting is on.
+decision: only while no tereditor window is focused and the host's notification setting is on.
 Interrupts fire no CLI hook, so the host polls the transcript's last conversation turn, ignoring
 bookkeeping and rejecting markers older than the current running turn.
 
@@ -383,7 +383,7 @@ with every character but an ASCII letter or digit as ->/<session>.jsonl` (`Agent
 verified against claude 2.1.308, which also resolves the cwd's symlinks): a tab's record id plus its
 directory names its transcript before the file exists.
 
-Session ids are SharpRail's. Every launch that starts a new conversation (no `--continue`, `--resume`,
+Session ids are tereditor's. Every launch that starts a new conversation (no `--continue`, `--resume`,
 `--teleport`, `--fork-session`, `--session-id` or `--print` among its arguments) gets a fresh UUID as
 `--session-id <uuid>`, placed before any positional prompt. Process detection reads the id from the
 command line (`--session-id`, or `--resume` with an id; never a fork) the moment it sees the new process,
@@ -407,7 +407,7 @@ hook contributes submit without consuming this plugin's text.
 The bridge writes a private discovery lock and checks its token before upgrading a connection.
 An agent identifies its process before gaining a workspace. From then on it hears only that
 workspace's selections and its tool calls act there, whichever workspace the user touched last; a
-session SharpRail did not start takes the workspace of the last selection. Selections are kept per
+session tereditor did not start takes the workspace of the last selection. Selections are kept per
 workspace. Selection and document-close events, and a client reading a workspace's terminal
 statuses, remember the owning app client; IDE actions are addressed to that client and open in the
 window showing the workspace.
@@ -455,7 +455,7 @@ believed the result; no authoritative live source for a session's model or effor
 and the popup showed rendering glitches. Gone with them: the menus, the model-list discovery and its host cache
 (`modelListGet`/`modelListPut`), the optimistic `effort_switch` update, the draft guard and `PickerChip`. The chip builder is shared (`TerminalFacts.OpenerChip` in Agent.UI, also used by Codex's terminal). A click on
 either chip only opens Claude's own picker: `ClaudeTerminalAccessory.OpenPicker` types `/model` or `/effort` plus Enter
-once and focuses the terminal, and the user chooses with the arrow keys inside Claude. SharpRail never types a
+once and focuses the terminal, and the user chooses with the arrow keys inside Claude. tereditor never types a
 selection and keeps no state for it. Before typing, the click reads the bottom 24 rows of the screen off the UI thread (`ITerminalAccessoryApi.ReadScreenTailAsync`, faint placeholder cells omitted) and `PromptGuard.Classify` decides: an empty prompt box types as above; a draft (text after `❯`, or text between the prompt line and the box's bottom border, including an open slash-command menu's `/…`) types nothing and notifies "Clear the prompt first: it holds a draft."; no prompt box (an open picker row `❯ 1.`, an unknown screen) types nothing and notifies "Not at the prompt.". The same guard covers the `/ide` chip. After the read the click checks the tab is still the same and the session not Running. Claude's own placeholder is `Message @agent…`. The chips are disabled with a tooltip while the session is Running, and their
 automation names are `Open model picker` and `Open effort picker`. Launch-time model and effort (launcher, Settings
 defaults, `--model`/`--effort`) are untouched. The `/ide` switch still types its command under a `HoldInput()` hold.
@@ -473,7 +473,7 @@ carry code-intelligence guidance to every session and subagent (the plugin's `co
 `THINKRAIL_MCP_URL`): a short reminder naming `lsp_navigate` and `lsp_diagnostics` at session and subagent start, and a
 rate-limited advisory note on code-symbol searches. The note never carries a permission decision and the script always exits 0. Every launcher command receives
 `--plugin-dir` using a host-provided directory, even when the prompt appendix is disabled. Revived
-sessions use the current build’s directory, replacing an old SharpRail-owned path while preserving
+sessions use the current build’s directory, replacing an old tereditor-owned path while preserving
 other plugin directories. Paths are quoted for the launcher’s shell. There is no install/update
 prompt, marketplace registration, user-settings edit or background cache maintenance for this
 integration. Existing user-installed copies are not removed. Reports POST rather than emitting
@@ -481,8 +481,8 @@ OSC 777, which unrelated terminals interpret as user notifications.
 
 ## Chat mode (UI)
 
-The chat view and its wire records are not part of this plugin: they live in `SharpRail.Plugins.Chat` (contract) and
-`SharpRail.Plugins.Chat.UI` (view), described in `src/SharpRail.Plugins.Chat/SPEC.md`, so another agent protocol can reuse them. This
+The chat view and its wire records are not part of this plugin: they live in `Tereditor.Plugins.Chat` (contract) and
+`Tereditor.Plugins.Chat.UI` (view), described in `src/Tereditor.Plugins.Chat/SPEC.md`, so another agent protocol can reuse them. This
 plugin gives the view a `ChatAgent` (`ClaudeChat`): its names, the `claude-chat` document scheme and icon, the effort levels, the CLI's
 permission modes and the help link; it keeps the launcher (`ChatLauncher`) and its settings. The rows below describe the shared view.
 
@@ -511,11 +511,11 @@ The chat view follows ThinkRail's web chat (`apps/web/src/chat`) in layout and v
 | `virtualRows`, `rowHeightEstimates`, `readingBand`, `scrollGeometry`, `useChatScroll` | `ChatList`: one drawn surface inside a scroll viewer, as the kit's trees draw; only the rows near the viewport are laid out and drawn, none owns a control | row heights are measured (kept by item, revision and width) or estimated by `ChatRowEstimates`, so the scrollbar is sized from guesses refined as rows come into view; the reading band (a line a tenth of the viewport, 48 to 80 pixels, below the top) names the row and offset into it that is put back when heights above change, rows are inserted or removed, the width changes or the tab is shown again; stick-to-bottom with jump to latest; item stubs expose a list of items to assistive technology |
 | text selection (the webview's native selection) | `ChatList` keeps a selection layer over the drawn rows: anchor and focus are a row id and a character offset into the row's selectable text (its text runs joined by a line break), so they survive virtualization, streaming growth and height changes; highlight is painted from `TextLayout` hit-test ranges with `Ui.TextSelection`; drag within and across rows with edge auto-scroll, double click a word, triple click a paragraph or line, Shift+click extends, Cmd/Ctrl+A selects the transcript, Cmd/Ctrl+C and a context menu Copy put the plain text on the clipboard; a link activates on release only when the pointer did not drag; rows far from the viewport are read in short slices for copy and are never kept | the plan card's `SelectableTextBlock` with Comment on selection sends `ChatPlanComment(quote, comment)` |
 | tool call card (3.2 to 3.5), thinking blocks (3.3) | `ToolCards` holds the words and `ChatRowLayout.Tool` draws them: a status dot (accent while pending, red for a failed call, warning for a denied one, green otherwise; drawn still, not blinking), a bold name and a monospace secondary text per tool as in the extension's table (Bash description else command; `Read basename (lines a-b)` or `(from line n)`; Edit and Write basename; `Glob pattern: "p"`; `Grep "p" (in path, glob: g, type: t)`; `<skill> skill`; `Update Todos`; `Web Fetch url`; `Web Search query`; `Edit Notebook Cell file:cell`; `Artifact path`; `Sent files`; `Agent: description`; MCP `<Server humanised> [<tool>]` with the first present of query, message, channel (as `#channel`), repo, url (hostname), path, title, search, text, cut with an ellipsis at 40 characters, 30 for text; `Claude in Chrome [Tool]`), a secondary line under it (Edit: added, removed or `Modified` from the line counts, `Edit failed`; Write: its line count while running, `Write succeeded`, `Write failed`; Glob, Grep and Search: `No matches found`, `1 line of output`, `N lines of output`; NotebookEdit status; `Fetched from url`; WebSearch `Allowed: .. \u00B7 Blocked: ..`), and, when the card is open, the IN and OUT rows: a label, then the text in a bordered box clipped to 60 pixels with a fade, which opens whole in a dialog titled `<Tool> tool input` or `output` (an output the wire cut is fetched first) when it is over 250 characters or three lines. The Agent card has IN (the prompt) only and `Open thread`; Read, Skill, Edit, Write, Grep, Glob, Search, WebFetch, WebSearch, Artifact and SendUserFile have no IN or OUT of their own (a failed call still shows its OUT); `ToolSearch` is never drawn; every other tool is the generic card with the input as indented JSON. A thinking block is collapsed, `Thinking...` with ` \u00B7 N tokens` while it streams, `Thought for Ns` (rounded seconds from `ChatThinkingItem.DurationMs`) after and `Thinking` when no duration is known (a transcript replay); one without text is a static label | the extension's `Edit` line for an equal count of added and removed lines is read as `Modified`; the header of a card is a single line, not clamped to two |
-| composer and chrome (4.1 to 4.9) | Shift+Tab (anywhere in the view) cycles `ChatHeader.PermissionModes` (the machine's own list when the host sent none), and the mode button's tooltip is `<description>. Click to change, or press Shift+Tab to cycle.`; the `/` menu groups entries under Context, Model, Customize, Settings, Slash Commands, Support and MCP servers in that order (a CLI command sits in its `ChatCommand.Section`, an unknown section follows Slash Commands, `No matching commands` when none match), with a `/` button titled `Show command menu (/)`; finished `@path`, `@"path with spaces"` and `#L10-20` mentions show as removable chips above the input; the context pie shows only with under 50% of the window left, its tooltip `N% of context remaining until auto-compact.` and a click sends `/compact`; the working word is `ChatHeader.Activity` with `...` (`Compacting...`); `ChatHeader.Banner` is a dismissible banner remembered by its key; Rewind opens a dialog titled `Rewind` that shows `Checking code changes…` from `chatRewindPreview`, then `N lines will be removed and M lines will be added across K files:` with the files and `Rewinding does not affect files edited manually or via bash.`, or `The code has not changed, so no code will be restored.`, with `Restore conversation` / `Restore code and conversation` and `Never mind`; the `Waiting for permission…` and `Waiting for your answer…` placeholders are the extension's; Esc interrupts a running turn from anywhere unless a request is waiting, a menu is open or the history overlay is; bash mode: a `!` typed first into an empty box (when the header has `CanRunShell`) turns it into a shell prompt (a bold accent `!` before the input, the placeholder `Run a shell command`), the `/` and `@` menus and mention chips are off, Enter runs the command instead of sending it and the box returns to messages, Up and Down recall the commands run in the chat, and Esc (taking priority over interrupting the turn) or Backspace on an empty box leaves the mode, Esc keeping the text; a draft in bash mode is kept on this client only (with a leading `!`) and never shared; the command's card shows `! command`, its state (`running…`, `stopped`, `exit N`) and Stop while it runs, and cannot be folded while it runs | built-in menu actions are only Attach file…, Resume conversation, New conversation, Switch model… and View help docs (Customize and Settings are empty unless the host names them; omitted because SharpRail has no honest equivalent: Clear conversation and Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account, Mention file from this project); the pie's window is the context window less the output the model may reserve (at most 20,000 tokens) and a 13,000-token buffer, the extension's own constants (`Pf5` and `_v0` in its bundle); the stats bar with its five-cell context meter stays beside the pie; mentions are chips beside a plain-text input, not inside it; past conversations have no Web tab, groups or archive; wording that is not the extension's is listed under Neutral phrases below |
+| composer and chrome (4.1 to 4.9) | Shift+Tab (anywhere in the view) cycles `ChatHeader.PermissionModes` (the machine's own list when the host sent none), and the mode button's tooltip is `<description>. Click to change, or press Shift+Tab to cycle.`; the `/` menu groups entries under Context, Model, Customize, Settings, Slash Commands, Support and MCP servers in that order (a CLI command sits in its `ChatCommand.Section`, an unknown section follows Slash Commands, `No matching commands` when none match), with a `/` button titled `Show command menu (/)`; finished `@path`, `@"path with spaces"` and `#L10-20` mentions show as removable chips above the input; the context pie shows only with under 50% of the window left, its tooltip `N% of context remaining until auto-compact.` and a click sends `/compact`; the working word is `ChatHeader.Activity` with `...` (`Compacting...`); `ChatHeader.Banner` is a dismissible banner remembered by its key; Rewind opens a dialog titled `Rewind` that shows `Checking code changes…` from `chatRewindPreview`, then `N lines will be removed and M lines will be added across K files:` with the files and `Rewinding does not affect files edited manually or via bash.`, or `The code has not changed, so no code will be restored.`, with `Restore conversation` / `Restore code and conversation` and `Never mind`; the `Waiting for permission…` and `Waiting for your answer…` placeholders are the extension's; Esc interrupts a running turn from anywhere unless a request is waiting, a menu is open or the history overlay is; bash mode: a `!` typed first into an empty box (when the header has `CanRunShell`) turns it into a shell prompt (a bold accent `!` before the input, the placeholder `Run a shell command`), the `/` and `@` menus and mention chips are off, Enter runs the command instead of sending it and the box returns to messages, Up and Down recall the commands run in the chat, and Esc (taking priority over interrupting the turn) or Backspace on an empty box leaves the mode, Esc keeping the text; a draft in bash mode is kept on this client only (with a leading `!`) and never shared; the command's card shows `! command`, its state (`running…`, `stopped`, `exit N`) and Stop while it runs, and cannot be folded while it runs | built-in menu actions are only Attach file…, Resume conversation, New conversation, Switch model… and View help docs (Customize and Settings are empty unless the host names them; omitted because tereditor has no honest equivalent: Clear conversation and Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account, Mention file from this project); the pie's window is the context window less the output the model may reserve (at most 20,000 tokens) and a 13,000-token buffer, the extension's own constants (`Pf5` and `_v0` in its bundle); the stats bar with its five-cell context meter stays beside the pie; mentions are chips beside a plain-text input, not inside it; past conversations have no Web tab, groups or archive; wording that is not the extension's is listed under Neutral phrases below |
 | `AskUserQuestionCard`, `askState` | question panel above the composer for `ChatQuestionItem`: tabs for several questions, single and multi select, `Type your answer…`, `Submit answers` and `No` through `chatAnswerQuestion`, Esc declines; a single-select question where an option has `Preview` shows a side pane after a 150 ms hover (the Markdown, or `No preview for this option`); answered, the row in the list folds to the answers | the draft lives in the transcript, so it survives the row's replacement; a multi-select question never shows the pane |
 | permission request | one panel above the composer, first in first out, the list dimmed behind it: the extension's question per tool, `Yes` / `Yes, allow ...` / `No` answered with 1, 2, 3 or Enter, Left and Right choosing where the rule is saved, a reason box, Esc declines, an editable Bash command | the request leaves no row of its own; the tool's card stays in the list |
 | failure, compaction, retry and restart notices | by `ChatNoticeItem.Category`: a failure card with Try again (the last prompt sent again) when retryable, a rule for compaction, quiet lines for retry and restart | |
-| `RequestReviewCard` | a review tool's verdict (tool name ending `request_review`, a JSON output with `verdict`, `itemTitle` and `findings`) reads as a summary line and the findings | the other SharpRail review cards (`ResolveCommentCard`, `SpecToolCard`) are ordinary tool cards: their results are not shaped for it in a chat's tool output |
+| `RequestReviewCard` | a review tool's verdict (tool name ending `request_review`, a JSON output with `verdict`, `itemTitle` and `findings`) reads as a summary line and the findings | the other tereditor review cards (`ResolveCommentCard`, `SpecToolCard`) are ordinary tool cards: their results are not shaped for it in a chat's tool output |
 
 ### Attachments and paste
 
@@ -545,7 +545,7 @@ A pick in the question panel repaints in place: the option marks (fixed-size, sa
 
 ### Past conversations
 
-The flyout lists the host's sessions newest first under Today, Yesterday, Previous 7 days and Older (local calendar days), one fixed-height line each: the title ellipsized, small markers (`this chat`, `open in another tab`, and `chat` when a SharpRail chat started the session), and a quiet right-aligned time (`5m ago`, `3h ago`, `Yesterday`, `3d ago`, then `Sep 25` or `Sep 25, 2025`) with the full local date and time in the tooltip. It is bounded like the command menu and virtualized. One session has one child: `ChatSessionInfo.ChatId` names the chat of the workspace that runs a session, choosing such a session focuses that tab, choosing this chat's own does nothing, and `chatOpen` refuses a resume of a session another chat of the workspace runs (`That conversation is already open in another tab (chat <id>).`). `ChatSessionInfo.StartedIn` is `chat` when the host has a chat record for the session; it cannot say where any other session began, so a terminal session carries no label. The host derives each title from the session's first real prompt as one line: whitespace collapses, `<command-name>` wrappers read as the command with its arguments, `<local-command-…>` output and the local-command caveat are skipped, and 120 characters at most. The launcher's Resume a session… (`--resume`, with or without `--fork-session`) opens this same list (`ChatView.BuildSessionList`, search box, buckets, rows) anchored on the launcher control instead of a plain menu.
+The flyout lists the host's sessions newest first under Today, Yesterday, Previous 7 days and Older (local calendar days), one fixed-height line each: the title ellipsized, small markers (`this chat`, `open in another tab`, and `chat` when a tereditor chat started the session), and a quiet right-aligned time (`5m ago`, `3h ago`, `Yesterday`, `3d ago`, then `Sep 25` or `Sep 25, 2025`) with the full local date and time in the tooltip. It is bounded like the command menu and virtualized. One session has one child: `ChatSessionInfo.ChatId` names the chat of the workspace that runs a session, choosing such a session focuses that tab, choosing this chat's own does nothing, and `chatOpen` refuses a resume of a session another chat of the workspace runs (`That conversation is already open in another tab (chat <id>).`). `ChatSessionInfo.StartedIn` is `chat` when the host has a chat record for the session; it cannot say where any other session began, so a terminal session carries no label. The host derives each title from the session's first real prompt as one line: whitespace collapses, `<command-name>` wrappers read as the command with its arguments, `<local-command-…>` output and the local-command caveat are skipped, and 120 characters at most. The launcher's Resume a session… (`--resume`, with or without `--fork-session`) opens this same list (`ChatView.BuildSessionList`, search box, buckets, rows) anchored on the launcher control instead of a plain menu.
 
 ### Hover and focus in the drawn list
 
@@ -574,9 +574,9 @@ Left out on purpose, with the reason:
 
 - Focus view: a setting that is off by default and replaces the transcript with a summary list; the list here is already virtualized and grouped.
 - Ratings and bookmarks on replies: they report to the vendor and persist to a store the contract has no place for.
-- The Web (remote sessions) tab, session groups and archive: they need claude.ai accounts and state SharpRail does not hold.
+- The Web (remote sessions) tab, session groups and archive: they need claude.ai accounts and state tereditor does not hold.
 - Mentions as chips inside the input: the input is a plain text box; finished mentions show as removable chips above it instead.
-- Built-in slash actions SharpRail cannot honestly do: Clear conversation, Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account and Mention file from this project. The menu offers Attach file…, Resume conversation, New conversation, Switch model… and View help docs.
+- Built-in slash actions tereditor cannot honestly do: Clear conversation, Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account and Mention file from this project. The menu offers Attach file…, Resume conversation, New conversation, Switch model… and View help docs.
 - Side questions, the browser and terminal collaborators, pasted-content tokens and the per-row timestamps.
 
 Neutral phrases made up here (checked against the webview spec and its bundle; the extension's own wording is used wherever it exists there): `The code cannot be restored to this point.` (a refusal without a reason), `Couldn't check the code: …`, `Couldn't list sessions: …`, `Working · Ns` (the extension's visible busy word was not found; its screen-reader strings are `Claude is working.` and `Compacting conversation.`), the Rewind dialog's title `Rewind`, `Comment on selection`, `Open thread`, `Open diff: <path>`, `Load full output`, `Jump to latest`, `Send options`, `Stop and send`, `Queue`, `Thinking...` with `· N tokens` (the extension shows `Thinking…` in its activity line and the spec gives `Thinking...` for the block), `1 line` / `N lines` in the secondary lines (the spec writes `line(s)`), `Skills`, `attach file`. Recovered from the bundle and used as is: `No preview for this option`, `Checking code changes…`, `The code has not changed, so no code will be restored.`, `N lines will be removed and M lines will be added across K files:`, `Rewinding does not affect files edited manually or via bash.`, `Never mind`, `Restore conversation` and `Restore code and conversation` (the extension's third choice, `Restore code`, is not offered because `chatRewind` always drops the later turns), `Search sessions…`, `Loading sessions…`, `No sessions yet`, `No sessions found`, `Waiting for permission…`, `Waiting for your answer…`, `Open a new conversation in a new tab or the sidebar`, `Type your answer…`, `Submit answers`, `No, keep planning`, `Send feedback and keep planning`. Still unrecoverable: the extension's visible streaming word, its exact empty-state for a failed session list, and whether `Edit` shows `Modified` for an equal count of added and removed lines.
@@ -591,24 +591,24 @@ spec-amendment documents, `asking-user-questions`, `spec-graph`, `writing-specs`
 `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr` with its
 phase documents, and `add-highlighting`.
 The highlighting skill prepares importable TextMate JSON grammars and filename patterns
-for Settings › Highlighting without modifying SharpRail's state files. Five more are the fork's
+for Settings › Highlighting without modifying tereditor's state files. Five more are the fork's
 `packages/pi-thinkrail-workflow/skills` at `3b7c7d589`; the routing, brainstorming and question skills
 are JetBrains ThinkRail's at `be06fb019` (its design interview with the bug branch, explicit rejected
 alternatives and promotion into durable specs), and `spec-graph` is its `packages/spec-graph` skill.
 Upstream ships them to pi only, so delivery to
-this CLI is SharpRail's own. Their single source is `src/SharpRail.Plugins.Agent.Skills`, staged into
+this CLI is tereditor's own. Their single source is `src/Tereditor.Plugins.Agent.Skills`, staged into
 the plugin at build and shared with the Codex plugin; neither plugin references the other.
 
-The text differs from the fork's only where pi's was untrue here: the app is SharpRail, pi's
+The text differs from the fork's only where pi's was untrue here: the app is tereditor, pi's
 `ask_user_question`, `read`, `edit`, `web_search` and `fetch_content` become the session's own means
 (a question tool when the CLI has one, else a numbered plain message), the router names no
-skill-authoring skill, the task-spec lives at `TASK-<slug>.md` in the repository root (untracked, deleted when the task lands; `spec_create` stays inside the project), and working files go to `$SHARPRAIL_SCRATCH_DIR`
-(`SHARPRAIL_SCRATCH_DIR`, the workspace's directory under `<state>/scratch/<project>/`, created by the host, set in every terminal and passed to the session as `--add-dir`), else a
+skill-authoring skill, the task-spec lives at `TASK-<slug>.md` in the repository root (untracked, deleted when the task lands; `spec_create` stays inside the project), and working files go to `$TEREDITOR_SCRATCH_DIR`
+(`TEREDITOR_SCRATCH_DIR`, the workspace's directory under `<state>/scratch/<project>/`, created by the host, set in every terminal and passed to the session as `--add-dir`), else a
 temporary directory outside the repository. The spec, routing and brainstorming skills follow the prompt's rule: their
 descriptions offer them only when the user asks for specs or the project keeps a spec graph, and the
 dispatcher stops when the `spec_*` tools are absent.
 
-The skills are available to Claude processes launched by SharpRail through the bundled directory;
+The skills are available to Claude processes launched by tereditor through the bundled directory;
 manual Claude invocations receive them only when independently configured. Loading the directory
 uses this build’s assets directly, without a separate installed-cache version refresh.
 
@@ -649,7 +649,7 @@ Paths are relative to the agent's directory where possible and quoted when they 
 control characters. The workbench resolves host paths and uploads client-local files for remote sessions.
 
 Account and terminal fact, usage, plan, picker, attachment and IDE-toggle components
-come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract values and
+come from `Tereditor.Plugins.Agent.UI`. The plugin adapts its own contract values and
 retains all provider state and commands; generic settings controls remain kit-owned.
 
 Start work includes host image paths in the opening prompt with instructions to read the attached image files. The first agent task title names an untouched generated managed workspace through `set_title`.
@@ -669,7 +669,7 @@ workspace path, the `workspace` rule and the navigation/diagnostics/status guida
 Capabilities explicitly lists `lsp_navigate`, `lsp_diagnostics` and `lsp_status`, their workspace/subagent
 routing, and the LSP management pane. It identifies the bundled Claude plugin MCP declaration as the
 connection source and explains installation/enabling rather than claiming an unchecked live connection.
-Its configuration guidance follows the [workbench](../SharpRail.UI/SPEC.md#language-intelligence).
+Its configuration guidance follows the [workbench](../Tereditor.UI/SPEC.md#language-intelligence).
 
 Agent instructions request `lsp_diagnostics` with `paths` for every edited file or
 `scope: "workspace"` for project source files, including unopened files. Agents must inspect
@@ -686,11 +686,11 @@ The system prompt advertises workspace LSP configuration inspection, save and ta
 including library settings and clangd compiler configuration. Saved configuration is visible in
 the workspace LSP pane and copied independently from Default for new workspaces.
 
-A separate paragraph of the system prompt documents the project's `.sharprail/language.toml` (portable
-server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
+A separate paragraph of the system prompt documents the project's `.tereditor/language.toml` (portable
+server options shared through the project; see the [language services](../Tereditor.Host.Core/Language/SPEC.md#project-language-file)
 spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
-The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal appends its workspace's composition, less the sections its project turns off, from `<stateDir>/claude-code/workspaces/<hash>.md` (`SHARPRAIL_CLAUDE_PROMPT_FILE`).
+The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.tereditor/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal appends its workspace's composition, less the sections its project turns off, from `<stateDir>/claude-code/workspaces/<hash>.md` (`TEREDITOR_CLAUDE_PROMPT_FILE`).
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import

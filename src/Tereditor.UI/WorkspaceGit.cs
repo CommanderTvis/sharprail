@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -10,7 +10,7 @@ public sealed partial class WorkbenchWindow
     private string? gitError;
     // A worktree list change arrived while the mount's Git load was running: load again once it lands instead of cancelling it.
     private bool gitStale;
-    private SharpRail.Host.Abstractions.BranchCatalog gitBranches = new([], [], "");
+    private Tereditor.Host.Abstractions.BranchCatalog gitBranches = new([], [], "");
 
     private void RememberGitSelection()
     {
@@ -61,7 +61,7 @@ public sealed partial class WorkbenchWindow
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             var branches = snapshot.IsRepository
                 ? await Task.Run(async () => await host.ListBranchesAsync(false, token), token)
-                : new SharpRail.Host.Abstractions.BranchCatalog([], [], "");
+                : new Tereditor.Host.Abstractions.BranchCatalog([], [], "");
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             git = snapshot;
             gitBranches = branches;
@@ -74,10 +74,10 @@ public sealed partial class WorkbenchWindow
             startupMilestones?.Complete(request, "git");
             ReloadStaleGit(request);
             _ = RefreshWorkspaceStatsAsync(request);
-            ConsiderSharprailExclude(request, snapshot);
+            ConsiderTereditorExclude(request, snapshot);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (SharpRail.Host.Abstractions.HostException error) when (error.Code == SharpRail.Host.Abstractions.HostErrorCode.UnknownCommit && commit is not null)
+        catch (Tereditor.Host.Abstractions.HostException error) when (error.Code == Tereditor.Host.Abstractions.HostErrorCode.UnknownCommit && commit is not null)
         {
             // The commit left the branch between the catalog read and the snapshot.
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit.Sha != selectedCommit?.Sha) return;

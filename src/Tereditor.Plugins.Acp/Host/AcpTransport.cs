@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>What starts an agent: the program, its arguments and environment, and the directory it runs in.</summary>
 internal sealed record AcpLaunch(string Command, IReadOnlyList<string> Args, IReadOnlyDictionary<string, string> Env, string Cwd);

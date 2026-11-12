@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Counts the system calls behind secure keyboard entry instead of making them: checks must never take the machine's
@@ -163,7 +163,7 @@ internal static class SecureInputChecks
             // The Edit menu is the way to toggle_secure_input.
             Require(!secure.Manual, "The toggle starts off.");
             b.FocusTerminal(); Settle();
-            var native = SharpRail.UI.ApplicationMenu.SecureKeyboardEntry(secure);
+            var native = Tereditor.UI.ApplicationMenu.SecureKeyboardEntry(secure);
             secure.Toggle();
             Until(() => secure.Manual && secure.Enabled);
             Require(viewB.SecureInputShown, "The manually toggled terminal shows the lock while it has focus.");

@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// One <c>codex app-server</c> stdio connection: initialization, request ids, line framing, bounded requests and
@@ -55,7 +55,7 @@ public sealed partial class CodexAppServer
         {
             if (!OperatingSystem.IsWindows())
             {
-                start.FileName = Path.Combine(AppContext.BaseDirectory, "sharprail-codex-process-group");
+                start.FileName = Path.Combine(AppContext.BaseDirectory, "tereditor-codex-process-group");
                 start.ArgumentList.Insert(0, ResolveUnixExecutable(executable, start.WorkingDirectory));
             }
             child = Process.Start(start) ?? throw new InvalidOperationException("Could not start Codex app-server.");
@@ -82,7 +82,7 @@ public sealed partial class CodexAppServer
     {
         try
         {
-            await SendRequestAsync("initialize", new JsonObject { ["clientInfo"] = new JsonObject { ["name"] = "sharprail", ["title"] = "SharpRail", ["version"] = "0.1.0" } });
+            await SendRequestAsync("initialize", new JsonObject { ["clientInfo"] = new JsonObject { ["name"] = "tereditor", ["title"] = "tereditor", ["version"] = "0.1.0" } });
             Send(new JsonObject { ["method"] = "initialized", ["params"] = new JsonObject() });
         }
         catch (Exception error) { Fail(error); }

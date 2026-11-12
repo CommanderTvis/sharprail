@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>Renders Mermaid source to SVG through Merman's C ABI.</summary>
 public static class MermaidRenderer
@@ -175,7 +175,7 @@ public static class MermaidRenderer
 
     private static class Native
     {
-        private const string Library = "SharpRailMermaid";
+        private const string Library = "TereditorMermaid";
         [DllImport(Library, EntryPoint = "merman_render_svg")]
         internal static extern MermanResult RenderSvg(byte[] source, nuint sourceLength, byte[] options, nuint optionsLength);
         [DllImport(Library, EntryPoint = "merman_buffer_free")]

@@ -10,16 +10,16 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The host's plugin runtime: manifest intake, discovery, the registry and reconciler, activation ids, drain and
@@ -187,7 +187,7 @@ internal static partial class PluginHostChecks
     internal const string ExternalRefusal = "External plugins are not supported in this version.";
 
     /// <summary>The fixture plugin's host half, composed as a builtin the way the host composes its own.</summary>
-    internal static (PluginManifest, PluginHostModule?) Fixture() => (SharpRail.PluginFixture.FixtureContract.Manifest, new SharpRail.PluginFixture.FixtureHost());
+    internal static (PluginManifest, PluginHostModule?) Fixture() => (Tereditor.PluginFixture.FixtureContract.Manifest, new Tereditor.PluginFixture.FixtureHost());
 
     /// <summary>
     /// Writes an external plugin directory under <paramref name="pluginsRoot"/>: a manifest named after
@@ -245,7 +245,7 @@ internal static partial class PluginHostChecks
         var found = PluginDiscovery.Discover([root, Path.Combine(directory, "missing-root")]).ToDictionary(item => Path.GetFileName(item.Directory));
         Require(found["outsider"].Manifest?.Id == "outsider", "A valid manifest under a directory named after its id is discovered.");
         Require(found["broken"].Refused?.StartsWith("invalid manifest:", StringComparison.Ordinal) == true, "An unreadable manifest is refused, not skipped: " + found["broken"].Refused);
-        Require(found["empty"].Refused?.StartsWith("cannot read sharprail-plugin.json", StringComparison.Ordinal) == true, "A directory with no manifest is refused, not skipped.");
+        Require(found["empty"].Refused?.StartsWith("cannot read tereditor-plugin.json", StringComparison.Ordinal) == true, "A directory with no manifest is refused, not skipped.");
         Require(found["linked"].Refused?.Contains("symbolic link", StringComparison.Ordinal) == true && found["linked"].Manifest is null,
             "A symlinked plugin directory is refused rather than followed.");
         Require(!found.ContainsKey("loose-file") && found.Count == 4, "Only directories are plugins, and a missing root is skipped.");
@@ -342,7 +342,7 @@ internal static partial class PluginHostChecks
             await host.Enable("blueprint");
             Require((await host.Row("spec-dialect")).Status == PluginStatus.Active && (await host.Row("blueprint")).Status == PluginStatus.Active, "An explicit stored enabled state must be honoured headless.");
         }
-        // A run that opts in (what SHARPRAIL_TOOLS_ENABLE does) turns the two on in memory; a stored choice still beats it.
+        // A run that opts in (what TEREDITOR_TOOLS_ENABLE does) turns the two on in memory; a stored choice still beats it.
         var optedIn = headless.Select(plugin => optIn.Contains(plugin.Manifest.Id) ? (plugin.Manifest with { HeadlessEnabledByDefault = true }, plugin.Host) : plugin).ToArray();
         await using (var host = await Compose(Path.Combine(directory, "opted-in"), optedIn, seams => seams with { Kind = HostKind.Headless }))
         {
@@ -367,7 +367,7 @@ internal static partial class PluginHostChecks
             await host.Set([.. all.Select(plugin => HostStateChange.PluginEnabled(plugin.Manifest.Id, true))]);
             var roster = (await host.Runtime.ListAsync()).ToDictionary(entry => entry.Id);
             Require(roster.Values.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared), "A plugin without Headless = Yes activated on a headless host.");
-            Require(roster["claude-code"] is { Status: PluginStatus.Refused, Reason: "plugin claude-code is not available in headless SharpRail" }, "A refused plugin names headless SharpRail: " + roster["claude-code"].Reason);
+            Require(roster["claude-code"] is { Status: PluginStatus.Refused, Reason: "plugin claude-code is not available in headless tereditor" }, "A refused plugin names headless tereditor: " + roster["claude-code"].Reason);
         }
         // A headless plugin built on one that is not headless is refused with it.
         (PluginManifest, PluginHostModule?)[] pair = [
@@ -409,11 +409,11 @@ internal static partial class PluginHostChecks
             Require(LanguageMcpTools.Create(web.State, directory).Count == 6, "A pure web host with a server keeps the lsp_* MCP tools.");
             var prompt = web.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
             Require(Mentions(prompt) && Partial(prompt) && !prompt.Any(text => text.Contains("NEVER conclude a file type has no LSP", StringComparison.Ordinal)), "A pure web host's agents are told which servers exist and that others do not.");
-            SharpRail.UI.LanguageSupport.Update(roster);
-            Require(SharpRail.UI.LanguageSupport.Available && SharpRail.UI.LanguageSupport.Serves("src/site.css") && SharpRail.UI.LanguageSupport.Serves("a.SCSS"), "The UI keeps its language features for CSS files.");
-            Require(!SharpRail.UI.LanguageSupport.Serves("Program.cs") && !SharpRail.UI.LanguageSupport.Serves("app.ts") && !SharpRail.UI.LanguageSupport.Serves("README.md"), "The UI offers no language feature for a file no available server owns.");
-            SharpRail.UI.LanguageSupport.Update([.. roster.Select(entry => entry with { Status = PluginStatus.Refused })]);
-            Require(!SharpRail.UI.LanguageSupport.Available, "With every server refused, the UI has no Code Intelligence.");
+            Tereditor.UI.LanguageSupport.Update(roster);
+            Require(Tereditor.UI.LanguageSupport.Available && Tereditor.UI.LanguageSupport.Serves("src/site.css") && Tereditor.UI.LanguageSupport.Serves("a.SCSS"), "The UI keeps its language features for CSS files.");
+            Require(!Tereditor.UI.LanguageSupport.Serves("Program.cs") && !Tereditor.UI.LanguageSupport.Serves("app.ts") && !Tereditor.UI.LanguageSupport.Serves("README.md"), "The UI offers no language feature for a file no available server owns.");
+            Tereditor.UI.LanguageSupport.Update([.. roster.Select(entry => entry with { Status = PluginStatus.Refused })]);
+            Require(!Tereditor.UI.LanguageSupport.Available, "With every server refused, the UI has no Code Intelligence.");
         }
         await using var native = await Compose(Path.Combine(directory, "native"), builtins);
         await native.Runtime.Schedule();
@@ -422,8 +422,8 @@ internal static partial class PluginHostChecks
         Require(LanguageMcpTools.Create(native.State, directory).Select(tool => tool.Name).Order().SequenceEqual(["lsp_code_actions", "lsp_diagnostics", "lsp_format", "lsp_navigate", "lsp_rename", "lsp_status"]), "A host with an operating system keeps the lsp_* MCP tools.");
         var nativePrompt = native.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
         Require(Mentions(nativePrompt) && !Partial(nativePrompt), "A host with an operating system tells agents about its full catalog.");
-        SharpRail.UI.LanguageSupport.Update(active);
-        Require(SharpRail.UI.LanguageSupport.Available && SharpRail.UI.LanguageSupport.Serves("Program.cs"), "The UI keeps its language features on a host that runs language servers.");
+        Tereditor.UI.LanguageSupport.Update(active);
+        Require(Tereditor.UI.LanguageSupport.Available && Tereditor.UI.LanguageSupport.Serves("Program.cs"), "The UI keeps its language features on a host that runs language servers.");
         Console.WriteLine("PASS language servers by host kind: a pure web host runs only CSS, offers features only for CSS files and tells agents so; an OS host keeps everything");
     }
 
@@ -888,7 +888,7 @@ internal static partial class PluginHostChecks
                 await stranger.ListAsync();
                 throw new InvalidOperationException("The plugin service accepted a bad token.");
             }
-            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
+            catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode == Tereditor.Host.Protocol.StatusCode.Unauthenticated) { }
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS external plugins: refused when enabled without loading, assets only served, builtin id clash, dependents refused, rescan, generation and dependency refusals");
@@ -954,7 +954,7 @@ internal static partial class PluginHostChecks
             await state.ChangeAsync([HostStateChange.PluginSettings("fixture", """{"greeting":5}""")]);
             throw new InvalidOperationException($"{mode}: an invalid namespace was accepted.");
         }
-        catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+        catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
 
         var workspace = "workspace-" + mode;
         await using (var mine = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", Wire(new { workspace }), "client"))))
@@ -1032,14 +1032,14 @@ internal static partial class PluginHostChecks
                 await project.ReadFileAsync(hidden);
                 throw new InvalidOperationException($"{mode}: an unexposed absolute file was read.");
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or Tereditor.Host.Protocol.RpcException) { }
             await enable(false);
             try
             {
                 await project.ReadFileAsync(exposed);
                 throw new InvalidOperationException($"{mode}: a disabled plugin's file was still readable.");
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or Tereditor.Host.Protocol.RpcException) { }
         }
 
         await using (var composed = await Compose(Path.Combine(directory, "local"), [(Manifest("exposer", true), Exposer())]))
@@ -1082,7 +1082,7 @@ internal static partial class PluginHostChecks
         Module Reviver() => new(Contract("reviver", Say), activation =>
         {
             context = activation;
-            activation.TerminalEnvironment(terminal => new Dictionary<string, string> { ["SHARPRAIL_PROBE"] = terminal.TabKey });
+            activation.TerminalEnvironment(terminal => new Dictionary<string, string> { ["TEREDITOR_PROBE"] = terminal.TabKey });
             activation.RevivePrefill((terminal, record) => record.Kind == "probe-agent" ? new RevivePrefill(Submit: true) : null);
             activation.RevivePrefill((terminal, record) => record.Kind == "probe-agent" ? new RevivePrefill(record.Command) : null);
             activation.RevivePrefill((_, _) => new RevivePrefill("must not replace the first text"));
@@ -1118,7 +1118,7 @@ internal static partial class PluginHostChecks
                 await Until(() => { lock (text) return Task.FromResult(Regex.IsMatch(text.ToString(), pattern)); }, "terminal output " + pattern + ": " + text);
                 lock (text) return Regex.Match(text.ToString(), pattern).Groups[1].Value;
             }
-            await attached.WriteAsync("printf 'ENV_%s_%s_\\n' \"$SHARPRAIL_PROBE\" \"$SHARPRAIL_FIXTURE\"\r"u8.ToArray());
+            await attached.WriteAsync("printf 'ENV_%s_%s_\\n' \"$TEREDITOR_PROBE\" \"$TEREDITOR_FIXTURE\"\r"u8.ToArray());
             await Await("ENV_tab-1_1_");
             context.WriteTerminal(tab, "printf 'HOST_%s_\\n' written\r");
             await Await("HOST_written_");
@@ -1157,7 +1157,7 @@ internal static partial class PluginHostChecks
         finally { await attached.DisposeAsync(); }
         await pty.CloseAsync(session);
         Require(composed.State.Current.TerminalAgents.Count == 0, "Closing the tab drops its agent record.");
-        await Until(() => { lock (events) return Task.FromResult(events.OfType<SharpRail.Plugins.Api.Host.TerminalClosed>().Any(closed => closed.Terminal == tab)); }, "the close event");
+        await Until(() => { lock (events) return Task.FromResult(events.OfType<Tereditor.Plugins.Api.Host.TerminalClosed>().Any(closed => closed.Terminal == tab)); }, "the close event");
 
         // Over WebSocket RPC the tab key rides the attach and the resume offer rides host state.
         var remoteDirectory = Path.Combine(directory, "remote");

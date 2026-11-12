@@ -1,7 +1,7 @@
-using SharpRail.Performance;
+using Tereditor.Performance;
 
 var root = Directory.GetCurrentDirectory();
-while (!File.Exists(Path.Combine(root, "SharpRail.slnx"))) root = Directory.GetParent(root)?.FullName ?? throw new IOException("Run inside the SharpRail checkout.");
+while (!File.Exists(Path.Combine(root, "Tereditor.slnx"))) root = Directory.GetParent(root)?.FullName ?? throw new IOException("Run inside the tereditor checkout.");
 var dotnet = Environment.GetEnvironmentVariable("DOTNET") ?? "dotnet";
 var command = args.FirstOrDefault() ?? "help";
 var options = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -67,7 +67,7 @@ try
         case "self-test": SelfTests.Run(); break;
         default:
             Console.WriteLine("""
-                SharpRail macOS startup and initial RAM toolkit
+                tereditor macOS startup and initial RAM toolkit
                   scripts/mise run perf -- publish
                   scripts/mise run perf -- measure [--warmups 1] [--repetitions 10] [--modes embedded,remote] [--memory-delay-ms 5000] [--output PATH]
                   scripts/mise run perf -- diagnose [--output PATH]

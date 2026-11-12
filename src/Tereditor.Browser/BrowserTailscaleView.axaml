@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Browser.BrowserTailscaleView">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.UI.Browser.BrowserTailscaleView">
   <StackPanel Spacing="12">
     <TextBlock Text="Tailscale" FontSize="20" />
-    <TextBlock Text="This browser joins your tailnet as its own device, then pairs with a host running SharpRail's Tailscale plugin." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <TextBlock Text="This browser joins your tailnet as its own device, then pairs with a host running tereditor's Tailscale plugin." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <StackPanel x:Name="TailscaleDownloadPanel" Spacing="12" IsVisible="False">
       <TextBlock Text="Tailscale is downloaded from this server once and kept by this browser." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       <Button x:Name="TailscaleDownload" Classes="primary" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />

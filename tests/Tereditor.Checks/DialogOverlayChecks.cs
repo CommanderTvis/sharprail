@@ -5,13 +5,13 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Dialogs shown by the shared host live in the workbench window like Settings: no owned window, so clicking the owner has nothing
@@ -40,7 +40,7 @@ internal static class DialogOverlayChecks
         var activations = 0;
         EventHandler count = (_, _) => activations++;
         window.Activated += count; window.Deactivated += count;
-        var overlays = window.GetVisualDescendants().OfType<SharpRail.UI.OverlayHost>().Count();
+        var overlays = window.GetVisualDescendants().OfType<Tereditor.UI.OverlayHost>().Count();
         var cloned = new List<(string Url, string Parent, string Folder, int? Depth)>();
         var task = Dialogs.CloneProject(window, "/parent", null, (url, parent, folder, depth) =>
         {
@@ -53,7 +53,7 @@ internal static class DialogOverlayChecks
             "The Clone repository dialog opens inside the window, not as an owned window.");
         var closed = 0;
         dialog.Closed += (_, _) => closed++;
-        var scrims = window.GetVisualDescendants().OfType<Border>().Count(border => ReferenceEquals(border.Background, SharpRail.Plugins.UI.Kit.Ui.Overlay));
+        var scrims = window.GetVisualDescendants().OfType<Border>().Count(border => ReferenceEquals(border.Background, Tereditor.Plugins.UI.Kit.Ui.Overlay));
         var before = activations;
         // Clicking the owner outside the card is what flickered an owned window; here nothing is re-ordered or re-created.
         foreach (var point in new[] { new Point(3, 3), new Point(window.Bounds.Width - 3, window.Bounds.Height - 3) })
@@ -64,8 +64,8 @@ internal static class DialogOverlayChecks
         Require(DialogWindow.On(window).Count == 1 && ReferenceEquals(Single(window), dialog) && closed == 0 && window.OwnedWindows.Count == 0,
             "Clicking outside the dialog neither closes nor re-creates it.");
         Require(activations == before, $"Clicking outside the dialog activates or deactivates nothing, saw {activations - before} events.");
-        Require(window.GetVisualDescendants().OfType<Border>().Count(border => ReferenceEquals(border.Background, SharpRail.Plugins.UI.Kit.Ui.Overlay)) == scrims
-            && window.GetVisualDescendants().OfType<SharpRail.UI.OverlayHost>().Count() == overlays + 1, "Clicking outside adds and removes no scrim or layer.");
+        Require(window.GetVisualDescendants().OfType<Border>().Count(border => ReferenceEquals(border.Background, Tereditor.Plugins.UI.Kit.Ui.Overlay)) == scrims
+            && window.GetVisualDescendants().OfType<Tereditor.UI.OverlayHost>().Count() == overlays + 1, "Clicking outside adds and removes no scrim or layer.");
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         Find<TextBox>("CloneProjectUrl").Text = "https://example.com/team/sample.git";
         Find<TextBox>("CloneProjectDepth").Text = "1";
@@ -74,7 +74,7 @@ internal static class DialogOverlayChecks
         Until(() => task.IsCompleted);
         Require(task.Result == Path.Combine("/parent", "sample") && cloned.Single() == ("https://example.com/team/sample.git", "/parent", "sample", 1),
             "The Clone repository result and its inputs flow back to the caller unchanged.");
-        Until(() => DialogWindow.On(window).Count == 0 && window.GetVisualDescendants().OfType<SharpRail.UI.OverlayHost>().Count() == overlays);
+        Until(() => DialogWindow.On(window).Count == 0 && window.GetVisualDescendants().OfType<Tereditor.UI.OverlayHost>().Count() == overlays);
         Require(closed == 1, "The dialog closed once.");
         window.Activated -= count; window.Deactivated -= count;
     }
@@ -145,8 +145,8 @@ internal static class DialogOverlayChecks
             ("DiscardUnsaved", () => Dialogs.DiscardUnsaved(window, "a.cs", "main", "disk full")),
             ("SettingValue", () => SettingValueDialog.ShowAsync(window, new SettingValueDialogOptions("Check", "key", null, [], "Save"))),
             ("PathBrowser", () => new PathBrowserDialog("Choose", "/", (path, _) => Task.FromResult(new PathBrowserFolder(path, path, null, null, []))).ShowAsync(window)),
-            ("ExistingWorktree", () => new ExistingWorktreeDialog(() => Task.FromResult<IReadOnlyList<SharpRail.Host.Abstractions.ExistingWorktree>>([]), _ => throw new InvalidOperationException()).ShowAsync(window)),
-            ("Search", () => new SearchDialog((_, _) => Task.FromResult(new SharpRail.Host.Abstractions.SearchHits([], false))).ShowAsync(window)),
+            ("ExistingWorktree", () => new ExistingWorktreeDialog(() => Task.FromResult<IReadOnlyList<Tereditor.Host.Abstractions.ExistingWorktree>>([]), _ => throw new InvalidOperationException()).ShowAsync(window)),
+            ("Search", () => new SearchDialog((_, _) => Task.FromResult(new Tereditor.Host.Abstractions.SearchHits([], false))).ShowAsync(window)),
             ("About", () => { var about = Dialogs.About(window); return Task.CompletedTask; }),
         };
         foreach (var (name, open) in families)

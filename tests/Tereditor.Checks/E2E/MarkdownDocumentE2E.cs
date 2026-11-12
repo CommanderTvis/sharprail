@@ -6,9 +6,9 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// The fork's Markdown document cases: frontmatter properties, spec titles and [[links]], the outline, the
@@ -100,7 +100,7 @@ internal static class MarkdownDocumentE2E
         using var app = OpenDocument(root, "frontmatter-properties", "props.md", "---\ntitle: Green talk\ntags:\n  - talk\n  - latex\n---\n\n# Notes\n");
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         var block = All<Border>(preview, "FrontmatterProperties").Single();
-        if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+        if (Tereditor.Scintilla.ScintillaEditor.IsSupported)
             Require(All<FrontmatterField>(block, "FrontmatterValue").First().GetLogicalDescendants().OfType<AutoCompleteBox>().Single().Text == "Green talk", "The title property must show its value.");
         else
             Require(Text(block).Contains("Green talk", StringComparison.Ordinal) && !All<FrontmatterField>(block, "FrontmatterValue").Any(),
@@ -164,7 +164,7 @@ internal static class MarkdownDocumentE2E
     {
         const string original = "---\ntitle: Green talk\ntags: [talk, latex]\ntype: module-design\n---\n\n# Notes\n";
         using var app = OpenDocument(root, "frontmatter-editing", "props.md", original);
-        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
+        if (!Tereditor.Scintilla.ScintillaEditor.IsSupported)
         {
             var preview = app.Find<MarkdownPreview>("MarkdownPreview");
             Require(!preview.GetLogicalDescendants().OfType<FrontmatterEditor>().Any() &&
@@ -188,12 +188,12 @@ internal static class MarkdownDocumentE2E
                 Require(!input.IsFocused, "Enter commits and blurs a scalar field, as in the fork.");
         }
         string Source() => app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!
-            .GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single().Text;
+            .GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single().Text;
         Edit("FrontmatterValue", "Amber talk");
         Require(Source().Contains("title: Amber talk", StringComparison.Ordinal) && File.ReadAllText(Path.Combine(app.Root, "props.md")) == original,
             "A preview edit changes the unsaved source draft without writing disk.");
         var source = app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!
-            .GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single();
+            .GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single();
         Require(source.IsModified, "Preview edits make the tab dirty.");
         source.Undo(); Settle(250);
         Require(source.Text == original && !source.IsModified, "Undo restores the original save point.");
@@ -268,11 +268,11 @@ internal static class MarkdownDocumentE2E
         Edit("FrontmatterValue", "Unsaved conflict");
         File.WriteAllText(Path.Combine(app.Root, "props.md"), "# External replacement\n");
         Settle(250);
-        var save = ((SharpRail.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).SaveAsync();
+        var save = ((Tereditor.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).SaveAsync();
         Until(() => save.IsCompleted);
         Require(source.IsModified && Source().Contains("Unsaved conflict", StringComparison.Ordinal) && File.ReadAllText(Path.Combine(app.Root, "props.md")) == "# External replacement\n",
             "A preview draft keeps the normal save conflict check and never overwrites external edits.");
-        ((SharpRail.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).Discard();
+        ((Tereditor.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).Discard();
         Require(!source.IsModified, "The conflict fixture must close without leaving an unsaved-buffer dialog alive.");
         Console.WriteLine("PASS fork frontmatter.spec.ts: editable drafts, undo, cancel, list chips, rename, type suggestions, shape conversion, mapping entries, add/remove and save");
     }
@@ -334,7 +334,7 @@ internal static class MarkdownDocumentE2E
         var source = app.Find<Control>("MarkdownSource");
         Settle(100);
         app.Click(All<Button>(outline, "OutlineEntry").Last());
-        Until(() => source is SharpRail.Scintilla.ScintillaEditor editor ? editor.FirstVisibleLine > 0 : ((ScrollViewer)source).Offset.Y > 0);
+        Until(() => source is Tereditor.Scintilla.ScintillaEditor editor ? editor.FirstVisibleLine > 0 : ((ScrollViewer)source).Offset.Y > 0);
         Console.WriteLine("PASS fork outlineTree: the outline sits at the pane's edge in every view and jumps both preview and source");
     }
 
@@ -348,7 +348,7 @@ internal static class MarkdownDocumentE2E
         Settle(100);
         Require(source.IsEffectivelyVisible && preview.IsEffectivelyVisible && source.Bounds.Width > 100 && preview.Bounds.Width > 100 &&
             source.TranslatePoint(new Point(), preview)!.Value.X < 0, "Split must show the source beside its preview.");
-        if (source is SharpRail.Scintilla.ScintillaEditor editor)
+        if (source is Tereditor.Scintilla.ScintillaEditor editor)
         {
             editor.Focus();
             editor.SelectAll();
@@ -374,23 +374,23 @@ internal static class MarkdownDocumentE2E
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Settle(100);
         Require(!source.IsEffectivelyVisible && preview.IsEffectivelyVisible, "Preview must show only the rendering.");
-        if (source is SharpRail.Scintilla.ScintillaEditor editable)
+        if (source is Tereditor.Scintilla.ScintillaEditor editable)
         {
             app.Click(app.Find<Button>("MarkdownSplitMode"));
             editable.Focus();
             app.Window.KeyTextInput("Unsaved before closing.\n");
             var group = app.Window.Layout.View.FocusedCenter;
             app.Window.Layout.Close(group, "markdown:README.md");
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
-            var prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+            var prompt = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
             var cancel = prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" });
             cancel.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Until(() => !prompt.IsShown());
             Require(app.Tabs.Any(tab => tab.Path == "README.md") && editable.Text.Contains("Unsaved before closing.", StringComparison.Ordinal),
                 "Cancelling a Markdown close must keep its unsaved buffer.");
             app.Window.Layout.Close(group, "markdown:README.md");
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
-            prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+            prompt = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
             prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Until(() => !app.Tabs.Any(tab => tab.Path == "README.md"));
@@ -402,14 +402,14 @@ internal static class MarkdownDocumentE2E
 
     private static void CursorFollow(string root)
     {
-        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
+        if (!Tereditor.Scintilla.ScintillaEditor.IsSupported) return;
         var text = "---\ntitle: Cursor following\n---\n\n" + string.Concat(Enumerable.Range(0, 45)
             .Select(index => $"## Section {index}\n\nParagraph {index} with Unicode café 👋.\n\n- Item {index}\n\n")) +
             "~~~cs\nvar final = 42;\n~~~\n";
         using var app = OpenDocument(root, "markdown-cursor-follow", "follow.md", text);
         app.Click(app.Find<Button>("MarkdownSplitMode"));
         var view = app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single();
-        var editor = app.Find<SharpRail.Scintilla.ScintillaEditor>("MarkdownSource");
+        var editor = app.Find<Tereditor.Scintilla.ScintillaEditor>("MarkdownSource");
         var toggle = app.Find<Avalonia.Controls.Primitives.ToggleButton>("MarkdownFollowCursor");
         Require(toggle.IsChecked == true && toggle.IsEffectivelyVisible, "Split must offer cursor following enabled by default.");
         void Move(string source)

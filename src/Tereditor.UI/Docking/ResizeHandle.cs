@@ -9,7 +9,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 public sealed class ResizeHandle : Border
 {

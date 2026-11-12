@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Panels;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class LanguageProjectChecks
 {
@@ -82,8 +82,8 @@ internal static class LanguageProjectChecks
 
     internal static void Ui(string fixture)
     {
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try
         {
             foreach (var remote in new[] { false, true })
@@ -125,8 +125,8 @@ internal static class LanguageProjectChecks
                     Require(edges.All(edge => Math.Abs(edge.Left - edges[0].Left) < 0.5), "The Files tree menu aligns labels differently with and without an icon: " + string.Join(", ", edges.Select(edge => $"{edge.Header}={edge.Left}")));
                     var configure = menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeLanguage_csharp");
                     app.Click(configure);
-                    E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Any());
-                    var settings = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Single();
+                    E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Any());
+                    var settings = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Single();
                     Require(settings.Title == "C# (Roslyn)" && settings.FindControl<TextBlock>("SettingsWorkspace")!.Text == root, "Folder settings target the wrong provider/workspace or misrepresent their scope.");
                     settings.Close();
                     var plain = (DrawnTreeLabel)app.FileRow("plain"); plain.OpenMenu();
@@ -173,6 +173,6 @@ internal static class LanguageProjectChecks
             LanguageChecks.CaptureLsp(reportedApp.Window, "reported-source-root");
             Console.WriteLine("PASS reported source-root UI: readable provider icon, explicit provenance and source-folder context actions");
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", previous); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", previous); }
     }
 }

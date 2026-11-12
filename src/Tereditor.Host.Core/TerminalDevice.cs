@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Terminal controls for a process whose standard streams are a terminal, such as the relay.
 public static class TerminalDevice

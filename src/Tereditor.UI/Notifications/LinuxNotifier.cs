@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 
-namespace SharpRail.UI.Notifications;
+namespace Tereditor.UI.Notifications;
 
 /// <summary>
 /// Linux notifications through <c>notify-send</c> (libnotify's command line tool, speaking the freedesktop notification
@@ -20,7 +20,7 @@ internal sealed class LinuxNotifier : IDesktopNotifier
         try
         {
             var start = new ProcessStartInfo("notify-send") { UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true };
-            foreach (var argument in new[] { "--app-name=SharpRail", "--", notification.Subtitle is { Length: > 0 } subtitle ? $"{notification.Title}: {subtitle}" : notification.Title, notification.Body })
+            foreach (var argument in new[] { "--app-name=tereditor", "--", notification.Subtitle is { Length: > 0 } subtitle ? $"{notification.Title}: {subtitle}" : notification.Title, notification.Body })
                 start.ArgumentList.Add(argument);
             using var process = Process.Start(start);
             process?.WaitForExit(5000);

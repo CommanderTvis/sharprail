@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-using ProviderPullRequest = SharpRail.Plugins.Api.Host.PullRequest;
+using ProviderPullRequest = Tereditor.Plugins.Api.Host.PullRequest;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The branch's remote state and its pull request's review facts and actions (ThinkRail #771 and #776). The host owns

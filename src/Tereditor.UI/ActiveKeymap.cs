@@ -1,9 +1,9 @@
 using Avalonia.Input;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The keymap this client runs: the active preset's chords per action, set from the host snapshot (<see cref="Set(HostState)"/>) and read by

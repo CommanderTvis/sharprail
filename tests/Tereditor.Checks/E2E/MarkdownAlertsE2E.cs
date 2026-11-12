@@ -3,9 +3,9 @@ using Avalonia.Controls.Documents;
 using Avalonia.LogicalTree;
 
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class MarkdownAlertsE2E
 {

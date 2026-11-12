@@ -7,11 +7,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class SelectionChecks
 {

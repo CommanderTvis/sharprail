@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 // A workflow's components. The CLI streams them as the workflow_progress array of a task_progress message: workflow_phase entries
 // (index, title), workflow_agent entries (index, label, phaseIndex, phaseTitle, state start/progress/done/error, startedAt, queuedAt,

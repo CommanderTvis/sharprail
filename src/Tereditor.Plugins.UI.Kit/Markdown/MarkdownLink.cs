@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>An inline link button whose baseline aligns with the text around it.</summary>
 public sealed class MarkdownLink(TextBlock label) : Button

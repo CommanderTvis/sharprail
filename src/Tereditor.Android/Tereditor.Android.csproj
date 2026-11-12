@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The Android client: the workbench of SharpRail.UI compiled for Android, composed as a client of a remote host.
+    The Android client: the workbench of Tereditor.UI compiled for Android, composed as a client of a remote host.
     It compiles the UI's sources rather than referencing its project, whose host-serving half needs ASP.NET Core.
   -->
   <PropertyGroup>
@@ -8,9 +8,9 @@
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
     <TargetFramework>net10.0-android</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AssemblyName>SharpRail.UI</AssemblyName>
-    <RootNamespace>SharpRail.UI</RootNamespace>
-    <ApplicationId>dev.thinkrail.sharprail</ApplicationId>
+    <AssemblyName>Tereditor.UI</AssemblyName>
+    <RootNamespace>Tereditor.UI</RootNamespace>
+    <ApplicationId>dev.thinkrail.tereditor</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>0.2.0</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
@@ -24,7 +24,7 @@
     <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
     <!-- The solution builds untrimmed (Directory.Build.props), and Android compiles ahead of time only what it trims. -->
     <RunAOTCompilation>false</RunAOTCompilation>
-    <UiSources>../SharpRail.UI/</UiSources>
+    <UiSources>../Tereditor.UI/</UiSources>
     <!-- The shared sources keep their desktop-only paths (the terminal relay child), which Android never reaches. -->
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
@@ -39,7 +39,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Tailscale/UI/Tereditor.Plugins.Tailscale.UI.csproj" />
     <!-- Android's implicit usings collide with Avalonia's control names throughout the shared sources. -->
     <Using Remove="Android.App" />
     <Using Remove="Android.Widget" />
@@ -49,30 +49,30 @@
     <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
-    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Core/Tereditor.Host.Core.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Client/Tereditor.Host.Client.csproj" />
+    <ProjectReference Include="../Tereditor.Scintilla/Tereditor.Scintilla.csproj" />
     <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.GitHub/UI/SharpRail.Plugins.GitHub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Epub/UI/SharpRail.Plugins.Epub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Review/UI/SharpRail.Plugins.Review.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Processes/UI/SharpRail.Plugins.Processes.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Acp/UI/SharpRail.Plugins.Acp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirGateway/UI/SharpRail.Plugins.AirGateway.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.SpecDialect/UI/Tereditor.Plugins.SpecDialect.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Blueprint/UI/Tereditor.Plugins.Blueprint.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Env/UI/Tereditor.Plugins.Env.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.GitHub/UI/Tereditor.Plugins.GitHub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Epub/UI/Tereditor.Plugins.Epub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.ClaudeCode/UI/Tereditor.Plugins.ClaudeCode.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Discord/UI/Tereditor.Plugins.Discord.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.BranchGraph/UI/Tereditor.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Review/UI/Tereditor.Plugins.Review.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Processes/UI/Tereditor.Plugins.Processes.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Visualize/UI/Tereditor.Plugins.Visualize.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Codex/UI/Tereditor.Plugins.Codex.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Omp/UI/Tereditor.Plugins.Omp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Pi/UI/Tereditor.Plugins.Pi.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Acp/UI/Tereditor.Plugins.Acp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Providers/UI/Tereditor.Plugins.Providers.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirGateway/UI/Tereditor.Plugins.AirGateway.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirContext/UI/Tereditor.Plugins.AirContext.UI.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Android" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
@@ -111,10 +111,10 @@
     <NativeAbi Include="arm64-v8a;x86_64" />
     <AndroidNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/build-android.sh;../../scripts/build-tailscale-android.sh;Tailscale.Native/*.go;Tailscale.Native/go.mod;Tailscale.Native/go.sum;../../mise.lock;../../mise.android.lock" />
     <!-- Outside a target, %(NativeAbi.Identity) is not batched: it stays literal text and the ABI cannot be read from the path (XA4301). -->
-    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/tailscale/%(Identity)/libSharpRailTailscale.so')" />
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/tailscale/%(Identity)/libTereditorTailscale.so')" />
     <AndroidNativeLibrary Include="@(NativeAbi->'$(GhosttyNativeCache)/android/%(Identity)/libGhosttyAvaloniaVt.so')" />
     <!-- Merman's .so (pinned in mise.android.lock) under the name MermaidRenderer's P/Invoke resolves; it has no SONAME. -->
-    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/native/android/%(Identity)/libSharpRailMermaid.so')" />
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/native/android/%(Identity)/libTereditorMermaid.so')" />
     <!-- The licenses and notices every distributed package carries (MIT, BSD and Apache require the notice to accompany copies). -->
     <AndroidAsset Include="../../LICENSE.md;../../NOTICE;../../THIRD-PARTY-NOTICES.md" LogicalName="licenses/%(Filename)%(Extension)" />
     <AndroidAsset Include="../../licenses/**" LogicalName="licenses/%(RecursiveDir)%(Filename)%(Extension)" />
@@ -131,7 +131,7 @@
       <Output TaskParameter="ConsoleOutput" PropertyName="MermanAndroidDirectory" />
     </Exec>
     <Copy SourceFiles="$(MermanAndroidDirectory)/jni/%(NativeAbi.Identity)/libmerman_ffi.so"
-          DestinationFiles="$(MSBuildProjectDirectory)/obj/native/android/%(NativeAbi.Identity)/libSharpRailMermaid.so" />
+          DestinationFiles="$(MSBuildProjectDirectory)/obj/native/android/%(NativeAbi.Identity)/libTereditorMermaid.so" />
   </Target>
   <!-- Avalonia's reference assemblies make its platform interfaces unimplementable; the implementation assemblies do not. -->
   <Target Name="UseAvaloniaImplementationAssemblies" AfterTargets="ResolveAssemblyReferences" BeforeTargets="PublicizeAssemblies">

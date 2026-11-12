@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>A language server in a Web Worker of this tab (<c>lsp*</c> in <c>tabhost.js</c>), reached as the framed bytes it would have on a pipe.</summary>
 internal sealed partial class TabLanguageServer : ILanguageProcess

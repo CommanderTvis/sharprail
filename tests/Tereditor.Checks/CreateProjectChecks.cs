@@ -8,12 +8,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Remote;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Remote;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class CreateProjectChecks
 {
@@ -44,8 +44,8 @@ internal static class CreateProjectChecks
         var menu = app.Find<Button>("AddProjectMenu").ContextMenu!;
         menu.Items.OfType<MenuItem>().Single(item => item.Name == "CreateProjectMenu").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         menu.Close();
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Create project"));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Create project");
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Create project"));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Create project");
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         var into = Find<TextBox>("CreateProjectParent");
         var name = Find<TextBox>("CreateProjectName");

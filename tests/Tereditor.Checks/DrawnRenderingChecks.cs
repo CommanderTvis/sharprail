@@ -9,9 +9,9 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
+using Tereditor.Checks.E2E;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class DrawnRenderingChecks
 {

@@ -4,8 +4,8 @@ set -eu
 #   libGhosttyAvaloniaView.dylib  embedded libghostty (1.4 line): AppKit view with Ghostty's Metal renderer
 #   libGhosttyAvaloniaVt.dylib    libghostty-vt terminal state behind the Skia renderer's C ABI
 #   resources/                    Ghostty's terminfo, used by the embedded view (its GPL-3.0 shell integration is not shipped;
-#                                 SharpRail injects its own)
-# The pinned sources, Zig caches and finished builds live in the machine-wide cache ($SHARPRAIL_CACHE_DIR/ghostty-avalonia,
+#                                 tereditor injects its own)
+# The pinned sources, Zig caches and finished builds live in the machine-wide cache ($TEREDITOR_CACHE_DIR/ghostty-avalonia,
 # shared with build-linux.sh and build-android.sh): each finished build is kept under results/<key>, the key hashing
 # everything the build reads, so checkouts on different branches never overwrite each other's libraries and a new worktree
 # copies an existing result instead of rebuilding. One lock serializes the builds of every checkout.
@@ -29,7 +29,7 @@ case "${1:-}" in
 esac
 . "$project/../../scripts/lock.sh"
 . "$project/../../scripts/native-cache.sh"
-work="$(sharprail_cache_dir)/ghostty-avalonia"
+work="$(tereditor_cache_dir)/ghostty-avalonia"
 mkdir -p "$work/results"
 work="$(cd "$work" && pwd -P)"
 

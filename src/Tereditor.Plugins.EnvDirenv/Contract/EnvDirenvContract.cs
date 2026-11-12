@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.EnvDirenv;
+namespace Tereditor.Plugins.EnvDirenv;
 
 public sealed record EnvDirenvSettings;
 
@@ -23,7 +23,7 @@ public static class EnvDirenvContract
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
-        Host = "SharpRail.Plugins.EnvDirenv.Host.dll"
+        Host = "Tereditor.Plugins.EnvDirenv.Host.dll"
     };
 }
 

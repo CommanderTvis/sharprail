@@ -4,9 +4,9 @@
     <AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../Contract/SharpRail.Plugins.Epub.csproj" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Contract/Tereditor.Plugins.Epub.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
 </Project>

@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.EnvMise.Host;
+namespace Tereditor.Plugins.EnvMise.Host;
 
 /// <summary>Applies <c>mise env --json</c> to a workspace's shell: the tool versions' PATH and the <c>[env]</c> table of its mise configuration.</summary>
 public sealed class EnvMiseHost : PluginHostModule

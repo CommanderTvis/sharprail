@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>A terminal tab every client of the host agrees exists; where a client shows it is that client's business.</summary>
 public sealed record TerminalTab(string Key, string Title)

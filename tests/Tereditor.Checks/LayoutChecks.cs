@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class LayoutChecks
 {
@@ -15,7 +15,7 @@ internal static class LayoutChecks
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
         var titles = new Dictionary<string, string> { ["terminal:initial"] = "Fix login" };
-        SharpRail.Host.Abstractions.TerminalTab[] catalog = [new("terminal:initial", "Terminal 1")];
+        Tereditor.Host.Abstractions.TerminalTab[] catalog = [new("terminal:initial", "Terminal 1")];
         session.ReconcileTerminals("one", catalog, new HashSet<string>(), titles: titles);
         session.SwitchWorkspace("two");
         session.ReconcileTerminals("two", catalog, new HashSet<string>());

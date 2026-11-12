@@ -3,11 +3,11 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServerSession
 {
@@ -52,7 +52,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     internal bool Exited => connection.Exited;
     internal int? ProcessId => connection.ProcessId;
     internal LanguageExit? ExitRecord => connection.ExitRecord;
-    /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
+    /// <summary>Names why tereditor is about to end this server, so its exit record explains the death.</summary>
     internal void Terminate(string reason, bool failure = false) => connection.Terminate(reason, failure);
     internal void SampleMemory() => connection.SampleMemory();
     private sealed record Document(string Text, int Version, string Owner, long ClientVersion, bool Dirty);
@@ -90,7 +90,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             var result = await session.connection.RequestAsync("initialize", new JsonObject
             {
                 ["processId"] = Environment.ProcessId,
-                ["clientInfo"] = new JsonObject { ["name"] = "SharpRail", ["version"] = "1.0" },
+                ["clientInfo"] = new JsonObject { ["name"] = "tereditor", ["version"] = "1.0" },
                 ["rootUri"] = UriOf(workspace + Path.DirectorySeparatorChar),
                 ["initializationOptions"] = initialization.DeepClone(),
                 ["workDoneToken"] = server.Spec.InitializeProgressToken,

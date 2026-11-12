@@ -12,13 +12,13 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Checks.E2E;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
+
+namespace Tereditor.Checks;
 
 internal static class IconChecks
 {
@@ -27,7 +27,7 @@ internal static class IconChecks
 
     internal static void Run()
     {
-        var root = new Uri("avares://SharpRail.Plugins.UI.Kit/Assets/Icons/");
+        var root = new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Icons/");
         var assets = AssetLoader.GetAssets(root, null).Where(uri => uri.AbsolutePath.EndsWith(".svg", StringComparison.Ordinal)).ToArray();
         Require(assets.Length == 78, "Every existing glyph alias plus Host's server, the terminal bell and the Chrome mark must have a vector asset.");
         foreach (var uri in assets)
@@ -80,7 +80,7 @@ internal static class IconChecks
         using var canvas = new SKCanvas(expected);
         canvas.Clear(SKColors.Transparent);
         canvas.Scale((float)(size * scale / 24));
-        using var stream = AssetLoader.Open(new Uri($"avares://SharpRail.Plugins.UI.Kit/Assets/Icons/{name}.svg"));
+        using var stream = AssetLoader.Open(new Uri($"avares://Tereditor.Plugins.UI.Kit/Assets/Icons/{name}.svg"));
         var svg = XDocument.Load(stream).Root!;
         using var paint = new SKPaint { Color = SKColors.White, IsAntialias = true };
         foreach (var element in svg.Elements().Where(element => element.Name.LocalName == "path"))

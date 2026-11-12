@@ -8,10 +8,10 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>
 /// The Specs side tool: a read-only parent tree over one workspace's graph, read from the store rather than fetched

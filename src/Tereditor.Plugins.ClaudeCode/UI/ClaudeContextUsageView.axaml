@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeContextUsageView"
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.ClaudeCode.UI.ClaudeContextUsageView"
              x:Name="ClaudeContextUsage">
   <!-- The baseline's state in one short line: measuring, when it was measured, or why it failed with a retry. -->
   <DockPanel x:Name="ClaudeContextStatus" Margin="8,4">

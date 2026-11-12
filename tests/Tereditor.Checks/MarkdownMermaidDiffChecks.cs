@@ -4,9 +4,9 @@ using Avalonia.Threading;
 
 using Markdig.Syntax;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class MarkdownMermaidDiffChecks
 {

@@ -7,12 +7,12 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class LayoutE2E
 {

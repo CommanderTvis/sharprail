@@ -5,11 +5,11 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Platform;
 
-using SharpRail.Scintilla;
-
 using SkiaSharp;
 
-namespace SharpRail.Plugins.UI.Kit.Editor;
+using Tereditor.Scintilla;
+
+namespace Tereditor.Plugins.UI.Kit.Editor;
 
 /// <summary>A Scintilla editor with the workbench's font, theme colours and auto-hiding scrollbars.</summary>
 public sealed partial class EditorFrame : UserControl
@@ -17,7 +17,7 @@ public sealed partial class EditorFrame : UserControl
     // Shared by every editor for the application's lifetime.
     private static readonly Lazy<SKTypeface> Typeface = new(() =>
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        using var stream = AssetLoader.Open(new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
         return SKTypeface.FromStream(stream);
     });
     private readonly ScrollBar vertical;

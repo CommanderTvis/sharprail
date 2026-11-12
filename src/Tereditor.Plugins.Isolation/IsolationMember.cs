@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>One entry of a generated member table (Security.SPEC.md, Calls across the boundary).</summary>
 /// <param name="Id">FNV-1a 32 of <paramref name="DocId"/>, the member id frames carry.</param>

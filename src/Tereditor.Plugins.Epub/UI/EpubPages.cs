@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Plugins.Epub.UI;
+namespace Tereditor.Plugins.Epub.UI;
 
 /// <summary>
 /// Splits the rendered book into viewport-sized pages. Breaks are found by sweeping the document from the top:

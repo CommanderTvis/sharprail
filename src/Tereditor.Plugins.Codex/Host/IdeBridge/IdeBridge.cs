@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Codex.Host.IdeBridge;
+namespace Tereditor.Plugins.Codex.Host.IdeBridge;
 
 /// <summary>
 /// Codex's private, version-0 <c>ide-context</c> provider: it joins (or owns) the router at <paramref name="path"/>,
@@ -20,7 +20,7 @@ public sealed class CodexIdeBridge : IDisposable
             {
                 ["type"] = "request",
                 ["requestId"] = Guid.NewGuid().ToString(),
-                ["sourceClientId"] = "sharprail",
+                ["sourceClientId"] = "tereditor",
                 ["method"] = "initialize",
                 ["version"] = 0,
                 // The router's editor-client vocabulary; wire compatibility, not a claim to run VS Code.

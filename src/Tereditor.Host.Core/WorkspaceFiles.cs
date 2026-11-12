@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class ProjectServices
 {

@@ -1,6 +1,6 @@
 using Avalonia.Media;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 /// <summary>A whole-line style: the text colour and an optional opaque band behind the line.</summary>
 public sealed record ScintillaLineStyle(Color Foreground, Color? Background = null)

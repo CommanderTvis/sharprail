@@ -2,20 +2,20 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class HostServingE2E
 {
     internal static void Run(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "host-serving-ui"), serving: true);
-        object? Session() => typeof(SharpRail.UI.WorkbenchWindow).GetField("host", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(app.Window);
+        object? Session() => typeof(Tereditor.UI.WorkbenchWindow).GetField("host", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(app.Window);
         var host = Session();
         var document = app.Find<Control>("FilesTree");
         using var peer = app.NewWindow();

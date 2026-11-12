@@ -1,15 +1,15 @@
 using System.Net;
 
-using SharpRail.Host.Remote;
+using Tereditor.Host.Remote;
 
-var root = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? Directory.GetCurrentDirectory();
-var bind = IPAddress.Parse(Environment.GetEnvironmentVariable("SHARPRAIL_BIND") ?? "127.0.0.1");
-var port = int.Parse(Environment.GetEnvironmentVariable("SHARPRAIL_PORT") ?? "54123");
-var token = Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? throw new InvalidOperationException("Set SHARPRAIL_TOKEN.");
+var root = Environment.GetEnvironmentVariable("TEREDITOR_ROOT") ?? Directory.GetCurrentDirectory();
+var bind = IPAddress.Parse(Environment.GetEnvironmentVariable("TEREDITOR_BIND") ?? "127.0.0.1");
+var port = int.Parse(Environment.GetEnvironmentVariable("TEREDITOR_PORT") ?? "54123");
+var token = Environment.GetEnvironmentVariable("TEREDITOR_TOKEN") ?? throw new InvalidOperationException("Set TEREDITOR_TOKEN.");
 // Shared settings, projects and labels persist on the host machine, apart from any local app state.
-var state = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR") ??
-    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "host");
-await using var app = RemoteServer.Create(root, bind, port, token, state, browserRoot: Environment.GetEnvironmentVariable("SHARPRAIL_BROWSER_ROOT"), headlessLanguageMcp: Environment.GetEnvironmentVariable("SHARPRAIL_HEADLESS_MCP") == "1");
+var state = Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR") ??
+    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor", "host");
+await using var app = RemoteServer.Create(root, bind, port, token, state, browserRoot: Environment.GetEnvironmentVariable("TEREDITOR_BROWSER_ROOT"), headlessLanguageMcp: Environment.GetEnvironmentVariable("TEREDITOR_HEADLESS_MCP") == "1");
 await app.StartAsync();
-Console.WriteLine($"SHARPRAIL_HOST_READY {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
+Console.WriteLine($"TEREDITOR_HOST_READY {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
 await app.WaitForShutdownAsync();

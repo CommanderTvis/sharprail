@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Tailscale.Host;
+namespace Tereditor.Plugins.Tailscale.Host;
 
 internal sealed record ApprovedDevice(string Hash, string NodeId, string Name, string User);
 internal sealed record PendingDevice(ApprovedDevice Device, DateTimeOffset Expires, bool Rejected = false);

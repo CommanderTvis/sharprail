@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Chat.UI;
+using Tereditor.Plugins.Chat.UI;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>What the shared chat view needs to know about an ACP agent: its words and document.</summary>
 internal static class AcpChat

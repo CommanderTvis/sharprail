@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 public sealed partial class DockSurface
 {

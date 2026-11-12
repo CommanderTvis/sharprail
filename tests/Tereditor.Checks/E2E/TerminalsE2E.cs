@@ -5,13 +5,13 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Terminal;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Translates upstream e2e/terminals.spec.ts. Headless tabs run real host PTY sessions (/bin/sh);
 // commands print split markers so the typed command line never satisfies an output assertion.
@@ -82,7 +82,7 @@ internal static class TerminalsE2E
         app.Click(chrome.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
     }
 
-    private static DialogWindow? Dialog(E2eWorkspace app) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().SingleOrDefault();
+    private static DialogWindow? Dialog(E2eWorkspace app) => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().SingleOrDefault();
 
     private static bool Busy(TerminalView view) => view.IsBusyAsync().AsTask().GetAwaiter().GetResult();
 
@@ -235,7 +235,7 @@ internal static class TerminalsE2E
         Console.WriteLine("PASS upstream terminals.spec.ts: the terminal's shell counts characters, not bytes");
     }
 
-    // SharpRail has no Project Home page; its project row opens the default workspace, which unmounts
+    // tereditor has no Project Home page; its project row opens the default workspace, which unmounts
     // the worktree's terminal panel the same way.
     private static void ProjectHomeTrip(string root)
     {

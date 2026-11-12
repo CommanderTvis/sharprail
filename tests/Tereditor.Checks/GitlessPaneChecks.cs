@@ -1,13 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Plugins.BranchGraph;
-using SharpRail.UI.Docking;
+using Tereditor.Checks.E2E;
+using Tereditor.Plugins.BranchGraph;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class GitlessPaneChecks
 {

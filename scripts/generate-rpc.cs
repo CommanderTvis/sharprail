@@ -11,7 +11,7 @@ string[] Sorted(string directory, string pattern) => Directory.GetFiles(director
 int Fail(string message) { Console.Error.WriteLine(message); Environment.Exit(1); return 1; }
 
 var services = new OrderedDictionary<string, List<(string Kind, string Reply, string Method, string Request, string Arg)>>();
-foreach (var path in Sorted("src/SharpRail.Host.Protocol", "*Contract.cs"))
+foreach (var path in Sorted("src/Tereditor.Host.Protocol", "*Contract.cs"))
 {
     var source = Read(path);
     var match = Regex.Match(source, @"public (?:partial )?interface (I\w+Rpc)");
@@ -20,11 +20,11 @@ foreach (var path in Sorted("src/SharpRail.Host.Protocol", "*Contract.cs"))
     foreach (Match m in Regex.Matches(source, @"(ValueTask|IAsyncEnumerable)<(\w+)> (\w+)\((IAsyncEnumerable<\w+>|\w+) (\w+), CallContext context = default\);"))
         list.Add((m.Groups[1].Value, m.Groups[2].Value, m.Groups[3].Value, m.Groups[4].Value, m.Groups[5].Value));
 }
-var client = new StringBuilder(Header + "namespace SharpRail.Host.Protocol;\n\npublic static class RpcServices\n{\n    public static T Create<T>(IRpcClient client) => (T)(object)(typeof(T).Name switch\n    {\n");
+var client = new StringBuilder(Header + "namespace Tereditor.Host.Protocol;\n\npublic static class RpcServices\n{\n    public static T Create<T>(IRpcClient client) => (T)(object)(typeof(T).Name switch\n    {\n");
 foreach (var service in services.Keys)
     client.Append($"        nameof({service}) => new {service[1..]}Client(client),\n");
 client.Append("        _ => throw new NotSupportedException(typeof(T).FullName)\n    });\n");
-var server = new StringBuilder(Header + "using SharpRail.Host.Protocol;\n\nnamespace SharpRail.Host.Remote;\n\ninternal static class RpcDispatch\n{\n    internal static async Task Run(IServiceProvider services, RpcStream stream, RpcFrame open)\n    {\n        var context = stream.Context(open.Method);\n        switch (open.Method)\n        {\n");
+var server = new StringBuilder(Header + "using Tereditor.Host.Protocol;\n\nnamespace Tereditor.Host.Remote;\n\ninternal static class RpcDispatch\n{\n    internal static async Task Run(IServiceProvider services, RpcStream stream, RpcFrame open)\n    {\n        var context = stream.Context(open.Method);\n        switch (open.Method)\n        {\n");
 foreach (var (service, methods) in services)
 {
     client.Append($"    private sealed class {service[1..]}Client(IRpcClient client) : {service}\n    {{\n");
@@ -66,17 +66,17 @@ server.Append("""
 }
 
 """);
-File.WriteAllText("src/SharpRail.Host.Protocol/RpcServices.Generated.cs", client.ToString().TrimEnd(), utf8);
-File.WriteAllText("src/SharpRail.Host.Remote/RpcDispatch.Generated.cs", server.ToString().TrimEnd(), utf8);
+File.WriteAllText("src/Tereditor.Host.Protocol/RpcServices.Generated.cs", client.ToString().TrimEnd(), utf8);
+File.WriteAllText("src/Tereditor.Host.Remote/RpcDispatch.Generated.cs", server.ToString().TrimEnd(), utf8);
 
 // The payload codec: one Write and one Read per [ProtoContract] class, byte-compatible with the
 // protobuf-net 2.4 encoding the protocol started with (see the Host.Protocol SPEC's codec section). Each root is
 // (project directory, namespace, codec file); the codec class is named after the file. The services above stay
-// Protocol-only; the plugin isolation channel (SharpRail.Plugins.Isolation) has messages and no services.
+// Protocol-only; the plugin isolation channel (Tereditor.Plugins.Isolation) has messages and no services.
 (string Directory, string Namespace, string Output)[] codecRoots =
 [
-    ("src/SharpRail.Host.Protocol", "SharpRail.Host.Protocol", "RpcCodec.Generated.cs"),
-    ("src/SharpRail.Plugins.Isolation", "SharpRail.Plugins.Isolation", "IsoCodec.Generated.cs"),
+    ("src/Tereditor.Host.Protocol", "Tereditor.Host.Protocol", "RpcCodec.Generated.cs"),
+    ("src/Tereditor.Plugins.Isolation", "Tereditor.Plugins.Isolation", "IsoCodec.Generated.cs"),
 ];
 var memberPattern = new Regex(@"^\s*\[ProtoMember\((\d+)(, IsRequired = true)?\)(?:, System\.ComponentModel\.DefaultValue\(([^)]*)\))?\] public (\S+(?:, \S+)?) (\w+) \{ get; set; \}(?: = [^;]+;)?$");
 var writes = new Dictionary<string, string> { ["int"] = "Int32", ["long"] = "Int64", ["bool"] = "Bool" };
@@ -133,7 +133,7 @@ void Generate(string directory, string ns, string output)
     }
 
     var codecClass = output[..^".Generated.cs".Length];
-    var codec = new StringBuilder(Header + $"#nullable enable\n\nusing SharpRail.Wire;\n\nnamespace {ns};\n\ninternal static class {codecClass}\n{{\n    internal static void Register()\n    {{\n");
+    var codec = new StringBuilder(Header + $"#nullable enable\n\nusing Tereditor.Wire;\n\nnamespace {ns};\n\ninternal static class {codecClass}\n{{\n    internal static void Register()\n    {{\n");
     foreach (var name in messages.Keys)
     {
         codec.Append($"        RpcMessage<{name}>.Write = Write{name};\n");

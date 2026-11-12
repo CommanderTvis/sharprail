@@ -7,12 +7,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Owns every terminal session for the lifetime of the host, and the catalog of terminal tabs its clients
 // share. Clients attach and detach; a shell ends only when its tab is closed, its workspace is removed, it
@@ -95,7 +95,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         memorySetting = terminalMemory;
         if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
         this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds; this.shellIntegration = shellIntegration;
-        clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
+        clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "tereditor-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
         Owned = new OwnedProcesses(recordingsDirectory is null ? null : Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory)));
         if (recordingsDirectory is null) return;
@@ -614,7 +614,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             throw new IOException(fromEnvironment
-                ? "Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart SharpRail, then retry."
+                ? "Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart tereditor, then retry."
                 : "Couldn’t start the configured shell. Check the host’s shell installation, then retry.", error);
         }
     }
@@ -634,10 +634,10 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         "CLAUDE_CODE_SSE_PORT", "CLAUDE_PID", "CLAUDE_EFFORT"
     ];
 
-    // Plugins name per-terminal status endpoints SHARPRAIL_*_STATUS_URL or THINKRAIL_*_STATUS_URL, so a plugin's variable is covered without listing it here.
+    // Plugins name per-terminal status endpoints TEREDITOR_*_STATUS_URL or THINKRAIL_*_STATUS_URL, so a plugin's variable is covered without listing it here.
     internal static bool IsTerminalIdentityVariable(string name) =>
         name.EndsWith("_STATUS_URL", StringComparison.Ordinal) &&
-        (name.StartsWith("SHARPRAIL_", StringComparison.Ordinal) || name.StartsWith("THINKRAIL_", StringComparison.Ordinal));
+        (name.StartsWith("TEREDITOR_", StringComparison.Ordinal) || name.StartsWith("THINKRAIL_", StringComparison.Ordinal));
 
     internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null, string shell = "") =>
         ShellEnvironment(mcpUrl, contributed, shell, null, out _);
@@ -653,14 +653,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             variables[(string)entry.Key] = (string?)entry.Value ?? "";
         // The host's session token authorizes this process; it must not reach user shells.
-        variables.Remove("SHARPRAIL_TOKEN");
+        variables.Remove("TEREDITOR_TOKEN");
         // An app launched from inside a Claude Code session inherits that session's identity; a Claude started in a
         // new terminal would take itself for its child and stop saving transcripts. Configuration variables stay.
         foreach (var marker in ClaudeSessionMarkers) variables.Remove(marker);
-        // An app started from a Ghostty or SharpRail terminal inherits integration variables; only the host's own injection sets them.
+        // An app started from a Ghostty or tereditor terminal inherits integration variables; only the host's own injection sets them.
         foreach (var key in variables.Keys.Where(key => key.StartsWith("GHOSTTY_", StringComparison.Ordinal) ||
             key.StartsWith(ShellIntegration.VariablePrefix, StringComparison.Ordinal)).ToArray()) variables.Remove(key);
-        // An outer SharpRail's per-terminal identity (status URLs carry the terminal's token) must not reach this host's
+        // An outer tereditor's per-terminal identity (status URLs carry the terminal's token) must not reach this host's
         // terminals: an inner agent's hooks would report to the outer tab. This host's own contributions are applied below.
         foreach (var key in variables.Keys.Where(IsTerminalIdentityVariable).ToArray()) variables.Remove(key);
         variables["TERM"] = "xterm-256color";
@@ -681,7 +681,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         }
         // Plugin contributions come after core's own variables, and never re-expose the host's token.
         foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
-            if (key.Length > 0 && !key.Equals("SHARPRAIL_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
+            if (key.Length > 0 && !key.Equals("TEREDITOR_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
         ShellEnvironmentHooks.Apply(variables, shell);
         if (integration is not null && ShellIntegration.For(shell, integration, variables) is { } injected)
         {
@@ -728,8 +728,8 @@ internal sealed class PtySession : ITerminalProcess
     private PtySession(string id, int master, int slave, int pid)
     {
         Id = id; this.master = master; this.slave = slave; this.pid = pid;
-        new Thread(Wait) { IsBackground = true, Name = "SharpRail PTY wait " + pid }.Start();
-        new Thread(Pump) { IsBackground = true, Name = "SharpRail PTY read " + pid }.Start();
+        new Thread(Wait) { IsBackground = true, Name = "tereditor PTY wait " + pid }.Start();
+        new Thread(Pump) { IsBackground = true, Name = "tereditor PTY read " + pid }.Start();
     }
 
     internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null,

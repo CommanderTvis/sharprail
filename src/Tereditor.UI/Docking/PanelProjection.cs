@@ -1,6 +1,6 @@
 // Constraint projection adapted from react-resizable-panels 2.1.9.
 // Copyright (c) 2023 Brian Vaughn; MIT license in licenses/React-Resizable-Panels.txt.
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 internal readonly record struct PanelConstraint(double Minimum, double Maximum = 1, bool Collapsible = false);
 

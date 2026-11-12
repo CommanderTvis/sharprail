@@ -5,10 +5,10 @@ using Avalonia.LogicalTree;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class MarkdownTableDiffChecks
 {

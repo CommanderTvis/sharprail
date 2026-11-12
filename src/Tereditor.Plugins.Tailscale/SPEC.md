@@ -11,7 +11,7 @@ tags: [plugins, tailscale]
 
 # Tailscale — host discovery and device pairing
 
-No upstream counterpart. Original SharpRail builtin plugin.
+No upstream counterpart. Original tereditor builtin plugin.
 
 ## Responsibility
 
@@ -22,7 +22,7 @@ CLI and requires an active connection. Missing CLI, disconnected Tailscale and p
 Settings › Tailscale. Disabling the plugin stops bootstrap and invalidates its grants for serving.
 
 The desktop picker discovers online peers through `tailscale status --json`, probes at most 256 of them
-with eight concurrent requests, and lists only SharpRail hosts. Android owns an embedded userspace
+with eight concurrent requests, and lists only tereditor hosts. Android owns an embedded userspace
 Tailscale node instead of reading another application's private peer list. It signs in through the system
 browser, retains its identity in app-private storage, enumerates online IPv4 peers from its own netmap and
 probes the same bootstrap endpoints. No separate Tailscale Android application, system VPN or OS MagicDNS
@@ -30,7 +30,7 @@ configuration is required. The Android adapter supplies ConnectivityManager snap
 avoiding restricted raw netlink enumeration and updating the same node on network changes.
 The browser client likewise owns a userspace node, a WebAssembly build downloaded only on request and cached per
 build, with its identity in IndexedDB; it dials discovery, pairing and RPC through the node as numeric tailnet
-streams (see the [Browser spec](../SharpRail.Browser/SPEC.md#tailscale)). Peer resolution and sign-in URL
+streams (see the [Browser spec](../Tereditor.Browser/SPEC.md#tailscale)). Peer resolution and sign-in URL
 filtering for such nodes are shared in `TailscalePeers`; the download state machine is `TailscaleWasmModule`.
 The shared picker accepts an injected client network for HTTP, name resolution
 and peer enumeration; desktop keeps its installed-CLI implementation. Embedded discovery returns numeric
@@ -92,7 +92,7 @@ Desktop Settings › Host opens a dedicated client instance; `--tailscale` opens
 Android connect screen offers Tailscale alongside manual entry and QR scanning of host codes. It opens browser sign-in
 only after an explicit action, then discovers hosts automatically. Administrator device approval, pending
 authentication, missing browser and connection errors remain visible with retry and sign-out controls.
-Sign-out logs the node out and forgets the matching SharpRail pairing and remembered endpoint token.
+Sign-out logs the node out and forgets the matching tereditor pairing and remembered endpoint token.
 Automatic startup restoration reconnects the remembered host, while opening the picker explicitly keeps
 host selection and sign-out available instead of immediately reopening that host. After discovery the
 picker selects the peer matching the host field (name, address or MagicDNS prefix, case-insensitive) without

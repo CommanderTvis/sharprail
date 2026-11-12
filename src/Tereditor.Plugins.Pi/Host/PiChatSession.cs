@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Pi.Host;
+namespace Tereditor.Plugins.Pi.Host;
 
 /// <summary>What starts a session: the executable, the directory, and how it continues a conversation.</summary>
 internal sealed record PiSpawn(string Command, string Cwd)

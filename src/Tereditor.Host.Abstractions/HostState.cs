@@ -1,8 +1,8 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>Settings every client of one host shares. Empty or zero values mean the client's default.</summary>
 public sealed record HostSettings
@@ -129,13 +129,13 @@ public sealed record HostState
     /// <summary>Unexpected language-server deaths this host saw, keyed by workspace, NUL and server id, valued "time|reason". Never persisted; clients toast each new value.</summary>
     public IReadOnlyDictionary<string, string> LanguageDeaths { get; init; } = new Dictionary<string, string>();
     /// <summary>
-    /// Project root to the JSON status of its <c>.sharprail/language.toml</c> as the host last read it: path, whether it
+    /// Project root to the JSON status of its <c>.tereditor/language.toml</c> as the host last read it: path, whether it
     /// exists, a stamp that changes with every edit, the server ids it configures and diagnostics for what was ignored.
     /// Derived by the host, never persisted; absent until the project's language configuration was first used.
     /// </summary>
     public IReadOnlyDictionary<string, string> ProjectLanguageFiles { get; init; } = new Dictionary<string, string>();
-    /// <summary>Project roots whose user chose to keep an untracked <c>.sharprail</c> directory in the repository; they are not asked again.</summary>
-    public IReadOnlyList<string> SharprailExcludeDeclined { get; init; } = [];
+    /// <summary>Project roots whose user chose to keep an untracked <c>.tereditor</c> directory in the repository; they are not asked again.</summary>
+    public IReadOnlyList<string> TereditorExcludeDeclined { get; init; } = [];
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
     /// <summary>
     /// Workspaces with a result the user has not seen yet (ThinkRail #770), by path: <c>blocked</c> (an agent waits for
@@ -176,7 +176,7 @@ public sealed record HostState
     /// <summary>The terminal or chat whose <c>workspace_create</c> made each workspace, in creation order; persisted, and dropped with the workspace. Clients group a workspace under its creator.</summary>
     public IReadOnlyList<WorkspaceCreatorEntry> WorkspaceCreators { get; init; } = [];
     /// <summary>
-    /// The long-running processes agents reported with <c>owned_process_report</c>, which SharpRail stops when their terminal
+    /// The long-running processes agents reported with <c>owned_process_report</c>, which tereditor stops when their terminal
     /// closes or it quits. Never persisted here: the host's registry keeps its own file.
     /// </summary>
     public IReadOnlyList<OwnedProcessInfo> OwnedProcesses { get; init; } = [];
@@ -191,7 +191,7 @@ public sealed record HostState
     /// </summary>
     public IReadOnlyList<TerminalEmigrationRequest> FailedEmigrations { get; init; } = [];
     /// <summary>
-    /// Revived agent tabs whose session SharpRail did not resume on its own: each waits for the user to resume it or start
+    /// Revived agent tabs whose session tereditor did not resume on its own: each waits for the user to resume it or start
     /// fresh, from any client, through <see cref="HostStateChange.AnswerResume"/>. Never persisted: the next revival offers again.
     /// </summary>
     public IReadOnlyList<TerminalResumeOffer> ResumeOffers { get; init; } = [];
@@ -213,9 +213,9 @@ public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, 
 /// <summary>A revived agent tab's session, offered for resuming instead of resumed automatically.</summary>
 /// <param name="Agent">The agent record's kind (<c>claude</c>, <c>codex</c>, <c>omp</c>, ...).</param>
 /// <param name="SessionId">The recorded session id; empty for a legacy record that has none.</param>
-/// <param name="OpenElsewhere">The session is already open in another process (another tab, window or SharpRail instance), so only a fresh start is offered.</param>
-/// <param name="OwnerText">Who has the session open (pid, age, tty, whether a live SharpRail owns it), shown instead of a generic refusal; empty when unknown.</param>
-/// <param name="QuitConfirmation">Set only when the owner is a stray process left by a SharpRail instance that is gone: the text a client confirms before asking the host to end it. Empty offers no quit.</param>
+/// <param name="OpenElsewhere">The session is already open in another process (another tab, window or tereditor instance), so only a fresh start is offered.</param>
+/// <param name="OwnerText">Who has the session open (pid, age, tty, whether a live tereditor owns it), shown instead of a generic refusal; empty when unknown.</param>
+/// <param name="QuitConfirmation">Set only when the owner is a stray process left by a tereditor instance that is gone: the text a client confirms before asking the host to end it. Empty offers no quit.</param>
 /// <param name="Progress">The host's inline status while it ends the stray owner, or why that failed; empty otherwise.</param>
 public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false,
     string OwnerText = "", string QuitConfirmation = "", string Progress = "");
@@ -258,8 +258,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange Label(string path, string label) => new("workspace-label", path, label);
     /// <summary>Re-points a workspace's review target; an empty ref, or its creation base, restores that base.</summary>
     public static HostStateChange DiffBase(string path, string reference) => new("workspace-diff-base", path, reference);
-    /// <summary>Remembers that a project keeps its <c>.sharprail</c> directory in the repository, so it is not offered a local exclusion again.</summary>
-    public static HostStateChange DeclineSharprailExclude(string projectRoot) => new("sharprail-exclude-declined", projectRoot);
+    /// <summary>Remembers that a project keeps its <c>.tereditor</c> directory in the repository, so it is not offered a local exclusion again.</summary>
+    public static HostStateChange DeclineTereditorExclude(string projectRoot) => new("tereditor-exclude-declined", projectRoot);
     /// <summary>Persists the title of a terminal tab for every client.</summary>
     public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), title);
     /// <summary>Marks a workspace unread for a reason (blocked, failed, done or manual); a stronger reason already recorded stays.</summary>

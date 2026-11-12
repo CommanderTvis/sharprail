@@ -2,9 +2,9 @@ using System.Text;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class TerminalReplayChecks
 {

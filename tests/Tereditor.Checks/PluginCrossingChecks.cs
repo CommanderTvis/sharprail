@@ -8,16 +8,16 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Isolation;
-using SharpRail.Plugins.Isolation.Generator;
-using SharpRail.Plugins.Isolation.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Isolation;
+using Tereditor.Plugins.Isolation.Generator;
+using Tereditor.Plugins.Isolation.UI;
 
-using HostMembers = SharpRail.Plugins.Isolation.PluginHostContextMembers;
-using UIMembers = SharpRail.Plugins.Isolation.UI.PluginUIContextMembers;
+using HostMembers = Tereditor.Plugins.Isolation.PluginHostContextMembers;
+using UIMembers = Tereditor.Plugins.Isolation.UI.PluginUIContextMembers;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// <c>--plugin-crossing</c>: the generated member tables and the crossing rules (Security.SPEC.md, Calls across the
@@ -67,18 +67,18 @@ internal static class PluginCrossingChecks
             "Every host context member is pending until the host half runs isolated.");
         string[] generated =
         [
-            "P:SharpRail.Plugins.Api.UI.IPluginUIContext.Id", "P:SharpRail.Plugins.Api.UI.IPluginUIContext.Log",
-            "M:SharpRail.Plugins.Api.UI.IPluginUIContext.Settings``1", "M:SharpRail.Plugins.Api.UI.IPluginUIContext.UpdateSettingsAsync``1(``0)",
-            "M:SharpRail.Plugins.Api.UI.IPluginUIContext.SideTool(SharpRail.Plugins.Api.UI.SideToolRegistration)",
-            "M:SharpRail.Plugins.Api.UI.IPluginUIContext.FileViewer(SharpRail.Plugins.Api.UI.FileViewerRegistration)",
-            "M:SharpRail.Plugins.Api.UI.IPluginUIContext.Notify(SharpRail.Plugins.Api.UI.PluginNotificationKind,System.String,System.String)",
-            "M:SharpRail.Plugins.Api.UI.IPluginPreference.Set(System.String)", "P:SharpRail.Plugins.Api.UI.FileViewerRegistration.Matches",
+            "P:Tereditor.Plugins.Api.UI.IPluginUIContext.Id", "P:Tereditor.Plugins.Api.UI.IPluginUIContext.Log",
+            "M:Tereditor.Plugins.Api.UI.IPluginUIContext.Settings``1", "M:Tereditor.Plugins.Api.UI.IPluginUIContext.UpdateSettingsAsync``1(``0)",
+            "M:Tereditor.Plugins.Api.UI.IPluginUIContext.SideTool(Tereditor.Plugins.Api.UI.SideToolRegistration)",
+            "M:Tereditor.Plugins.Api.UI.IPluginUIContext.FileViewer(Tereditor.Plugins.Api.UI.FileViewerRegistration)",
+            "M:Tereditor.Plugins.Api.UI.IPluginUIContext.Notify(Tereditor.Plugins.Api.UI.PluginNotificationKind,System.String,System.String)",
+            "M:Tereditor.Plugins.Api.UI.IPluginPreference.Set(System.String)", "P:Tereditor.Plugins.Api.UI.FileViewerRegistration.Matches",
         ];
         foreach (var docId in generated)
             Require(UIMembers.Table.SingleOrDefault(member => member.DocId == docId) is { Pending: false }, docId + " must be generated, not pending.");
-        var copy = UIMembers.Table.Single(member => member.DocId == "M:SharpRail.Plugins.Api.UI.IPluginUIContext.CopyText(System.String,System.String)");
+        var copy = UIMembers.Table.Single(member => member.DocId == "M:Tereditor.Plugins.Api.UI.IPluginUIContext.CopyText(System.String,System.String)");
         Require(copy is { Pending: true, Permission: "clipboard.write" }, "CopyText is pending and needs clipboard.write.");
-        Require(UIMembers.Table.Single(member => member.DocId == "P:SharpRail.Plugins.Api.UI.FileViewerRegistration.Matches").Crossing == "Resolver",
+        Require(UIMembers.Table.Single(member => member.DocId == "P:Tereditor.Plugins.Api.UI.FileViewerRegistration.Matches").Crossing == "Resolver",
             "A viewer's Matches is a resolver.");
     }
 
@@ -232,8 +232,8 @@ internal static class PluginCrossingChecks
         using System;
         using System.Threading;
         using System.Threading.Tasks;
-        using SharpRail.Plugins.Api;
-        namespace SharpRail.Plugins.Api.Host
+        using Tereditor.Plugins.Api;
+        namespace Tereditor.Plugins.Api.Host
         {
             public interface IPluginHostContext
             {
@@ -241,7 +241,7 @@ internal static class PluginCrossingChecks
                 [PluginAmbient] void Later();
             }
         }
-        namespace SharpRail.Plugins.Api.UI
+        namespace Tereditor.Plugins.Api.UI
         {
             public sealed record Choice(string Label)
             {
@@ -259,7 +259,7 @@ internal static class PluginCrossingChecks
         }
         """;
 
-    private const string Pending = "M:SharpRail.Plugins.Api.Host.IPluginHostContext.Later\n";
+    private const string Pending = "M:Tereditor.Plugins.Api.Host.IPluginHostContext.Later\n";
 
     private static void Negatives()
     {
@@ -275,7 +275,7 @@ internal static class PluginCrossingChecks
         Fails("SRI001", "void Unclassified();");
         Fails("SRI001", "[PluginAmbient] int Count();");
         Fails("SRI001", "[PluginAmbient, PluginCrossing(PluginCrossing.Live)] int Count();");
-        Fails("SRI001", "", Pending + "M:SharpRail.Plugins.Api.UI.IPluginUIContext.Gone\n");
+        Fails("SRI001", "", Pending + "M:Tereditor.Plugins.Api.UI.IPluginUIContext.Gone\n");
         Fails("SRI001", "[PluginAmbient] void Pick(Func<string, bool> filter);");
         Fails("SRI002", "[PluginAmbient] void Load(Type type);");
         Fails("SRI002", "[PluginAmbient] void Swap(ref int value);");
@@ -297,7 +297,7 @@ internal static class PluginCrossingChecks
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
             .Where(path => Path.GetFileName(path).StartsWith("System.", StringComparison.Ordinal) || Path.GetFileName(path) is "netstandard.dll" or "mscorlib.dll")
             .Select(path => MetadataReference.CreateFromFile(path))
-            .Append(MetadataReference.CreateFromFile(typeof(SharpRail.Plugins.Api.PluginJson).Assembly.Location))
+            .Append(MetadataReference.CreateFromFile(typeof(Tereditor.Plugins.Api.PluginJson).Assembly.Location))
             .Append(MetadataReference.CreateFromFile(typeof(IsolationMember).Assembly.Location));
         var compilation = CSharpCompilation.Create("CrossingSnippet", [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview))], references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
@@ -317,7 +317,7 @@ internal static class PluginCrossingChecks
     {
         private readonly Values global = new(new Dictionary<string, string>
         {
-            ["build_property.SharpRailIsolation"] = mode,
+            ["build_property.TereditorIsolation"] = mode,
             ["build_property.RootNamespace"] = "CrossingSnippet",
         });
 

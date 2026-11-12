@@ -109,27 +109,27 @@ RestoreLockedMode = "true"
 GHOSTTY_VIEW_COMMIT = "0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec" # vt-1.0.0
 GHOSTTY_VT_COMMIT = "0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec" # vt-1.0.0
 GHOSTTY_ZIG = "0.17.1"
-# The one root of SharpRail's machine-wide build caches, shared by every checkout and worktree (never a repo-local
+# The one root of tereditor's machine-wide build caches, shared by every checkout and worktree (never a repo-local
 # `.tools`): pinned sources, intermediate builds and content-keyed results of the native recipes, Playwright's
 # browsers, downloaded archives. Writers lock (scripts/lock.sh) or publish atomically by rename; scripts/README.md
 # lists the entries. MSBuild and the scripts fall back to the same path when run outside mise.
-SHARPRAIL_CACHE_DIR = "{% if os() == 'windows' %}{{ get_env(name='LOCALAPPDATA') }}\\sharprail\\cache{% else %}{{ get_env(name='XDG_CACHE_HOME', default=env.HOME ~ '/.cache') }}/sharprail{% endif %}"
+TEREDITOR_CACHE_DIR = "{% if os() == 'windows' %}{{ get_env(name='LOCALAPPDATA') }}\\tereditor\\cache{% else %}{{ get_env(name='XDG_CACHE_HOME', default=env.HOME ~ '/.cache') }}/tereditor{% endif %}"
 # Zig's global cache (fetched package sources, compiled helpers) is content-addressed and locks per entry, so
 # checkouts share one.
-ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_CACHE_DIR }}/zig"
-PLAYWRIGHT_BROWSERS_PATH = "{{ env.SHARPRAIL_CACHE_DIR }}/playwright"
+ZIG_GLOBAL_CACHE_DIR = "{{ env.TEREDITOR_CACHE_DIR }}/zig"
+PLAYWRIGHT_BROWSERS_PATH = "{{ env.TEREDITOR_CACHE_DIR }}/playwright"
 
 # ARTIFACT MATRIX (printed by `scripts/mise run targets`; the one place that says what ships where)
 #
 # target         built on          native libraries (MSBuild targets in the owning project)                   terminal                    publish task                 package
-# macos-arm64    macOS arm64       libGhosttyAvaloniaView, libGhosttyAvaloniaVt,                               Ghostty Metal texture       package:macos osx-arm64      artifacts/SharpRail.app, dmg task -> .dmg
-#                                  libSharpRailMermaid, libSharpRailNotifications                              (Skia fallback)
-# macos-x64      macOS x64         as macos-arm64 for x86_64                                                   as macos-arm64              package:macos osx-x64        artifacts/SharpRail.app
-# linux-x64      Linux x64         libGhosttyAvaloniaVt.so (Zig, glibc 2.31)                                  libghostty-vt on Skia       package:linux                artifacts/SharpRail-linux-x64.AppImage
-# linux-arm64    Linux arm64       as linux-x64 for aarch64 (Zig, glibc 2.31); builds natively on an arm64 host  as linux-x64              package:linux linux-arm64    artifacts/SharpRail-linux-arm64.AppImage
-# windows-x64    Windows x64       GhosttyAvaloniaVt.dll                                                        libghostty-vt on Skia       package:windows win-x64      artifacts/SharpRail-win-x64.zip
-# windows-arm64  Windows ARM64     as windows-x64 for win-arm64 (builds natively on an ARM64 host)              libghostty-vt on Skia       package:windows win-arm64    artifacts/SharpRail-win-arm64.zip
-# android        macOS or Linux    libGhosttyAvaloniaVt.so (arm64-v8a, x86_64)                                 libghostty-vt on Skia       package:android              artifacts/android/SharpRail.apk
+# macos-arm64    macOS arm64       libGhosttyAvaloniaView, libGhosttyAvaloniaVt,                               Ghostty Metal texture       package:macos osx-arm64      artifacts/tereditor.app, dmg task -> .dmg
+#                                  libTereditorMermaid, libTereditorNotifications                              (Skia fallback)
+# macos-x64      macOS x64         as macos-arm64 for x86_64                                                   as macos-arm64              package:macos osx-x64        artifacts/tereditor.app
+# linux-x64      Linux x64         libGhosttyAvaloniaVt.so (Zig, glibc 2.31)                                  libghostty-vt on Skia       package:linux                artifacts/tereditor-linux-x64.AppImage
+# linux-arm64    Linux arm64       as linux-x64 for aarch64 (Zig, glibc 2.31); builds natively on an arm64 host  as linux-x64              package:linux linux-arm64    artifacts/tereditor-linux-arm64.AppImage
+# windows-x64    Windows x64       GhosttyAvaloniaVt.dll                                                        libghostty-vt on Skia       package:windows win-x64      artifacts/tereditor-win-x64.zip
+# windows-arm64  Windows ARM64     as windows-x64 for win-arm64 (builds natively on an ARM64 host)              libghostty-vt on Skia       package:windows win-arm64    artifacts/tereditor-win-arm64.zip
+# android        macOS or Linux    libGhosttyAvaloniaVt.so (arm64-v8a, x86_64)                                 libghostty-vt on Skia       package:android              artifacts/android/tereditor.apk
 # browser        macOS or Linux    GhosttyAvaloniaVt.a (WASM) + Restty/Merman/PDFium                          Restty                      package:browser              artifacts/browser
 # END MATRIX
 
@@ -139,41 +139,41 @@ run = "sed -n '/^# ARTIFACT MATRIX/,/^# END MATRIX/p' mise.toml"
 run_windows = "powershell -NoProfile -Command \"Get-Content mise.toml | Select-String -Pattern '^# ' | ForEach-Object { $_.Line }\""
 
 [tasks.build]
-description = "Release build of SharpRail.slnx: the compiler gate, and every native library that is out of date"
-run = "dotnet build SharpRail.slnx -c Release"
+description = "Release build of Tereditor.slnx: the compiler gate, and every native library that is out of date"
+run = "dotnet build Tereditor.slnx -c Release"
 
 [tasks.restore]
 description = "Restore the solution's packages in locked mode (packages.lock.json, nuget.org only)"
-run = "dotnet restore SharpRail.slnx"
+run = "dotnet restore Tereditor.slnx"
 
 [tasks."restore:update"]
 description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
 env = { RestoreLockedMode = "false" }
-run = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate", "dotnet restore scripts/ci-run.cs --force-evaluate", "dotnet restore scripts/tasks/dev.cs --force-evaluate", "dotnet restore benchmarks/ghostty/run.cs --force-evaluate"]
-run_windows = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate", "dotnet restore scripts\\ci-run.cs --force-evaluate", "dotnet restore scripts\\tasks\\dev.cs --force-evaluate", "dotnet restore benchmarks\\ghostty\\run.cs --force-evaluate"]
+run = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate", "dotnet restore scripts/ci-run.cs --force-evaluate", "dotnet restore scripts/tasks/dev.cs --force-evaluate", "dotnet restore benchmarks/ghostty/run.cs --force-evaluate"]
+run_windows = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate", "dotnet restore scripts\\ci-run.cs --force-evaluate", "dotnet restore scripts\\tasks\\dev.cs --force-evaluate", "dotnet restore benchmarks\\ghostty\\run.cs --force-evaluate"]
 
 [tasks.audit]
 description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
-run = "dotnet restore SharpRail.slnx --force -p:WarningsNotAsErrors="
+run = "dotnet restore Tereditor.slnx --force -p:WarningsNotAsErrors="
 
 [tasks.format]
 description = "Verify formatting as CI does; pass --include with touched files to scope it"
-run = "dotnet format SharpRail.slnx --verify-no-changes --no-restore"
+run = "dotnet format Tereditor.slnx --verify-no-changes --no-restore"
 
 [tasks.check]
 description = "Run the checks executable (mise run check -- --terminals, --case A,B ...)"
-run = "dotnet run --project tests/SharpRail.Checks -c Release --"
+run = "dotnet run --project tests/Tereditor.Checks -c Release --"
 
 [tasks.perf]
 description = "Run the profiling harness (mise run perf -- self-test)"
-run = "dotnet run --project performance/SharpRail.Performance -c Release --"
+run = "dotnet run --project performance/Tereditor.Performance -c Release --"
 
 [tasks.rpc]
 description = "Regenerate the typed RPC clients, dispatch and payload codec from the host contracts"
 run = "dotnet run --file scripts/generate-rpc.cs"
 
 [tasks.dev]
-description = "Build the desktop app from source and run it in Release (SHARPRAIL_CONFIGURATION=Debug to debug; SHARPRAIL_PROFILE, SHARPRAIL_ROOT)"
+description = "Build the desktop app from source and run it in Release (TEREDITOR_CONFIGURATION=Debug to debug; TEREDITOR_PROFILE, TEREDITOR_ROOT)"
 run = "dotnet run --file scripts/tasks/dev.cs --"
 
 [tasks.native]
@@ -181,11 +181,11 @@ description = "Publish the desktop app as NativeAOT tuned to this machine's CPU 
 run = "dotnet run --file scripts/tasks/native.cs --"
 
 [tasks.host]
-description = "Run only the remote host and print its connection QR code (SHARPRAIL_CONNECT_HOST)"
+description = "Run only the remote host and print its connection QR code (TEREDITOR_CONNECT_HOST)"
 run = "dotnet run --file scripts/tasks/host.cs --"
 
 [tasks."package:macos"]
-description = "Publish the app, host and checks and build artifacts/SharpRail.app (osx-arm64 by default, or osx-x64)"
+description = "Publish the app, host and checks and build artifacts/tereditor.app (osx-arm64 by default, or osx-x64)"
 run = "dotnet run --file scripts/tasks/package-macos.cs --"
 
 [tasks."zig-deps:mirror"]
@@ -193,12 +193,12 @@ description = "Rebuild scripts/zig-deps.lock and the Zig dependency mirror archi
 run = "dotnet run --file scripts/tasks/zig-deps-mirror.cs --"
 
 [tasks."tailscale:wasm"]
-description = "Build the browser client's lazily downloaded Tailscale node (Go to WASM, cached in SHARPRAIL_CACHE_DIR); the browser build runs it when its inputs change"
+description = "Build the browser client's lazily downloaded Tailscale node (Go to WASM, cached in TEREDITOR_CACHE_DIR); the browser build runs it when its inputs change"
 env = { MISE_ENV = "browser" }
 run = "sh scripts/build-tailscale-wasm.sh"
 
 [tasks.dmg]
-description = "Pack artifacts/SharpRail.app into a disk image (path argument optional)"
+description = "Pack artifacts/tereditor.app into a disk image (path argument optional)"
 run = "dotnet run --file scripts/tasks/dmg.cs --"
 
 [tasks."package:windows"]
@@ -206,11 +206,11 @@ description = "Publish the Windows client, host and checks and zip them (-Runtim
 run = "dotnet run --file scripts/tasks/package-windows.cs --"
 
 [tasks."package:linux"]
-description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-<x64|arm64>.AppImage (linux-x64 by default, or `linux-arm64`; builds on Linux)"
+description = "Publish the Linux client and checks and build artifacts/tereditor-linux-<x64|arm64>.AppImage (linux-x64 by default, or `linux-arm64`; builds on Linux)"
 run = "dotnet run --file scripts/tasks/package-linux.cs --"
 
 [tasks."package:android"]
-description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
+description = "Build the signed Release Android package into artifacts/android/tereditor.apk"
 run = "dotnet run --file scripts/tasks/android.cs -- apk"
 
 [tasks.android]

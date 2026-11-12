@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.AirGateway.UI.AirSettingsView"
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.AirGateway.UI.AirSettingsView"
              x:ClassModifier="internal">
   <UserControl.Styles>
     <Style Selector="Button">
@@ -13,7 +13,7 @@
   <StackPanel Spacing="16">
     <TextBlock Text="Air Gateway" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
-               Text="Choose where Codex and Claude Code get their AI: from their own accounts, or from JetBrains AI through the Central CLI.&#10;&#10;The choice only changes the command that starts each new agent terminal. No agent configuration file is edited.&#10;&#10;SharpRail checks Central's sign-in status on its own when this page opens, when the window regains focus, and while a sign-in is waiting. Everything else (signing in or out, listing sources, switching source, starting the proxy, updating Central) runs only when you press its button." />
+               Text="Choose where Codex and Claude Code get their AI: from their own accounts, or from JetBrains AI through the Central CLI.&#10;&#10;The choice only changes the command that starts each new agent terminal. No agent configuration file is edited.&#10;&#10;tereditor checks Central's sign-in status on its own when this page opens, when the window regains focus, and while a sign-in is waiting. Everything else (signing in or out, listing sources, switching source, starting the proxy, updating Central) runs only when you press its button." />
     <TextBlock x:Name="AirCentralLine" TextWrapping="Wrap" Text="Checking Central…" />
     <TextBlock x:Name="AirCredits" TextWrapping="Wrap" IsVisible="False" Foreground="{x:Static kit:Ui.TextBrush}" />
     <StackPanel x:Name="AirInstall" Spacing="4" IsVisible="False">
@@ -55,7 +55,7 @@
     <StackPanel Spacing="6">
       <TextBlock Text="JetBrains AI access source" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Which organization, workspace or licence Central bills. The sources are listed automatically with your signed-in Central session; switching restarts its proxy." />
-      <TextBlock x:Name="AirAccessScope" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Switching changes the source for every app that uses this computer user's Central, not only SharpRail." />
+      <TextBlock x:Name="AirAccessScope" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Switching changes the source for every app that uses this computer user's Central, not only tereditor." />
       <StackPanel x:Name="AirAccessSources" Spacing="4" />
       <TextBlock x:Name="AirAccessNote" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
     </StackPanel>

@@ -1,12 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Plugin JSON comes from source-generated metadata only: every builtin plugin's declared methods, channels and
@@ -32,8 +32,8 @@ internal static class PluginJsonChecks
                 Walk(manifest.Id, type, missing, seen);
         }
         Walk("api", typeof(PluginManifest), missing, []);
-        var uiContracts = SharpRail.UI.Plugins.BuiltinPlugins.Contracts.Select(contract => contract.Id).ToHashSet(StringComparer.Ordinal);
-        foreach (var (manifest, _) in SharpRail.UI.Plugins.BuiltinPlugins.All)
+        var uiContracts = Tereditor.UI.Plugins.BuiltinPlugins.Contracts.Select(contract => contract.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var (manifest, _) in Tereditor.UI.Plugins.BuiltinPlugins.All)
             if (!uiContracts.Contains(manifest.Id)) missing.Add($"{manifest.Id}: the app's builtin contracts do not list its contract");
         Require(missing.Count == 0, "Every builtin plugin type has source-generated JSON metadata:\n" + string.Join('\n', missing));
 
@@ -53,12 +53,12 @@ internal static class PluginJsonChecks
             "A tool schema carries enum member names and [Description] text: " + create.ToJsonString());
 
         // The bytes persisted files and the wire carry: camelCase names and enum values, nulls omitted, numbers refused for enums.
-        var settings = PluginJson.Serialize(new SharpRail.Plugins.ClaudeCode.ClaudeCodeSettings());
+        var settings = PluginJson.Serialize(new Tereditor.Plugins.ClaudeCode.ClaudeCodeSettings());
         Require(settings.Contains("\"mode\":\"terminal\"", StringComparison.Ordinal), "Settings enums are camelCase strings: " + settings);
-        var status = PluginJson.Serialize(new SharpRail.Plugins.Discord.DiscordStatus(SharpRail.Plugins.Discord.DiscordConnectionState.Unconfigured));
+        var status = PluginJson.Serialize(new Tereditor.Plugins.Discord.DiscordStatus(Tereditor.Plugins.Discord.DiscordConnectionState.Unconfigured));
         Require(status == """{"state":"unconfigured"}""", "Null members are omitted: " + status);
         var refused = false;
-        try { PluginJson.Deserialize<SharpRail.Plugins.Discord.DiscordStatus>("""{"state":0}"""); }
+        try { PluginJson.Deserialize<Tereditor.Plugins.Discord.DiscordStatus>("""{"state":0}"""); }
         catch (JsonException) { refused = true; }
         Require(refused, "An enum given as a number is refused.");
         Console.WriteLine("PASS plugin JSON: every builtin plugin's declared types, settings and tools have source-generated metadata");

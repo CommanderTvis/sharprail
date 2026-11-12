@@ -22,7 +22,7 @@ vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
 vt_zig="$GHOSTTY_ZIG"
 . "$project/../../scripts/lock.sh"
 . "$project/../../scripts/native-cache.sh"
-work="$(sharprail_cache_dir)/ghostty-avalonia"
+work="$(tereditor_cache_dir)/ghostty-avalonia"
 mkdir -p "$work/results"
 work="$(cd "$work" && pwd -P)"
 

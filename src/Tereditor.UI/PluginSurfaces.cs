@@ -8,13 +8,13 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Plugins;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Plugins;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 // Where plugin contributions render in one window: side tools and their dormant placeholders, tab decorations,
 // start actions, file viewers, terminal accessories and companions, and the window operations the plugin
@@ -866,7 +866,7 @@ public sealed partial class WorkbenchWindow
     })];
 
     // The code editor's context menu holds plugins' file actions only, so it opens when one is offered.
-    private void OfferFileActions(SharpRail.Scintilla.ScintillaEditor editor, string path)
+    private void OfferFileActions(Tereditor.Scintilla.ScintillaEditor editor, string path)
     {
         if (Path.IsPathRooted(path)) return;
         var workspace = workspaceRoot;
@@ -908,7 +908,7 @@ public sealed partial class WorkbenchWindow
     }
 
     // The code editor reports its selections like the reference's Monaco editor; a collapsed one reports presence only.
-    private void ReportSelections(SharpRail.Scintilla.ScintillaEditor editor, DockTab tab)
+    private void ReportSelections(Tereditor.Scintilla.ScintillaEditor editor, DockTab tab)
     {
         var workspace = workspaceRoot;
         editor.SelectionChanged += (_, _) =>

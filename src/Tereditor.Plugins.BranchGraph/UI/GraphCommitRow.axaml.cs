@@ -3,10 +3,10 @@ using Avalonia.Controls.Templates;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 internal sealed partial class GraphCommitRow : Button
 {
@@ -71,7 +71,7 @@ internal sealed partial class GraphCommitRow : Button
 
     private static SvgAsset Icon(string name)
     {
-        using var stream = AssetLoader.Open(new Uri($"avares://SharpRail.Plugins.BranchGraph.UI/Assets/{name}.svg"));
+        using var stream = AssetLoader.Open(new Uri($"avares://Tereditor.Plugins.BranchGraph.UI/Assets/{name}.svg"));
         using var bytes = new MemoryStream();
         stream.CopyTo(bytes);
         return new(bytes.ToArray(), 16, Ui.TextBrush);

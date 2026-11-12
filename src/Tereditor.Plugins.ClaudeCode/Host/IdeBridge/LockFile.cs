@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+using Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.IdeBridge;
+namespace Tereditor.Plugins.ClaudeCode.Host.IdeBridge;
 
 internal sealed record LockFileContents(int Pid, IReadOnlyList<string> WorkspaceFolders, string IdeName, string AuthToken);
 

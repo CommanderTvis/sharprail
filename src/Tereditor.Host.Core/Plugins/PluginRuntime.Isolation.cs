@@ -1,8 +1,8 @@
-using SharpRail.Host.Core.Plugins.Isolation;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Isolation;
+using Tereditor.Host.Core.Plugins.Isolation;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 // External plugins in the isolated runtime (Security.SPEC.md): one runner process per activation, owned by its
 // activation tables from spawn, failed by the next pass when it exits on its own.

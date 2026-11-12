@@ -1,7 +1,7 @@
 # Ghostty renderer benchmarks
 
 Saved source for the NSView (`native`) versus direct Metal texture (`texture`)
-measurements. NSView remains a library API even though SharpRail uses texture.
+measurements. NSView remains a library API even though tereditor uses texture.
 These standalone harnesses exclude the workbench and terminal relay.
 
 Build from the repository root on macOS with Xcode tools installed:

@@ -1,4 +1,4 @@
-# SharpRail status
+# tereditor status
 
 One ledger for where the port stands: what completion requires, which ThinkRail revisions the specs follow and what
 moved since, which upstream E2E scenarios are translated, and what is still open. It replaces the separate
@@ -6,7 +6,7 @@ completion, upstream-tracking and E2E-inventory files.
 
 - [Completion criteria](#completion-criteria): the original scope, the evidence for each requirement and its limits.
 - [Upstream tracking](#upstream-tracking): the two tracked lines, synced commits, spec mapping, sync triage and the fork port log.
-- [E2E porting inventory](#e2e-porting-inventory): upstream scenarios against their SharpRail translations.
+- [E2E porting inventory](#e2e-porting-inventory): upstream scenarios against their tereditor translations.
 - [Backlog](#backlog): current porting gaps, outstanding acceptance work and suggested batches.
 
 ## Completion criteria
@@ -38,9 +38,9 @@ substituting an easier behavior.
 | Native Markdown preview with actual scrolling and selectable content | Markdig renderer checks; wheel/anchor/navigation tests; native scroll and rendering captures | Reference typography, spacing and complete representative-document comparison still need final visual review |
 | Opening projects, workspace/window restoration, Git changes/diffs and worktree workflows | `ProjectChecks.cs`, `GitUiChecks.cs`, isolated Git fixtures, restoration/navigation checks; explicit-target merge-base/net-working-content and commit catalog local/remote regressions; commit picker, lightweight index-independent catalog parity, workspace selection and fresh-window persisted-query checks | Commit membership refresh/fallback and complete read-error fidelity remain open; visual fidelity of the corresponding panels/dialogs still needs final review |
 | Exact frame geometry, docking grammar, panes, alignment, fold/show/restore and resize behavior | `LayoutChecks.cs`, pointer/menu/keyboard checks, source-verified side projection and collision regressions | Auxiliary stack projection with multiple folded/expanded groups and narrow viewports needs a source comparison; verify any resulting gaps |
-| Screenshot-perfect layout and details | [Recorded native comparison limits](src/SharpRail.UI/Rendering/SPEC.md#native-visual-acceptance-limits) | Sampled matches are insufficient: native glyph/control/menu differences remain unresolved or unverified |
-| Publish and show the finished app; no Pi/AI or benchmarks | Canonical `artifacts/SharpRail.app`, published runtime checks, own-window native captures; implementation scope in `SPEC.md` | The current package is a working prototype, not yet proof that all preceding completion limits are resolved; macOS terminal execution and the Scintilla editor are separately in scope |
-| Android client of a remote host | `src/SharpRail.Android` and its `SPEC.md`; Debug and Release builds run on an Android 16 arm64 tablet emulator against `SharpRail.Host.Remote` (connect and auto-connect, workbench, menus, dialogs, project by host path, file tree, Markdown, Scintilla editor, live terminal, Settings, Disconnect, Back), with scope recorded in the owning Android spec | Done with limits: emulator only. Physical devices, phones, IMEs other than Gboard, accessibility, plugin UI beyond the default workbench, HTTPS and CI are unverified; cleartext HTTP, an unencrypted stored token, one window, no on-device tests, untrimmed JIT package |
+| Screenshot-perfect layout and details | [Recorded native comparison limits](src/Tereditor.UI/Rendering/SPEC.md#native-visual-acceptance-limits) | Sampled matches are insufficient: native glyph/control/menu differences remain unresolved or unverified |
+| Publish and show the finished app; no Pi/AI or benchmarks | Canonical `artifacts/tereditor.app`, published runtime checks, own-window native captures; implementation scope in `SPEC.md` | The current package is a working prototype, not yet proof that all preceding completion limits are resolved; macOS terminal execution and the Scintilla editor are separately in scope |
+| Android client of a remote host | `src/Tereditor.Android` and its `SPEC.md`; Debug and Release builds run on an Android 16 arm64 tablet emulator against `Tereditor.Host.Remote` (connect and auto-connect, workbench, menus, dialogs, project by host path, file tree, Markdown, Scintilla editor, live terminal, Settings, Disconnect, Back), with scope recorded in the owning Android spec | Done with limits: emulator only. Physical devices, phones, IMEs other than Gboard, accessibility, plugin UI beyond the default workbench, HTTPS and CI are unverified; cleartext HTTP, an unencrypted stored token, one window, no on-device tests, untrimmed JIT package |
 
 The remote transport migration uses protobuf WebSockets across desktop, browser and Android,
 including the normal embedded listener. Cancellation, multiplexing, bounded queues, errors,
@@ -56,19 +56,19 @@ is unverified; the previous full-gate terminal and file-icon failures remain ope
 
 Explicit agent file-list/project diagnostic scans now pass local/remote and MCP checks.
 The latest full gate passes lanes 1 and 3 but stops in shared-terminal PhoneToDesktop
-and file-icon raster checks; see the newest src/SharpRail.Host.Core/Language/SPEC.md entry for exact failures.
+and file-icon raster checks; see the newest src/Tereditor.Host.Core/Language/SPEC.md entry for exact failures.
 
 The 2026-10-14 LSP revisions pass focused checks for full-catalog startup, passive
 Problems queries, whole-pane scrolling, status icons, context-menu usages popups and
 semantic replacement. The latest full gate is incomplete at diff-opening waits in
-RenderedDiffE2E and ChangeActionChecks; lanes 3 and 4 complete. See src/SharpRail.Host.Core/Language/SPEC.md.
+RenderedDiffE2E and ChangeActionChecks; lanes 3 and 4 complete. See src/Tereditor.Host.Core/Language/SPEC.md.
 
 Workspace LSP support has host/local/WebSocket and editor regression coverage, plus
 real TypeScript, Pyright and clangd checks. The remaining catalog installation recipes
 need live verification on their supported hosts; SDK-dependent servers require the
 documented prerequisites. Shared indexes use only server-supported cache mechanisms,
 with mutable analysis isolated by workspace. The full regression gate remains
-incomplete at shared-terminal creation and startup timing checks (see src/SharpRail.Host.Core/Language/SPEC.md).
+incomplete at shared-terminal creation and startup timing checks (see src/Tereditor.Host.Core/Language/SPEC.md).
 Android/browser compilation and native appearance of the new editor controls remain
 unverified.
 
@@ -77,24 +77,24 @@ host, terminal-authenticated MCP, editor and workbench mounting coverage. The la
 four-lane gate remains incomplete at rendered-diff and shared-terminal checks; its
 catalog-tool fixture assumption was corrected and passes the targeted layout run.
 
-The browser client is implemented in `src/SharpRail.Browser`, with full shared-workbench parity as its
+The browser client is implemented in `src/Tereditor.Browser`, with full shared-workbench parity as its
 contract and exclusively remote host adapters. Chromium acceptance covers WASM Scintilla editing,
 save conflicts, live Ghostty PTYs and reconnects, PDFium text/raster/Unicode/rotation/crop, Mermaid,
 modal settings, view-state persistence and external managed plugin UI/settings.
-The published bundle passed a Chromium smoke check. Source and packaged results have different scopes; the [checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope)
+The published bundle passed a Chromium smoke check. Source and packaged results have different scopes; the [checks contract](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope)
 records the latest retained integration evidence without upgrading interrupted packaged runs. Safari, Firefox,
 non-macOS browser keyboard/IME behavior, real notification permission and production HTTPS remain
 platform verification gates; they do not define a reduced browser feature set.
 
 Native batched text matches the shared renderer pixel for pixel. Restty is now the default;
-its recorded output rate is distinct from GPU draw cadence, and 120 Hz presentation remains unverified. See the [browser measurements](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence) and [packaged-gate limits](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope).
+its recorded output rate is distinct from GPU draw cadence, and 120 Hz presentation remains unverified. See the [browser measurements](src/Tereditor.Browser/SPEC.md#recorded-rendering-evidence) and [packaged-gate limits](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope).
 
 The current docking, visual comparison and final-package gates are listed in
 [Outstanding acceptance work](#outstanding-acceptance-work).
 
 MacOS Scintilla/Skia integration is now a separately authorized scope extension.
 Its architecture and remaining editor limits are recorded in
-`src/SharpRail.Scintilla/README.md`; this does not close the broader fidelity gates.
+`src/Tereditor.Scintilla/README.md`; this does not close the broader fidelity gates.
 
 ### Porting scope
 
@@ -105,7 +105,7 @@ Review, CI and rich-resource differences are tracked once in
 
 The Plugin API and all nine original builtins are registered. Functional host,
 local/remote UI contracts and acceptance limits are recorded in the owning plugin specs and
-[checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope);
+[checks contract](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope);
 translated scenarios are recorded in [E2E porting inventory](#e2e-porting-inventory). Current plugin differences are tracked in
 [fork plugin differences](#fork-plugin-differences-and-acceptance-gaps),
 with [acceptance tasks](#outstanding-acceptance-work) consolidated separately,
@@ -116,7 +116,7 @@ close the current source-fidelity, native appearance or final-package gates.
 
 The optional builtin Tailscale plugin owns tailnet discovery and pre-connection device approval. Its
 injected serving bridge supplies approved-token authentication and embedded listener startup; the host
-remains transport-independent below Remote. See [the plugin contract](src/SharpRail.Plugins.Tailscale/SPEC.md).
+remains transport-independent below Remote. See [the plugin contract](src/Tereditor.Plugins.Tailscale/SPEC.md).
 
 The new builtin's implementation and automated host/client/UI checks are complete;
 desktop and Android Release builds pass. Full gate coverage completes across its
@@ -131,14 +131,14 @@ Settings › Keymap with the built-in IntelliJ preset and custom presets over ho
 
 ### Verification scope
 
-The [checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) retains the dated
+The [checks contract](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope) retains the dated
 source-gate and packaged-gate distinction. Earlier feature-workspace and partial-gate milestones
 do not describe the current main tree or close platform acceptance.
 
 ### Document and tree rendering limits (2026-10-11)
 
 Viewport/drawn-row behavior is implemented; its historical surface measurements are scoped evidence. The user-authorized synthetic
-measurements and their tradeoffs are recorded in the [UI kit spec](src/SharpRail.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits). They do not establish
+measurements and their tradeoffs are recorded in the [UI kit spec](src/Tereditor.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits). They do not establish
 native presentation latency or whole-app RAM savings. The measured Files allocation tradeoff and graph resident-memory limit do not imply whole-app savings.
 Markdown virtualization is between top-level blocks and chunks of large top-level
 tables, lists and code blocks, from estimated heights refined on realization, with full
@@ -147,7 +147,7 @@ unbounded internally. Native screen-reader and physical Android acceptance, pack
 and a running-app review have not been performed for this change.
 
 The browser uses Restty WebGL2 by default, with Skia only as an initialization fallback.
-Its [owning spec](src/SharpRail.Browser/SPEC.md) records current capabilities and rendering limits;
+Its [owning spec](src/Tereditor.Browser/SPEC.md) records current capabilities and rendering limits;
 headless cadence does not establish desktop performance parity.
 
 ### Workspace switching acceptance
@@ -160,25 +160,25 @@ acceptance. Current cross-module gates remain in the [acceptance inventory](#out
 Language services and agent workspace configuration are implemented. Focused host/UI and real-server checks pass; full-gate Git-only Changes fixture failures and platform acceptance limits remain recorded in the language and checks specs.
 
 Optional JetBrains Context has a consent-guarded, workspace-aware indexing/search
-workflow and SharpRail agent tools. Fixture, local/remote, UI and lifecycle checks
+workflow and tereditor agent tools. Fixture, local/remote, UI and lifecycle checks
 pass; the final broad gate completed with a terminal-focus retry. Real authenticated
 cloud search is unverified. Existing vendor login/cache is shared and disclosed;
 fully private vendor state is not established and that scope decision remains pending.
 
 ## Upstream tracking
 
-> Ended 2026-11-02: SharpRail no longer tracks CommanderTvis/thinkrail or JetBrains/thinkrail and is the only maintained fork. Nothing below is synced or ported any more; it stays as history.
+> Ended 2026-11-02: tereditor no longer tracks CommanderTvis/thinkrail or JetBrains/thinkrail and is the only maintained fork. Nothing below is synced or ported any more; it stays as history.
 
-SharpRail ports two ThinkRail lines, one per SharpRail branch. Both live in the checkout at
+tereditor ports two ThinkRail lines, one per tereditor branch. Both live in the checkout at
 `/Users/commandertvis/IdeaProjects/thinkrail`, which has one remote for each.
 
-| SharpRail branch | Ports | ThinkRail ref |
+| tereditor branch | Ports | ThinkRail ref |
 | --- | --- | --- |
 | `main` | CommanderTvis's fork: JetBrains plus the Plugin API, its builtin plugins and the fork's general improvements | `origin/claude-code-integration-plugin-api` (the fork's default branch) |
 | `upstream` | JetBrains ThinkRail only | `upstream/main` |
 
 Each branch keeps its own copy of this file with its own synced commit. Work on the `upstream`
-branch happens in its worktree, `/Users/commandertvis/.thinkrail/worktrees/sharprail/upstream`;
+branch happens in its worktree, `/Users/commandertvis/.thinkrail/worktrees/tereditor/upstream`;
 do not port JetBrains-only changes onto `main` by hand, and do not port fork-only changes onto
 `upstream`.
 
@@ -213,46 +213,46 @@ byte-identical between the two tips, so the rebase moved no fork behavior.
 
 ### Mapping
 
-| Upstream | SharpRail |
+| Upstream | tereditor |
 | --- | --- |
 | `architecture.md` | `ARCHITECTURE.md` |
-| `packages/shared/SPEC.md`, `packages/server/SPEC.md`, `packages/server/src/host/SPEC.md` | `src/SharpRail.Host.Core/SPEC.md`, `src/SharpRail.Host.Abstractions/SPEC.md` |
-| `packages/server/src/{git,changes}/SPEC.md` | `src/SharpRail.Host.Core/Git.SPEC.md` |
-| `packages/server/src/workspaces/SPEC.md` | `src/SharpRail.Host.Core/Workspaces.SPEC.md` |
-| `packages/server/src/{projects,settings,persistence}/SPEC.md` | `src/SharpRail.Host.Core/HostState.SPEC.md` |
-| `packages/server/src/{fs,watch,trash}/SPEC.md` | `src/SharpRail.Host.Core/Files.SPEC.md` |
-| `packages/server/src/spec/SPEC.md` | `src/SharpRail.Host.Core/Specs.SPEC.md` |
-| `packages/plugin-spec-dialect/SPEC.md`, `packages/spec-graph/{core,tools}/SPEC.md` | `src/SharpRail.Plugins.SpecDialect/SPEC.md` |
-| `packages/plugin-discord/SPEC.md` | `src/SharpRail.Plugins.Discord/SPEC.md` |
-| `packages/plugin-pdf-preview/SPEC.md` | `src/SharpRail.UI/Resources/Pdf/SPEC.md` |
-| `packages/plugin-branch-graph/SPEC.md` | `src/SharpRail.Plugins.BranchGraph/SPEC.md` |
-| `packages/plugin-visualize/SPEC.md` | `src/SharpRail.Plugins.Visualize/SPEC.md` |
-| `packages/plugin-file-icons/SPEC.md` | `src/SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md` |
-| `packages/plugin-codex/SPEC.md`, `packages/plugin-codex/host/ideBridge/SPEC.md` | `src/SharpRail.Plugins.Codex/SPEC.md` |
-| `packages/server/src/{terminal,subprocess}/SPEC.md` | `src/SharpRail.Host.Core/Terminals.SPEC.md`, `src/SharpRail.UI/Terminal/SPEC.md` |
-| `packages/contracts/SPEC.md` | `src/SharpRail.Host.Protocol/SPEC.md` |
-| `apps/web/src/transport/SPEC.md` | `src/SharpRail.Host.Client/SPEC.md` |
-| `packages/server/src/auth/SPEC.md` | `src/SharpRail.Host.Remote/SPEC.md` |
-| `apps/web/SPEC.md`, `apps/desktop/SPEC.md`, `apps/web/src/resources/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
-| `apps/web/src/shell/SPEC.md`, `apps/web/src/shell/{layout,layoutState,layoutIntents}/SPEC.md` | `src/SharpRail.UI/Docking/SPEC.md` |
-| `apps/web/src/shell/locationBar/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
-| `apps/web/src/store/SPEC.md`, `apps/web/src/navigation/SPEC.md` | `src/SharpRail.UI/State/SPEC.md` |
-| `apps/web/src/panels/SPEC.md` | `src/SharpRail.UI/Panels.SPEC.md`, `src/SharpRail.UI/Panels/SPEC.md` |
-| `apps/web/src/components/SPEC.md`, `packages/ui/SPEC.md`, `apps/web/src/lib/SPEC.md`, `apps/web/src/resources/SPEC.md`, `apps/web/src/styles/TYPOGRAPHY.md` | `src/SharpRail.UI/Rendering/SPEC.md` |
-| `apps/web/src/themes/SPEC.md` | `src/SharpRail.UI/Rendering/Themes.SPEC.md` |
-| `apps/web/src/styles/COLOR.md` | `src/SharpRail.UI/Rendering/COLOR.md` |
-| `apps/web/src/styles/SPACING.md` | `src/SharpRail.UI/Rendering/SPACING.md` |
-| `apps/web/src/styles/NOTIFICATIONS.md` | `src/SharpRail.UI/Rendering/SPEC.md` (toast and notice look; its "Not yet ported") |
-| `e2e/SPEC.md` | `tests/SharpRail.Checks/SPEC.md` |
+| `packages/shared/SPEC.md`, `packages/server/SPEC.md`, `packages/server/src/host/SPEC.md` | `src/Tereditor.Host.Core/SPEC.md`, `src/Tereditor.Host.Abstractions/SPEC.md` |
+| `packages/server/src/{git,changes}/SPEC.md` | `src/Tereditor.Host.Core/Git.SPEC.md` |
+| `packages/server/src/workspaces/SPEC.md` | `src/Tereditor.Host.Core/Workspaces.SPEC.md` |
+| `packages/server/src/{projects,settings,persistence}/SPEC.md` | `src/Tereditor.Host.Core/HostState.SPEC.md` |
+| `packages/server/src/{fs,watch,trash}/SPEC.md` | `src/Tereditor.Host.Core/Files.SPEC.md` |
+| `packages/server/src/spec/SPEC.md` | `src/Tereditor.Host.Core/Specs.SPEC.md` |
+| `packages/plugin-spec-dialect/SPEC.md`, `packages/spec-graph/{core,tools}/SPEC.md` | `src/Tereditor.Plugins.SpecDialect/SPEC.md` |
+| `packages/plugin-discord/SPEC.md` | `src/Tereditor.Plugins.Discord/SPEC.md` |
+| `packages/plugin-pdf-preview/SPEC.md` | `src/Tereditor.UI/Resources/Pdf/SPEC.md` |
+| `packages/plugin-branch-graph/SPEC.md` | `src/Tereditor.Plugins.BranchGraph/SPEC.md` |
+| `packages/plugin-visualize/SPEC.md` | `src/Tereditor.Plugins.Visualize/SPEC.md` |
+| `packages/plugin-file-icons/SPEC.md` | `src/Tereditor.Plugins.UI.Kit/FileIcons/SPEC.md` |
+| `packages/plugin-codex/SPEC.md`, `packages/plugin-codex/host/ideBridge/SPEC.md` | `src/Tereditor.Plugins.Codex/SPEC.md` |
+| `packages/server/src/{terminal,subprocess}/SPEC.md` | `src/Tereditor.Host.Core/Terminals.SPEC.md`, `src/Tereditor.UI/Terminal/SPEC.md` |
+| `packages/contracts/SPEC.md` | `src/Tereditor.Host.Protocol/SPEC.md` |
+| `apps/web/src/transport/SPEC.md` | `src/Tereditor.Host.Client/SPEC.md` |
+| `packages/server/src/auth/SPEC.md` | `src/Tereditor.Host.Remote/SPEC.md` |
+| `apps/web/SPEC.md`, `apps/desktop/SPEC.md`, `apps/web/src/resources/SPEC.md` | `src/Tereditor.UI/SPEC.md` |
+| `apps/web/src/shell/SPEC.md`, `apps/web/src/shell/{layout,layoutState,layoutIntents}/SPEC.md` | `src/Tereditor.UI/Docking/SPEC.md` |
+| `apps/web/src/shell/locationBar/SPEC.md` | `src/Tereditor.UI/SPEC.md` |
+| `apps/web/src/store/SPEC.md`, `apps/web/src/navigation/SPEC.md` | `src/Tereditor.UI/State/SPEC.md` |
+| `apps/web/src/panels/SPEC.md` | `src/Tereditor.UI/Panels.SPEC.md`, `src/Tereditor.UI/Panels/SPEC.md` |
+| `apps/web/src/components/SPEC.md`, `packages/ui/SPEC.md`, `apps/web/src/lib/SPEC.md`, `apps/web/src/resources/SPEC.md`, `apps/web/src/styles/TYPOGRAPHY.md` | `src/Tereditor.UI/Rendering/SPEC.md` |
+| `apps/web/src/themes/SPEC.md` | `src/Tereditor.UI/Rendering/Themes.SPEC.md` |
+| `apps/web/src/styles/COLOR.md` | `src/Tereditor.UI/Rendering/COLOR.md` |
+| `apps/web/src/styles/SPACING.md` | `src/Tereditor.UI/Rendering/SPACING.md` |
+| `apps/web/src/styles/NOTIFICATIONS.md` | `src/Tereditor.UI/Rendering/SPEC.md` (toast and notice look; its "Not yet ported") |
+| `e2e/SPEC.md` | `tests/Tereditor.Checks/SPEC.md` |
 | `scripts/SPEC.md` | `scripts/SPEC.md` |
-| `packages/plugin-api/SPEC.md`, `plugin-adoption.md` (fork) | `src/SharpRail.Plugins.Api/SPEC.md` |
-| `packages/server/src/plugins/SPEC.md` (fork) | `src/SharpRail.Host.Core/Plugins.SPEC.md` |
-| `apps/web/src/plugins/SPEC.md`, `apps/web/src/plugins/{loader,registry}/SPEC.md` (fork) | `src/SharpRail.UI/Plugins/SPEC.md` |
-| `packages/plugin-ui/SPEC.md` (fork) | `src/SharpRail.Plugins.UI.Kit/SPEC.md` |
+| `packages/plugin-api/SPEC.md`, `plugin-adoption.md` (fork) | `src/Tereditor.Plugins.Api/SPEC.md` |
+| `packages/server/src/plugins/SPEC.md` (fork) | `src/Tereditor.Host.Core/Plugins.SPEC.md` |
+| `apps/web/src/plugins/SPEC.md`, `apps/web/src/plugins/{loader,registry}/SPEC.md` (fork) | `src/Tereditor.UI/Plugins/SPEC.md` |
+| `packages/plugin-ui/SPEC.md` (fork) | `src/Tereditor.Plugins.UI.Kit/SPEC.md` |
 
 ### Not tracked
 
-Out of scope for SharpRail (the pi packages, CLI launcher, website,
+Out of scope for tereditor (the pi packages, CLI launcher, website,
 analytics, GitHub/PR review, desktop updates, web-only tooling): every other upstream
 `SPEC.md`, plus `goal-and-requirements.md`, whose applicable scope already lives in
 `SPEC.md`. A new upstream spec is triaged into one of the two lists on the next sync.
@@ -272,13 +272,13 @@ covered the 62 files changed in the JetBrains range (specs and style documents).
   virtualization and bounded stacked sections (#731).
 - Host: the login-shell environment import is opt-in for launchers (#714), with its post-mortem.
 
-Already ported or inherent to SharpRail earlier, so only recorded here: the calm captioned location bar (#712),
+Already ported or inherent to tereditor earlier, so only recorded here: the calm captioned location bar (#712),
 newest-created-first rail with a recency switcher (#725, #713), 28px panel headers, 22px rows and the named layout
 roles (#703), OS-level window focus for notification suppression (#705).
 Not tracked (AI, pi or web-only): MCP management, tool cards and status (#691-#695, mcp specs), the TODO list
 rail and plan page (#706), project trust (#690), extension on/off (#709), background-work attention and
 read-when-seen unread (#716, #728), restored chats and model visibility (#685, #745), pi 1.2.0 and the npm scope
-(#723, #734), the loader redesign (#727; SharpRail has no working badge until A17), Pierre and WebKit selection
+(#723, #734), the loader redesign (#727; tereditor has no working badge until A17), Pierre and WebKit selection
 fixes, the typography line-height scale and radius tokens (web-only CSS), `architecture.md` and
 `packages/contracts` (AI/MCP only), `e2e/SPEC.md` and `e2e/workflows` (AI/MCP scenarios plus Playwright details),
 and the new `agent/mcp`, `chat/tools/mcp` and `mcp` specs. `ARCHITECTURE.md` needed no port.
@@ -324,7 +324,7 @@ This revision records completed specification triage, not implementation parity.
 Remaining native work is recorded in the owning specs.
 
 `apps/web/src/notifications/SPEC.md`, left untracked by an earlier sync, is adapted on `main` in
-`src/SharpRail.UI/SPEC.md` ("Away notifications") for the Claude Code and Codex terminals, whose
+`src/Tereditor.UI/SPEC.md` ("Away notifications") for the Claude Code and Codex terminals, whose
 plugins are the only attention source. Its pi session-state observer, browser permission preface
 and session switcher have no counterpart.
 
@@ -335,9 +335,9 @@ Current gaps are consolidated in [Current porting gaps](#current-porting-gaps); 
 commits below document exclusions, not pending work. Hashes are from
 the fork chain as fetched on the date given and will not match after a force-push.
 
-2026-10-18 additions after that pass (original SharpRail work, recorded for completeness):
+2026-10-18 additions after that pass (original tereditor work, recorded for completeness):
 - Air Gateway (called Air Governance until JetBrains renamed the product; the plugin id `air-governance` migrates to `air-gateway` on state load, and fork and upstream references keep the old name): original builtin plugin adapted from the fork's `jbcentral` and JetBrainsAiCard on the fork's `central-access-api` branch (a separate branch from `claude-code-integration-plugin-api`), with per-launch `central run` wrapping of Claude Code and Codex in place of the fork's pi extension. It rests on the agent launch seam (Plugin API H18/W22). Access sources are listed automatically while Central is chosen and signed in (no List button), and with Central governing a launcher the Codex and Claude Code Account tabs show the Central account and credits instead of the vendor account (launch contribution `Account`, Plugin API H18; not run against a real Central endpoint). Checks: `--air-gateway`; gate cases `air-gateway` and `air-gateway-ui`.
-- omp: original builtin plugin with early (basic) support, marked by the new manifest `support` field and its Settings › Plugins badge: launcher and start action with `--model`, `--approval-mode`, `--advisor` and `--no-lsp` (SharpRail code intelligence by default), SharpRail's MCP server through a SharpRail-owned omp profile, a session folder per launch for revival, context files with nested @-imports and Add offers, version and missing-binary state, and zombie-safe agent detection; not run against a real omp, and not governed by Air (Central has no omp agent). Checks: `--omp`; gate cases `omp-host` and `omp-ui`.
+- omp: original builtin plugin with early (basic) support, marked by the new manifest `support` field and its Settings › Plugins badge: launcher and start action with `--model`, `--approval-mode`, `--advisor` and `--no-lsp` (tereditor code intelligence by default), tereditor's MCP server through a tereditor-owned omp profile, a session folder per launch for revival, context files with nested @-imports and Add offers, version and missing-binary state, and zombie-safe agent detection; not run against a real omp, and not governed by Air (Central has no omp agent). Checks: `--omp`; gate cases `omp-host` and `omp-ui`.
 - Air Context: the semantic code search moved out of the host into a builtin plugin, switched only through Settings › Plugins and disabled by default, using the plugin state directory and tool guidance handles (Plugin API H19/H20). Checks: `--context`.
 
 Out of scope for every pass: pi, CLI, website/analytics, desktop update flow, Electron-
@@ -357,26 +357,26 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `5383b8506` feat(updates): add consent-driven update flows (#558): skipped (desktop updates)
 - `fdbbc1d2f` docs(specs): make the goal doc a living product document (#573): skipped (goal doc is not tracked)
 - `f90ea4c0b` fix(web): default markdown diffs to the rendered view (#569): ported
-- `32ce2cad9` Text insertion issue and padding adjustment (#560): skipped (the non-chat part is the create-workspace dialog's prompt image chips and caret restoration; SharpRail's create-workspace flow has no prompt or image attachments, the AI prompt being excluded)
+- `32ce2cad9` Text insertion issue and padding adjustment (#560): skipped (the non-chat part is the create-workspace dialog's prompt image chips and caret restoration; tereditor's create-workspace flow has no prompt or image attachments, the AI prompt being excluded)
 - `d49d91bef` feat(website): add consented journey analytics foundation (#524): skipped (website/analytics)
 - `fba9d8853` Reveal a file in the file manager, from our own menu: ported (Files row menu "Reveal in Finder" via host `ApplyFileActionAsync("reveal")`: `open -R` / `explorer /select,` / containing folder; the pi-runtime diagnostics hunk skipped as pi)
 - `4fdb372e1` Open a plain folder as a project, with no git required: partial (plain folders open directly and the git-init prompt and host "init" action are removed; Changes/Review withholding for a plain or unborn repo, the `tool-needs-git` notice and the gitless Start-work dialog copy are not ported)
-- `008c972b0` web: our own tab tooltips, and they stop blocking what they cover: skipped (SharpRail's tab tooltips are already its own Avalonia tooltips anchored below the tab; the pointer-transparent popup has no verifiable Avalonia counterpart, and the rest of this commit is a web-only merge of unrelated fork work)
+- `008c972b0` web: our own tab tooltips, and they stop blocking what they cover: skipped (tereditor's tab tooltips are already its own Avalonia tooltips anchored below the tab; the pointer-transparent popup has no verifiable Avalonia counterpart, and the rest of this commit is a web-only merge of unrelated fork work)
 - `1f6aa7dfb` The desktop window stops handing its own host to the browser: skipped (Electron navigation)
 - `1829e0736` Send an editor selection into a pi chat: skipped (pi chat)
 - `10183e913` Where a tab can go, drawn instead of listed: skipped (a new drawn placement picker in the tab menu is a large docking-menu redesign; not attempted in this pass)
 - `20a3450be` The light theme's diff canvas stops reading as disabled: ported
 - `f4408d2a3` Previewing a file before you keep it is a setting: ported
-- `0d59b4878` The desktop window comes back to the port it had, and with it your tabs: skipped (desktop host port; SharpRail embeds its host)
-- `ec1ec6823` tests: a fixture open survives a neighbour's pick and a loaded machine: skipped (Playwright fixture timing and picker-pointer state; SharpRail checks use isolated fixtures)
+- `0d59b4878` The desktop window comes back to the port it had, and with it your tabs: skipped (desktop host port; tereditor embeds its host)
+- `ec1ec6823` tests: a fixture open survives a neighbour's pick and a loaded machine: skipped (Playwright fixture timing and picker-pointer state; tereditor checks use isolated fixtures)
 - `32f07e106` Frontmatter edits like Obsidian properties, above the rendered view: ported (editable preview properties, chips, folding, key operations, shape conversion and suggestions share the source draft; unsupported YAML and diffs remain read-only)
-- `b047c8f29` The spec tools reach any agent in a ThinkRail terminal, over MCP: partial (MCP protocol, per-terminal token, THINKRAIL_MCP_URL stamping and a loopback HTTP/1.1 route on both the remote host and the local terminal relay are ported; only spec_get and spec_grep are served, because SharpRail has no spec authoring or full graph yet, so spec_create/update/delete/graph/validate and grep's tag/dependsOn filters are missing; the carried mouse-mode guard, process tree and title changes have no SharpRail counterpart)
+- `b047c8f29` The spec tools reach any agent in a ThinkRail terminal, over MCP: partial (MCP protocol, per-terminal token, THINKRAIL_MCP_URL stamping and a loopback HTTP/1.1 route on both the remote host and the local terminal relay are ported; only spec_get and spec_grep are served, because tereditor has no spec authoring or full graph yet, so spec_create/update/delete/graph/validate and grep's tag/dependsOn filters are missing; the carried mouse-mode guard, process tree and title changes have no tereditor counterpart)
 - `25133aa27` Panes a resource carries: embedded, never a tab of their own: partial (Markdown Split view; visualization/blueprint companions are AI surfaces and skipped)
 - `76c3ec2f3` A terminal whose pty inherited a stale utmpx record no longer runs as the wrong user: ported
 - `b9548ea25` The outline moves to the pane's edge and drives both preview and source: ported
-- `0d61c37c8` A terminal frozen by a drain event the OS never delivered thaws on its own: partial (the drain latch is skipped: gRPC/HTTP-2 flow control has no drain event to lose; of the carried server changes only the unborn-HEAD workspace refusal was ported; published-branch rename, branchDetails/deleteBranch/fetch, suggestWorkspaceName and vcs gap belong to features SharpRail lacks; GIT_OPTIONAL_LOCKS was already present)
-- `f8730d329` On the desktop, the host is this computer, and the copy stops calling it "the host": ported for the strings SharpRail has (Enter path… and the path dialog's explanation locally; GitHub/JetBrains AI card strings do not exist here)
-- `308b0eef4` A file in the tree can be dragged to where it is wanted: skipped (the diff is xterm drag-and-drop of a tree path into the web terminal; SharpRail's Files rows are not drag sources and its terminal is native Ghostty, so this needs native-bridge drop work)
+- `0d61c37c8` A terminal frozen by a drain event the OS never delivered thaws on its own: partial (the drain latch is skipped: gRPC/HTTP-2 flow control has no drain event to lose; of the carried server changes only the unborn-HEAD workspace refusal was ported; published-branch rename, branchDetails/deleteBranch/fetch, suggestWorkspaceName and vcs gap belong to features tereditor lacks; GIT_OPTIONAL_LOCKS was already present)
+- `f8730d329` On the desktop, the host is this computer, and the copy stops calling it "the host": ported for the strings tereditor has (Enter path… and the path dialog's explanation locally; GitHub/JetBrains AI card strings do not exist here)
+- `308b0eef4` A file in the tree can be dragged to where it is wanted: skipped (the diff is xterm drag-and-drop of a tree path into the web terminal; tereditor's Files rows are not drag sources and its terminal is native Ghostty, so this needs native-bridge drop work)
 - `c4eebc5f1` feat(web): put the target choice above the Start work header: ported (the model/effort labels are AI and omitted; an edited name becomes the workspace's host label)
 - `87325ac26` An issue number in a comment stops being painted as a colour: already present (Scintilla has no colour decorators)
 - `1e4449a2a` A repository URL becomes a project, cloned into a folder you choose: ported 2026-10-03 (`CloneProjectAsync` through every host layer, the Clone repository… dialog and both `clone-project.spec.ts` scenarios; the remaining diff deletes web-only unit tests)
@@ -396,21 +396,21 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `d55683607` chore: bump TypeScript to 7.0.2 and migrate off the legacy compiler API: skipped (TS tooling)
 - `e597593d7` A spec is titled by its frontmatter, and its [[links]] go somewhere: ported
 - `f6371aa62` Folding a rail stops rebuilding the whole workbench: already present (a regression check was added)
-- `fb6c0147d` The branch in the topbar opens the project's branches: partial (SharpRail lists every worktree as a workspace, so the fork's "foreign worktree" branch deletion is refused instead)
+- `fb6c0147d` The branch in the topbar opens the project's branches: partial (tereditor lists every worktree as a workspace, so the fork's "foreign worktree" branch deletion is refused instead)
 - `cf91102e9` A project with no specs opens its rail on Files: ported
 - `356366850` A terminal nobody is looking at stops rendering: skipped (xterm/CSS content-visibility; Ghostty renders natively)
-- `f9afe4049` The bottom row's controls clear the window's rounded corner: skipped (SharpRail's bottom group header sits at the top of the bottom region, never against the window's rounded corner)
+- `f9afe4049` The bottom row's controls clear the window's rounded corner: skipped (tereditor's bottom group header sits at the top of the bottom region, never against the window's rounded corner)
 - `c4c236097` A code font you choose, with its ligatures: skipped (needs a new host setting through all five host layers plus font plumbing into Scintilla's bundled SKTypeface, Ghostty's config shim and Markdown code blocks; recorded under Not yet ported in Rendering/SPEC.md)
 - `ebedcf702` Settings answer to Command+, on macOS: ported
-- `0d40a484b` The topbar says what "from main" means: ported (SharpRail's topbar has no "from main" line, so the tooltip is on the workspace placeholder's "· from main", the only place it appears)
+- `0d40a484b` The topbar says what "from main" means: ported (tereditor's topbar has no "from main" line, so the tooltip is on the workspace placeholder's "· from main", the only place it appears)
 - `4171b16c2` A large markdown preview stops re-doing its own work: already present (document controls are cached across tab switches, so a revisited preview is not rebuilt; there is no tokenizer to cache)
 - `2d8fce7b1` A selection reaches the document, not the chrome around it: already present (only content surfaces use SelectableTextBlock; chrome is plain TextBlock)
-- `9e5e727a2` Tests, fixtures and spec text the fork's changes left behind: skipped (nothing in scope: web unit tests, Playwright fixtures and the New project spec, a feature SharpRail lacks)
+- `9e5e727a2` Tests, fixtures and spec text the fork's changes left behind: skipped (nothing in scope: web unit tests, Playwright fixtures and the New project spec, a feature tereditor lacks)
 - `7f94b1832` The CLI waits a beat for a tab that is already open before opening another: skipped (CLI)
 - `8e05d76c0` A default model and thinking level you can choose in Settings: skipped (AI)
 - `5bdc70e39` Vertical tabs can live under their workspace in Projects: ported later, as `8feda8584` (see "Fork refresh, 2026-10-02")
 - `ba90884c6` A dirty worktree can be force-removed before its branch: partial (the host has `force-remove-worktree`, and removing a dirty workspace from the rail asks a second time before forcing; the branch list still refuses to delete a branch a workspace is on instead of removing that worktree first)
-- `ba3d301c4` Branch pickers show every remote, collapsibly, and a click can switch or start a workspace: partial (collapsible, profile-remembered remote groups in the New Workspace picker are ported; the topbar branch list and its click-to-switch/start actions do not exist in SharpRail)
+- `ba3d301c4` Branch pickers show every remote, collapsibly, and a click can switch or start a workspace: partial (collapsible, profile-remembered remote groups in the New Workspace picker are ported; the topbar branch list and its click-to-switch/start actions do not exist in tereditor)
 - `a86e95aaf` The Welcome provider warning recognizes connected JetBrains AI: skipped (AI)
 - `2c44d749d` JetBrains AI access source switching, for accounts with more than one org: skipped (AI)
 - `a204860fb` Hidden models you can filter out in Settings and the model picker: skipped (AI)
@@ -420,19 +420,19 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `26e511629` An open file says when its file is deleted on disk: ported (tab "deleted" mark and a Scintilla banner; a remote read maps a missing file to gRPC NotFound so the coded miss survives the wire; the banner is only on Scintilla editors, so Markdown/image tabs get the tab mark alone)
 - `8f6b555d8` A file or folder can be created, or renamed, from the Files tree: ported (New file…/New folder…/Rename… with one name dialog: inline collision, stem selection, host error shown in place; no per-file-type icon since the tree has none)
 - `be1bf412e` Remove the CLAUDE.md alias of AGENTS.md: skipped (ThinkRail repo housekeeping)
-- `df19980af` Terminals start clean after a host restart: already present (SharpRail never persisted terminal output; the not-yet-ported revival note now says revived shells start blank)
+- `df19980af` Terminals start clean after a host restart: already present (tereditor never persisted terminal output; the not-yet-ported revival note now says revived shells start blank)
 - `524db465d` OpenAI models carry their provider mark: skipped (AI chat)
 - `4d2e6b2d2` Chat tabs carry the Pi mark: skipped (AI chat)
 - `915b6d978` A live terminal reattach restores full-screen input modes: ported (host replay appends the live alternate screen and mouse/alternate-scroll modes)
 - `4c774f45e` Chats survive a provider switch when their saved model is unavailable: skipped (AI chat)
 - `626031274` A project's absolute path can be copied from its context menu: ported (plus the workspace menu's Copy path -> Copy absolute path and new Copy name)
-- `d4d03db1b` A worktree made in ThinkRail's folder shows up as a workspace: already present (SharpRail's workspace rows come straight from `git worktree list`, so any worktree made from a terminal already shows; there is no workspace registry to adopt into or dismissal list to keep)
+- `d4d03db1b` A worktree made in ThinkRail's folder shows up as a workspace: already present (tereditor's workspace rows come straight from `git worktree list`, so any worktree made from a terminal already shows; there is no workspace registry to adopt into or dismissal list to keep)
 
 #### Plugin API, one commit (2026-10-01)
 
 - `4737df6d3` Plugin API: the contract, the host loader, the web registry, and the UI kit: ported as the three
-  `SharpRail.Plugins.Api*` assemblies, the host runtime (`Host.Core/Plugins`), the app runtime (`UI/Plugins`)
-  and `SharpRail.Plugins.UI.Kit`, with the wire as one generic gRPC call and stream. Not ported: pi (H11, H16,
+  `Tereditor.Plugins.Api*` assemblies, the host runtime (`Host.Core/Plugins`), the app runtime (`UI/Plugins`)
+  and `Tereditor.Plugins.UI.Kit`, with the wire as one generic gRPC call and stream. Not ported: pi (H11, H16,
   the agent tool surface and the `pi` block, which is parsed and ignored), chat (chat companion hosts,
   `openChat`, tool renderers, the `writtenPathGroup` slot), workspace auto-naming hints, the `styles` manifest
   field, and the kit's settings-row and terminal-fact components, which arrive with their first plugin. The
@@ -486,7 +486,7 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 
 The local fork ref now points to `1c7c90a5a`. Compared with the previous `0304a543e` tree,
 plugin sources remove workspace-name suggestions from the host API and Claude/Codex hooks,
-and add the UI kit's `Switch` control and tests. SharpRail already omits the naming operation.
+and add the UI kit's `Switch` control and tests. tereditor already omits the naming operation.
 The obsolete Codex report fields and corresponding test expectations are now removed. The shared
 switch's controlled state, geometry, input, automation and disabled theme checks pass in the
 isolated build; combined verification and transition/native appearance review remain. Historical
@@ -506,18 +506,18 @@ therefore `main` already follow. Compared with `1c7c90a5a`, by title:
 - `b9ec7d8ba` Recents stops listing project folders that no longer exist: ported (a read-time projection in
   `HostStateStore`; missing or file-replaced paths are hidden, other errors keep them, and the stored list
   is untouched)
-- "Folding a rail stops rebuilding the whole workbench" left the chain; its SharpRail regression check remains.
+- "Folding a rail stops rebuilding the whole workbench" left the chain; its tereditor regression check remains.
 - `4a8aa9191` Claude Code integration is a builtin plugin, amended: the appended system prompt is the fork's
-  compact text with SharpRail's tools; render-time host reads were already reactive through `WatchHost`.
+  compact text with tereditor's tools; render-time host reads were already reactive through `WatchHost`.
 - `667cf631f` OpenAI Codex is a builtin plugin, amended: wire version 3, tab-scoped configuration and
-  AGENTS.md discovery from the tab's CWD, the "Tell Codex it is running in SharpRail" setting with its
+  AGENTS.md discovery from the tab's CWD, the "Tell Codex it is running in tereditor" setting with its
   developer-instructions file, launch-flag source and hook tagging, and revival that reapplies the
-  setting once. See `src/SharpRail.Plugins.Codex/SPEC.md`.
+  setting once. See `src/Tereditor.Plugins.Codex/SPEC.md`.
 - `8feda8584` Vertical tabs can live under their workspace in Projects: ported (vertical centre column with
   px width, tab panes as workspace-view metadata with the fork's model rules, pane drops and menu verbs,
   no centre split in the mode, ambiguous-name folder lines, the strips nested in Projects with other
   workspaces' read-only tab lists). Its other parts were already covered or are web-only: keep-alive
-  terminals (SharpRail retains terminal controls), `useElementSize`, `content-visibility`, and the window
+  terminals (tereditor retains terminal controls), `useElementSize`, `content-visibility`, and the window
   corner gutter. The "show beside a Claude terminal" open rule and `unofferedTools` are not ported.
 
 ### Fork refresh, 2026-10-03
@@ -540,7 +540,7 @@ current chain has 78. Absent now, because they are no longer separate fork commi
   half stays ported; the Windows and Linux chord is recorded in UI "Not yet ported".
 - "A file in the tree can be deleted, into the trash, after asking", "A project with no specs opens its rail on
   Files" and "An issue number in a comment stops being painted as a colour": not in the current chain and not
-  found in `upstream/main` by title. SharpRail keeps its existing ports; whether the fork dropped or folded them
+  found in `upstream/main` by title. tereditor keeps its existing ports; whether the fork dropped or folded them
   was not established from the local refs.
 
 No fork-only commit was added. Everything else is as logged above.
@@ -580,7 +580,7 @@ Home, where upstream's `openFixtureProject` lands. A reload closes the window an
 a new one on the same profile; the profile's last location stands in for the URL route.
 Native shell execution, Metal presentation, Mod+Shift+J from a focused Ghostty view and
 remote Ghostty tabs relayed to a gRPC host PTY have separate checks in
-`scripts/mise run check:terminal` and `SharpRail.Checks --native-terminal`.
+`scripts/mise run check:terminal` and `Tereditor.Checks --native-terminal`.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
@@ -595,7 +595,7 @@ Run with a local clone of `JetBrains/thinkrail:main`:
 
 ```sh
 git clone --branch main https://github.com/JetBrains/thinkrail.git .bench/thinkrail
-SHARPRAIL_TEST_GIT_SOURCE="$PWD/.bench/thinkrail" .tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release
+TEREDITOR_TEST_GIT_SOURCE="$PWD/.bench/thinkrail" .tools/dotnet/dotnet run --project tests/Tereditor.Checks -c Release
 ```
 
 ### Case inventory
@@ -666,7 +666,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-actions.spec.ts` | the Default workspace's kebab menu offers only non-mutating actions | Ported |
 | `workspace-actions.spec.ts` | right-click opens the workspace's kebab menu without activating it | Ported |
 | `workspace-actions.spec.ts` | the kebab is hover-only ONLY on devices that actually have hover — never invisible by default | Ported (Avalonia has no hover media query; asserts opacity 0 at rest and 1 on row hover) |
-| `welcome.spec.ts` | opens a clean ThinkRail with no projects imported | Ported (the title is SharpRail; the side tool frame stays, empty) |
+| `welcome.spec.ts` | opens a clean ThinkRail with no projects imported | Ported (the title is tereditor; the side tool frame stays, empty) |
 | `welcome.spec.ts` | the Welcome provider warning only shows when no provider is connected, and opens Settings | Excluded: AI providers |
 | `welcome.spec.ts` | Settings → Providers lists in-app auth options | Excluded: AI providers |
 | `welcome.spec.ts` | a real provider's API key round-trips through the login dialog (add in Settings, sign out) | Excluded: AI providers |
@@ -679,13 +679,13 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `default-workspace.spec.ts` | the Welcome fork's “Work in project folder” enters the Default workspace — the project folder itself | Ported (the terminal `pwd` step is omitted: headless checks do not execute shells) |
 | `default-workspace.spec.ts` | a terminal branch switch converges every Default branch label live | Ported (the fixture switches branch with Git directly instead of through an embedded terminal) |
 | `default-workspace.spec.ts` | the Default workspace is non-removable and unique; project home stays reachable | Ported |
-| `workspaces.spec.ts` | opens and safely forgets an existing user-owned worktree | Pending: SharpRail lists every Git worktree from `git worktree list`; there is no Open existing worktree dialog or adopt/forget registry for user-owned checkouts |
+| `workspaces.spec.ts` | opens and safely forgets an existing user-owned worktree | Pending: tereditor lists every Git worktree from `git worktree list`; there is no Open existing worktree dialog or adopt/forget registry for user-owned checkouts |
 | `workspaces.spec.ts` | an attached worktree cannot also be opened as a project | Pending: opening a linked worktree resolves to its owning project rather than reporting a conflict; needs the external-worktree registry above |
 | `workspaces.spec.ts` | creates, removes, and re-creates worktree workspaces (no branch collision) | Ported |
 | `new-workspace.spec.ts` | the dialog lists local branches (no stray origin) and creates a worktree | Ported (the model/effort selectors and initial chat tab are AI and omitted) |
 | `new-workspace.spec.ts` | an edited name names the worktree, and the placeholder leaves naming to the host | Ported (fork; the edited name becomes the workspace's host label, and the AI naming hint is omitted) |
 | `branch-list.spec.ts` | the branch chip lists branches with their worktrees, and guards deletion | Ported (fork; the checked-out branch is refused too, and the host's refusal is checked directly) |
-| `branch-list.spec.ts` | a branch held by a worktree ThinkRail did not make is still the user's to delete | Excluded: SharpRail lists every worktree of a project as a workspace, so a worktree-held branch is always refused |
+| `branch-list.spec.ts` | a branch held by a worktree ThinkRail did not make is still the user's to delete | Excluded: tereditor lists every worktree of a project as a workspace, so a worktree-held branch is always refused |
 | `branch-list.spec.ts` | Fetch brings the remotes up to date from the branch list | Ported (fork) |
 | `search.spec.ts` | Mod+Shift+F searches the worktree and a hit opens its file at that line | Ported (fork; also checks that Git-ignored files are skipped; the line is scrolled to on macOS, where Scintilla opens text files) |
 | `search.spec.ts` | a hit in a markdown file flashes the block it landed in | Pending: the rendered Markdown view has no source-line landing |
@@ -700,10 +700,10 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `new-workspace.spec.ts` | opening New Workspace prefetches a stale default before create | Ported |
 | `new-workspace.spec.ts` | opening New Workspace prefetches a missing default tracking ref | Ported |
 | `branch-list.spec.ts` | a remote group can be collapsed and expanded, and stays that way in every branch picker | Ported (the New Workspace picker; remembered per remote in the profile) |
-| `branch-list.spec.ts` | left-clicking a branch checked out by a ThinkRail workspace switches to it | Excluded: SharpRail has no topbar branch list |
-| `branch-list.spec.ts` | the branch list groups branches from every configured remote, and a remote-only branch opens New Workspace prefilled | Excluded: SharpRail has no topbar branch list |
-| `branch-list.spec.ts` | the topbar branch list marks its Local branches, mirroring the Changes picker | Excluded: SharpRail has no topbar branch list |
-| `branch-list.spec.ts` | a dirty external worktree requires a second force-delete confirmation | Excluded: SharpRail has no branch list with branch deletion |
+| `branch-list.spec.ts` | left-clicking a branch checked out by a ThinkRail workspace switches to it | Excluded: tereditor has no topbar branch list |
+| `branch-list.spec.ts` | the branch list groups branches from every configured remote, and a remote-only branch opens New Workspace prefilled | Excluded: tereditor has no topbar branch list |
+| `branch-list.spec.ts` | the topbar branch list marks its Local branches, mirroring the Changes picker | Excluded: tereditor has no topbar branch list |
+| `branch-list.spec.ts` | a dirty external worktree requires a second force-delete confirmation | Excluded: tereditor has no branch list with branch deletion |
 | `new-workspace.spec.ts` | a pasted image in the workspace dialog rides along into the first chat turn | Excluded: AI chat |
 | `workspace-lifecycle.spec.ts` | workspace removal propagates — no zombie row in a second tab | Ported (second window of the app; the removed workspace's notice stands in for the toast) |
 | `workspace-lifecycle.spec.ts` | workspace rename propagates live and rehydrates a tab that missed a later snapshot | Ported (two gRPC clients; the peer's connection is dropped and restored by a relay) |
@@ -729,7 +729,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `files.spec.ts` (fork) | a file row drags into the composer as a mention and into a terminal as a path | Not ported: AI composer excluded; tree rows are not drag sources |
 | `clone-project.spec.ts` (fork) | clone repository | Not ported yet |
 | `gitless.spec.ts` (fork) | Changes and Review withheld for a plain folder or an unborn repository | Not ported yet |
-| `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
+| `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is tereditor's read-only source view; the ready placeholder omits chats) |
 | `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported (the prose is checked apart from the editable properties block) |
 | `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
@@ -737,13 +737,13 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
 | `terminals.spec.ts` | a workspace opens a terminal automatically, rooted in the worktree, with working I/O | Ported with an explicit launch; automatic startup is excluded |
-| `terminals.spec.ts` | a shell start failure explains recovery and retries the same tab | Ported (failure text, preserved focus, disabled then focused Retry, same-tab recovery; SharpRail has no terminal Settings page to link; take-back is covered by the second-client row) |
+| `terminals.spec.ts` | a shell start failure explains recovery and retries the same tab | Ported (failure text, preserved focus, disabled then focused Retry, same-tab recovery; tereditor has no terminal Settings page to link; take-back is covered by the second-client row) |
 | `terminals.spec.ts` | xterm uses the shared quiet rail and directional curtains | Excluded: xterm.js scrollbar and CSS curtain styling; Ghostty draws its own native scrollback |
 | `terminals.spec.ts` | terminals are workspace-scoped and survive workspace switches | Ported |
 | `terminals.spec.ts` | multiple terminals per workspace keep independent buffers and can be closed | Ported |
 | `terminals.spec.ts` | the terminal's shell counts characters, not bytes | Ported |
 | `terminals.spec.ts` | a shell survives a trip to Project Home and back | Ported (the test leaves through the project's default workspace, which also unmounts the worktree's terminal; the Project Home route is not exercised yet) |
-| `terminals.spec.ts` | historical terminal queries do not become input on remount | Excluded: SharpRail keeps the live terminal surface across remounts instead of replaying output into a new emulator, so no replayed query can answer itself |
+| `terminals.spec.ts` | historical terminal queries do not become input on remount | Excluded: tereditor keeps the live terminal surface across remounts instead of replaying output into a new emulator, so no replayed query can answer itself |
 | `terminals.spec.ts` | rapid re-entry never spawns a second shell | Ported |
 | `terminals.spec.ts` | a shell survives a page reload | Ported (reload is a new window of the same app over the same profile and terminal host; earlier output is replayed once) |
 | `terminals.spec.ts` | a terminal's output never reaches another client | Ported (two windows, each with its own connection to a real gRPC host) |
@@ -755,9 +755,9 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | final shell output is delivered before exit after reconnect | Ported (the proxy holds the reconnect while the shell exits; final output arrives once, then exit code 7) |
 | `terminals.spec.ts` | a second client takes a terminal over and the first is told | Ported (second window, real gRPC host; the second watches the held terminal and takes it over, the first keeps watching it live under the take-back offer and takes the terminal back) |
 | `terminals.spec.ts` | closing a tab with a running process asks first | Ported |
-| `terminals.spec.ts` | a rejected forced close stays correlated and permits a clean retry | Excluded: closing disposes the tab's own session; SharpRail has no host close request that can be refused |
+| `terminals.spec.ts` | a rejected forced close stays correlated and permits a clean retry | Excluded: closing disposes the tab's own session; tereditor has no host close request that can be refused |
 | `terminals.spec.ts` | closing an idle tab does not ask | Ported |
-| `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Not ported: SharpRail shares every catalogued terminal, so the peer's terminal arrives passively (`SharedTerminalsE2E.cs`) |
+| `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Not ported: tereditor shares every catalogued terminal, so the peer's terminal arrives passively (`SharedTerminalsE2E.cs`) |
 | `terminals.spec.ts` | a shell that dies during a reclaim is not presented as alive | Ported (the take-back attach reply is delayed while the shell is killed; the tab ends exited) |
 | `terminals.spec.ts` | a terminal that was hidden while it printed keeps its width | Excluded: xterm DOM rendering; Ghostty renders natively and keeps its grid while hidden |
 | `terminals.spec.ts` | terminal forwards pointer capture and Ctrl+T to a raw PTY | Ported as a host check (a live reattach replays the alternate screen and mouse modes); pointer forwarding is Ghostty's |
@@ -776,12 +776,12 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `bottom-panel.spec.ts` | bottom groups arrange left-to-right, resize, fold to 27px, restore, and enforce their own limit | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
 | `bottom-panel.spec.ts` | a narrow viewport locally compresses bottom groups without rewriting their topology | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
 | `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
-| `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: SharpRail never stored layouts on the host, so there is no legacy host layout to ignore |
+| `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: tereditor never stored layouts on the host, so there is no legacy host layout to ignore |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported (Settings lists every bundled manifest) |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Ported (the application theme variant stands in for the emulated media query; also checks the pair after reload). The peer is a second gRPC client with its own settings copy; both share one process and so one device appearance, so the peer's light-device theme is checked by resolving its synced mode and pair |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; every bundled manifest, with the high-contrast selected-text overrides) |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Ported (center, right and terminal strips; brush, 2px geometry and rendered pixels) |
-| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Ported: draft Escape/validation/Enter/Save, a held host broadcast keeping the toggle at the host's value until released, a second window converging, and persistence across a fresh window, with the Markdown width standing in for the excluded chat measure. SharpRail's "Limit lines to this width" toggle falls back to the pane width rather than exceeding it |
+| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Ported: draft Escape/validation/Enter/Save, a held host broadcast keeping the toggle at the host's value until released, a second window converging, and persistence across a fresh window, with the Markdown width standing in for the excluded chat measure. tereditor's "Limit lines to this width" toggle falls back to the pane width rather than exceeding it |
 | `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla) |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
@@ -805,7 +805,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | Re-pointing the target branch re-reads an open branch-scope diff tab — active or backgrounded | Ported |
 | `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
 | `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
-| `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: Monaco model lifetime; SharpRail diff tabs do not use an editor |
+| `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: Monaco model lifetime; tereditor diff tabs do not use an editor |
 | `changes.spec.ts` (fork) | The diff header keeps its controls on a narrow pane: an unpinned diff opens inline there, a click pins Split | Ported with the native width rule: layout pins apply while wide enough; narrow panes hide Split and use inline |
 | `changes.spec.ts` (fork) | The rendered markdown diff carries the outline and the properties block | Ported (properties are diffed per key rather than through the text merge; the marks are the same ins/del runs) |
 | `changes.spec.ts` (fork) | A markdown diff drops to one column on a narrow pane like every other file | Covered by the width rule shared with source diffs; no separate case |
@@ -824,7 +824,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `live-refresh.spec.ts` | churn canary: a write storm coalesces to a few frames and the host stays responsive | Ported (fsChanged frames become coalesced watcher refreshes; `/health` becomes a timed host listing) |
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Ported (fixed 40px themed header, workbench below it, Settings inside at narrow width; native inset elements are unrepresentable) |
 | `topbar-chrome.spec.ts` | live safe areas on either edge preserve header and workbench geometry | Pending: safe-area insets cannot be injected; the title bar has a fixed OS-dependent margin |
-| `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: SharpRail has no Update or quota Retry actions |
+| `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: tereditor has no Update or quota Retry actions |
 | `plugins/fixture/external-plugin.spec.ts` (fork) | the roster lists a discovered external plugin as disabled | Ported (`PluginUiChecks`: an external plugin in the host's state directory, run twice, through the app's in-process runtime and through a remote host; the row shows external, `v1.0.0` and disabled, and switching it on refuses it with "External plugins are not supported in this version.") |
 | `plugins/fixture/external-plugin.spec.ts` (fork) | enabling mounts its settings section and its side tool, and its method answers over the wire | Ported for the fixture composed as a check-only builtin, since external plugins are refused (the switch in Settings › Plugins; the section's settings update reaches the host half, and a start action's call and the board's state channel round-trip) |
 | `plugins/fixture/external-plugin.spec.ts` (fork) | disabling unmounts the side tool and the method reports disabled | Ported (the tool tab keeps its slot with "Fixture board is off"; every contribution leaves; the call reports `Disabled`) |
@@ -837,12 +837,12 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `plugins/pdf-preview/pdf-preview.spec.ts` (fork) | rewrite, rename and Reload show new bytes without reopening | Ported through local and gRPC hosts with live host file revisions |
 | `plugins/branch-graph/branch-graph.spec.ts` (fork) | graph windowing and paging, common gutter, gutter only as wide as the rows on screen, merge/orphan rendering, copy hash/patch and Changes scoped to a clicked commit | Ported (`BranchGraphChecks`): windowing, gutter, copy and scope through local and gRPC hosts; lane-gutter and merge/orphan cases on fresh local fixtures |
 | `plugins/visualize/visualize.spec.ts` (fork) | terminal drawing, title, diagram navigation, comparison rewrite, close/reopen and renderer refusal | Ported through local and gRPC hosts (`VisualizeE2E`), with actual remote PTY MCP HTTP ownership and background-window updates; companion share and UI session adoption remain open |
-| `plugins/visualize/visualize.spec.ts` (fork) | agent chat diagram and comparison cards | Excluded: Pi/chat is outside SharpRail's scope; shared card content and comparison geometry still need focused verification |
+| `plugins/visualize/visualize.spec.ts` (fork) | agent chat diagram and comparison cards | Excluded: Pi/chat is outside tereditor's scope; shared card content and comparison geometry still need focused verification |
 | `plugins/file-icons/file-icons.spec.ts` (fork) | core typed tree/tab glyphs, Changes list/tree and disabled fallback | Ported through local and WebSocket hosts (`FileIconsChecks`) |
 | `plugins/codex/codex-account.spec.ts`, `codex-config-file.spec.ts`, `codex-context.spec.ts`, `codex-launcher.spec.ts` (fork) | account/limits, external configuration edits, instruction offers and launch options | Selected flows ported through a real gRPC host (`CodexE2E`); complete visual/lifecycle coverage remains open |
 | `plugins/codex/codex-model-picker.spec.ts`, `codex-status.spec.ts` (fork) | session-only picker, hook badges, separate IDE command submission, rollout tokens and plan | Ported with host-owned PTYs and real terminal HTTP routes (`CodexE2E`); native/remount/title variants remain open |
 | `plugins/codex/codex-ide.spec.ts` (fork) | editor context, rebasing, closed editors and provider disablement | Selected flows ported through gRPC and real IPC; selection is injected through the editor-event API. Native selection, multi-window and reload remain open |
-| `plugins/codex/codex-subscription-notice.spec.ts` (fork) | Pi subscription invitation | Excluded: Pi/chat is outside SharpRail's scope |
+| `plugins/codex/codex-subscription-notice.spec.ts` (fork) | Pi subscription invitation | Excluded: Pi/chat is outside tereditor's scope |
 | `plugins/spec-dialect/hot-toggle.spec.ts` (fork) | disabling spec-dialect turns its tab into the dormant placeholder, re-enabling brings it back | Ported (`SpecDialectChecks`; spec links are disabled and restored too) |
 | `plugins/spec-dialect/specs-panel.spec.ts` (fork) | Specs tab renders the worktree's spec tree and opens a spec as an editor tab | Ported (`SpecDialectChecks`: nesting, role tags, collapse, editor tabs and specs added mid-session); pixel offsets and the fork's created-workspace fixture are not reproduced |
 | `plugins/spec-dialect/specs-panel.spec.ts` (fork) | Specs offers Retry only after its automatic graph read fails | Ported (failure injected at the app's plugin service; a fresh profile's rail default also reads the graph, so reads fail until Retry) |
@@ -879,7 +879,7 @@ processes are independent by design, so no case runs two app processes. Terminal
 session sharing across clients remains pending with host-owned sessions.
 No benchmarks or Git commits are run.
 
-SharpRail regressions for the Projects-only tab model cover empty workspace startup, removal of legacy
+tereditor regressions for the Projects-only tab model cover empty workspace startup, removal of legacy
 bottom frames, explicit terminal splits, Projects tab menus and pane grouping. These replace retired
 bottom-zone and alternate tab-mode behavior; they are additional coverage rather than upstream translations.
 
@@ -889,24 +889,24 @@ Compared the previously synced JetBrains `f7cca7bfb` with the fork tip `30a81cab
 78 fork commits) in the read-only checkout; no fetch was run. Test titles were extracted from
 `e2e/**/*.spec.ts` at each ref and compared. In the JetBrains range 45 case titles were added and 10 removed
 or renamed; the fork's own suites did not change. Existing translations were checked against
-`tests/SharpRail.Checks` (`Gate.Case` names and `upstream <suite>` markers); `--list-cases` of the only
+`tests/Tereditor.Checks` (`Gate.Case` names and `upstream <suite>` markers); `--list-cases` of the only
 published checks executable lacks recent cases, so the sources were used. No new scenario was ported: each
 relevant one needs behavior that is not implemented yet (the cases would only fail), and the toolchain was not
 built in this refresh.
 
-Relevant to SharpRail and not yet translated (backlog):
+Relevant to tereditor and not yet translated (backlog):
 
 | Suite | Upstream case | Status |
 | --- | --- | --- |
 | `close-quit-shortcuts.spec.ts` | native open-settings opens Settings, keeps it as is, and yields to other dialogs | Partial: `SettingsGitHubE2E` drives Cmd+, and `AppCommandChecks` a modal shielding Mod+W; an already-open Settings keeping its section and the tooltip chord are not asserted. |
 | `close-quit-shortcuts.spec.ts` | Windows Ctrl+, opens Settings, from a terminal too; Shift+Comma does not | Backlog (S02): blocked by the missing chord. `SettingsGitHubE2E` currently asserts that Ctrl+, stays unbound on every platform and must be inverted with the feature. |
-| `close-quit-shortcuts.spec.ts` | the browser binds no Settings shortcut | Backlog with S02 (browser acceptance, `tests/SharpRail.Browser.Checks`). |
+| `close-quit-shortcuts.spec.ts` | the browser binds no Settings shortcut | Backlog with S02 (browser acceptance, `tests/Tereditor.Browser.Checks`). |
 | `changes.spec.ts` | large diffs render virtualized and wide rewrites wait behind a notice | Backlog (U27): needs the changed-line guard decision. |
 | `changes.spec.ts` | a large source diff in the stacked review renders virtualized in a bounded viewport | Backlog (U27). |
 | `changes.spec.ts` | a small edit in a large stacked file stays virtualized when context expands | Backlog (U27). |
 | `layout.spec.ts` | resize hit areas leave the preceding panel's scrollbar edge alone | Backlog: Docking "Not yet ported". |
 | `tool-rails.spec.ts` | rail clusters include unplaced tools, boundary drops create panes, and tools never join a terminal pane (renamed from "rail clusters mirror the panes ...") | Backlog: Checks "Not yet ported" (tool-rail journeys). |
-| `settings-model-context.spec.ts` | custom budgets save on Enter, validate the 272K–1M range and keep unrelated config | Excluded: AI model context. The rename records the auto-save pattern SharpRail lacks (S01). |
+| `settings-model-context.spec.ts` | custom budgets save on Enter, validate the 272K–1M range and keep unrelated config | Excluded: AI model context. The rename records the auto-save pattern tereditor lacks (S01). |
 
 Added or renamed upstream cases that are excluded (AI, pi, MCP or chat; nothing to translate):
 `attention-background-work.live.spec.ts` (2), `chat-plan.spec.ts` (5 added, 2 removed: the TODO rail and the plan
@@ -927,7 +927,7 @@ the `chat-*`, `composer-*`, `history-*`, `message-actions`, `model-picker`, `tem
 | Suite | Status |
 | --- | --- |
 | `tool-rails.spec.ts`, `rail-layout-regressions.spec.ts`, `project-home-chrome.spec.ts` | Pending translations, recorded in the checks contract's "Not yet ported". `RailRetentionChecks` is separate regression coverage. |
-| `close-quit-shortcuts.spec.ts` | Partial: the quit and close cases are covered by `QuitConfirmationChecks` and `AppCommandChecks`, which are SharpRail checks rather than 1:1 translations; the Settings chord cases are listed above. |
+| `close-quit-shortcuts.spec.ts` | Partial: the quit and close cases are covered by `QuitConfirmationChecks` and `AppCommandChecks`, which are tereditor checks rather than 1:1 translations; the Settings chord cases are listed above. |
 | `topbar-location.spec.ts` | Covered in spirit by `ShellChecks`/`TopbarChromeE2E`; no per-case mapping is recorded, so the cases are not claimed as ported. |
 | `changes-review.spec.ts`, `changes-review-drafts.spec.ts`, `changes-review-turn.spec.ts`, `review.spec.ts`, `phone-review.spec.ts` | Continuous Changes review is covered by `ChangesReviewChecks`; review authoring, drafts, turn scopes and phone review are not implemented (R01–R10). |
 | `typography.spec.ts` | Replaced by the `--design` guards; no 1:1 translation. |
@@ -954,7 +954,7 @@ The research was performed on 2026-10-14 against `main` at
 `16138700b2fbf86d845ad76a133dacb7d6ab1d5c` (`audit-thinkrail-gaps`), excluding other
 workspaces and the original checkout’s uncommitted browser script change. It covered the
 475-commit JetBrains history, its 98 spec paths and E2E catalogue, the 22 commits after the
-recorded sync, fork omissions and SharpRail module gaps. The tracked upstream revisions at the
+recorded sync, fork omissions and tereditor module gaps. The tracked upstream revisions at the
 top of this document remain authoritative: research does not advance specification or code sync.
 The rows include later workspace-13 integration and main fixes; the original revision remains
 comparison provenance.
@@ -977,20 +977,20 @@ These dispositions do not close native appearance, physical-device, complete pac
 
 Applicable commits below are linked to their immutable source diffs. Chat/pi-only changes are omitted; mixed commits retain only their applicable parts. Later commits supersede earlier ordering requirements.
 
-| Commit | Change and SharpRail disposition |
+| Commit | Change and tereditor disposition |
 | --- | --- |
 | [1ab1b1e31](https://github.com/JetBrains/thinkrail/commit/1ab1b1e31) | Denser named layout tokens and tighter line heights. Named dense layout tokens and semantic typography are now implemented; remaining surface fidelity is tracked under U03 and V05. |
 | [951863595](https://github.com/JetBrains/thinkrail/commit/951863595) | Explain and pass project trust for skills, extensions, settings and MCP. Provider-specific configuration/trust exists; no common pre-launch project-resource trust summary. |
-| [dedfc1bac](https://github.com/JetBrains/thinkrail/commit/dedfc1bac) | OS window focus suppresses desktop notifications. SharpRail already uses app-window focus; live signed-bundle behavior still needs verification. |
+| [dedfc1bac](https://github.com/JetBrains/thinkrail/commit/dedfc1bac) | OS window focus suppresses desktop notifications. tereditor already uses app-window focus; live signed-bundle behavior still needs verification. |
 | [9d6ad0b2f](https://github.com/JetBrains/thinkrail/commit/9d6ad0b2f) | Calmer captioned location bar. The calm 40px location strip is implemented; branch headlines and broader PR treatment remain separate gaps. |
-| [1166af01a](https://github.com/JetBrains/thinkrail/commit/1166af01a) | Login environment only for launchers opting in. SharpRail lacks the equivalent bounded host environment repair/import. |
+| [1166af01a](https://github.com/JetBrains/thinkrail/commit/1166af01a) | Login environment only for launchers opting in. tereditor lacks the equivalent bounded host environment repair/import. |
 | [530dffdb1](https://github.com/JetBrains/thinkrail/commit/530dffdb1) | Stable rail order, recent-activity topbar switcher. Superseded in part by newest-created-first at the tip; Activity stamps and differentiated rail/switcher ordering are implemented. |
 | [e04b2681f](https://github.com/JetBrains/thinkrail/commit/e04b2681f) | Shell environment probe must not pollute history. The opted-in environment probe is absent; pi background-completion cleanup is excluded. |
-| [bf4da6614](https://github.com/JetBrains/thinkrail/commit/bf4da6614) | No unread-result attention while background children still work. SharpRail has terminal status marks, not this normalized parent/child attention model. |
+| [bf4da6614](https://github.com/JetBrains/thinkrail/commit/bf4da6614) | No unread-result attention while background children still work. tereditor has terminal status marks, not this normalized parent/child attention model. |
 | [ba8d9d898](https://github.com/JetBrains/thinkrail/commit/ba8d9d898) | Restore design interview and durable spec amendment workflow. The shared CLI bundle now ships brainstorming, question, routing and spec-graph workflows. |
 | [e5eeebffe](https://github.com/JetBrains/thinkrail/commit/e5eeebffe) | MCP Settings editor, presets, admission, sign-in and diagnostics. Claude configuration provides part of this; no common cross-agent manager. |
 | [5ab283a35](https://github.com/JetBrains/thinkrail/commit/5ab283a35) | Show rejected design alternatives and tradeoffs. Rejected alternatives and durable spec-amendment guidance now ship in the brainstorming workflow. |
-| [ffc934fa4](https://github.com/JetBrains/thinkrail/commit/ffc934fa4) | Background work keeps running treatment; seen results clear owner-wide unread state. No equivalent SharpRail lifecycle/read watermark across clients. |
+| [ffc934fa4](https://github.com/JetBrains/thinkrail/commit/ffc934fa4) | Background work keeps running treatment; seen results clear owner-wide unread state. No equivalent tereditor lifecycle/read watermark across clients. |
 | [be06fb019](https://github.com/JetBrains/thinkrail/commit/be06fb019) | Rail workspaces newest-created-first with Default pinned, switcher still recent-activity-first. The rail now pins Default and reverses registry creation order; the switcher orders by activity. |
 
 | [4ab88b522](https://github.com/JetBrains/thinkrail/commit/4ab88b522) | Folder diff counts in the Changes tree only while collapsed. Not ported; see Panels "Not yet ported". |
@@ -1007,7 +1007,7 @@ chat parts, #744, #745, #748 and the pi package commits).
 
 #### JetBrains commits after `3bee4f164` (triaged 2026-10-21)
 
-Verdicts: ported, port (needed; owning module), adapt (needs a SharpRail design), not applicable.
+Verdicts: ported, port (needed; owning module), adapt (needs a tereditor design), not applicable.
 
 Files, Git and review panels:
 - `6f85210f3` merge Changes into a VS Code-like Files panel (#779): ported (`7d6a0187`, `51c8c632`; see Panels spec).
@@ -1031,27 +1031,27 @@ Build, docs and website (not applicable: Bun/CLI/website only):
 
 These gaps concern the supported terminal workflows. Provider-owned adapters and host-neutral contracts may be needed; Decision entries remain proposals rather than accepted feature designs. CLI-owned chat controls are excluded.
 
-SharpRail counterparts: [Codex](src/SharpRail.Plugins.Codex/SPEC.md), [Claude Code](src/SharpRail.Plugins.ClaudeCode/SPEC.md), [shared accessories](src/SharpRail.Plugins.Agent.UI/TerminalFacts.cs), [rail](src/SharpRail.UI/ProjectRail.cs) and [notification collection](src/SharpRail.UI/Notifications/AttentionNotifications.cs).
+tereditor counterparts: [Codex](src/Tereditor.Plugins.Codex/SPEC.md), [Claude Code](src/Tereditor.Plugins.ClaudeCode/SPEC.md), [shared accessories](src/Tereditor.Plugins.Agent.UI/TerminalFacts.cs), [rail](src/Tereditor.UI/ProjectRail.cs) and [notification collection](src/Tereditor.UI/Notifications/AttentionNotifications.cs).
 
-| ID | Status | ThinkRail has; SharpRail lacks or narrows |
+| ID | Status | ThinkRail has; tereditor lacks or narrows |
 | --- | --- | --- |
-| A08 | Partial | New-workspace launch supports prompt, image, skill and model choices. SharpRail has prompt/images and provider launcher choices, but lacks the full completion/template/skill-selection workflow. |
+| A08 | Partial | New-workspace launch supports prompt, image, skill and model choices. tereditor has prompt/images and provider launcher choices, but lacks the full completion/template/skill-selection workflow. |
 | A13 | Partial | Unified model/effort picker with favorites, recents, provider glyphs, compatible efforts and refreshed catalog. Codex has a catalog/picker; Claude has CLI-driven choices; no shared full preference/catalog semantics. |
 | A14 | Partial | Consistent account connection and default model/effort controls for the supported CLIs. Launch defaults and provider-owned account/config surfaces exist, but their workbench presentation remains uneven. |
-| A16 | Partial | Live tokens/cost/context telemetry with explicit finalized boundaries. SharpRail exposes rollout/transcript tokens and account limits, but not the complete common context/cost presentation; Claude deliberately avoids estimated subscription cost. |
+| A16 | Partial | Live tokens/cost/context telemetry with explicit finalized boundaries. tereditor exposes rollout/transcript tokens and account limits, but not the complete common context/cost presentation; Claude deliberately avoids estimated subscription cost. |
 | A17 | Missing | Workspace/project rollup replaces identity glyph with the shared working brand badge; attention is a separate static binary dot. Plugin decorations are on terminal tabs, including nested Projects tabs, not a normalized workspace/project rollup. |
-| A19 | Missing | CLI-reported background work keeps the workspace working and suppresses premature done attention. Establish which lifecycle signals Claude Code and Codex expose before defining a shared status contract; SharpRail does not own their command/subagent execution. |
+| A19 | Missing | CLI-reported background work keeps the workspace working and suppresses premature done attention. Establish which lifecycle signals Claude Code and Codex expose before defining a shared status contract; tereditor does not own their command/subagent execution. |
 | A26 | Partial | Common MCP Settings: user/project scope, shadowed entries, stdio/HTTP editors, JSON paste, presets and field-preserving writes. Claude has reviewed configuration composers; Codex exposes configuration/provenance; no unified manager matching this complete workflow. |
 | A32 | Partial | Portable skills loaded from multiple agent roots with source provenance, group/individual enablement, live stale/reload badge and project trust acknowledgement. Provider capability panes expose discovery, but no shared per-session manager with those guarantees. |
 | A35 | Partial | Before starting work, explain which project resources trust admits and which run code; revoke/acknowledge through one projection. Claude/Codex have their own trust/config semantics, but no common Welcome/Start-work/Skills summary. |
 
 #### Review and agent-run change gaps
 
-Upstream authorities: [reviews](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/reviews/SPEC.md), [turn receipts](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/turns/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md). SharpRail: [Panels contract](src/SharpRail.UI/Panels.SPEC.md), [continuous review](src/SharpRail.UI/ChangesReviewPane.axaml.cs), [Git contract](src/SharpRail.Host.Core/Git.SPEC.md).
+Upstream authorities: [reviews](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/reviews/SPEC.md), [turn receipts](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/turns/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md). tereditor: [Panels contract](src/Tereditor.UI/Panels.SPEC.md), [continuous review](src/Tereditor.UI/ChangesReviewPane.axaml.cs), [Git contract](src/Tereditor.Host.Core/Git.SPEC.md).
 
 | ID | Status | Gap |
 | --- | --- | --- |
-| R01 | Missing | Durable review records with draft/sent/resolved/dismissed lifecycle, clear/archive and per-file finished state. SharpRail's Review panel is principally branch/PR actions; continuous Changes review is a diff reader with local triage. |
+| R01 | Missing | Durable review records with draft/sent/resolved/dismissed lifecycle, clear/archive and per-file finished state. tereditor's Review panel is principally branch/PR actions; continuous Changes review is a diff reader with local triage. |
 | R02 | Missing | Select code or a hunk and write a review comment on it; whole-file and whole-change-set remarks. Editor-to-agent selection context already exists and is not review authoring. |
 | R03 | Missing | Base/worktree anchor spaces pinned to immutable original blobs, quoted context and stale/moved/outdated re-anchoring. Existing IDE selections and CAS revert hashes do not persist review anchors. |
 | R04 | Missing | Image/SVG region, CSV cell, JSON pointer, notebook cell and PDF page-region anchors, geometry projection and unplaced-thread strip. No shared review contract on rich renderers. |
@@ -1068,7 +1068,7 @@ Upstream authorities: [reviews](https://github.com/JetBrains/thinkrail/blob/be06
 
 #### Workbench and docking gaps
 
-Authorities: upstream [layout](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/layout/SPEC.md), [intents](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/layoutIntents/SPEC.md); SharpRail [Docking contract](src/SharpRail.UI/Docking/SPEC.md), [UI contract](src/SharpRail.UI/SPEC.md), [profile](src/SharpRail.UI/State/ProfileStore.cs), and the older fork log in [Fork port log](#fork-port-log).
+Authorities: upstream [layout](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/layout/SPEC.md), [intents](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/layoutIntents/SPEC.md); tereditor [Docking contract](src/Tereditor.UI/Docking/SPEC.md), [UI contract](src/Tereditor.UI/SPEC.md), [profile](src/Tereditor.UI/State/ProfileStore.cs), and the older fork log in [Fork port log](#fork-port-log).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -1080,21 +1080,21 @@ Authorities: upstream [layout](https://github.com/JetBrains/thinkrail/blob/be06f
 
 #### Projects and workspace lifecycle gaps
 
-Authorities: upstream [workspaces](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/workspaces/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [latest ordering](https://github.com/JetBrains/thinkrail/commit/be06fb019); SharpRail [Workspaces](src/SharpRail.Host.Core/Workspaces.SPEC.md), [HostState](src/SharpRail.Host.Core/HostState.SPEC.md), [State](src/SharpRail.UI/State/SPEC.md), [Panels](src/SharpRail.UI/Panels.SPEC.md).
+Authorities: upstream [workspaces](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/workspaces/SPEC.md), [panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [latest ordering](https://github.com/JetBrains/thinkrail/commit/be06fb019); tereditor [Workspaces](src/Tereditor.Host.Core/Workspaces.SPEC.md), [HostState](src/Tereditor.Host.Core/HostState.SPEC.md), [State](src/Tereditor.UI/State/SPEC.md), [Panels](src/Tereditor.UI/Panels.SPEC.md).
 
 | ID | Status | Gap |
 | --- | --- | --- |
-| W10 | Partial | Active workspace's parent project is revealed on initial mount/ownership change while a later manual collapse stays respected. SharpRail primarily restores its collapsed set. |
+| W10 | Partial | Active workspace's parent project is revealed on initial mount/ownership change while a later manual collapse stays respected. tereditor primarily restores its collapsed set. |
 | W11 | Missing | Prefetch a selected non-default base off the creation critical path. Default-base prefetch and create-time fetch already exist. |
-| W12 | Missing | Retry rejected workspace creation inside the same dialog. SharpRail closes it before the operation and reports failure separately. |
+| W12 | Missing | Retry rejected workspace creation inside the same dialog. tereditor closes it before the operation and reports failure separately. |
 | W14 | Missing | Seed the scratch directory when a session starts in a user-owned attached workspace. Managed creation seeding is not that case. |
 | W15 | Partial | Managed branch rename after its initial automatic name. First `set_title` names a untouched generated branch; later label renames deliberately do not rename Git. |
 | W16 | Decision | Create a new project through an agent-assisted setup brief, not only open/clone an existing project. Existing starting-a-new-project skill does not provide this native flow. |
-| W17 | Partial | Git-only pane withholding is implemented for plain folders, including direct actions and restoration; empty/unborn Git repositories intentionally remain eligible. The older fork's gitless Start-work explanatory copy and launcher-state fidelity are not established by the pane regressions and remain to be reviewed. See [Panels](src/SharpRail.UI/Panels.SPEC.md). |
+| W17 | Partial | Git-only pane withholding is implemented for plain folders, including direct actions and restoration; empty/unborn Git repositories intentionally remain eligible. The older fork's gitless Start-work explanatory copy and launcher-state fidelity are not established by the pane regressions and remain to be reviewed. See [Panels](src/Tereditor.UI/Panels.SPEC.md). |
 
 #### Location bar and Git UI gaps
 
-Authorities: upstream [location bar](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/locationBar/SPEC.md), fork history in [Fork port log](#fork-port-log); SharpRail [header layout](src/SharpRail.UI/WorkbenchWindow.axaml), [location actions](src/SharpRail.UI/LocationBar.cs), [branch list](src/SharpRail.UI/BranchList.cs), [panel gaps](src/SharpRail.UI/Panels.SPEC.md).
+Authorities: upstream [location bar](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/shell/locationBar/SPEC.md), fork history in [Fork port log](#fork-port-log); tereditor [header layout](src/Tereditor.UI/WorkbenchWindow.axaml), [location actions](src/Tereditor.UI/LocationBar.cs), [branch list](src/Tereditor.UI/BranchList.cs), [panel gaps](src/Tereditor.UI/Panels.SPEC.md).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -1107,11 +1107,11 @@ Authorities: upstream [location bar](https://github.com/JetBrains/thinkrail/blob
 | G08 | Missing | Registered OS URL scheme for serialized project/workspace/resource links. Serialization, in-app history and `--link` launch routing are implemented. |
 | G09 | Partial | Remote host confirms workspace existence before history traversal. Current remote navigation cannot make that confirmation. |
 | G10 | Partial | Back/Forward records user navigation separately from passive remote removal/close fallbacks, with observed locations persisted as links. Current history records any location change. |
-| G11 | Missing | CI status beside the pull request chip is a recorded SharpRail request. [Panels contract](src/SharpRail.UI/Panels.SPEC.md) lists it as missing; [LocationBar.cs](src/SharpRail.UI/LocationBar.cs) and the window header have no CI chip. Keep separate from JetBrains parity. |
+| G11 | Missing | CI status beside the pull request chip is a recorded tereditor request. [Panels contract](src/Tereditor.UI/Panels.SPEC.md) lists it as missing; [LocationBar.cs](src/Tereditor.UI/LocationBar.cs) and the window header have no CI chip. Keep separate from JetBrains parity. |
 
 #### Rendering and resource gaps
 
-Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/resources/SPEC.md), [rich panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [themes](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/themes/SPEC.md); SharpRail [registry](src/SharpRail.UI/Resources/ResourceRegistry.cs), [Rendering](src/SharpRail.UI/Rendering/SPEC.md), [Themes](src/SharpRail.UI/Rendering/Themes.SPEC.md), [Core PDF preview](src/SharpRail.UI/Resources/Pdf/SPEC.md), [Scintilla limits](src/SharpRail.Scintilla/README.md#limits).
+Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/resources/SPEC.md), [rich panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [themes](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/themes/SPEC.md); tereditor [registry](src/Tereditor.UI/Resources/ResourceRegistry.cs), [Rendering](src/Tereditor.UI/Rendering/SPEC.md), [Themes](src/Tereditor.UI/Rendering/Themes.SPEC.md), [Core PDF preview](src/Tereditor.UI/Resources/Pdf/SPEC.md), [Scintilla limits](src/Tereditor.Scintilla/README.md#limits).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -1136,23 +1136,23 @@ Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail
 | U21 | Partial | Regroup a multi-block `<details>` in Markdown diffs; compare list items robustly when documents contain different counts of top-level lists. Current native diff has documented limits. |
 | U22 | Partial | Per-tab code/table/JSON/notebook view state and delayed scroll restoration after detach/reattach. Markdown/source positions and image-mode state are implemented subsets. |
 | U23 | Partial | Deleted-file banner in every applicable preview, not only source editor; other file formats mainly receive the deleted tab mark. |
-| U24 | Partial | Editor text input exists, but full IME preedit, an accessibility text provider, touch selection handles and a copy menu are absent, confirmed by [Scintilla limits](src/SharpRail.Scintilla/README.md#limits). These are implementation gaps, followed by platform acceptance; completion/LSP workstation features are not automatically upstream requirements. |
+| U24 | Partial | Editor text input exists, but full IME preedit, an accessibility text provider, touch selection handles and a copy menu are absent, confirmed by [Scintilla limits](src/Tereditor.Scintilla/README.md#limits). These are implementation gaps, followed by platform acceptance; completion/LSP workstation features are not automatically upstream requirements. |
 | U25 | Partial | Native AppKit Edit role items work inside native picker fields, plus About. Current Avalonia menu uses app commands instead. |
 
 #### Settings and notice gaps
 
-Authorities: JetBrains [panels](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/panels/SPEC.md), [shell](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/shell/SPEC.md) and [notices](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/styles/NOTIFICATIONS.md); SharpRail [Settings](src/SharpRail.UI/Panels/SPEC.md), [UI](src/SharpRail.UI/SPEC.md) and [Rendering](src/SharpRail.UI/Rendering/SPEC.md).
+Authorities: JetBrains [panels](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/panels/SPEC.md), [shell](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/shell/SPEC.md) and [notices](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/styles/NOTIFICATIONS.md); tereditor [Settings](src/Tereditor.UI/Panels/SPEC.md), [UI](src/Tereditor.UI/SPEC.md) and [Rendering](src/Tereditor.UI/Rendering/SPEC.md).
 
 | ID | Status | Gap |
 | --- | --- | --- |
 | S01 | Partial | Settings redesign: grouped rail, shared row primitives, the one auto-save input pattern with Escape reverting the draft, Appearance mode and contrast controls, Layout applied and default marks, Add new layout, collapsed Advanced limits and one confirmation. Section content mostly exists; the shapes do not. |
 | S02 | Missing | Ctrl+, opens Settings on Windows and Linux (not from Shift+Comma, an already-open Settings stays as it is, the tooltip names the chord only where bound). |
-| U26 | Missing | Neutral notice and toast fill with severity only in the border and icon, a warning severity and the single-row or two-row layouts. SharpRail toasts keep the variant stripe. |
+| U26 | Missing | Neutral notice and toast fill with severity only in the border and icon, a warning severity and the single-row or two-row layouts. tereditor toasts keep the variant stripe. |
 | U27 | Decision | A changed-line guard for expensive diffs and a bounded, virtualized stacked section above a line threshold. Measure the native diff before adopting the web thresholds (2000 changed lines, 1000 source lines). |
 
 #### Host and transport gaps
 
-Authorities: upstream [shared environment](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/shared/SPEC.md), [host](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/host/SPEC.md), [logging](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/log/SPEC.md), [watchers](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/watch/SPEC.md); SharpRail [Core](src/SharpRail.Host.Core/SPEC.md), [Files](src/SharpRail.Host.Core/Files.SPEC.md), [Git](src/SharpRail.Host.Core/Git.SPEC.md), [Client](src/SharpRail.Host.Client/SPEC.md), [Remote](src/SharpRail.Host.Remote/SPEC.md), [protocol counter](src/SharpRail.Host.Abstractions/Handshake.cs).
+Authorities: upstream [shared environment](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/shared/SPEC.md), [host](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/host/SPEC.md), [logging](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/log/SPEC.md), [watchers](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/watch/SPEC.md); tereditor [Core](src/Tereditor.Host.Core/SPEC.md), [Files](src/Tereditor.Host.Core/Files.SPEC.md), [Git](src/Tereditor.Host.Core/Git.SPEC.md), [Client](src/Tereditor.Host.Client/SPEC.md), [Remote](src/Tereditor.Host.Remote/SPEC.md), [protocol counter](src/Tereditor.Host.Abstractions/Handshake.cs).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -1166,7 +1166,7 @@ Authorities: upstream [shared environment](https://github.com/JetBrains/thinkrai
 | H09 | Missing | Periodic identity healing when a watched root is replaced while all subscribers remain attached and no fresh admission occurs. Current watcher heals on a new subscriber/prewarm or error. |
 | H10 | Missing | Watcher admission/activity lifecycle seam that seeds retained HEAD baseline before metadata events, including recreation and failed-registration cleanup. |
 | H12 | Partial | Full frontmatter YAML semantics for graph metadata: anchors, nested maps and multiline scalars. The portable spec dialect is deliberately narrower; editing preview properties does not make graph parsing a full YAML parser. |
-| H13 | Partial | Windows shell resolution, ConPTY and platform filesystem/native build paths are implemented. The Settings shell picker and per-shell startup guidance are missing; current guidance only distinguishes SHELL from the default. See [Windows](WINDOWS.md), [terminal contract](src/SharpRail.Host.Core/Terminals.SPEC.md) and [startup handling](src/SharpRail.Host.Core/PtyTerminalService.cs). Real Windows execution is tracked once under V09. |
+| H13 | Partial | Windows shell resolution, ConPTY and platform filesystem/native build paths are implemented. The Settings shell picker and per-shell startup guidance are missing; current guidance only distinguishes SHELL from the default. See [Windows](WINDOWS.md), [terminal contract](src/Tereditor.Host.Core/Terminals.SPEC.md) and [startup handling](src/Tereditor.Host.Core/PtyTerminalService.cs). Real Windows execution is tracked once under V09. |
 
 #### Fork plugin differences and acceptance gaps
 
@@ -1174,29 +1174,29 @@ These entries retain old omissions that a JetBrains-only delta audit would miss.
 
 | ID | Status | Gap |
 | --- | --- | --- |
-| P01 | Partial | Plugin `WorkspaceUpdated` on actual branch switch; existing creation/removal/relabel notifications are narrower. [Host plugin runtime](src/SharpRail.Host.Core/Plugins.SPEC.md). |
-| P03 | Partial | Faint-cell blanking when accessories read terminal buffer tail. Native text reads lack the cell-attribute information; picker placeholder detection can therefore differ. [Terminal](src/SharpRail.UI/Terminal/SPEC.md). |
-| P04 | Partial | Claude IDE `openDiff` displays proposed unsaved content and returns real accept/reject/save results. It currently opens the target file and reports `diffShown: false`, also the fork's limitation; this is an integration opportunity rather than regression against that fork. [Claude](src/SharpRail.Plugins.ClaudeCode/SPEC.md). |
+| P01 | Partial | Plugin `WorkspaceUpdated` on actual branch switch; existing creation/removal/relabel notifications are narrower. [Host plugin runtime](src/Tereditor.Host.Core/Plugins.SPEC.md). |
+| P03 | Partial | Faint-cell blanking when accessories read terminal buffer tail. Native text reads lack the cell-attribute information; picker placeholder detection can therefore differ. [Terminal](src/Tereditor.UI/Terminal/SPEC.md). |
+| P04 | Partial | Claude IDE `openDiff` displays proposed unsaved content and returns real accept/reject/save results. It currently opens the target file and reports `diffShown: false`, also the fork's limitation; this is an integration opportunity rather than regression against that fork. [Claude](src/Tereditor.Plugins.ClaudeCode/SPEC.md). |
 | P05 | Decision | Claude IDE diagnostics/execute-code capabilities. They are not offered; compare real supported CLI/IDE protocols before adding them. They are not declared fork parity requirements. |
-| P06 | Partial | Codex IDE reply lists editors per answering frontend. Current app context unions editor tabs across windows in the workspace; background-window focus selection is otherwise implemented. [Codex](src/SharpRail.Plugins.Codex/SPEC.md). |
+| P06 | Partial | Codex IDE reply lists editors per answering frontend. Current app context unions editor tabs across windows in the workspace; background-window focus selection is otherwise implemented. [Codex](src/Tereditor.Plugins.Codex/SPEC.md). |
 | P07 | Partial | Codex failed-state/summary notifications. Its current hook vocabulary has blocked/done but no failed status or summary; cancellation stays silent. Claude has richer failure notifications. |
 | P08 | Partial | Codex skill-file ownership across multiple hosts and shutdown. User edits are protected, but disabling and host shutdown share disposal, and a second host is not coordinated. |
-| P10 | Partial | Input sealing during picker driving is missing: [ClaudeTerminal.cs](src/SharpRail.Plugins.ClaudeCode/UI/ClaudeTerminal.cs) shows a notice without an exclusive-input overlay. Model/effort, attach, usage and plan controls exist; the Claude Code UI implements draft refusal and Esc fallback. Live terminal-facts acceptance is included in V12 below. |
-| P11 | Partial | Codex Windows IDE IPC is absent: [IdeBridge.cs](src/SharpRail.Plugins.Codex/Host/IdeBridge/IdeBridge.cs) declares Windows unsupported and [Codex checks](tests/SharpRail.Checks/CodexChecks.cs) skip it there. The registered model supplier is not consumed by a reactive Start-work selector. The failed recovery check is recorded under V06; installed CLI and native lifecycle acceptance is included in V12. |
+| P10 | Partial | Input sealing during picker driving is missing: [ClaudeTerminal.cs](src/Tereditor.Plugins.ClaudeCode/UI/ClaudeTerminal.cs) shows a notice without an exclusive-input overlay. Model/effort, attach, usage and plan controls exist; the Claude Code UI implements draft refusal and Esc fallback. Live terminal-facts acceptance is included in V12 below. |
+| P11 | Partial | Codex Windows IDE IPC is absent: [IdeBridge.cs](src/Tereditor.Plugins.Codex/Host/IdeBridge/IdeBridge.cs) declares Windows unsupported and [Codex checks](tests/Tereditor.Checks/CodexChecks.cs) skip it there. The registered model supplier is not consumed by a reactive Start-work selector. The failed recovery check is recorded under V06; installed CLI and native lifecycle acceptance is included in V12. |
 
 #### Notifications and platform acceptance gaps
 
-Authorities: [UI](src/SharpRail.UI/SPEC.md), [terminal contract](src/SharpRail.UI/Terminal/SPEC.md) and [browser](src/SharpRail.Browser/SPEC.md). Implementation gaps are listed here; acceptance tasks follow separately.
+Authorities: [UI](src/Tereditor.UI/SPEC.md), [terminal contract](src/Tereditor.UI/Terminal/SPEC.md) and [browser](src/Tereditor.Browser/SPEC.md). Implementation gaps are listed here; acceptance tasks follow separately.
 
 | ID | Status | Gap |
 | --- | --- | --- |
 | V01 | Missing | Equivalent away notifications outside macOS and explicit system-permission state presentation; current denial can be silent. |
 | V02 | Partial | Multiple attention notifications lead to a chooser. Current batch opens the latest terminal rather than letting the user choose among all waiting terminals. |
-| V04 | Missing | Busy-close confirmation does not dismiss when another client closes the terminal. [TerminalTabs.cs](src/SharpRail.UI/TerminalTabs.cs) awaits a normal confirmation without catalog-driven invalidation; this remains an explicit [terminal contract](src/SharpRail.UI/Terminal/SPEC.md) implementation gap. |
+| V04 | Missing | Busy-close confirmation does not dismiss when another client closes the terminal. [TerminalTabs.cs](src/Tereditor.UI/TerminalTabs.cs) awaits a normal confirmation without catalog-driven invalidation; this remains an explicit [terminal contract](src/Tereditor.UI/Terminal/SPEC.md) implementation gap. |
 
 #### Outstanding acceptance work
 
-These tasks consolidate the remaining checks; they do not assert missing product features. Owning specs retain durable verification scope and measurements; [the checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) distinguishes source and packaged evidence. Original row IDs in parentheses identify merged entries. No unrun journey is treated as passed.
+These tasks consolidate the remaining checks; they do not assert missing product features. Owning specs retain durable verification scope and measurements; [the checks contract](tests/Tereditor.Checks/SPEC.md#recorded-verification-scope) distinguishes source and packaged evidence. Original row IDs in parentheses identify merged entries. No unrun journey is treated as passed.
 
 | ID | Latest result | Remaining work |
 | --- | --- | --- |

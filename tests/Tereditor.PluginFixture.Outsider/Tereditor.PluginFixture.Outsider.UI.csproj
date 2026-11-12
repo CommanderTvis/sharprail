@@ -7,12 +7,12 @@
   <!-- What the kit depends on is shared too, so it is not copied in as the kit's transitive reference. -->
   <PropertyGroup><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" Private="false" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" Private="false" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" Private="false" />
-    <ProjectReference Include="../SharpRail.PluginFixture.Outsider.Words/SharpRail.PluginFixture.Outsider.Words.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" Private="false" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" Private="false" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" Private="false" />
+    <ProjectReference Include="../Tereditor.PluginFixture.Outsider.Words/Tereditor.PluginFixture.Outsider.Words.csproj" />
     <PackageReference Include="Avalonia" />
-    <None Include="sharprail-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="tereditor-plugin.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="assets/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

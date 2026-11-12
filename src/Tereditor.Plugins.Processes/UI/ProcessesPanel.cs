@@ -5,11 +5,11 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Processes.UI;
+namespace Tereditor.Plugins.Processes.UI;
 
 /// <summary>
 /// The Processes side tool: the host's process tree with CPU, memory and a trend per row, a total, and Stop selected / Stop group. It asks the host

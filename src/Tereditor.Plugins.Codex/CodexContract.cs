@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Codex;
+namespace Tereditor.Plugins.Codex;
 
 public enum CodexInstructionsTarget
 {
@@ -44,7 +44,7 @@ public enum CodexInstructionsScope
 {
     Global,
     Project,
-    /// <summary>SharpRail's developer instructions, added to a session it launched with <c>developer_instructions</c>.</summary>
+    /// <summary>tereditor's developer instructions, added to a session it launched with <c>developer_instructions</c>.</summary>
     Launch
 }
 
@@ -122,7 +122,7 @@ public sealed record CodexIdeContext(IReadOnlyList<CodexIdeFile> OpenTabs)
 
 public sealed record CodexNoParams;
 
-/// <summary>The developer instructions file on the host, and where earlier hand edits SharpRail no longer uses were kept (null when none).</summary>
+/// <summary>The developer instructions file on the host, and where earlier hand edits tereditor no longer uses were kept (null when none).</summary>
 public sealed record CodexSystemPromptFile(string Path, string? IgnoredEdits);
 
 public sealed record CodexWorkspaceParams(string WorkspaceId);
@@ -156,15 +156,15 @@ public sealed record CodexSettings
     public string Command { get; set; } = "codex";
     public string Model { get; set; } = "";
     public string Effort { get; set; } = "";
-    /// <summary>Tells sessions SharpRail launches that they run in SharpRail; POSIX shells only.</summary>
+    /// <summary>Tells sessions tereditor launches that they run in tereditor; POSIX shells only.</summary>
     public bool AppendSystemPrompt { get; set; } = true;
     /// <summary>One of <see cref="CodexLaunch.PermissionModes"/>' ids; anything else adds no flags.</summary>
     public string PermissionMode { get; set; } = "default";
     /// <summary>Starts launcher-created Codex sessions by issuing <c>/ide on</c>.</summary>
     public bool IdeContext { get; init; }
-    /// <summary>Hands every launched session SharpRail's MCP server.</summary>
+    /// <summary>Hands every launched session tereditor's MCP server.</summary>
     public bool Mcp { get; set; } = true;
-    /// <summary>Attaches launched sessions to the already-running Codex daemon; off launches <c>--no-daemon</c>. SharpRail never starts the daemon.</summary>
+    /// <summary>Attaches launched sessions to the already-running Codex daemon; off launches <c>--no-daemon</c>. tereditor never starts the daemon.</summary>
     public bool SharedDaemon { get; set; } = true;
 }
 
@@ -188,14 +188,14 @@ public static class CodexContract
     public static readonly PluginMethod<CodexNoParams, CodexSystemPromptFile> SystemPromptGet = new("systemPromptGet");
     /// <summary>The instruction sections this agent's sessions in a workspace get, with the project's on/off choice for each.</summary>
     public static readonly PluginMethod<InstructionSectionQuery, InstructionSectionList> InstructionsList = new("instructionsList");
-    /// <summary>Turns one section on or off in the project's <c>.sharprail/instructions.toml</c>.</summary>
+    /// <summary>Turns one section on or off in the project's <c>.tereditor/instructions.toml</c>.</summary>
     public static readonly PluginMethod<InstructionSectionToggle, InstructionSectionList> InstructionsSet = new("instructionsSet");
 
     public static readonly PluginChannel<CodexIdeRequest> IdeRequest = PluginChannel<CodexIdeRequest>.Event("ideRequest");
     // The fork declares this a state channel whose snapshot is a list; here a state channel's snapshot must be its
     // payload type, so it is an event channel and the UI half hydrates each workspace through StatusSnapshot itself.
     public static readonly PluginChannel<CodexStatusPush> Status = PluginChannel<CodexStatusPush>.Event("status");
-    /// <summary>A project's <c>.sharprail/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
+    /// <summary>A project's <c>.tereditor/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
     public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<CodexSettings>(CodexManifest.Id, WireVersion,

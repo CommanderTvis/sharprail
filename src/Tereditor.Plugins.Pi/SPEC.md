@@ -9,8 +9,8 @@ parent: group-plugins-agents
 # Pi builtin
 
 Early support for the Pi coding agent (https://github.com/badlogic/pi-mono), shown as a chat tab in the shared chat view
-(`src/SharpRail.Plugins.Chat/SPEC.md`). Disabled by default; the manifest declares `Support = early`. Pi runs as a child
-process of the host, so a browser tab reaches it only through a host. SharpRail never installs Pi:
+(`src/Tereditor.Plugins.Chat/SPEC.md`). Disabled by default; the manifest declares `Support = early`. Pi runs as a child
+process of the host, so a browser tab reaches it only through a host. tereditor never installs Pi:
 it runs the `pi` the host finds on PATH (or the configured command).
 
 Facts below come from Pi's RPC documentation (`docs/rpc.md`, `docs/providers.md`, `docs/session-format.md` in `@mariozechner/pi-coding-agent`
@@ -42,7 +42,7 @@ Facts below come from Pi's RPC documentation (`docs/rpc.md`, `docs/providers.md`
 
 ## Not yet
 
-A terminal launch of Pi, permission-style gating, rewind and fork through Pi's `fork` and session tree, extension dialogs, MCP and SharpRail's
+A terminal launch of Pi, permission-style gating, rewind and fork through Pi's `fork` and session tree, extension dialogs, MCP and tereditor's
 tools for Pi, and running Pi inside a browser tab.
 
 ## Checks

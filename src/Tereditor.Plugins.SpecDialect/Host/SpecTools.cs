@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>The fork's seven spec tools, available to terminal agents through MCP.</summary>
 internal static partial class SpecTools

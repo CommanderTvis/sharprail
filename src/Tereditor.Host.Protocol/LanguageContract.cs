@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Protocol;
+namespace Tereditor.Host.Protocol;
 
 [ProtoContract]
 public sealed class LanguageRequestDto

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 /// <summary>A client-local tailnet transport, independent of the host's installed Tailscale daemon.</summary>
 public interface ITailscaleClientNetwork
@@ -9,6 +9,6 @@ public interface ITailscaleClientNetwork
     /// <summary>Resolves an eligible peer to its numeric bootstrap address without relying on system DNS.</summary>
     Task<Uri> BootstrapAsync(string host, CancellationToken cancellationToken);
 
-    /// <summary>Lists online peers eligible for SharpRail bootstrap probing.</summary>
+    /// <summary>Lists online peers eligible for tereditor bootstrap probing.</summary>
     Task<IReadOnlyList<TailscalePeer>> PeersAsync(CancellationToken cancellationToken);
 }

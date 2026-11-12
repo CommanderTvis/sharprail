@@ -14,11 +14,11 @@ tags: [plugins]
 Upstream: packages/plugin-api/SPEC.md @ 4737df6d (CommanderTvis fork)
 Upstream: plugin-adoption.md @ 4737df6d (CommanderTvis fork)
 
-Plugins add features to SharpRail without building them into every host and window. A plugin can
+Plugins add features to tereditor without building them into every host and window. A plugin can
 provide host operations, terminal integrations, settings and UI surfaces. It has a manifest plus
 a host half, a UI half, or both. Builtin plugins are compiled into the app and the remote host, and
 each can be enabled or disabled without restarting. Separately installed plugins are discovered and
-listed, but refused until they can run isolated from SharpRail's processes.
+listed, but refused until they can run isolated from tereditor's processes.
 
 ```mermaid
 flowchart TB
@@ -43,14 +43,14 @@ The builtin Specs plugin and a check-only fixture plugin exercise these same bou
 
 Three contract assemblies separate shared vocabulary, host capabilities and UI capabilities.
 They contain types and identity helpers, with no runtime of their own. The
-[host runtime](../SharpRail.Host.Core/Plugins.SPEC.md) and
-[UI runtime](../SharpRail.UI/Plugins/SPEC.md) connect those contracts to host services, shells,
+[host runtime](../Tereditor.Host.Core/Plugins.SPEC.md) and
+[UI runtime](../Tereditor.UI/Plugins/SPEC.md) connect those contracts to host services, shells,
 shared state and the workbench.
 
 ### When something should be a plugin
 
-Existing extension points come first. An agent capability that needs nothing of SharpRail is an MCP server or
-a tool in the agent's own configuration; it needs no SharpRail code. This API covers what such a tool cannot do
+Existing extension points come first. An agent capability that needs nothing of tereditor is an MCP server or
+a tool in the agent's own configuration; it needs no tereditor code. This API covers what such a tool cannot do
 on its own: own host methods and channels, mount an HTTP route terminals reach, stamp terminal environment,
 observe host lifecycle, hold settings and state, and contribute UI.
 
@@ -74,7 +74,7 @@ a capability restricted to builtin plugins would be unavailable to almost every 
 External plugins do not run in this version. The host discovers them and lists them in the roster, and refuses
 one that is enabled, with the reason "External plugins are not supported in this version." Neither the host nor
 the app loads an external assembly, so both are free of dynamic code loading and can be published as
-NativeAOT. External plugins come back once they can run isolated from SharpRail's processes
+NativeAOT. External plugins come back once they can run isolated from tereditor's processes
 ([Security.SPEC.md](Security.SPEC.md)); the checks already run one with only a UI half that way. Until then, the
 manifest format and the capabilities stay as described here.
 
@@ -135,13 +135,13 @@ parameter, or widening a return is a breaking change and has to come with a gene
   directories, rather than deriving a path beside the checkout.
 - Allowed deps: the .NET base library for the root and host entries; the root entry, and Avalonia's `Control`
   types, for the UI entry.
-- Forbidden: any `SharpRail.Host.*` or `SharpRail.UI` project, ASP.NET Core, WebSocket RPC or protobuf types,
+- Forbidden: any `Tereditor.Host.*` or `Tereditor.UI` project, ASP.NET Core, WebSocket RPC or protobuf types,
   Avalonia in the root or host entry, and any runtime beyond identity helpers and name builders
   (`PluginJson`, the registry of generated JSON metadata with its conversions, and `PluginTool<T>.RunAsync` are
   the exceptions they need). The UI kit is a
-  separate assembly ([SPEC.md](../SharpRail.Plugins.UI.Kit/SPEC.md)), since controls here would make it a
+  separate assembly ([SPEC.md](../Tereditor.Plugins.UI.Kit/SPEC.md)), since controls here would make it a
   dependency of every host half.
-- Dependents: `SharpRail.Host.Abstractions` references the root entry, because `HostState` carries the roster
+- Dependents: `Tereditor.Host.Abstractions` references the root entry, because `HostState` carries the roster
   and agent records and `IPluginService` speaks in them; this is the edge the fork had in the other direction
   (its roster types lived in `contracts` and were re-exported). Records here are shared rather than mirrored in
   Abstractions so there is one definition.
@@ -158,7 +158,7 @@ reference, derived from it rather than duplicating its rationale. The kit is not
 ### Contract boundaries
 
 `IPluginLogger`, `PluginDisposer`, `PluginCall`, `TerminalEvent` (`TerminalSpawned`, `TerminalExited`, `TerminalClosed`, `TerminalAgentChanged`), `TerminalProcess`, `RevivePrefill`, `WorkspaceEvent` (`WorkspaceCreated`, `WorkspaceUpdated`, `WorkspaceRemoved`), `WorkspaceFilesChanged`, `GitRunOptions`, `GitRunFailure`, `GitRunResult`, `PluginHttpRequest`, `PluginHttpResponse`, `IPluginHostContext`, `PluginHostModule` |
-| `SharpRail.Plugins.Api.UI` | `IPluginUILogger`, `PluginDisposer`, `PluginAppSettings`, `TerminalTabInfo`, `PluginHostProjection`, `EditorKind`, `EditorRef`, `EditorSelection`, `EditorLifecycle`, `EditorEvent` (`EditorLifecycleEvent`, `EditorSelectionEvent`), `EditorOpenOptions`, `CompanionHost`, `TerminalKeyEncoding`, `ITerminalAccessoryApi`, `LauncherModel`, `LauncherCommandOptions`, `LauncherAvailability`, `AgentLauncher`, `FileIconKind`, `GitDiffScope` (`BranchDiffScope`, `UncommittedDiffScope`, `CommitDiffScope`, `PinnedDiffScope`), `TerminalOpenOptions`, `FilePickOptions`, `PluginNotificationKind`, `AttentionNotification`, `IPluginPreference`, `FileViewerProps`, `FileViewerRegistration`, `SettingsSectionRegistration`, `SideToolRegistration`, `CompanionRegistration`, `TabDecoration`, `TabRef` (`TerminalTabRef`, `ToolTabRef`, `FileTabRef`), `WorkspaceActionRegistration` (`WorkspaceScopedActionRegistration`, `ProjectScopedActionRegistration`), `TerminalAccessoryRegistration`, `IPluginEditors`, `IPluginUIContext`, `PluginUIModule` |
+| `Tereditor.Plugins.Api.UI` | `IPluginUILogger`, `PluginDisposer`, `PluginAppSettings`, `TerminalTabInfo`, `PluginHostProjection`, `EditorKind`, `EditorRef`, `EditorSelection`, `EditorLifecycle`, `EditorEvent` (`EditorLifecycleEvent`, `EditorSelectionEvent`), `EditorOpenOptions`, `CompanionHost`, `TerminalKeyEncoding`, `ITerminalAccessoryApi`, `LauncherModel`, `LauncherCommandOptions`, `LauncherAvailability`, `AgentLauncher`, `FileIconKind`, `GitDiffScope` (`BranchDiffScope`, `UncommittedDiffScope`, `CommitDiffScope`, `PinnedDiffScope`), `TerminalOpenOptions`, `FilePickOptions`, `PluginNotificationKind`, `AttentionNotification`, `IPluginPreference`, `FileViewerProps`, `FileViewerRegistration`, `SettingsSectionRegistration`, `SideToolRegistration`, `CompanionRegistration`, `TabDecoration`, `TabRef` (`TerminalTabRef`, `ToolTabRef`, `FileTabRef`), `WorkspaceActionRegistration` (`WorkspaceScopedActionRegistration`, `ProjectScopedActionRegistration`), `TerminalAccessoryRegistration`, `IPluginEditors`, `IPluginUIContext`, `PluginUIModule` |
 
 `IPluginLogger` and `IPluginUILogger`, and the two `PluginDisposer` delegates, are declared independently with
 the same shape rather than shared, since the host and UI entries do not reference each other. The host disposer
@@ -167,18 +167,18 @@ returns a `ValueTask` (a toggle awaits it); the UI one is synchronous, as the fo
 ```mermaid
 flowchart LR
     subgraph api["the contract"]
-        A["SharpRail.Plugins.Api"]
-        AH["SharpRail.Plugins.Api.Host"]
-        AU["SharpRail.Plugins.Api.UI"]
+        A["Tereditor.Plugins.Api"]
+        AH["Tereditor.Plugins.Api.Host"]
+        AU["Tereditor.Plugins.Api.UI"]
     end
-    K["SharpRail.Plugins.UI.Kit"]
+    K["Tereditor.Plugins.UI.Kit"]
     subgraph hostring["host"]
         HA["Host.Abstractions"]
         HC["Host.Core (runtime in Plugins/)"]
         PBH["builtin plugin host half"]
     end
     subgraph appring["app"]
-        UI["SharpRail.UI (runtime in Plugins/)"]
+        UI["Tereditor.UI (runtime in Plugins/)"]
         PBU["builtin plugin UI half"]
     end
     IP["external plugin directory"]
@@ -197,7 +197,7 @@ flowchart LR
     PBU --> K
 ```
 
-An arrow means "may depend on". There is no edge from a plugin to any `SharpRail.Host.*` or `SharpRail.UI`
+An arrow means "may depend on". There is no edge from a plugin to any `Tereditor.Host.*` or `Tereditor.UI`
 project, none between two plugins' host halves, and none from a UI half into the app's state, transport or
 workbench.
 
@@ -211,12 +211,12 @@ workbench.
 | host settings | `HostState.PluginSettings[<id>]`, with `enabled` reserved to core |
 | extra plugin roots | `HostState.PluginPaths` |
 | host state files | `<stateDir>/plugin-state/<id>/<name>.json` (`PluginIdentity.StateFile`) |
-| external plugin on disk | `<stateDir>/plugins/<id>/`, manifest `sharprail-plugin.json` (`PluginManifest.FileName`) |
+| external plugin on disk | `<stateDir>/plugins/<id>/`, manifest `tereditor-plugin.json` (`PluginManifest.FileName`) |
 | client-local preference keys | `plugin:<id>:<key>` (`PluginIdentity.PreferenceKey`), endpoint-qualified, in the profile |
 | builtin plugin assets | `plugins/<id>/<assets>` under the app's and the remote host's output directory |
 | core roster wire | `HostState.Plugins` on every snapshot; `IPluginService.ListAsync`, `RescanAsync`, `RetryAsync` |
 
-`<stateDir>` is the host state directory: `~/.sharprail` for the app's own host, `SHARPRAIL_STATE_DIR` for a
+`<stateDir>` is the host state directory: `~/.tereditor` for the app's own host, `TEREDITOR_STATE_DIR` for a
 remote host. An id is lowercase alphanumeric with hyphens. For an external plugin it must equal its directory
 name, so the id cannot claim more than the user placed there. Code and state live in sibling trees, so
 replacing a plugin does not disturb the state it wrote.
@@ -229,7 +229,7 @@ rather than an exception.
 ### The manifest
 
 `PluginManifest` is the same fields with two carriers: a builtin plugin constructs the record in code, and an
-external plugin ships the same fields as `sharprail-plugin.json`, read with `PluginJson.Options` (camelCase
+external plugin ships the same fields as `tereditor-plugin.json`, read with `PluginJson.Options` (camelCase
 names and enum values, unknown members refused).
 
 | field | meaning |
@@ -245,14 +245,14 @@ names and enum values, unknown members refused).
 | `apiGeneration` | refused before load if it does not match `PluginApi.Generation` |
 | `wireVersion` | incremented when the plugin's methods or channels change, so a separately shipped half can detect drift |
 | `enabledByDefault` | honoured for builtin plugins; an external plugin always arrives disabled |
-| `headless` | whether the plugin works in headless SharpRail, which has no window, terminal or agent of its own: `yes`, `no` or `undeclared` (the default). A builtin must say `yes` or `no`, and a headless host (`HostKind.Headless`) runs only plugins that say `yes`, refusing the rest and their dependents. An external plugin that says nothing is not headless |
+| `headless` | whether the plugin works in headless tereditor, which has no window, terminal or agent of its own: `yes`, `no` or `undeclared` (the default). A builtin must say `yes` or `no`, and a headless host (`HostKind.Headless`) runs only plugins that say `yes`, refusing the rest and their dependents. An external plugin that says nothing is not headless |
 | `headlessEnabledByDefault` | optional; replaces `enabledByDefault` on a headless host, so a headless plugin can start on there while a desktop leaves it off |
 | `dependsOn` | other plugins, by id and exact wire version |
 | `unavailableOn` | host kinds the plugin cannot run on (`pureWeb`: a host that lives in a browser tab with no operating system under it). A host of a listed kind refuses the plugin before load, naming the kind, and refuses its dependents with it; empty means everywhere. A plugin that needs a shell, a process or a socket lists `pureWeb` |
 | `host`, `ui` | relative paths of the two entry assemblies; each holds exactly one public concrete `PluginHostModule` / `PluginUIModule` subclass. An external plugin's are never loaded in this version |
 | `assets` | optional directory the host hands the host half (`AssetsDirectory`) and serves to the UI half (`ReadAssetAsync`, W19), for either origin |
 | `contributes` | the statically known parts: side tools with label, icon, default side and whether they need Git; file viewers with extensions, names and read strategy |
-| `pi` | ThinkRail's agent block; parsed so a shared manifest reads, and ignored, since SharpRail has no in-process agent |
+| `pi` | ThinkRail's agent block; parsed so a shared manifest reads, and ignored, since tereditor has no in-process agent |
 
 `contributes` exists because two rules below need a contribution to be known before any plugin code runs: the
 file-open path picks a read strategy while restoring a window's tabs, before plugins activate, and the layout
@@ -273,7 +273,7 @@ flowchart LR
     end
     subgraph b["builtin · in this repository"]
         B1["referenced by Host.Core, listed in its builtin array"]
-        B2["referenced by SharpRail.UI, listed in its builtin array"]
+        B2["referenced by Tereditor.UI, listed in its builtin array"]
     end
     subgraph i["external · installed by the user"]
         I1["manifest read and listed; refused when enabled"]
@@ -285,10 +285,10 @@ flowchart LR
 ```
 
 Both paths hand the halves the same contexts. A builtin plugin is a set of projects (contract, host half, UI
-half) under `src/`, with its own `SPEC.md`; its host half may not reference `SharpRail.Host.*`, and its UI half
-may not reference `SharpRail.UI`, which project references make checkable rather than conventional. An external
+half) under `src/`, with its own `SPEC.md`; its host half may not reference `Tereditor.Host.*`, and its UI half
+may not reference `Tereditor.UI`, which project references make checkable rather than conventional. An external
 plugin is a directory holding the manifest, the built assemblies with their own dependencies, and any assets.
-SharpRail reads its manifest and its assets, and never loads its assemblies into the host or the app.
+tereditor reads its manifest and its assets, and never loads its assemblies into the host or the app.
 
 ### The shared UI runtime
 
@@ -303,7 +303,7 @@ is not loaded at all, since a separate copy of the UI runtime is what isolation 
 A plugin styles itself with the kit's brushes and fonts (`Ui`), which are what a theme change rewrites. A
 plugin that writes literal colours will stop following theme changes, and nothing will report it.
 
-The UI kit is a real assembly, `SharpRail.Plugins.UI.Kit`. It carries the primitives and the heavy shared
+The UI kit is a real assembly, `Tereditor.Plugins.UI.Kit`. It carries the primitives and the heavy shared
 pieces: the Markdown renderer, the code editor frame, and the diagram view. It is the single home for the
 primitives the app uses, and the app uses them from it, because two copies would drift. The theme catalogue
 stays in the app; the kit owns the brush tokens a theme writes, which makes the token names a contract
@@ -322,7 +322,7 @@ upgrade.
 
 There is no sandbox. A host half runs in the host process with its privileges and without crash isolation,
 and a UI half runs in the app, so a fault can take down the host or the app. A builtin plugin is trusted as
-part of the build. An external plugin is not run until it can run isolated from SharpRail's processes.
+part of the build. An external plugin is not run until it can run isolated from tereditor's processes.
 
 ### Depending on another plugin
 
@@ -372,7 +372,7 @@ flowchart LR
 ### Allowed dependencies of a plugin
 
 A host half may depend on the root and host entries, a dependency's contract, and exact-pinned third parties.
-It may not depend on any `SharpRail.Host.*` project, `SharpRail.UI`, or another plugin's host half. Git goes
+It may not depend on any `Tereditor.Host.*` project, `Tereditor.UI`, or another plugin's host half. Git goes
 through `GitAsync`; everything else a host half needs (sockets, files, processes) is ordinary .NET.
 
 A UI half may depend on the root and UI entries, the UI kit, Avalonia, a dependency's contract, and its own
@@ -382,21 +382,21 @@ UI context alone, which is what allows it to live outside this repository.
 ## Enforcement
 
 1. Project references are the boundary. The API projects, the kit and each builtin plugin's projects reference
-   only what this spec allows, and `SharpRail.slnx` holds them all, so an illegal edge is a missing reference
+   only what this spec allows, and `Tereditor.slnx` holds them all, so an illegal edge is a missing reference
    and a build error rather than a review comment.
 2. The public-API listings and `GenerateDocumentationFile` (see Stability) fail the build on an unlisted or
    undocumented public symbol.
 3. The checks pin `PluginApi.Generation`, and assert that an external plugin in a temporary plugin root is
    listed, refused when enabled with its reason, and loads no code.
-4. Plugin checks live in `tests/SharpRail.Checks` beside the other host and UI checks. The fixture plugin's
+4. Plugin checks live in `tests/Tereditor.Checks` beside the other host and UI checks. The fixture plugin's
    projects live under `tests/`, and the checks compose them as a check-only builtin on both sides, so every
    capability path runs as it does for a shipped plugin. The fixture never ships in the app.
 
 ## Loading, composition, the enable gate
 
 Builtin plugins are composed statically in both runtimes: a literal array of host halves in
-`SharpRail.Host.Core/Plugins/BuiltinPlugins.cs`, and a literal array of manifest plus UI half in
-`SharpRail.UI/Plugins/BuiltinPlugins.cs`. Both begin with the spec dialect plugin.
+`Tereditor.Host.Core/Plugins/BuiltinPlugins.cs`, and a literal array of manifest plus UI half in
+`Tereditor.UI/Plugins/BuiltinPlugins.cs`. Both begin with the spec dialect plugin.
 
 External plugins are discovered and refused. When the host starts, it lists `<stateDir>/plugins` and every root
 in `HostState.PluginPaths`, reads each manifest, and refuses a manifest that does not parse, an id that does not
@@ -406,7 +406,7 @@ plugins are not supported in this version." Its switch in Settings › Plugins s
 it to disabled. No external assembly loads,
 and the plugin file read serves only the external plugin's assets. This keeps the host and the app free of
 dynamic code loading, so both can be published as NativeAOT, until external plugins can run isolated from
-SharpRail's processes. Behind the isolation seam, which only the checks set, an external plugin with only a UI half
+tereditor's processes. Behind the isolation seam, which only the checks set, an external plugin with only a UI half
 runs in its own process instead ([where the isolated runtime stands](Security.SPEC.md#where-the-isolated-runtime-stands)).
 
 Extra roots are host state rather than a separate file, so they are validated, broadcast, and editable from
@@ -716,7 +716,7 @@ set is closed.
 | H17 | run Git in a project or workspace through the host's bounded runner (`GitAsync`) | `GitRepository`'s runner is internal to `Host.Core` |
 | H18 | contribute to another plugin's agent launch on the host, and read the active plugins' contributions: a wrapper or replacement command, variables and extra arguments, applied with `AgentLaunchComposition.Apply` (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their revive commands from the recorded process command alone |
 | H19 | its own directory for files under the state directory (`StateDirectory`) | none; JSON state cannot hold a downloaded executable |
-| H20 | contribute text to the instructions agent plugins give sessions, and read what the host and the enabled plugins contribute: a list item about its tools or a section, for one agent or all, with an order hint and a condition evaluated each time the instructions are composed (`Prompt` with a `PromptContribution`, `ToolGuidance`, `PromptTexts`, `ToolGuidanceSections`). `PromptTexts` with a workspace makes the host's Code Intelligence text name that project's languages with examples on its symbols; it never waits for the workspace's census (the generic text until one finished). The host's own text comes first and is gated on its feature (Code Intelligence guidance only while language services are enabled); then plugins by ascending `Order`, ties in activation order. Ids are `[a-z0-9._-]` up to 64 characters, unique per plugin; text is at most 16000 characters with no control characters but line feeds and tabs; a condition that throws leaves the text out. Additively, `WorkspaceText` appends text computed for the workspace a session starts in, once when its instructions are composed (the state at session start, never polled; omitted from workspace-independent text, and a throw or out-of-bounds result adds nothing). A contribution may carry a `Title` and `Description` for the instructions view; its project-facing id is `plugin.<plugin id>.<id>` (the host's are `core.<id>`). `InstructionSectionsAsync` lists one agent's sections in a workspace with their text and the project's choice, `SetInstructionSectionAsync` turns one on or off in the project's `.sharprail/instructions.toml` disable-list, and `OnInstructionSectionsChanged` reports changes by project root; `PromptTexts` with a workspace leaves the project's disabled sections out (schema: [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). The value types `InstructionSection`, `InstructionSectionList`, `InstructionSectionQuery`, `InstructionSectionToggle` and `InstructionSectionsChanged` live in the base plugin API so contracts and UI share them. The registration belongs to the activation | the agent plugins' instruction texts named the tools of other plugins and advertised language services whatever the setting |
+| H20 | contribute text to the instructions agent plugins give sessions, and read what the host and the enabled plugins contribute: a list item about its tools or a section, for one agent or all, with an order hint and a condition evaluated each time the instructions are composed (`Prompt` with a `PromptContribution`, `ToolGuidance`, `PromptTexts`, `ToolGuidanceSections`). `PromptTexts` with a workspace makes the host's Code Intelligence text name that project's languages with examples on its symbols; it never waits for the workspace's census (the generic text until one finished). The host's own text comes first and is gated on its feature (Code Intelligence guidance only while language services are enabled); then plugins by ascending `Order`, ties in activation order. Ids are `[a-z0-9._-]` up to 64 characters, unique per plugin; text is at most 16000 characters with no control characters but line feeds and tabs; a condition that throws leaves the text out. Additively, `WorkspaceText` appends text computed for the workspace a session starts in, once when its instructions are composed (the state at session start, never polled; omitted from workspace-independent text, and a throw or out-of-bounds result adds nothing). A contribution may carry a `Title` and `Description` for the instructions view; its project-facing id is `plugin.<plugin id>.<id>` (the host's are `core.<id>`). `InstructionSectionsAsync` lists one agent's sections in a workspace with their text and the project's choice, `SetInstructionSectionAsync` turns one on or off in the project's `.tereditor/instructions.toml` disable-list, and `OnInstructionSectionsChanged` reports changes by project root; `PromptTexts` with a workspace leaves the project's disabled sections out (schema: [Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). The value types `InstructionSection`, `InstructionSectionList`, `InstructionSectionQuery`, `InstructionSectionToggle` and `InstructionSectionsChanged` live in the base plugin API so contracts and UI share them. The registration belongs to the activation | the agent plugins' instruction texts named the tools of other plugins and advertised language services whatever the setting |
 | H21 | provide a language server (`LanguageServer` with a `LanguageServerSpec`; `LanguageServerPlugin` is the host half of a plugin that provides only one): its id, pinned version, owned extensions and file names, aliases, implementation and provenance, pinning with its archives, NuGet packages or embedded lock files, configuration controls, project manifests and scope, LSP language ids, defaults for initialization options and settings, and the hooks that install, launch and adjust a launch through `ILanguageServerInstallation`; its name and icon, typed option groups, the servers it replaces when chosen, terms the host must record as accepted before launch, vendor expiry, initialization shaping from the typed options and manifests (`ILanguageServerStart`), extra manifests and manifest directories, workspace folders, initialize timeout and progress token, project-load waiting, server messages, dependency sources and reported source roots through `ILanguageServerSession`; and, additively, custom LSP requests to its running server (`RequestAsync`), server notifications and requests (`OnMessage`), experimental client capabilities and `window/showDocument` acceptance, a plugin-owned JSON state surfaced to clients (`SetState`, listed as `PluginState`), a hold on language answers with a short reason (`SetUnavailable`, answered as `actionRequired`) and named plugin actions that clients run on a running session, cancellably (`ActionAsync`, the `action` language operation; it never starts a server) and single-choice questions answered with a server's terms (`LanguageServerTerms.Questions`, recorded with the acceptance and returned in `AcceptedTerms.Answers`). The host keeps the session, the protocol, the installation lock and readiness marker, archive and npm installs, executable overrides and the PATH policy. A server is in the catalog only while its plugin is active; deactivation stops its sessions and keeps its saved settings. Ids are `[a-z0-9-]` up to 64 characters and unique among active plugins | language servers were a fixed host catalog with per-server code in the host |
 | H22 | own the workspace environment policy (`WorkspaceEnvironment`): the order of steps, the merge of their variables, failure and timeout rules, and the observer of each finished resolution (`OnWorkspaceEnvironment`). One active owner (`Env`); the host resolves before a shell starts, bounded, shared per workspace, kept as the last good result | `TerminalEnvironment` is synchronous and runs under the terminal service's lock, so it cannot run a tool |
 | H23 | provide a workspace environment step: edit variables and PATH, run tools through the host (`WorkspaceEnvironmentStep` with `IWorkspaceEnvironmentEdit`), add shell init and report a labelled fact for the chips; the policy (H22), not the step, decides its order. Exactly one step per plugin, which declares `dependsOn` `Env` | `TerminalEnvironment` is synchronous and runs under the terminal service's lock, so it cannot run a tool |
@@ -724,8 +724,8 @@ set is closed.
 | H27 | read the host process table, per-process CPU and memory, the running language servers and the owned-process registry, and switch agent-owned process management on or off (`Processes`, an `IProcessHost`, null on a host without one); only the Processes plugin uses it | the registry stays inert and nothing is listed |
 | — | expose exact absolute files outside the worktree for core text editing (`ExternalFiles`) | file reads and saves are confined to the workspace |
 
-H11 (send text to an agent session) and H16 (contribute agent extensions and skills) are not ported: SharpRail
-has no in-process agent. The fork's H12 `suggestWorkspaceName` is not ported either, since SharpRail has no
+H11 (send text to an agent session) and H16 (contribute agent extensions and skills) are not ported: tereditor
+has no in-process agent. The fork's H12 `suggestWorkspaceName` is not ported either, since tereditor has no
 host-side naming inference to feed. Start work keeps the generated name until the launched agent titles
 its task; `set_title` names an untouched generated managed workspace once. Launcher command options
 carry absolute image paths on the terminal host.
@@ -813,13 +813,13 @@ W20 has no counterpart in the fork's plugin API: its Claude Code plugin calls th
 directly, which a .NET plugin cannot. The plugin states what happened (terminal, headline, body, and an optional
 `StillNeeded` predicate); core owns every decision the fork's `apps/web/src/notifications` module owns: the
 host's master toggle, the focused-window rule, the collection window, delivery, and routing the click back to
-the terminal's workspace and tab ([the app runtime](../SharpRail.UI/Plugins/SPEC.md)).
+the terminal's workspace and tab ([the app runtime](../Tereditor.UI/Plugins/SPEC.md)).
 
 W17 is unoccupied in this commit; core's generic glyph is the fallback when no plugin answers. The
 `DocumentLinkSlot` is consulted the same way when a rendered document's link is followed.
 
 The fork's chat parts are not ported yet: chat companion hosts, `openChat`, tool renderers and the
-`writtenPathGroup` slot all serve AI chat components, which SharpRail does not restrict and takes up
+`writtenPathGroup` slot all serve AI chat components, which tereditor does not restrict and takes up
 as plugins.
 
 Some contributions are excluded. There is no state-slice contribution, since a plugin owns its own state.
@@ -935,7 +935,7 @@ offer. Running terminals keep the command they were started with.
 Rules, all in `Apply`: contributions are ordered by plugin activation, outermost first. A line whose executable is not
 the agent's own (a custom command line) is returned unchanged. Wrappers that do not replace the executable come first;
 only the first replacing contribution applies and sits innermost (later replacers are ignored); arguments follow in
-order; for a variable the first contribution wins and `SHARPRAIL_` and `THINKRAIL_` names, invalid names and any
+order; for a variable the first contribution wins and `TEREDITOR_` and `THINKRAIL_` names, invalid names and any
 variable for a Windows shell are dropped. Every word is one literal word, quoted for the target shell (single quotes
 on POSIX, double quotes on Windows); a contribution containing a word that cannot be quoted safely is skipped whole.
 
@@ -948,9 +948,9 @@ contributions leave `Account` unset because reading it is I/O. `Account` does no
 
 ## Repo hosting contributions (H24, W28)
 
-H24 and W28 are the two halves of one contribution, as H18 and W22 are for agent launches. Details: [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28).
+H24 and W28 are the two halves of one contribution, as H18 and W22 are for agent launches. Details: [Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28).
 The Review section follows the registry like a slot (W24): a disabled provider leaves no section, and the section hides
 itself on a workspace whose remote it does not own. A provider's channel carries the status per `workspaceId` (snapshot `get`); the UI half
 never runs a tool itself.
 
-H24's API shape: `RepoHost(provider)` takes a `RepoHostProvider` (Recognizes, SignInAsync, FindAsync, CreateOrUpdateAsync, Ready/Reopen/MergeAsync, CompareUrl) over `RepoHostBranch`; `OnBranchStatus` delivers a `BranchStatusEvent`; `RunToolAsync` is the host-bounded tool runner. Types: `src/SharpRail.Plugins.Api.Host/RepoHost.cs`.
+H24's API shape: `RepoHost(provider)` takes a `RepoHostProvider` (Recognizes, SignInAsync, FindAsync, CreateOrUpdateAsync, Ready/Reopen/MergeAsync, CompareUrl) over `RepoHostBranch`; `OnBranchStatus` delivers a `BranchStatusEvent`; `RunToolAsync` is the host-bounded tool runner. Types: `src/Tereditor.Plugins.Api.Host/RepoHost.cs`.

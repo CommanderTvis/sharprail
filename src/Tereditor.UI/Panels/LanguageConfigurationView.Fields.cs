@@ -6,10 +6,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed partial class LanguageConfigurationView
 {

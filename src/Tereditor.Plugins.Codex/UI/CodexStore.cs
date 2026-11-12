@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>What one Codex terminal last reported; totals and the plan survive a push that carries neither.</summary>
 public sealed record CodexSessionState(CodexStatus Status)

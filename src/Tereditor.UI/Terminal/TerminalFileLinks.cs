@@ -1,8 +1,8 @@
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 internal static class TerminalFileLinks
 {

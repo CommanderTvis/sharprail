@@ -2,52 +2,52 @@
   <!-- The Recycle Bin call on Windows uses source-generated COM and P/Invoke marshalling, which emits unsafe code. -->
   <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Tailscale/Host/SharpRail.Plugins.Tailscale.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.EnvMise/Host/SharpRail.Plugins.EnvMise.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.CodeIntelligence/Host/SharpRail.Plugins.CodeIntelligence.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Env/Host/SharpRail.Plugins.Env.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.GitHub/Host/SharpRail.Plugins.GitHub.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.EnvDirenv/Host/SharpRail.Plugins.EnvDirenv.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.EnvPython/Host/SharpRail.Plugins.EnvPython.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.EnvJvm/Host/SharpRail.Plugins.EnvJvm.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.EnvJavaScript/Host/SharpRail.Plugins.EnvJavaScript.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Epub/Host/SharpRail.Plugins.Epub.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/Host/SharpRail.Plugins.ClaudeCode.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Discord/Host/SharpRail.Plugins.Discord.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/Host/SharpRail.Plugins.BranchGraph.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Review/Host/SharpRail.Plugins.Review.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Processes/Host/SharpRail.Plugins.Processes.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Visualize/Host/SharpRail.Plugins.Visualize.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Omp/Host/SharpRail.Plugins.Omp.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Pi/Host/SharpRail.Plugins.Pi.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Providers/Host/SharpRail.Plugins.Providers.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirGateway/Host/SharpRail.Plugins.AirGateway.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.TypeScript/SharpRail.Plugins.Lsp.TypeScript.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Python/SharpRail.Plugins.Lsp.Python.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Php/SharpRail.Plugins.Lsp.Php.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Css/SharpRail.Plugins.Lsp.Css.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Shell/SharpRail.Plugins.Lsp.Shell.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.CSharp/SharpRail.Plugins.Lsp.CSharp.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Clangd/SharpRail.Plugins.Lsp.Clangd.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Java/SharpRail.Plugins.Lsp.Java.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Kotlin/SharpRail.Plugins.Lsp.Kotlin.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.IntelliJ/SharpRail.Plugins.Lsp.IntelliJ.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Ruby/SharpRail.Plugins.Lsp.Ruby.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Go/SharpRail.Plugins.Lsp.Go.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Rust/SharpRail.Plugins.Lsp.Rust.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Scala/SharpRail.Plugins.Lsp.Scala.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.R/SharpRail.Plugins.Lsp.R.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.PowerShell/SharpRail.Plugins.Lsp.PowerShell.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Swift/SharpRail.Plugins.Lsp.Swift.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Lsp.Dart/SharpRail.Plugins.Lsp.Dart.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Tailscale/Host/Tereditor.Plugins.Tailscale.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Isolation/Tereditor.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.SpecDialect/Host/Tereditor.Plugins.SpecDialect.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Blueprint/Host/Tereditor.Plugins.Blueprint.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.EnvMise/Host/Tereditor.Plugins.EnvMise.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.CodeIntelligence/Host/Tereditor.Plugins.CodeIntelligence.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Env/Host/Tereditor.Plugins.Env.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.GitHub/Host/Tereditor.Plugins.GitHub.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.EnvDirenv/Host/Tereditor.Plugins.EnvDirenv.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.EnvPython/Host/Tereditor.Plugins.EnvPython.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.EnvJvm/Host/Tereditor.Plugins.EnvJvm.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.EnvJavaScript/Host/Tereditor.Plugins.EnvJavaScript.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Epub/Host/Tereditor.Plugins.Epub.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.ClaudeCode/Host/Tereditor.Plugins.ClaudeCode.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Discord/Host/Tereditor.Plugins.Discord.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.BranchGraph/Host/Tereditor.Plugins.BranchGraph.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Review/Host/Tereditor.Plugins.Review.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Processes/Host/Tereditor.Plugins.Processes.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Visualize/Host/Tereditor.Plugins.Visualize.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Codex/Host/Tereditor.Plugins.Codex.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Omp/Host/Tereditor.Plugins.Omp.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Pi/Host/Tereditor.Plugins.Pi.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Acp/Host/Tereditor.Plugins.Acp.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Providers/Host/Tereditor.Plugins.Providers.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirGateway/Host/Tereditor.Plugins.AirGateway.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirContext/Host/Tereditor.Plugins.AirContext.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.TypeScript/Tereditor.Plugins.Lsp.TypeScript.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Python/Tereditor.Plugins.Lsp.Python.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Php/Tereditor.Plugins.Lsp.Php.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Css/Tereditor.Plugins.Lsp.Css.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Shell/Tereditor.Plugins.Lsp.Shell.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.CSharp/Tereditor.Plugins.Lsp.CSharp.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Clangd/Tereditor.Plugins.Lsp.Clangd.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Java/Tereditor.Plugins.Lsp.Java.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Kotlin/Tereditor.Plugins.Lsp.Kotlin.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.IntelliJ/Tereditor.Plugins.Lsp.IntelliJ.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Ruby/Tereditor.Plugins.Lsp.Ruby.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Go/Tereditor.Plugins.Lsp.Go.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Rust/Tereditor.Plugins.Lsp.Rust.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Scala/Tereditor.Plugins.Lsp.Scala.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.R/Tereditor.Plugins.Lsp.R.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.PowerShell/Tereditor.Plugins.Lsp.PowerShell.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Swift/Tereditor.Plugins.Lsp.Swift.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Lsp.Dart/Tereditor.Plugins.Lsp.Dart.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
@@ -56,10 +56,10 @@
     <Content Include="../../licenses/intellij-lsp.nvim.LICENSE.txt" Link="licenses/intellij-lsp.nvim.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../licenses/intellij-lsp.nvim.NOTICE.md" Link="licenses/intellij-lsp.nvim.NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <!-- SharpRail's shell-integration scripts, which the terminal host injects into the zsh and bash it starts. -->
+  <!-- tereditor's shell-integration scripts, which the terminal host injects into the zsh and bash it starts. -->
   <ItemGroup>
     <Content Include="shell-integration/zsh/.zshenv" Link="shell-integration/zsh/.zshenv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="shell-integration/bash/sharprail.bash" Link="shell-integration/bash/sharprail.bash" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="shell-integration/bash/tereditor.bash" Link="shell-integration/bash/tereditor.bash" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /><InternalsVisibleTo Include="sharprail-headless" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Tereditor.Checks" /><InternalsVisibleTo Include="tereditor-headless" /></ItemGroup>
 </Project>

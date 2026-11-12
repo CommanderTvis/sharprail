@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core.Language;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Core.Language;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class LanguageOptionChecks
 {

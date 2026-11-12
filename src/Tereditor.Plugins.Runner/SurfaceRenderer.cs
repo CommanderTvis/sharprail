@@ -9,10 +9,10 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.Isolation;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Isolation;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// The plugin's mounted controls, each in its own headless top-level per client and mount. On the UI thread only. A

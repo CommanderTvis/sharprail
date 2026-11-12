@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Chat.UI;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Chat.UI;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace Tereditor.Plugins.ClaudeCode.UI.Chat;
 
 /// <summary>What the shared chat view needs to know about Claude Code: its words, document and permission modes.</summary>
 internal static class ClaudeChat

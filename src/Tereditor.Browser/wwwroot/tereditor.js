@@ -28,11 +28,11 @@ let events;
 export function registerEvents(callback) { events = callback; }
 export function terminalEvent(message) { return events?.('restty:' + JSON.stringify(message)); }
 export function setWorkbench(id, workbench) {
-  document.getElementById(id).classList.toggle('sharprail-workbench', workbench);
+  document.getElementById(id).classList.toggle('tereditor-workbench', workbench);
 }
 addEventListener("blur", () => events?.("blur"));
 addEventListener("focus", () => {
-  const windows = [...document.querySelectorAll(".sharprail-window")].filter(element => element.style.visibility === "visible");
+  const windows = [...document.querySelectorAll(".tereditor-window")].filter(element => element.style.visibility === "visible");
   windows.sort((a, b) => Number(a.style.zIndex) - Number(b.style.zIndex));
   if (windows.length) events?.(`focus:${windows.at(-1).id}`);
 });
@@ -54,8 +54,8 @@ let nextId = 0;
 let nextZ = 1;
 export function createWindow() {
   const element = document.createElement('div');
-  element.id = `sharprail-window-${++nextId}`;
-  element.className = 'sharprail-window';
+  element.id = `tereditor-window-${++nextId}`;
+  element.className = 'tereditor-window';
   element.tabIndex = 0;
   element.addEventListener("focusin", () => events?.(`focus:${element.id}`));
   document.body.append(element);
@@ -63,7 +63,7 @@ export function createWindow() {
 }
 export function placeWindow(id, width, height, dialog, shown) {
   const element = document.getElementById(id);
-  element.classList.toggle('sharprail-dialog', dialog);
+  element.classList.toggle('tereditor-dialog', dialog);
   element.style.width = dialog ? `${Math.min(width, innerWidth)}px` : '100%';
   element.style.height = dialog ? `${Math.min(height, innerHeight)}px` : '100%';
   element.style.visibility = shown ? 'visible' : 'hidden';
@@ -76,8 +76,8 @@ export function activateWindow(id) {
   element.style.zIndex = `${++nextZ}`;
   element.focus();
 }
-export function load(key) { return (key === 'endpoint' ? sessionStorage : localStorage).getItem(`sharprail:${key}`); }
-export function save(key, value) { (key === 'endpoint' ? sessionStorage : localStorage).setItem(`sharprail:${key}`, value); }
+export function load(key) { return (key === 'endpoint' ? sessionStorage : localStorage).getItem(`tereditor:${key}`); }
+export function save(key, value) { (key === 'endpoint' ? sessionStorage : localStorage).setItem(`tereditor:${key}`, value); }
 export function origin() { return location.origin; }
 export function isMac() { return /mac|iphone|ipad/i.test(navigator.userAgentData?.platform ?? navigator.platform); }
 export function openLink(url) {
@@ -98,8 +98,8 @@ function fitVisualViewport() {
   const view = visualViewport;
   if (!view) return;
   const style = document.documentElement.style;
-  style.setProperty('--sharprail-vh', `${view.height}px`);
-  style.setProperty('--sharprail-vt', `${view.offsetTop}px`);
+  style.setProperty('--tereditor-vh', `${view.height}px`);
+  style.setProperty('--tereditor-vt', `${view.offsetTop}px`);
 }
 visualViewport?.addEventListener('resize', fitVisualViewport);
 visualViewport?.addEventListener('scroll', fitVisualViewport);
@@ -116,7 +116,7 @@ export function cutNative(id, rects) {
   if (!host) return;
   const holes = rects ? rects.split(';').map(rect => rect.split(',').map(Number)) : [];
   const origin = host.getBoundingClientRect();
-  for (const element of host.querySelectorAll('.sharprail-restty')) {
+  for (const element of host.querySelectorAll('.tereditor-restty')) {
     const box = element.getBoundingClientRect();
     const parts = holes.map(([x, y, width, height]) => {
       const left = origin.left + x - box.left, top = origin.top + y - box.top;
@@ -128,8 +128,8 @@ export function cutNative(id, rects) {
 
 export function dimNative(id, red, green, blue, alpha) {
   const style = document.getElementById(id)?.style;
-  style?.setProperty('--sharprail-native-scrim', `rgba(${red},${green},${blue},${alpha})`);
+  style?.setProperty('--tereditor-native-scrim', `rgba(${red},${green},${blue},${alpha})`);
   // A native terminal is a page element above the canvas, so it would hide an in-window overlay (Settings) drawn under it:
   // behind a dimmed workbench it is hidden, as dim as it would be.
-  style?.setProperty('--sharprail-native-visibility', alpha > 0 ? 'hidden' : 'visible');
+  style?.setProperty('--tereditor-native-visibility', alpha > 0 ? 'hidden' : 'visible');
 }

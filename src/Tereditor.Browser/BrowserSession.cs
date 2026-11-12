@@ -1,17 +1,17 @@
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>Connects the browser workbench to a host and remembers its client-local view state.</summary>
 public sealed class BrowserSession() : IDisposable
 {
-    private readonly string directory = "/sharprail";
+    private readonly string directory = "/tereditor";
     private readonly List<IDisposable> adapters = [];
     private IDisposable? route;
     private Workbench? workbench;
@@ -94,7 +94,7 @@ public sealed class BrowserSession() : IDisposable
     {
         try
         {
-            await TabGit.StartAsync("/sharprail", "/workspace", "/home");
+            await TabGit.StartAsync("/tereditor", "/workspace", "/home");
             await TabHost.EnsureProjectAsync();
             if (disposed) return;
             OpenTab(endpoint);
@@ -149,7 +149,7 @@ public sealed class BrowserSession() : IDisposable
                 if (disposed || !ReferenceEquals(workbench?.State, state)) return;
                 var forgotten = endpoint with { Token = "", LocalApproval = false };
                 forgotten.Save(directory);
-                ReturnToConnect(forgotten, "Browser access expired or was revoked. Connect again to request approval in SharpRail.");
+                ReturnToConnect(forgotten, "Browser access expired or was revoked. Connect again to request approval in tereditor.");
             });
         };
         Func<IProjectServices> sessions = () => new RemoteProjectAdapter(address, token, connection);

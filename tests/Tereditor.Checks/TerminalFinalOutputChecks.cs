@@ -1,7 +1,7 @@
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // A shell that writes and exits right after the read pump's poll timed out must not lose that output. The hook holds the pump
 // between its timed-out poll and its decision to stop, so the write and the exit land exactly in the window that once dropped them.

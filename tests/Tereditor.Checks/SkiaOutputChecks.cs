@@ -7,10 +7,10 @@ using Avalonia.Threading;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class SkiaOutputChecks
 {

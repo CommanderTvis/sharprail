@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds a structured JSON status payload for a SharpRail status report.
+# Builds a structured JSON status payload for a tereditor status report.
 #
 # Usage: source this file, then call build_payload with event-specific fields.
 #

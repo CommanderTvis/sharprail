@@ -10,7 +10,7 @@ import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
+const { chromium } = await import('../../src/Tereditor.Browser/node_modules/playwright/index.mjs');
 const scratch = path.join(root, '.bench/browser-checks');
 const fixture = path.join(scratch, 'fixture');
 const token = randomUUID();
@@ -61,21 +61,21 @@ try {
   await fs.writeFile(path.join(fixture, 'hello.txt'), 'Browser editor fixture\n');
   await fs.writeFile(path.join(fixture, 'diagram.md'), '# Browser\n\n```mermaid\nflowchart LR\nA[Browser] --> B[Host]\n```\n');
   await fs.writeFile(path.join(fixture, 'sample.pdf'), pdfFixture());
-  if (process.env.SHARPRAIL_BROWSER_BUNDLE) {
+  if (process.env.TEREDITOR_BROWSER_BUNDLE) {
     const prose = '# Plain prose benchmark\n\n' + Array.from({ length: 1024 }, (_, index) => 'Paragraph ' + index + '. ' + Array(5).fill('A readable paragraph explains the behavior of a workspace, its files, and the controls used to navigate between documents.').join(' ')).join('\n\n');
     await fs.writeFile(path.join(fixture, 'prose.md'), prose.replace('\n\n', '\n\n' + String.fromCharCode(96).repeat(3) + 'mermaid\nflowchart LR\nA[AotDiagram] --> B[Browser]\n' + String.fromCharCode(96).repeat(3) + '\n\n'));
   }
   // An external plugin is discovered and listed, but refused when enabled: no external code runs in the host or the app.
   const outsider = path.join(scratch, 'state/plugins/outsider');
   await fs.mkdir(path.join(outsider, 'assets'), { recursive: true });
-  await fs.writeFile(path.join(outsider, 'sharprail-plugin.json'), JSON.stringify({ id: 'outsider', label: 'Outsider', icon: 'puzzle-2-line', version: '1.0.0', apiGeneration: 2, wireVersion: 1, host: 'outsider.Host.dll', ui: 'outsider.UI.dll', assets: 'assets' }));
+  await fs.writeFile(path.join(outsider, 'tereditor-plugin.json'), JSON.stringify({ id: 'outsider', label: 'Outsider', icon: 'puzzle-2-line', version: '1.0.0', apiGeneration: 2, wireVersion: 1, host: 'outsider.Host.dll', ui: 'outsider.UI.dll', assets: 'assets' }));
   await fs.writeFile(path.join(outsider, 'assets/icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"/>');
   const browserPort = await port();
   const address = `http://127.0.0.1:${browserPort}`;
-  host = spawn(process.env.DOTNET ?? 'dotnet', ['src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll'], {
-    cwd: root, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'),
-      SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(browserPort),
-      SHARPRAIL_BROWSER_ROOT: process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'), Logging__LogLevel__Default: 'Warning' }
+  host = spawn(process.env.DOTNET ?? 'dotnet', ['src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll'], {
+    cwd: root, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, TEREDITOR_ROOT: fixture, TEREDITOR_STATE_DIR: path.join(scratch, 'state'),
+      TEREDITOR_TOKEN: token, TEREDITOR_PORT: String(browserPort),
+      TEREDITOR_BROWSER_ROOT: process.env.TEREDITOR_BROWSER_BUNDLE ?? path.join(root, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle'), Logging__LogLevel__Default: 'Warning' }
   });
   let hostError = ''; host.stderr.on('data', data => { hostError += data; });
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, response => response?.ok, 'Browser host did not start.');
@@ -99,7 +99,7 @@ try {
   });
   // The shared Skia pixel/input suite exercises the actual loading fallback.
   // Default restty and its failure paths are covered by restty.mjs.
-  if (!process.env.SHARPRAIL_BROWSER_BUNDLE) await page.route('**/vendor/restty/**', route => route.abort());
+  if (!process.env.TEREDITOR_BROWSER_BUNDLE) await page.route('**/vendor/restty/**', route => route.abort());
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   page.on('response', response => { if (response.status() >= 400) console.error('HTTP ' + response.status() + ': ' + response.url()); });
   page.on('console', message => { if (message.type() === 'error') console.error(message.text().slice(0, 2000)); });
@@ -111,7 +111,7 @@ try {
     server.onClose((code, reason) => { sockets.delete(connection); route.close({ code, reason }); });
   });
   await page.addInitScript(({ address, token, fixture, deployment }) => {
-    if (deployment) sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
+    if (deployment) sessionStorage.setItem('tereditor:endpoint', JSON.stringify({ Address: address, Token: token }));
     if (deployment) {
       const tab = { Id: 'file:prose.md', Title: 'prose.md', Kind: 'file', Path: 'prose.md' };
       const layout = { Center: { GroupId: 'center' }, Groups: [
@@ -119,7 +119,7 @@ try {
         { Id: 'projects', Region: 'left', Tools: [{ Id: 'projects', Title: 'Projects', Kind: 'tool' }] },
         { Id: 'graph', Region: 'right', Tools: [{ Id: 'plugin:branch-graph:graph', Title: 'Branch graph', Kind: 'tool' }] }
       ], ActiveWorkspace: fixture, Workspaces: { [fixture]: { Documents: { center: [tab] }, Selected: { center: tab.Id, graph: 'plugin:branch-graph:graph' }, FocusedCenter: 'center' } } };
-      localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
+      localStorage.setItem('tereditor:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
       const OriginalWorker = globalThis.Worker;
       globalThis.Worker = class extends OriginalWorker {
         constructor(...args) { super(...args); this.addEventListener('message', ({ data }) => {
@@ -127,22 +127,22 @@ try {
         }); }
       };
     } else {
-    if (!localStorage.getItem('sharprail:profile')) localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+    if (!localStorage.getItem('tereditor:profile')) localStorage.setItem('tereditor:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
     }
-  }, { address, token, fixture, deployment: !!process.env.SHARPRAIL_BROWSER_BUNDLE });
+  }, { address, token, fixture, deployment: !!process.env.TEREDITOR_BROWSER_BUNDLE });
   await page.goto(address);
   await page.waitForFunction(() => globalThis.getDotnetRuntime?.(0)?.getAssemblyExports);
-  await page.waitForFunction(() => document.querySelector('.sharprail-window canvas')?.width > 100);
+  await page.waitForFunction(() => document.querySelector('.tereditor-window canvas')?.width > 100);
   console.log('Browser runtime loaded');
-  if (process.env.SHARPRAIL_BROWSER_BUNDLE) {
+  if (process.env.TEREDITOR_BROWSER_BUNDLE) {
     assert.equal(await page.evaluate(async () => {
-      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
-      return !!exports.SharpRail?.Browser?.Checks;
+      const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll');
+      return !!exports.tereditor?.Browser?.Checks;
     }), false, 'The deployment bundle must exclude acceptance hooks.');
-    await page.waitForFunction(() => document.querySelector('.sharprail-workbench canvas'));
+    await page.waitForFunction(() => document.querySelector('.tereditor-workbench canvas'));
     assert.equal(await page.locator('#window-bar').count(), 0);
-    assert.equal(await page.locator('.sharprail-workbench').evaluate(element => element.getBoundingClientRect().top), 0);
-    assert.match(await page.evaluate(async () => (await import('./sharprail.js')).renderMermaid('flowchart LR\nA[Published] --> B[Host]', '{}')), /<svg.*Published/s);
+    assert.equal(await page.locator('.tereditor-workbench').evaluate(element => element.getBoundingClientRect().top), 0);
+    assert.match(await page.evaluate(async () => (await import('./tereditor.js')).renderMermaid('flowchart LR\nA[Published] --> B[Host]', '{}')), /<svg.*Published/s);
     await until(() => Promise.resolve(publishedPluginRequest && publishedPluginReply), Boolean, 'The normal bundle did not mount a builtin plugin and complete its typed JSON request');
     await page.waitForFunction(() => globalThis.publishedMermaid === true);
     await until(async () => {
@@ -174,10 +174,10 @@ try {
     assert.ok(brotliRuntime, 'The published runtime must load through negotiated Brotli compression.');
     console.log('PASS Brotli runtime, published browser prose/Mermaid/Settings, external managed plugin JSON, full viewport and excluded test hooks');
   } else {
-  await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll'); globalThis.check = exports.SharpRail.Browser.Checks.BrowserChecks; });
+  await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll'); globalThis.check = exports.Tereditor.Browser.Checks.BrowserChecks; });
   const command = process.platform === 'darwin' ? 'Meta' : 'Control';
   const fields = async () => page.evaluate(async () => JSON.parse(await check.ConnectFields()));
-  await page.waitForFunction(() => document.querySelector('.sharprail-window canvas')?.width > 100);
+  await page.waitForFunction(() => document.querySelector('.tereditor-window canvas')?.width > 100);
   await until(fields, fields => fields.length === 2 && fields[0].Position?.Y > 0, 'The connect form did not appear.');
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: address });
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
@@ -257,7 +257,7 @@ try {
 
   for (const [encoded, width, height, text] of [[pdfFixture(), 200, 120, 'Browser PDF fixture'], [pdfFixture(90), 120, 200, 'Browser PDF fixture'], [pdfFixture(0, '10 20 180 110'), 170, 90, 'Browser PDF fixture'], [pdfFixture(0, '', true), 200, 120, '🚀é']]) {
     const preview = await page.evaluate(async bytes => {
-      const renderer = await import('./sharprail.js');
+      const renderer = await import('./tereditor.js');
       const pages = JSON.parse(await renderer.readPdf(bytes));
       const pixels = JSON.parse(await renderer.renderPdf(bytes, 2));
       return { pages, pixels: pixels.map(page => ({ Width: page.Width, Height: page.Height, Bytes: atob(page.Pixels).length, Dark: [...atob(page.Pixels)].some(value => value.charCodeAt(0) !== 255) })) };
@@ -266,7 +266,7 @@ try {
     assert.ok(preview.pages[0].Text.includes(text)); assert.equal(preview.pages[0].Boxes.length, preview.pages[0].Text.length);
     assert.equal(preview.pixels[0].Width, width * 2); assert.equal(preview.pixels[0].Height, height * 2); assert.ok(preview.pixels[0].Dark);
   }
-  assert.match(await page.evaluate(async () => (await import('./sharprail.js')).renderMermaid('flowchart LR\nA[Browser] --> B[Host]', '{}')), /<svg.*Browser/s);
+  assert.match(await page.evaluate(async () => (await import('./tereditor.js')).renderMermaid('flowchart LR\nA[Browser] --> B[Host]', '{}')), /<svg.*Browser/s);
   await page.evaluate(() => check.OpenDocument('sample.pdf')); await page.evaluate(() => check.OpenDocument('diagram.md'));
   console.log('PASS browser PDFium text, Unicode, rotation/crop, pixels and Mermaid worker');
   await page.evaluate(() => check.OpenSettings('Plugins'));
@@ -287,7 +287,7 @@ try {
   assert.equal(watched.Columns, 100); assert.equal(watched.Rows, 30);
   assert.match(watched.Text, /RECORDED_SCREEN/); assert.match(watched.Text, /Working 5UPDATE_SCREEN/);
   console.log('PASS browser read-only alternate-screen replay before live cursor updates, without takeover or resize');
-  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('sharprail:profile')).Windows.length > 0));
+  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('tereditor:profile')).Windows.length > 0));
   assert.deepEqual(errors, []);
   console.log('PASS browser profile persistence');
   }

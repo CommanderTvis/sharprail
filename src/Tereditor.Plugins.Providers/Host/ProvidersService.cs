@@ -3,9 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Providers.Host;
+namespace Tereditor.Plugins.Providers.Host;
 
-/// <summary>A provider the user added by hand: not in the agent's documentation, so SharpRail remembers its name and variable.</summary>
+/// <summary>A provider the user added by hand: not in the agent's documentation, so tereditor remembers its name and variable.</summary>
 public sealed record CustomProvider(ProviderAgent Agent, string Id, string Name, string? EnvVar);
 
 /// <summary>Where the services read and write: the two credential files, the remembered custom providers and the process environment.</summary>
@@ -13,19 +13,19 @@ internal sealed record ProviderFiles(Func<string> PiAuth, Func<string> OmpEnv, F
 
 /// <summary>
 /// Reads and edits the credential files of Pi (<c>auth.json</c>, https://github.com/badlogic/pi-mono docs/providers.md) and omp
-/// (the <c>.env</c> of its SharpRail profile, https://omp.sh/docs/env). A report never carries a key; a key is written once
+/// (the <c>.env</c> of its tereditor profile, https://omp.sh/docs/env). A report never carries a key; a key is written once
 /// and never read back or logged. Files are rewritten whole and atomically, with the owner as their only reader.
 /// </summary>
 internal sealed class ProvidersService(ProviderFiles files)
 {
     private readonly Lock gate = new();
 
-    /// <summary>The default files: Pi's agent directory (<c>PI_CODING_AGENT_DIR</c> or <c>~/.pi/agent</c>) and the sharprail profile of omp.</summary>
+    /// <summary>The default files: Pi's agent directory (<c>PI_CODING_AGENT_DIR</c> or <c>~/.pi/agent</c>) and the tereditor profile of omp.</summary>
     public static ProviderFiles DefaultFiles(Func<IReadOnlyList<CustomProvider>> load, Action<IReadOnlyList<CustomProvider>> save, string? ompHome = null) => new(
         () => Path.Combine(Environment.GetEnvironmentVariable("PI_CODING_AGENT_DIR") is { Length: > 0 } agent ? agent
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".pi", "agent"), "auth.json"),
-        () => Path.Combine(ompHome ?? (Environment.GetEnvironmentVariable("SHARPRAIL_OMP_HOME") is { Length: > 0 } home ? home : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
-            ".omp", "profiles", "sharprail", "agent", ".env"),
+        () => Path.Combine(ompHome ?? (Environment.GetEnvironmentVariable("TEREDITOR_OMP_HOME") is { Length: > 0 } home ? home : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+            ".omp", "profiles", "tereditor", "agent", ".env"),
         load, save, Environment.GetEnvironmentVariable);
 
     public ProvidersReport List(ProviderAgent agent)
@@ -89,7 +89,7 @@ internal sealed class ProvidersService(ProviderFiles files)
         var location = agent == ProviderAgent.Pi ? files.PiAuth() : files.OmpEnv();
         return new ProvidersReport(agent, location, rows)
         {
-            Note = agent == ProviderAgent.Omp ? "omp reads these keys in launches that use SharpRail's tools (its sharprail profile)." : null
+            Note = agent == ProviderAgent.Omp ? "omp reads these keys in launches that use tereditor's tools (its tereditor profile)." : null
         };
     }
 

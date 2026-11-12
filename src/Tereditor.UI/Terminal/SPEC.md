@@ -44,7 +44,7 @@ only for the prompt guard in Agent.UI.
 An accessory that types a command into an agent (a slash command) takes `HoldInput()` first and
 disposes the handle in a `finally` when the entry is complete, submitted included. While a hold is in force
 `TerminalView` swallows the user's key, composed-text and non-primary pointer events on the way down (tunnelling
-handlers, so every renderer is covered and none sees them) and shows "Input paused while SharpRail types…" in the
+handlers, so every renderer is covered and none sees them) and shows "Input paused while tereditor types…" in the
 corner. Keys typed meanwhile are dropped, not queued: replaying them after the command would type into whatever the
 agent shows next. The driver's own `Write` is unaffected. Holds nest and a handle disposes once. A hold also ends by
 itself when the terminal restarts, its shell exits, the view is disposed (closing the tab) and after 30 seconds, so a
@@ -75,12 +75,12 @@ it over. Centre file-tab previews still follow the client's tabs-in-Projects set
 A revived agent tab shows its host `TerminalResumeOffer` in a row above the surface: “Claude session <first 8 of
 the id> was running here.” with Resume (Alt+R) and Start fresh (Alt+F) buttons, which take keyboard focus like any
 button. Either answer goes to the host as `HostStateChange.AnswerResume`, so every window and remote client shows
-and settles the same offer. When the host finds the session open in another tab, window or SharpRail instance the
-row names the owner (pid, age, tty: “…is open in pid 4463 (started 2 days ago, ttys003). The SharpRail instance that
-started it is no longer running.”, or “…another SharpRail window/instance (pid N), tab X”) and offers only Start fresh, followed by a close cross. The cross hides the row in that window until the owner changes; it answers nothing.
+and settles the same offer. When the host finds the session open in another tab, window or tereditor instance the
+row names the owner (pid, age, tty: “…is open in pid 4463 (started 2 days ago, ttys003). The tereditor instance that
+started it is no longer running.”, or “…another tereditor window/instance (pid N), tab X”) and offers only Start fresh, followed by a close cross. The cross hides the row in that window until the owner changes; it answers nothing.
 For a stray left by a stopped instance it also shows “Quit that process and resume” (Alt+Q): a confirmation dialog on
 the clicking client names the pid, command and age, then `HostStateChange.QuitOwnerAndResume` asks the host to end it
-(Plugins.SPEC); progress or failure shows inline in the row. A live SharpRail owner never gets the button. The row is applied when a terminal view is created and on every state
+(Plugins.SPEC); progress or failure shows inline in the row. A live tereditor owner never gets the button. The row is applied when a terminal view is created and on every state
 broadcast that changes `ResumeOffers`; it reads state only (Plugins.SPEC, Terminals).
 
 ## Session revival hint
@@ -217,8 +217,8 @@ once. Re-attaching a view (a tab switch) is not a gesture: the Metal view applie
   including busy queries, close and fallback to Skia. The local factory has no relay or endpoint input.
   Disposing the native surface joins its I/O thread before releasing callback state; output calls and
   disposal are serialized. The host still owns the shell and replay, exit and takeover semantics.
-- Remote Metal texture tabs run the SharpRail executable in relay mode as their child. The relay reads endpoint,
-  token, session and client from a private one-use file named by `SHARPRAIL_TERMINAL_RELAY`, puts its
+- Remote Metal texture tabs run the tereditor executable in relay mode as their child. The relay reads endpoint,
+  token, session and client from a private one-use file named by `TEREDITOR_TERMINAL_RELAY`, puts its
   terminal in raw mode, attaches over authenticated WebSocket RPC streaming, forwards window-size changes and reports
   the real exit code or a takeover through a status file, because Ghostty's login wrapper does not
   propagate the child's exit code. Remote tabs reach the remote host. A lost connection reconnects for up to 30
@@ -229,7 +229,7 @@ once. Re-attaching a view (a tab switch) is not a gesture: the Metal view applie
 ## Shared terminals
 
 Which terminal tabs a workspace has is the host's catalog (`ITerminalCatalogService`, see
-[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#catalog)), so every window of every client shows
+[Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#catalog)), so every window of every client shows
 the same ones; where a tab sits stays each window's own. `Workbench` takes the catalog from its composition root
 (the local PTY service, a remote adapter, or an in-memory one when there is neither), keeps one subscription for
 all its windows and hands them the latest snapshot; a change's reply and the subscription race, and the higher
@@ -336,14 +336,14 @@ applies to terminals opened afterwards, and the selection moves only when the ho
 the host setting `terminal-keep-after-exit`, shared by every client and applied to the next exit.
 
 Settings → Terminal also has the host's Shell integration switch (on by default; see
-[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)); it applies to shells started afterwards.
+[Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#decisions)); it applies to shells started afterwards.
 
 Settings chooses Metal texture (default) or Skia (fallback) and persists the choice in app preferences.
 Changing it reattaches existing views to their same host session; it must not end
 the shell. Appearance changes update each renderer without reattaching.
 The integration lives in the independent `Ghostty.Avalonia` project.
 
-The library retains `GhosttyView` for NSView consumers and benchmarks; SharpRail does not instantiate or offer it.
+The library retains `GhosttyView` for NSView consumers and benchmarks; tereditor does not instantiate or offer it.
 Texture creation or drawing failure automatically switches that view to Skia on
 the same host session, without changing the saved preference. Clipboard image
 paste saves PNG files under the profile's `clipboard` directory.
@@ -437,7 +437,7 @@ for a separate redraw. Holder grid changes remain ordered with watched output an
 parsing its bytes. Replay yields after 8 KiB or 2 ms, checked every 1 KiB. Exit is reported only
 after output drains; disposal cancels both the reader and pending dispatches. No bytes are dropped.
 This bounds UI work; the host bounds its own queues (see
-[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#backpressure)). VT state stays UI-thread-owned.
+[Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#backpressure)). VT state stays UI-thread-owned.
 Design provenance and Royal Apps MIT attribution are in
 [Ghostty.Avalonia/README.md](../../Ghostty.Avalonia/README.md#skia-rendering-design).
 
@@ -454,8 +454,8 @@ echo) and reports it to the apprt as the `GHOSTTY_ACTION_SECURE_INPUT` on/off/to
 `EnableSecureEventInput` with one `DisableSecureEventInput`, enables only while the app is active and a scoped
 surface is focused or the global toggle is on, and yields on resign-active.
 
-SharpRail cannot take libghostty's action: every renderer feeds Ghostty from external I/O or the relay, so its
-termios poll sees no shell. The host's PTY answers instead ([Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)),
+tereditor cannot take libghostty's action: every renderer feeds Ghostty from external I/O or the relay, so its
+termios poll sees no shell. The host's PTY answers instead ([Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#decisions)),
 which works the same for a remote host: the host reports the flag, the client's OS enables secure input locally.
 
 - `TerminalView` polls `ITerminalBackend.IsPasswordInputAsync` every 200 ms off the UI thread, only while it has
@@ -524,7 +524,7 @@ fallback while preserving the local/remote shell and its exit status.
 
 Claude Code, Codex and ordinary shells share the terminal's file-link interaction. Holding Command
 on macOS (Ctrl elsewhere) over an existing file underlines it; modifier-click opens its source in
-SharpRail, positioning the caret at the supplied one-based line and column. Ordinary selection stays
+tereditor, positioning the caret at the supplied one-based line and column. Ordinary selection stays
 unchanged. Relative paths and bare filenames resolve against the shell's current working directory;
 there is no recursive filename search. Absolute paths, home-relative paths, local `file://` URLs,
 `:line`, `:line:column`, `:start-end` and `: (line, column)` positions are accepted. The start of a
@@ -544,7 +544,7 @@ underlined throughout the visible viewport without a modifier, through the same 
 resolution, debounce and cache as commit ids; files take precedence over commits. Words that do not
 name an existing file (`1.13.0`, `github.com`, `e.g.`, a sentence-ending `done.`, branch names) stay plain.
 A plain click (without dragging) on an underlined file opens it the same way as modifier-click, in a
-SharpRail document tab at its line and column; files outside the workspace open as other external
+tereditor document tab at its line and column; files outside the workspace open as other external
 files do. Selection and mouse reporting still receive the press.
 
 A terminal link never opens a file in Finder or another application. Ghostty's own links (Command-click
@@ -604,14 +604,14 @@ requires `LoopbackTerminals` and `LocalTerminalAdapter` to implement every `ITer
 through the app's local wiring. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
 stale-link clearing and retained web-link hover.
 
-Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).
+Browser composition defaults to restty; see [Browser](../../Tereditor.Browser/SPEC.md).
 Its initialization fallback uses the shared Skia backend over remote adapters and WASM libghostty-vt.
 In that fallback, pasted PNG images are uploaded to the host terminal service, and only the returned host path is typed.
 
 ## Prompts and command output
 
-These follow Ghostty and need shell integration marks (the host injects SharpRail's scripts; see
-[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)). Both renderers read the OSC 133 marks their
+These follow Ghostty and need shell integration marks (the host injects tereditor's scripts; see
+[Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#decisions)). Both renderers read the OSC 133 marks their
 own terminal state keeps, so local and remote terminals behave alike.
 
 - Jump to prompt (Ghostty's `jump_to_prompt`, default bindings Command+Up/Down on macOS as in Terminal.app, Ctrl+Shift+Up/Down
@@ -649,7 +649,7 @@ own terminal state keeps, so local and remote terminals behave alike.
 A terminal opened from another (New terminal in its group, or a pane below) starts where that terminal's shell last
 reported being (OSC 7): `LayoutSession.NewTerminal` records the group's shown terminal, else the focused one, and the tab's
 first attach carries its session as `TerminalLaunch.DirectoryFrom`; without a report the shell starts in the worktree.
-The host resolves it ([Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)), so remote hosts behave
+The host resolves it ([Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#decisions)), so remote hosts behave
 alike. `--terminal-directory` (and `--terminals`) checks it through the workbench; `--shell-integration` checks real zsh
 locally and remotely and file links following the report.
 
@@ -674,7 +674,7 @@ with exactly three choices, each inserting through the same callback without sub
   host with progress and Cancel, and the host paths are inserted. Uploading into a chosen host folder is
   out of scope (issue #46).
 - Choose path from host: a folder browser over the host's folder listing
-  ([Files.SPEC.md](../../SharpRail.Host.Core/Files.SPEC.md#host-folder-listing)), starting at the workspace
+  ([Files.SPEC.md](../../Tereditor.Host.Core/Files.SPEC.md#host-folder-listing)), starting at the workspace
   root, with Up, Home and the current path shown. Folders load off the UI thread and a pending load is
   cancelled by opening another folder or closing; a missing or unreadable folder shows its error inline
   and Up and Home still lead out. The picked file's absolute host path (joined with the host's separator)
@@ -697,7 +697,7 @@ Validated commit underlines on unchanged visible lines survive asynchronous view
 ## Titles and pointer shapes
 
 A program's OSC 0/2 title reaches the tab through the host (see
-[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#program-titles)), so every client, local or remote,
+[Terminals.SPEC.md](../../Tereditor.Host.Core/Terminals.SPEC.md#program-titles)), so every client, local or remote,
 labels the tab the same way whatever renderer it uses and whether or not the tab is mounted. Precedence is user rename >
 an agent's `set_title` > the program's title > the tab's default "Terminal N"; a tab keeps the last title it was given
 when the program clears its own. OSC 1 (icon name) is ignored, as libghostty does; the macOS window title does not follow

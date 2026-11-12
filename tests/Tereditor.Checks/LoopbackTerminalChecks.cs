@@ -1,13 +1,13 @@
 using System.Reflection;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The desktop app's local terminals go through a wrapper; any interface member it leaves to the interface's
 // default (an empty or throwing fallback) silently breaks that feature locally while remote hosts work.

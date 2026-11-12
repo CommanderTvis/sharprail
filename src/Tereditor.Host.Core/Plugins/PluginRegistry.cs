@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 internal delegate ValueTask<object?> MethodHandler(object parameters, PluginCall call, CancellationToken cancellationToken);
 

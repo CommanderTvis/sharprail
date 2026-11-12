@@ -1,17 +1,17 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// SharpRail's own checks of the Review panel. Pull requests run against a bare origin and a PATH shim for gh, as
+/// tereditor's own checks of the Review panel. Pull requests run against a bare origin and a PATH shim for gh, as
 /// the host checks do; nothing reaches a network.
 /// </summary>
 internal static class ReviewChecks
@@ -60,7 +60,7 @@ internal static class ReviewChecks
         return WorkspaceFixture.Dialog(app, "PrComposeDialog");
     }
 
-    private static bool Open(E2eWorkspace app, string tag) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, tag));
+    private static bool Open(E2eWorkspace app, string tag) => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, tag));
 
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
     private static void PullRequests(string parent)
@@ -76,14 +76,14 @@ internal static class ReviewChecks
         File.CreateSymbolicLink(Path.Combine(gitOnly, "git"), gitPath);
         var config = Path.Combine(parent, "gitconfig");
         File.WriteAllText(config, "[user]\n\tname = T\n\temail = t@example.com\n[commit]\n\tgpgsign = false\n[http]\n\tproxy = http://127.0.0.1:1\n");
-        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "SHARPRAIL_GH_OFFLINE", "GIT_SSH_COMMAND" }
+        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "TEREDITOR_GH_OFFLINE", "GIT_SSH_COMMAND" }
             .ToDictionary(name => name, Environment.GetEnvironmentVariable);
         try
         {
             Environment.SetEnvironmentVariable("GIT_CONFIG_GLOBAL", config);
             Environment.SetEnvironmentVariable("GIT_CONFIG_NOSYSTEM", "1");
             Environment.SetEnvironmentVariable("SHIM_DIR", shim);
-            Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
+            Environment.SetEnvironmentVariable("TEREDITOR_GH_OFFLINE", null);
             Environment.SetEnvironmentVariable("GIT_SSH_COMMAND", null);
             Environment.SetEnvironmentVariable("PATH", shim + ":" + gitOnly + ":/usr/bin:/bin");
             // The fixture's own awaits must not resume on the dispatcher this thread is blocking.

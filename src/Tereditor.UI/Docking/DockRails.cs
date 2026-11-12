@@ -11,7 +11,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 // The side regions' persistent edge rails. A rail mirrors its region's panes: one cluster per group in order, separated
 // by a hairline, then the region's unplaced tools dimmed behind a last separator. A tool pane has an entry per tool, a

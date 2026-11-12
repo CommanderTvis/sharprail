@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
 /// How often agents used each language server through the lsp tools, per workspace and server. Kept in memory and written to the host's language

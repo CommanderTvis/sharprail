@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.UI;
+namespace Tereditor.Plugins.Api.UI;
 
 /// <summary>
 /// The selection a user made in a plugin's own document (reported through <see cref="IPluginEditors.ReportSelection"/>, such as a

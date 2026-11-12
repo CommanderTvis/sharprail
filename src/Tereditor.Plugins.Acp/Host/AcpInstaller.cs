@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>
 /// Turns a confirmed install plan into an agent entry. Nothing is downloaded or started before the user confirmed exactly this agent,

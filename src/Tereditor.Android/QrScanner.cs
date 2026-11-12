@@ -5,7 +5,7 @@ using Xamarin.Google.MLKit.Vision.CodeScanner;
 
 using AndroidActivity = Android.App.Activity;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>Reads one QR code with the system's scanner, which owns the camera: the app asks for no permission.</summary>
 internal static class QrScanner

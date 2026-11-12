@@ -12,15 +12,15 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Plugins;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Plugins;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed partial class SettingsView : UserControl
 {
@@ -67,13 +67,13 @@ public sealed partial class SettingsView : UserControl
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; state.HandshakeChanged -= CapabilitiesChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
-            SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
+            Tereditor.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
 #if !ANDROID && !BROWSER
             if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
 #endif
         };
         Ui.ThemeChanged += SystemThemeChanged;
-        SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
+        Tereditor.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
         state.Changed += SharedChanged;
         state.HandshakeChanged += CapabilitiesChanged;
         Name = "SettingsView";
@@ -652,12 +652,12 @@ public sealed partial class SettingsView : UserControl
         var preferences = state.Preferences;
         var size = PageControl<NumericUpDown>(panel, "EditorSize");
         CompactSteppers(size, 24); FitDigits(size, 24);
-        size.Value = (decimal)SharpRail.Scintilla.ScintillaEditor.TextSize;
+        size.Value = (decimal)Tereditor.Scintilla.ScintillaEditor.TextSize;
         size.ValueChanged += (_, _) =>
         {
             if (size.Value is null) return;
-            SharpRail.Scintilla.ScintillaEditor.TextSize = (double)size.Value;
-            preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.TextSize; Save();
+            Tereditor.Scintilla.ScintillaEditor.TextSize = (double)size.Value;
+            preferences.CodeFontSize = Tereditor.Scintilla.ScintillaEditor.TextSize; Save();
         };
         var tab = PageControl<NumericUpDown>(panel, "EditorTabWidth");
         CompactSteppers(tab, 24); FitDigits(tab, 24);
@@ -1153,7 +1153,7 @@ public sealed partial class SettingsView : UserControl
         refreshers.Add(() => enabled.IsChecked = state.Current.Settings.NotificationsEnabled);
         PageControl<TextBlock>(panel, "NotificationsChannel").Text = notifier is null
             ? "Desktop notifications are not available on this platform."
-            : "Your operating system delivers these notifications; allow or silence SharpRail in its notification settings.";
+            : "Your operating system delivers these notifications; allow or silence tereditor in its notification settings.";
         return panel;
     }
 }

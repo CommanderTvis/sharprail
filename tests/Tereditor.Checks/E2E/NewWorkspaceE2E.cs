@@ -5,13 +5,13 @@ using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.State;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class NewWorkspaceE2E
 {
@@ -54,8 +54,8 @@ internal static class NewWorkspaceE2E
         var launches = new List<LauncherCommandOptions>();
         app.Workbench.PluginRegistry.AddLauncher("prompt-fixture", new("prompt-check", "Test agent", "terminal", options =>
         {
-            launches.Add(options); return "echo prompt-fixture" + (options.InitialPrompt is { } text ? " " + SharpRail.Plugins.Codex.CodexLaunch.ShellQuote(text) : "")
-            + string.Concat(options.Images.Select(image => " " + SharpRail.Plugins.Codex.CodexLaunch.ShellQuote(image)));
+            launches.Add(options); return "echo prompt-fixture" + (options.InitialPrompt is { } text ? " " + Tereditor.Plugins.Codex.CodexLaunch.ShellQuote(text) : "")
+            + string.Concat(options.Images.Select(image => " " + Tereditor.Plugins.Codex.CodexLaunch.ShellQuote(image)));
         }, () => new(true)));
         var dialog = OpenNewWorkspaceDialog(app);
         var prompt = Named<TextBox>(dialog, "WsPrompt");
@@ -63,7 +63,7 @@ internal static class NewWorkspaceE2E
             "Nothing must disable the starting prompt.");
         app.Click(Named<ToggleButton>(dialog, "WsLauncher_prompt-check"), freshGesture: false);
         Require(prompt.IsEnabled && prompt.IsFocused, "Selecting an agent enables and focuses the prompt.");
-        var imageFields = dialog.GetLogicalDescendants().OfType<SharpRail.UI.Panels.WorkspacePromptFields>().Single();
+        var imageFields = dialog.GetLogicalDescendants().OfType<Tereditor.UI.Panels.WorkspacePromptFields>().Single();
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=");
         using var bitmap = new Bitmap(new MemoryStream(png));
         var clipboardWrite = dialog.Clipboard!.SetBitmapAsync(bitmap);
@@ -179,7 +179,7 @@ internal static class NewWorkspaceE2E
         app.Click(picker, freshGesture: false);
         Until(() => picker.Flyout is Flyout { IsOpen: true });
         var presenter = Avalonia.VisualTree.VisualExtensions.FindAncestorOfType<FlyoutPresenter>((Control)((Flyout)picker.Flyout!).Content!);
-        Require(Equals(presenter?.Background, SharpRail.Plugins.UI.Kit.Ui.Elevated),
+        Require(Equals(presenter?.Background, Tereditor.Plugins.UI.Kit.Ui.Elevated),
             $"The branch picker's popup takes the app theme's surface, not Fluent's system variant (was {presenter?.Background}).");
         return (StackPanel)((StackPanel)((Flyout)picker.Flyout!).Content!).Children.OfType<ScrollViewer>().Single().Content!;
     }
@@ -198,8 +198,8 @@ internal static class NewWorkspaceE2E
         Require(Named<ToggleButton>(dialog, "WsTargetWorktree").IsChecked == true, "The worktree target is the default.");
         var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(Named<ToggleButton>(dialog, "WsTargetWorktree"))
             .OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
-        Require(Equals(presenter.Background, SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted) &&
-            Equals(presenter.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.Accent),
+        Require(Equals(presenter.Background, Tereditor.Plugins.UI.Kit.Ui.PrimaryMuted) &&
+            Equals(presenter.BorderBrush, Tereditor.Plugins.UI.Kit.Ui.Accent),
             "The selected target must have an accent outline and its own fill, distinct from hover.");
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         Require(Heading(dialog) == "Start work" && Description(dialog).Contains("No isolation", StringComparison.Ordinal) &&
@@ -234,12 +234,12 @@ internal static class NewWorkspaceE2E
         Until(() => Picker(dialog).Flyout is Flyout { IsOpen: false });
         Require(dialog.IsShown(), "Escape in the branch picker closes only the picker.");
         Press(dialog, Avalonia.Input.Key.Escape);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(!WorktreePaths(app).Any(), "Cancelling must not create a workspace.");
 
         dialog = OpenNewWorkspaceDialog(app);
         app.Click(Create(dialog));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         var workspace = WorktreePaths(app).Single();
         Until(() => Active(app, workspace));
         Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project",
@@ -259,10 +259,10 @@ internal static class NewWorkspaceE2E
         Require(name.Text == "workspace-1", "The name field starts on the suggestion.");
         name.Text = "Login Rework";
         app.Click(Create(dialog), freshGesture: false);
-        try { Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1); }
+        try { Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1); }
         catch (InvalidOperationException error)
         {
-            var windows = string.Join(", ", SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Select(window => window.Title));
+            var windows = string.Join(", ", Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Select(window => window.Title));
             var paths = string.Join(", ", WorktreePaths(app));
             var toast = app.Window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(control => control.Name == "GestureToastMessage")?.Text;
             throw new InvalidOperationException($"Edited workspace did not settle: owned windows [{windows}], rail worktrees [{paths}], active workspace {app.Window.WorkspaceRoot}, notice {toast}.", error);
@@ -274,7 +274,7 @@ internal static class NewWorkspaceE2E
         Require(Named<TextBox>(dialog, "WsName").Text == "workspace-2", "The next dialog suggests the next free name.");
         Named<TextBox>(dialog, "WsName").Text = "Login Rework!";
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 2);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 2);
         Until(() => ItemText(app, app.Window.WorkspaceRoot, "WorkspaceName") == "Login Rework!");
         Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "login-rework-2",
             "Names that normalize to an existing branch must receive a unique suffix.");
@@ -288,7 +288,7 @@ internal static class NewWorkspaceE2E
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         Require(Text(Create(dialog)).Contains("Start", StringComparison.Ordinal), "The folder target starts in place.");
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, app.Root) && !HasWelcome(app));
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, app.Root) && !HasWelcome(app));
         Require(!WorktreePaths(app).Any(), "Starting in the project folder must not create a worktree.");
         Console.WriteLine("PASS upstream new-workspace.spec.ts: folder-mode Start with an empty prompt lands in a fresh chat in the Default workspace");
     }
@@ -298,7 +298,7 @@ internal static class NewWorkspaceE2E
         using var app = OpenFixtureProject(directory);
         var dialog = OpenNewWorkspaceDialog(app);
         Press(dialog, Avalonia.Input.Key.Enter);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         Until(() => Active(app, WorktreePaths(app).Single()));
         Console.WriteLine("PASS upstream new-workspace.spec.ts: Enter in the prompt creates; Shift+Enter inserts a newline");
     }
@@ -319,7 +319,7 @@ internal static class NewWorkspaceE2E
         Require(Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal), "The default base is the remote default branch.");
         var cached = Git(repo, "rev-parse", "refs/remotes/origin/main");
         app.Click(Create(dialog));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         var workspace = WorktreePaths(app).Single();
         Until(() => Active(app, workspace));
         Require(Git(workspace, "rev-parse", "HEAD") == cached,

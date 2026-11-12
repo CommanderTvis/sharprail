@@ -99,10 +99,10 @@ on: `diff --shortstat` from the merge base of the review target and the workspac
 counted. Only a worktree of the session's project is answered; a failed read is an error and the row
 shows no badge. A client of a host without the call gets null.
 
-`GetSharprailDirectoryAsync()` reports whether the session's workspace root holds a `.sharprail`
+`GetTereditorDirectoryAsync()` reports whether the session's workspace root holds a `.tereditor`
 directory, whether Git tracks anything in it (`ls-files`) and whether the ignore rules already cover it
 (`check-ignore`, so `.gitignore`, `info/exclude` and the user's excludes file all count; comments and
-text never do). `ExcludeSharprailDirectoryAsync()` appends `/.sharprail/` to `info/exclude` in the common
+text never do). `ExcludeTereditorDirectoryAsync()` appends `/.tereditor/` to `info/exclude` in the common
 Git directory (`rev-parse --git-common-dir`), so every workspace of the project is covered and linked
 worktrees never get their own copy. It keeps the file's text and line endings, adds a missing final
 newline, creates `info/`, writes through a temporary file moved into place, serialises appends within the
@@ -149,7 +149,7 @@ clients re-read Git although no file in the workspace changed.
   unauthenticated or late, the answer is no review. The host runs it with the 8 s query budget, caches successful answers (empty
   ones included) for 60 s per worktree and branch, never failures, shares concurrent lookups, and `fresh` skips the
   cache (joining a call already running) and fetches the branch so the behind count can be trusted. The `gh`
-  specifics are [GitHub](../SharpRail.Plugins.GitHub/SPEC.md).
+  specifics are [GitHub](../Tereditor.Plugins.GitHub/SPEC.md).
 - `PreviewPrAsync` proposes the branch name as title and the commit subjects since the base as body.
   `OpenPrAsync` guards in order: a branch shaped like an option or failing the ref-shape check, a missing `origin`,
   a base that is not on `origin`, and the base branch itself (nothing is pushed in these cases). It counts dirty
@@ -170,7 +170,7 @@ whether `origin/<branch>` exists (published), commits ahead and behind it (a fre
 commits ahead of the review base, whether the branch is its own base, and HEAD. These are git and are always
 reported. With a provider it adds the cached lookup: the open pull request of the branch, else the newest in any
 state (`state`, `draft`, `checks`, `review`, `mergeability`, `sameRepository`, `mergeMethods`; Plugin API H24, the model is in
-[GitHub](../SharpRail.Plugins.GitHub/SPEC.md#data-contract)). An unborn branch has no status.
+[GitHub](../Tereditor.Plugins.GitHub/SPEC.md#data-contract)). An unborn branch has no status.
 
 `ApplyBranchActionAsync` runs push, ready, merge, reopen or delete-remote only when the workspace is still on the
 branch and commit the caller saw. Push and delete-remote are git and stay here; ready, merge and reopen go to the
@@ -212,8 +212,8 @@ operations travel over WebSocket RPC; a host that predates them reports no statu
   read of the worktree file is an error, never absence. Writes go through a temporary file beside the
   target and an atomic replace.
 - Trash (`Trash.cs`): the file is first renamed to a claim beside it, then moved into `~/.Trash` on macOS or
-  the freedesktop trash on Linux (`SHARPRAIL_TRASH_DIR` overrides the destination). If the trash refuses it
-  the claim is renamed back, or kept as `.sharprail-recovery-*` with its path in the error.
+  the freedesktop trash on Linux (`TEREDITOR_TRASH_DIR` overrides the destination). If the trash refuses it
+  the claim is renamed back, or kept as `.tereditor-recovery-*` with its path in the error.
   There is no permanent-delete fallback and no trash on other platforms.
 - Receipts are opaque time-sortable ids held per workspace in host memory: at most 20 and 64 MiB of
   held bytes, oldest evicted, newest always kept, dropped when the session opens another workspace and on
@@ -221,7 +221,7 @@ operations travel over WebSocket RPC; a host that predates them reports no statu
   bytes or trashes a file the revert had created, consumes the receipt and returns an undo receipt that is
   itself undoable once.
 - Failures are `ChangeException` with a `ChangeFailure` (stale view, immutable scope, invalid range,
-  unknown receipt, unsupported change). The remote host carries the code in the `x-sharprail-change-code`
+  unknown receipt, unsupported change). The remote host carries the code in the `x-tereditor-change-code`
   trailer; this is the only coded failure so far (the general mechanism below remains unported).
 - Diff sides are read as bytes (`cat-file blob`, so a tree, commit or gitlink is an error) and classified
   by `ContentClassifier` ([Files.SPEC.md](Files.SPEC.md)). A side is decoded only when it is text; a

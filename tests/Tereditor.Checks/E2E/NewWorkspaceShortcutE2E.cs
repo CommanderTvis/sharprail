@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class NewWorkspaceShortcutE2E
 {
@@ -20,7 +20,7 @@ internal static class NewWorkspaceShortcutE2E
         InsideWorkspace(Path.Combine(root, "shortcut-workspace"));
     }
 
-    private static int Dialogs(E2eWorkspace app) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count(window => Equals(window.Tag, "NewWorkspaceDialog") && (window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
+    private static int Dialogs(E2eWorkspace app) => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Count(window => Equals(window.Tag, "NewWorkspaceDialog") && (window is Tereditor.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
 
     private static void ExpectDialog(E2eWorkspace app)
     {
@@ -30,16 +30,16 @@ internal static class NewWorkspaceShortcutE2E
         var probe = new Avalonia.Controls.Primitives.ToggleButton { Content = "probe", IsChecked = true };
         var fields = Named<StackPanel>(dialog, "DialogFields");
         fields.Children.Add(probe);
-        (dialog is SharpRail.Plugins.UI.Kit.DialogWindow { Surface: { } card } ? card : dialog).UpdateLayout();
+        (dialog is Tereditor.Plugins.UI.Kit.DialogWindow { Surface: { } card } ? card : dialog).UpdateLayout();
         var fill = (probe.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
             .First(presenter => presenter.Name == "PART_ContentPresenter").Background as Avalonia.Media.ISolidColorBrush)?.Color;
         fields.Children.Remove(probe);
-        Require(fill == SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted.Color, $"A checked toggle has a fill distinct from hover ({fill}).");
+        Require(fill == Tereditor.Plugins.UI.Kit.Ui.PrimaryMuted.Color, $"A checked toggle has a fill distinct from hover ({fill}).");
     }
 
     private static void Escape(E2eWorkspace app)
     {
-        Press(SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog")), Avalonia.Input.Key.Escape);
+        Press(Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog")), Avalonia.Input.Key.Escape);
         Until(() => Dialogs(app) == 0);
     }
 

@@ -1,21 +1,21 @@
 #!/bin/sh
 # Build the browser client's lazily downloaded userspace Tailscale node (Go -> js/wasm); no system Go installation is used.
-# Output: this checkout's src/SharpRail.Browser/obj/tailscale-wasm, which the browser build deploys under `tailscale/` in the
+# Output: this checkout's src/Tereditor.Browser/obj/tailscale-wasm, which the browser build deploys under `tailscale/` in the
 # AppBundle: manifest.json (read first, never cached), and <version>-<build>/ with the module, its Brotli sidecar and Go's
-# wasm_exec.js, plus licences. The finished result is cached machine-wide under $SHARPRAIL_CACHE_DIR/tailscale-wasm/<key>.
+# wasm_exec.js, plus licences. The finished result is cached machine-wide under $TEREDITOR_CACHE_DIR/tailscale-wasm/<key>.
 # Needs node on PATH (the browser toolchain) to measure and write the Brotli sidecar.
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
 . "$root/scripts/lock.sh"
 . "$root/scripts/native-cache.sh"
-source_dir="$root/src/SharpRail.Browser/Tailscale.Wasm"
-out="$root/src/SharpRail.Browser/obj/tailscale-wasm"
+source_dir="$root/src/Tereditor.Browser/Tailscale.Wasm"
+out="$root/src/Tereditor.Browser/obj/tailscale-wasm"
 goroot="$(sh scripts/tailscale-go.sh)"
 gocache="$(dirname "$goroot")"
 tsversion="$(sed -n 's/^require tailscale\.com v\([0-9][0-9.]*\)$/\1/p' "$source_dir/go.mod")"
 [ -n "$tsversion" ] || { echo "No tailscale.com version in $source_dir/go.mod." >&2; exit 1; }
-# Features a browser node cannot use or SharpRail does not need; each ts_omit_ tag removes code from the module.
+# Features a browser node cannot use or tereditor does not need; each ts_omit_ tag removes code from the module.
 omit="ace acme appconnectors aws advertiseexitnode advertiseroutes bird c2n cachenetmap captiveportal capture clientmetrics
 clientupdate cloud conn25 dbus debug debugeventbus debugportmapper dnsresolvecache doctor drive identityfederation kube
 linuxdnsfight linkspeed listenrawdisco logtail oauthkey outboundproxy osrouter peerapiclient peerapiserver portlist portmapper
@@ -27,7 +27,7 @@ tags="${tags%,}"
 fingerprint="$(cat "$source_dir/go.mod" "$source_dir/go.sum" "$source_dir/main.go" "$root/scripts/build-tailscale-wasm.sh" "$root/scripts/tailscale-go.sh" | shasum -a 256 | cut -c1-64)"
 key="$(cache_key "$fingerprint")"
 build="$tsversion-$key"
-cache="$(sharprail_cache_dir)/tailscale-wasm"
+cache="$(tereditor_cache_dir)/tailscale-wasm"
 result="$cache/$key"
 mkdir -p "$cache"
 acquire_lock "$cache/$key.lock"
@@ -37,9 +37,9 @@ if [ ! -f "$result/manifest.json" ]; then
  (
   cd "$source_dir"
   export GOOS=js GOARCH=wasm CGO_ENABLED=0 GOTOOLCHAIN=local GOCACHE="$gocache/build-cache" GOMODCACHE="$gocache/modules"
-  stamp="$tsversion-sharprail"
+  stamp="$tsversion-tereditor"
   "$goroot/bin/go" build -mod=readonly -trimpath -tags "$tags" -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$stamp -X tailscale.com/version.longStamp=$stamp" \
-   -o "$result.partial/$build/sharprail-tailscale.wasm" .
+   -o "$result.partial/$build/tereditor-tailscale.wasm" .
   "$goroot/bin/go" list -m -f '{{if .Dir}}{{.Path}}|{{.Dir}}{{end}}' all > "$result.partial/modules.list"
  )
  cp "$goroot/lib/wasm/wasm_exec.js" "$result.partial/$build/wasm_exec.js"
@@ -61,15 +61,15 @@ if [ ! -f "$result/manifest.json" ]; then
 import fs from 'node:fs';
 import { brotliCompressSync, constants } from 'node:zlib';
 const [directory, build, version] = process.argv.slice(2);
-const module = `${directory}/${build}/sharprail-tailscale.wasm`;
+const module = `${directory}/${build}/tereditor-tailscale.wasm`;
 const bytes = fs.readFileSync(module);
-for (const name of ['sharprail-tailscale.wasm', 'wasm_exec.js']) {
+for (const name of ['tereditor-tailscale.wasm', 'wasm_exec.js']) {
   const file = `${directory}/${build}/${name}`;
   fs.writeFileSync(`${file}.br`, brotliCompressSync(fs.readFileSync(file), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }));
 }
 const manifest = {
   version, build,
-  module: `tailscale/${build}/sharprail-tailscale.wasm`,
+  module: `tailscale/${build}/tereditor-tailscale.wasm`,
   exec: `tailscale/${build}/wasm_exec.js`,
   size: bytes.length,
   transferSize: fs.statSync(`${module}.br`).size,

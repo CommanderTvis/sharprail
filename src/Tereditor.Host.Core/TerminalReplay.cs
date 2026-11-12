@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Saved output paints history; queries in it must not send answers to a different foreground process.
 internal static class TerminalReplay

@@ -14,14 +14,14 @@ Upstream: packages/plugin-visualize/SPEC.md @ 0304a543e (CommanderTvis fork)
 
 ## Responsibility
 
-Give an agent in a SharpRail terminal a place to draw. The `visualize` MCP tool takes the schema ThinkRail's pi
-visualize extension also uses (a diagram with raw Mermaid, or comparison cards; SharpRail adds a
+Give an agent in a tereditor terminal a place to draw. The `visualize` MCP tool takes the schema ThinkRail's pi
+visualize extension also uses (a diagram with raw Mermaid, or comparison cards; tereditor adds a
 `svg` type for hand-written SVG, which only widens the `type` enum), records the call per terminal,
 and publishes it, where it renders as a live companion pane beside that terminal. Calling again replaces that
 terminal's view in place: many agents can each hold their own view at once, which is the point.
 
-Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` (the manifest and the wire contract, shared by both halves),
-`SharpRail.Plugins.Visualize.Host` and `SharpRail.Plugins.Visualize.UI`. The plugin is builtin and on by default.
+Three projects under `Contract`, `Host` and `UI`: `Tereditor.Plugins.Visualize` (the manifest and the wire contract, shared by both halves),
+`Tereditor.Plugins.Visualize.Host` and `Tereditor.Plugins.Visualize.UI`. The plugin is builtin and on by default.
 
 ## Boundary
 
@@ -109,7 +109,7 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   with the `hosting` method. The host half keeps those (workspace, chat id) pairs; a pair is host-side state only, so a
   host restart forgets it until the tab mounts again. The drawing is then a companion pane inside the chat tab (same
   split, close button, resizable width, strip above the body and per-chat view state as a terminal's) and the tool answers
-  "in SharpRail".
+  "in tereditor".
 - A caller that is neither a live terminal nor an open companion-hosting tab (a chat whose tab is closed or not yet
   mounted, or any other token holder) is detected by the host at call time against the host's terminal list and its
   hosting pairs (`TerminalVisualization.Detached`, default false, so old payloads and adopted drawings are terminal
@@ -123,21 +123,21 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   tab (layout restore brings the tabs back, the pane shows "No visualization" until the store answers or if it
   holds nothing, e.g. after a host restart, since a chat has no agent session record to persist under). The seam
   opens tabs only in the active window's workspace, so a drawing made in another workspace waits until it is active.
-  The tool's answer then says "in a Visualization tab" where a pane is told "in SharpRail". Agents that run
+  The tool's answer then says "in a Visualization tab" where a pane is told "in tereditor". Agents that run
   without a terminal and without a token still get "only available from a terminal".
 - The plugin contract carries terminal visualizations, workspace updates and render reports
   between its host and UI halves.
 - Allowed deps: the plugin API's root (contract), host (host half) and UI (UI half) entries, the UI kit
   (`Visualization`) and Avalonia in the UI half.
-- Forbidden: any other plugin, any `SharpRail.Host.*` or `SharpRail.UI` project.
+- Forbidden: any other plugin, any `Tereditor.Host.*` or `Tereditor.UI` project.
 
 The host half contributes the `visualize` item to the agent instructions (H20, order 10) on activation, so a disabled plugin leaves it out.
 
 ## Not ported
 
 - ThinkRail's chat renders the same visualize call inline through the kit card for pi's own visualize tool;
-  SharpRail has no chat, so the card's chat states (running, error result) are not part of the kit's card.
-- The fork names the product in the tool's description and answer; SharpRail names itself.
+  tereditor has no chat, so the card's chat states (running, error result) are not part of the kit's card.
+- The fork names the product in the tool's description and answer; tereditor names itself.
 
 ## Framework adaptations
 

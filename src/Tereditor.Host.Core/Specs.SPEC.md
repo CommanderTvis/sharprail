@@ -10,7 +10,7 @@ references: [module-plugin-spec-dialect]
 Upstream: packages/server/src/spec/SPEC.md @ e8a751bd7 (CommanderTvis fork)
 
 The spec graph, Specs panel and all seven `spec_*` MCP tools belong to the builtin
-[spec dialect plugin](../SharpRail.Plugins.SpecDialect/SPEC.md). Core no longer has a
+[spec dialect plugin](../Tereditor.Plugins.SpecDialect/SPEC.md). Core no longer has a
 `SpecCatalog`, spec records or a `ListSpecsAsync` operation. The plugin runtime composes
 its host half and the app loader mounts its UI half through the ordinary plugin API.
 
@@ -46,7 +46,7 @@ terminal or by Git are current on the next read. The workbench re-reads after a 
   means its first item.
 - A spec without `id` takes its relative path as id; without `title` it takes a first-line `# ` heading,
   else its path, so the panel never shows an untitled node. `type` defaults to `spec`.
-- The traversal never follows symbolic links and skips `.git`, `.tools`, `.bench`, `.sharprail`,
+- The traversal never follows symbolic links and skips `.git`, `.tools`, `.bench`, `.tereditor`,
   `node_modules`, `bin`, `obj`, `dist`, `build`, `artifacts`, `vendor`, `target` and `.next`, plus files over
   512 KiB. In each directory the candidates are filtered first and then sorted by NFC-normalized name with
   a code-unit tie-break, directories and files in one list, so the walk is the same on every filesystem.

@@ -3,7 +3,7 @@
 #nullable enable
 using System.Collections.Frozen;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 internal static class FileIconTable
 {

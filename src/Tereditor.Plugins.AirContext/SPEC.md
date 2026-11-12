@@ -11,7 +11,7 @@ tags: [plugins, air-context]
 
 # Air Context — workspace semantic search
 
-No upstream counterpart. Original SharpRail builtin plugin; before it was a plugin the same code lived in the host core and the
+No upstream counterpart. Original tereditor builtin plugin; before it was a plugin the same code lived in the host core and the
 Code Intelligence page.
 
 ## Plugin shape
@@ -50,7 +50,7 @@ enabled flag the plugin already has always wins, and removes the old keys in the
 The paragraph advertising the tools to agents is the plugin's tool guidance and appears in the Claude Code and Codex instructions
 only while the plugin is enabled. The Codex launch line still preapproves the three tool names, whether or not the plugin is on.
 
-SharpRail optionally runs the unmodified JetBrains Context CLI on the workspace host.
+tereditor optionally runs the unmodified JetBrains Context CLI on the workspace host.
 It downloads pinned 0.9.16.1161 macOS/Linux ARM64/x64 binaries directly from JetBrains,
 verified against publisher SHA-256 sidecars. No server binary, installer, agent hook or
 proprietary code is bundled. Windows has no verified artifact in this catalog.
@@ -75,7 +75,7 @@ project knows is its own scope (its path is the key). Consent is the project's, 
 enabled project, existing or created later (by `workspace_create`, the UI, or on a remote host, whose host resolves its own projects), is
 enabled without action, because it is the same repository with the same remote and the same vendor index. The first opt-in per project
 and the terms acceptance stay explicit, and a project the user never enabled stays disabled. The UI explicitly explains
-cloud processing and automatic indexing on SharpRail agent launch. Both sections and the consent window carry a "What is Air Context?" link to `AirContextContract.AboutUrl` (https://www.jetbrains.com/air/context/), opened through the platform launcher off the UI thread; the workspace section keeps Index now, Stop and Logs… in one wrapping row (`--context-ui` checks the link and the shared row). Disabling from any workspace's pane disables the
+cloud processing and automatic indexing on tereditor agent launch. Both sections and the consent window carry a "What is Air Context?" link to `AirContextContract.AboutUrl` (https://www.jetbrains.com/air/context/), opened through the platform launcher off the UI thread; the workspace section keeps Index now, Stop and Logs… in one wrapping row (`--context-ui` checks the link and the shared row). Disabling from any workspace's pane disables the
 project (the pane says so), cancels owned requests/indexing and disposes the runtime of each of the project's workspaces.
 Removing a workspace keeps its project's enablement. Before this, enablement was a list of workspace paths in `workspaces.json`
 and new workspaces did not inherit it; when `projects.json` is missing that list seeds it, and each record is promoted to its
@@ -83,16 +83,16 @@ project once the host resolves it (in the background at activation, or at the ne
 
 The current CLI uses its existing JetBrains account, secret store and index cache.
 A private `-Duser.home` setting did not isolate its configuration and is not used in
-production. SharpRail never changes HOME/CODEX_HOME, modifies vendor configuration,
+production. tereditor never changes HOME/CODEX_HOME, modifies vendor configuration,
 runs setup-agent/refresh-agents/remove-agent/upgrade/logout, or installs global Claude/
 Codex instructions/hooks/MCP entries. Interactive sign-in is an explicit user action
-in a SharpRail-owned host terminal; credentials never pass through SharpRail's state,
+in a tereditor-owned host terminal; credentials never pass through tereditor's state,
 MCP results or ordinary configuration. This is integration isolation, not a separate
 JetBrains identity/cache. The workspace confirmation discloses that distinction.
 
 ## Runtime and agent workflow
 
-First recognition of a SharpRail UI-launched Codex/Claude process (a terminal agent change the plugin observes) requests background
+First recognition of a tereditor UI-launched Codex/Claude process (a terminal agent change the plugin observes) requests background
 indexing only for an enabled workspace. A workspace the host creates (`WorkspaceCreated`: `workspace_create`, the UI, or a
 remote host) in an enabled project requests the same background indexing, off the observer's thread, and publishes its state on
 `changed`, so agents in a new worktree can search without a UI launch there; one of a project the user never enabled starts nothing
@@ -103,11 +103,11 @@ the CLI owns native/distributed indexing locks. Jobs have a 30-minute bound and 
 through their owned cancellation/process tree. Other hosts' or users' processes are
 never killed or globally stopped. The native watch daemon is not started or controlled.
 
-SharpRail's terminal-authenticated namespace and explicit headless MCP route expose, while the plugin is enabled:
+tereditor's terminal-authenticated namespace and explicit headless MCP route expose, while the plugin is enabled:
 
 - context_search: descriptive semantic discovery, an optional contained path filter
   and bounded output. It cannot choose an arbitrary upstream tool. All three tools take an optional
-  absolute `workspace`: the calling workspace by default, or another known SharpRail workspace of the
+  absolute `workspace`: the calling workspace by default, or another known tereditor workspace of the
   same project (a subagent working in a sibling worktree); an unknown workspace or one of another
   project is refused with the list of the project's known workspaces.
 - context_status: cheap managed state, with optional vendor-reported index status.
@@ -119,15 +119,15 @@ and supported path/limit arguments, handles roots/list and rejects unsupported c
 requests. Frames are bounded to 1 MiB and calls to two minutes; visible output is capped
 at 30,000 characters with an explicit narrowing hint. Cancellation kills only the owned
 connection, and the next query reauthorizes/reconnects. Structured native output remains
-structured in SharpRail tool replies. No user-control command field reaches agent tools.
+structured in tereditor tool replies. No user-control command field reaches agent tools.
 
 Authentication failures are actionable states, not successful empty search results.
 Index command completion is not a proof of complete module coverage. Native search
 output/status remains authoritative for snapshot availability. Searches may lag working-
-tree edits: SharpRail does not register roots with the vendor's global overlay watcher,
+tree edits: tereditor does not register roots with the vendor's global overlay watcher,
 and unsaved editor drafts remain an LSP/editor responsibility. Agent prompt appendices
 advertise Context for unfamiliar code and LSP for known symbols, then targeted reads.
-Only SharpRail-launched Codex commands receive Context tool approval overrides.
+Only tereditor-launched Codex commands receive Context tool approval overrides.
 
 Logs are bounded, workspace-scoped and redacted before retention, including JSON secret
 fields, bearer headers and URL queries. Search text/results are not persisted as logs.

@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 /// <summary>The lazily downloaded browser node as the host's web server describes it in <c>tailscale/manifest.json</c>.</summary>
 public sealed record TailscaleWasmManifest(string Version, string Build, string Module, string Exec, long Size, long TransferSize)
 {
     /// <summary>Cache Storage names start with this; anything else in the origin's caches is never touched.</summary>
-    public const string CachePrefix = "sharprail-tailscale-";
+    public const string CachePrefix = "tereditor-tailscale-";
 
     /// <summary>One cache per build, so a new Tailscale pin or bridge change never reuses an older module.</summary>
     public string CacheName => CachePrefix + Build;

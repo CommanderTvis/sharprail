@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>Content hashing and compare-and-swap writes for the configuration files the pane edits.</summary>
 internal static class TextFile

@@ -1,8 +1,8 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>One directory under a plugin root: a manifest, or the reason it was refused.</summary>
 public sealed record DiscoveredPlugin(string Directory, PluginManifest? Manifest, string? Refused);

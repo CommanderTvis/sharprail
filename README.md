@@ -1,13 +1,13 @@
-# SharpRail
+# tereditor
 
 **Like an IDE, but for terminal coding agents.**
 
 Keeps your CLI. Adds what's missing.
 
-<img src="docs/screenshots/desktop-workbench.png" alt="The SharpRail workbench: projects and worktrees on the left, an orchestrating Claude Code terminal with a task board in the centre, the file tree and Code Intelligence on the right" width="900">
+<img src="docs/screenshots/desktop-workbench.png" alt="The tereditor workbench: projects and worktrees on the left, an orchestrating Claude Code terminal with a task board in the centre, the file tree and Code Intelligence on the right" width="900">
 
 > [!NOTE]
-> SharpRail is a prototype. The desktop app targets macOS first, and Windows, Linux and Android builds ship too.
+> tereditor is a prototype. The desktop app targets macOS first, and Windows, Linux and Android builds ship too.
 
 ## Highlights
 
@@ -49,7 +49,7 @@ Diagrams and option comparisons.<br><br>
 <a href="docs/agents.md#visualize">Docs →</a>
 </td>
 <td width="62%">
-<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of SharpRail's layers drawn by Claude Code in the companion pane" width="100%">
+<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of tereditor's layers drawn by Claude Code in the companion pane" width="100%">
 </td>
 </tr>
 </table>
@@ -62,14 +62,14 @@ Diagrams and option comparisons.<br><br>
 
 ## Install
 
-Nightly builds are on the [releases page](https://github.com/CommanderTvis/sharprail/releases/tag/nightly):
+Nightly builds are on the [releases page](https://github.com/CommanderTvis/tereditor/releases/tag/nightly):
 
 - On macOS, download the disk image for Apple silicon (not notarized) or use Homebrew through the
   [thinkrail tap](https://github.com/CommanderTvis/homebrew-thinkrail):
 
   ```sh
   brew trust --tap commandertvis/thinkrail
-  brew install --cask commandertvis/thinkrail/sharprail
+  brew install --cask commandertvis/thinkrail/tereditor
   ```
 
 - On Windows, download the unsigned x64 or ARM64 ZIP. On x64, WinGet also works through the
@@ -77,16 +77,16 @@ Nightly builds are on the [releases page](https://github.com/CommanderTvis/sharp
 
   ```powershell
   winget source add --name thinkrail --arg https://winget-thinkrail.vercel.app --type Microsoft.Rest
-  winget install --id CommanderTvis.SharpRail --exact --source thinkrail --scope user
+  winget install --id CommanderTvis.tereditor --exact --source thinkrail --scope user
   ```
 
 - On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).
-- On Android, install the APK, a client for a SharpRail host on another machine ([Remote hosts and clients](docs/android.md)).
+- On Android, install the APK, a client for a tereditor host on another machine ([Remote hosts and clients](docs/android.md)).
 
 To build from source, run:
 
 ```sh
-scripts/mise x -- dotnet run --project src/SharpRail.UI -c Release
+scripts/mise x -- dotnet run --project src/Tereditor.UI -c Release
 ```
 
 [Building](docs/develop/building.md) covers the app bundle, and [Machine setup](docs/develop/setup.md) lists what to
@@ -94,5 +94,5 @@ install per platform.
 
 ## More
 
-The [documentation index](docs/README.md) lists every page. Start with [Install](docs/install.md), [Using SharpRail](docs/using.md)
+The [documentation index](docs/README.md) lists every page. Start with [Install](docs/install.md), [Using tereditor](docs/using.md)
 and [Agents](docs/agents.md).

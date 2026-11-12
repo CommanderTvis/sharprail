@@ -5,12 +5,12 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>Switching between one project's workspaces restyles the rail in place instead of rebuilding its rows.</summary>
 internal static class RailRetentionChecks
@@ -207,7 +207,7 @@ internal static class RailRetentionChecks
             toggle.IsChecked = false;
             item.Classes.Add("gitignored");
             Settle();
-            Require(!item.IsExpanded && glyph.RenderTransform is not RotateTransform { Angle: 90 } && ReferenceEquals(glyph.Background, SharpRail.Plugins.UI.Kit.Ui.Hint),
+            Require(!item.IsExpanded && glyph.RenderTransform is not RotateTransform { Angle: 90 } && ReferenceEquals(glyph.Background, Tereditor.Plugins.UI.Kit.Ui.Hint),
                 "Collapsed ignored rows must restore the right-pointing vector and preserve their muted tint.");
         }
         finally { window.Close(); }
@@ -228,7 +228,7 @@ internal static class RailRetentionChecks
         try
         {
             RemoveWorkspace(app, removed);
-            Until(() => app.Host.GitActionPending && !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
+            Until(() => app.Host.GitActionPending && !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is Tereditor.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
             Until(() => ItemText(app, removed, "WorkspaceBranch") == "Removing…");
             Require(!Select(app, removed).IsEnabled, "A workspace being removed must not open or offer its actions.");
             var button = Select(app, survivor);

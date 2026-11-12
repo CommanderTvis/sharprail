@@ -6,11 +6,11 @@ import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const bundle = path.resolve(process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'));
+const { chromium } = await import('../../src/Tereditor.Browser/node_modules/playwright/index.mjs');
+const bundle = path.resolve(process.env.TEREDITOR_BROWSER_BUNDLE ?? path.join(root, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle'));
 const origin = 'http://127.0.0.1:54129';
 const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.wasm': 'application/wasm', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.json': 'application/json' };
-const server = await chromium.launchServer({ channel: process.env.SHARPRAIL_BROWSER_CHANNEL ?? 'chromium', headless: true });
+const server = await chromium.launchServer({ channel: process.env.TEREDITOR_BROWSER_CHANNEL ?? 'chromium', headless: true });
 const browser = await chromium.connect(server.wsEndpoint());
 const deadline = setTimeout(() => server.kill().catch(() => {}), 45000);
 try {
@@ -33,7 +33,7 @@ try {
   });
   await page.goto(origin);
   await page.evaluate(async () => {
-    const { registerEvents } = await import('./sharprail.js');
+    const { registerEvents } = await import('./tereditor.js');
     globalThis.messages = [];
     registerEvents(message => { if (message.startsWith('restty:')) messages.push(JSON.parse(message.slice(7))); });
     globalThis.bridge = await import('./restty-bridge.js');

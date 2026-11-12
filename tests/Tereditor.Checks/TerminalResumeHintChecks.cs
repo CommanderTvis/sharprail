@@ -8,12 +8,12 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class TerminalResumeHintChecks
 {
@@ -191,7 +191,7 @@ internal static class TerminalResumeHintChecks
         var chipHeight = chips.Bounds.Height; var bodyHeight = body.Bounds.Height;
         Require(!divider.IsVisible, "Without a companion the chip strip is borderless.");
         view.Companion = pane; Settle();
-        Require(divider.IsVisible && ReferenceEquals(divider.Background, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) && Math.Abs(divider.Bounds.Height - 1) < 0.01 &&
+        Require(divider.IsVisible && ReferenceEquals(divider.Background, Tereditor.Plugins.UI.Kit.Ui.BorderBrush) && Math.Abs(divider.Bounds.Height - 1) < 0.01 &&
             Math.Abs(divider.Bounds.Top - chips.Bounds.Top) < 0.5 && Math.Abs(chips.Bounds.Height - chipHeight) < 0.5,
             $"An open companion shows a 1px border on the chip strip's top edge without resizing it: {divider.Bounds}, strip {chips.Bounds}.");
         view.Companion = null; Settle();
@@ -200,16 +200,16 @@ internal static class TerminalResumeHintChecks
         // The strip row above the surface: the tab's top row, a list only with several items, pressing it toggles.
         var presses = 0;
         var chosen = -1;
-        var one = SharpRail.UI.Plugins.CompanionStrip.Create("CheckStrip", SharpRail.Plugins.UI.Kit.Ui.Icon("close"), "Drawing", "visualization", ["Drawing"], false, () => presses++, null);
+        var one = Tereditor.UI.Plugins.CompanionStrip.Create("CheckStrip", Tereditor.Plugins.UI.Kit.Ui.Icon("close"), "Drawing", "visualization", ["Drawing"], false, () => presses++, null);
         view.CompanionStrips.Children.Add(one); Settle();
         Require(one.TranslatePoint(new Point(0, 0), view) is { } corner && Math.Abs(corner.X) < 0.5 && Math.Abs(corner.Y) < 0.5 && Math.Abs(one.Bounds.Width - view.Bounds.Width) < 0.5 &&
-            Math.Abs(one.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && one.BorderThickness.Bottom == 1 && Math.Abs(body.Bounds.Top - one.Bounds.Height) < 0.5,
+            Math.Abs(one.Bounds.Height - Tereditor.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && one.BorderThickness.Bottom == 1 && Math.Abs(body.Bounds.Top - one.Bounds.Height) < 0.5,
             $"The strip sits at the very top, full width, one slim row high with a divider; the surface starts below it: {one.Bounds}, surface at {body.Bounds.Top}.");
         Require(one.GetLogicalDescendants().OfType<TextBlock>().Last().Text == "· 1 visualization" && !one.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CheckStripItems"), "One item reads as a singular count without a list.");
         one.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CheckStripToggle").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Require(presses == 1, "Pressing the strip toggles the companion.");
         view.CompanionStrips.Children.Clear();
-        var several = SharpRail.UI.Plugins.CompanionStrip.Create("CheckStrip", SharpRail.Plugins.UI.Kit.Ui.Icon("close"), "First", "visualization", ["First", "Second", "Third"], false, () => presses++, index => chosen = index);
+        var several = Tereditor.UI.Plugins.CompanionStrip.Create("CheckStrip", Tereditor.Plugins.UI.Kit.Ui.Icon("close"), "First", "visualization", ["First", "Second", "Third"], false, () => presses++, index => chosen = index);
         view.CompanionStrips.Children.Add(several); Settle();
         var chevron = several.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CheckStripItems");
         var menu = (MenuFlyout)chevron.Flyout!;

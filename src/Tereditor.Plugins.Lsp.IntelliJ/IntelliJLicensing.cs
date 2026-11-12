@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 /// <summary>
 /// The server's own licensing protocol (<c>jetbrains/licensing/*</c>): the last pushed state per session, its projection for clients,
@@ -196,7 +196,7 @@ internal static class IntelliJLicensing
         var tracker = Of(session);
         string Argument(string key) => Text(arguments?[key]) ?? throw new ArgumentException($"The {name} action needs {key}.");
         if (name is "trial" or "signIn" or "useSubscription" or "code" or "serverAdd" && EnvironmentLicense() is { } variable)
-            return Result(false, $"The license is set through {variable}, which overrides any license activated here. Unset it and restart the server to activate a license from SharpRail.");
+            return Result(false, $"The license is set through {variable}, which overrides any license activated here. Unset it and restart the server to activate a license from tereditor.");
         lock (tracker.Gate) tracker.Busy = name;
         Publish(session, tracker);
         try { return await RunAsync(session, tracker, name, Argument, token); }

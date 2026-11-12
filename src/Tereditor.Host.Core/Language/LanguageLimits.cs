@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>Named limits of the language tools; agents never wait longer than these, whatever a server does.</summary>
 internal static class LanguageLimits

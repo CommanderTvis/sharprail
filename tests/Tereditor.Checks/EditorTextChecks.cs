@@ -8,11 +8,11 @@ using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Scintilla;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Scintilla;
+
+namespace Tereditor.Checks;
 
 // Shaping, grapheme clusters and bidirectional layout in the Scintilla editor.
 internal static class EditorTextChecks

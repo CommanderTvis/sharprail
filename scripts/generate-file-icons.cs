@@ -12,18 +12,18 @@ using System.Text.RegularExpressions;
 
 const string Version = "5.38.1";
 const string ArchiveSha256 = "d4342dc13a24bd40c4f417337dc19d2d2c42e47f8bb42ca677109bce769f078e";
-var assetsDirectory = Path.Combine("src", "SharpRail.Plugins.UI.Kit", "obj", "file-icons");
+var assetsDirectory = Path.Combine("src", "Tereditor.Plugins.UI.Kit", "obj", "file-icons");
 var materialDirectory = Path.Combine(assetsDirectory, "material");
 const int MaterialCommon = 110; // the most widely mapped icons keep Material's own colours; the rest stay on the tinted set
-var tablePath = Path.Combine("src", "SharpRail.Plugins.UI.Kit", "FileIcons", "FileIconTable.g.cs");
+var tablePath = Path.Combine("src", "Tereditor.Plugins.UI.Kit", "FileIcons", "FileIconTable.g.cs");
 var check = args.Contains("--check");
 var assetsOnly = args.Contains("--assets-only");
 
-// The pinned archive is kept in the machine-wide cache every checkout shares (SHARPRAIL_CACHE_DIR from mise.toml, else
+// The pinned archive is kept in the machine-wide cache every checkout shares (TEREDITOR_CACHE_DIR from mise.toml, else
 // the same default), written beside its final name and renamed into place.
-var cacheRoot = Environment.GetEnvironmentVariable("SHARPRAIL_CACHE_DIR") is { Length: > 0 } configured ? configured
-    : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "sharprail", "cache")
-    : Path.Combine(Environment.GetEnvironmentVariable("XDG_CACHE_HOME") is { Length: > 0 } xdg ? xdg : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache"), "sharprail");
+var cacheRoot = Environment.GetEnvironmentVariable("TEREDITOR_CACHE_DIR") is { Length: > 0 } configured ? configured
+    : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "tereditor", "cache")
+    : Path.Combine(Environment.GetEnvironmentVariable("XDG_CACHE_HOME") is { Length: > 0 } xdg ? xdg : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache"), "tereditor");
 var archive = Path.Combine(cacheRoot, "file-icons", $"material-icon-theme-{Version}.tgz");
 if (!File.Exists(archive) || Sha256(archive) != ArchiveSha256)
 {
@@ -82,7 +82,7 @@ var source = $$"""
     #nullable enable
     using System.Collections.Frozen;
 
-    namespace SharpRail.Plugins.UI.Kit;
+    namespace Tereditor.Plugins.UI.Kit;
 
     internal static class FileIconTable
     {

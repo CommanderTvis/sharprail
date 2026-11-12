@@ -3,9 +3,9 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Centre tabs live under directories or workspace rows in Projects:

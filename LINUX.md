@@ -1,8 +1,8 @@
 # Linux desktop
 
-The [nightly prerelease](https://github.com/CommanderTvis/sharprail/releases/tag/nightly) includes
-`SharpRail-nightly-linux-x64.AppImage`, built on an Ubuntu runner and gated by the packaged `--linux` checks, and
-`SharpRail-nightly-linux-arm64.AppImage`, built and checked the same way on a native arm64 runner. The arm64 image does not gate the
+The [nightly prerelease](https://github.com/CommanderTvis/tereditor/releases/tag/nightly) includes
+`tereditor-nightly-linux-x64.AppImage`, built on an Ubuntu runner and gated by the packaged `--linux` checks, and
+`tereditor-nightly-linux-arm64.AppImage`, built and checked the same way on a native arm64 runner. The arm64 image does not gate the
 nightly yet: when its job fails, the release goes out without it. Both are signed (embedded GPG signature).
 The target is x86-64 or arm64 (aarch64) Linux with glibc 2.31 or newer (Ubuntu 20.04, Debian 11, Fedora 32 and later) and an X11 or XWayland
 session. Each image bundles .NET; it needs Git 2.36 or newer on `PATH` (older Git lacks `worktree list -z`, so Ubuntu 22.04's 2.34 shows a Git error in Changes) and, from the system, the X11 client libraries
@@ -11,16 +11,16 @@ session. Each image bundles .NET; it needs Git 2.36 or newer on `PATH` (older Gi
 ## Run it
 
 ```sh
-chmod +x SharpRail-nightly-linux-x64.AppImage
-./SharpRail-nightly-linux-x64.AppImage
+chmod +x tereditor-nightly-linux-x64.AppImage
+./tereditor-nightly-linux-x64.AppImage
 ```
 
 Without FUSE (containers, some minimal installs), let the runtime unpack the image itself:
 
 ```sh
-./SharpRail-nightly-linux-x64.AppImage --appimage-extract-and-run
+./tereditor-nightly-linux-x64.AppImage --appimage-extract-and-run
 # or unpack once and run from disk
-./SharpRail-nightly-linux-x64.AppImage --appimage-extract && squashfs-root/AppRun
+./tereditor-nightly-linux-x64.AppImage --appimage-extract && squashfs-root/AppRun
 ```
 
 Without ICU installed, `AppRun` starts .NET in invariant-globalization mode instead of failing.
@@ -31,7 +31,7 @@ Without ICU installed, `AppRun` starts .NET in invariant-globalization mode inst
 - On GNOME, KDE, Cinnamon, Budgie, Pantheon, Unity, Deepin, COSMIC and XFCE the header strip is the title bar (client-side decorations):
   window controls sit at its right, the app draws the border, shadow and resize grips, and no separate title-bar row is spent.
   Elsewhere (unknown or unset `XDG_CURRENT_DESKTOP`, tiling managers such as i3, sway or Hyprland, no `DISPLAY`) the system title bar
-  stays. `SHARPRAIL_WINDOW_DECORATIONS=system` always keeps it and `=client` forces ours (when an X11 connection exists), for
+  stays. `TEREDITOR_WINDOW_DECORATIONS=system` always keeps it and `=client` forces ours (when an X11 connection exists), for
   example if the window frame looks wrong on your window manager; it beats the Settings choice, and Settings says when it is set.
   Settings › Appearance › Window decorations chooses Automatic (recommended), Integrated header or System title bar; the choice is shared
   by every client of the host, applies to open windows at once and, if a window manager keeps the old frame, to the next window you open.
@@ -45,9 +45,9 @@ Without ICU installed, `AppRun` starts .NET in invariant-globalization mode inst
 
 ## Build it
 
-On Linux x64, `scripts/mise run package:linux` writes `artifacts/SharpRail-linux-x64.AppImage`; on Linux arm64,
-`scripts/mise run package:linux linux-arm64` writes `artifacts/SharpRail-linux-arm64.AppImage` (appimagetool and its runtime are
+On Linux x64, `scripts/mise run package:linux` writes `artifacts/tereditor-linux-x64.AppImage`; on Linux arm64,
+`scripts/mise run package:linux linux-arm64` writes `artifacts/tereditor-linux-arm64.AppImage` (appimagetool and its runtime are
 per-architecture binaries, so each image is packed on a host of its own architecture). `scripts/mise run check:packaged -- --linux`
 runs the packaged gate for the image matching the host. Every tool is pinned and checksummed in `mise.toml`; see
 [scripts/README.md](scripts/README.md). The native libraries cross-compile with Zig and the NativeAOT client links with Zig against glibc 2.31, so
-`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux` also publishes the Linux client on macOS; add `linux-arm64` for the arm64 client. The arm64 image has been cross-built only; its runtime behaviour is covered by CI on an arm64 runner.
+`TEREDITOR_APPDIR_ONLY=1 scripts/mise run package:linux` also publishes the Linux client on macOS; add `linux-arm64` for the arm64 client. The arm64 image has been cross-built only; its runtime behaviour is covered by CI on an arm64 runner.

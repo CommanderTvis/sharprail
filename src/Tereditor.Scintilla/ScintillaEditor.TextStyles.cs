@@ -1,6 +1,6 @@
 using Avalonia.Media;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 public sealed partial class ScintillaEditor
 {

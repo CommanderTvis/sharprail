@@ -5,16 +5,16 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Blueprint;
-using SharpRail.Plugins.SpecDialect;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Blueprint;
+using Tereditor.Plugins.SpecDialect;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class NativeFSEventsChecks
 {
@@ -25,9 +25,9 @@ internal static class NativeFSEventsChecks
 
     private static ReadSnapshot? Load()
     {
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_FSEVENTS_PROBE") is not { Length: > 0 } path) return null;
+        if (Environment.GetEnvironmentVariable("TEREDITOR_FSEVENTS_PROBE") is not { Length: > 0 } path) return null;
         var library = NativeLibrary.Load(path);
-        return Marshal.GetDelegateForFunctionPointer<ReadSnapshot>(NativeLibrary.GetExport(library, "SharpRailFSEventsSnapshot"));
+        return Marshal.GetDelegateForFunctionPointer<ReadSnapshot>(NativeLibrary.GetExport(library, "TereditorFSEventsSnapshot"));
     }
 
     internal static State? Snapshot()

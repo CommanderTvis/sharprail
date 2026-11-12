@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
-    <ProjectReference Include="../Contract/SharpRail.Plugins.EnvPython.csproj" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
+    <ProjectReference Include="../Contract/Tereditor.Plugins.EnvPython.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
 </Project>

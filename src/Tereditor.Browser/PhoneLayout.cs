@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>Decides whether the page gets the phone shell (the Android client's drawer pages) or the desktop frame.</summary>
 internal static class PhoneLayout

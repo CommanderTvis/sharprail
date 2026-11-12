@@ -21,7 +21,7 @@ runs:
       with:
         name: diagnostics-${{ inputs.name }}
         path: |
-          ${{ runner.temp }}/sharprail-ci
+          ${{ runner.temp }}/tereditor-ci
           .bench/checks-last-run.txt
           **/*.binlog
         if-no-files-found: ignore

@@ -12,7 +12,7 @@ No upstream counterpart: the reference has no Android client.
 
 ## Responsibility
 
-The Android application: the workbench of `SharpRail.UI` compiled for Android and composed as a client of a
+The Android application: the workbench of `Tereditor.UI` compiled for Android and composed as a client of a
 host that runs elsewhere. It owns the application and activity entry points, the windowing layer Avalonia's
 Android backend lacks, the connect screen, the remembered host endpoint and the packaging of the native
 terminal, editor, PDF and embedded Tailscale libraries. It adds no workbench behaviour of its own; the one screen it contributes
@@ -32,13 +32,13 @@ is the connect screen, and the one page it replaces is Settings › Host.
 
 ## Composition
 
-`SharpRail.Android.csproj` targets `net10.0-android`, package id `dev.thinkrail.sharprail`, minimum Android 7.0
-(API 24), ABIs `android-arm64` and `android-x64`. It is not in `SharpRail.slnx`, so desktop builds and CI need
+`Tereditor.Android.csproj` targets `net10.0-android`, package id `dev.thinkrail.tereditor`, minimum Android 7.0
+(API 24), ABIs `android-arm64` and `android-x64`. It is not in `Tereditor.slnx`, so desktop builds and CI need
 no Android workload.
 
-It compiles the sources, XAML and assets of `src/SharpRail.UI` by link, under the same assembly name and root
-namespace (`SharpRail.UI`), instead of referencing that project: `SharpRail.UI.csproj` references
-`SharpRail.Host.Remote` and the ASP.NET Core shared framework for its host-serving half, and neither exists
+It compiles the sources, XAML and assets of `src/Tereditor.UI` by link, under the same assembly name and root
+namespace (`Tereditor.UI`), instead of referencing that project: `Tereditor.UI.csproj` references
+`Tereditor.Host.Remote` and the ASP.NET Core shared framework for its host-serving half, and neither exists
 for Android. Three files are excluded: `Program.cs`, `Terminal/LoopbackTerminals.cs` and
 `Panels/HostSettings.cs`. The remaining host-serving members are compiled out with `#if !ANDROID`: the desktop
 composition in `App.OnFrameworkInitializationCompleted`, `Workbench.Listener` and the two listener
@@ -47,10 +47,10 @@ excluded file otherwise provides.
 
 Consequences the shared sources must keep honouring:
 
-- Every file under `src/SharpRail.UI` is an Android source unless the project excludes it. Code that needs
-  `SharpRail.Host.Remote`, ASP.NET Core or a desktop lifetime goes under `#if !ANDROID` or into an excluded
+- Every file under `src/Tereditor.UI` is an Android source unless the project excludes it. Code that needs
+  `Tereditor.Host.Remote`, ASP.NET Core or a desktop lifetime goes under `#if !ANDROID` or into an excluded
   file; anything else must compile for both targets.
-- The project still references `SharpRail.Host.Core`, `SharpRail.Host.Client`, the plugin API's UI entry, the
+- The project still references `Tereditor.Host.Core`, `Tereditor.Host.Client`, the plugin API's UI entry, the
   kit, Scintilla, Ghostty.Avalonia and every builtin plugin's UI half, as the desktop app does. Core, the
   relay and the Metal terminal paths are therefore in the package, and never reached. `CA1416` is suppressed
   for that reason.
@@ -67,7 +67,7 @@ windowing platform, routes the system Back gesture to it and starts a `ClientSes
 files directory. The activity is single-task, resizes for the soft keyboard and handles every configuration
 change itself, so a rotation or a keyboard resizes the workbench instead of recreating it. It is also a share target (`SEND`/`SEND_MULTIPLE`, any type):
 a shared item's streams are read off the UI thread (64 MB total) and queued for a running Claude Code or Codex terminal, see
-[Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#dropped-attachments); the queue survives the connect
+[Terminal/SPEC.md](../Tereditor.UI/Terminal/SPEC.md#dropped-attachments); the queue survives the connect
 screen, so an item shared before connecting is attached once an agent terminal is ready. An agent terminal's
 Attach button offers uploading a phone file, browsing the host for a file or picking a workspace file (same section). Destroying the
 activity disposes the session and closes every window.
@@ -89,8 +89,8 @@ Contract:
 - On a screen narrower than 600 dp the session composes the workbench as compact (`Workbench.Compact`):
   the workbench is one page at a time from a bar at the bottom, and Settings is a list of sections that only choosing one leaves (a host broadcast or a theme change redraws
   the current page behind the list); see
-  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame. The browser client composes the same phone shell for narrow touch viewports
-  (see [Browser](../SharpRail.Browser/SPEC.md#phone-layout)); nothing in this client changes for it.
+  [Docking/SPEC.md](../Tereditor.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame. The browser client composes the same phone shell for narrow touch viewports
+  (see [Browser](../Tereditor.Browser/SPEC.md#phone-layout)); nothing in this client changes for it.
 - On every Android screen centre tabs live in Projects, under their workspace (as on every client):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
   for them. Split groups list their tabs there too.
@@ -143,8 +143,8 @@ recheck it:
 
 ## Connecting
 
-The host is any SharpRail WebSocket RPC endpoint: a desktop app listening from Settings › Host, or
-`SharpRail.Host.Remote`. The client speaks the same protocol and bearer token as a desktop remote client.
+The host is any tereditor WebSocket RPC endpoint: a desktop app listening from Settings › Host, or
+`Tereditor.Host.Remote`. The client speaks the same protocol and bearer token as a desktop remote client.
 
 - `HostEndpoint` holds the address as typed and the session token. An address without a scheme is read as
   `http://`; one without a port uses 54123. Only `http` and `https` parse; whitespace or an empty host is
@@ -158,13 +158,13 @@ The host is any SharpRail WebSocket RPC endpoint: a desktop app listening from S
   one `HostConnection`, and a terminal factory fixed to the Skia renderer. The catalog is what makes the phone
   show the host's existing terminal tabs, in the centre and so in Projects under their workspace; one a
   desktop holds is shown live and read-only with Take over rather than taken
-  ([Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#shared-terminals)). Only the profile's first window entry
+  ([Terminal/SPEC.md](../Tereditor.UI/Terminal/SPEC.md#shared-terminals)). Only the profile's first window entry
   is opened; later entries are dropped.
-- The endpoint is stored as `files/.sharprail/host.json` in the app's private storage, beside the
+- The endpoint is stored as `files/.tereditor/host.json` in the app's private storage, beside the
   `profile.json` `ProfileStore` keeps in the same directory. On launch a remembered address with a token
   connects without a tap; the connect screen shows meanwhile and keeps any failure.
 - The connect screen also scans the QR code a serving desktop app shows under Settings › Host
-  (`HostLink`: `sharprail://connect?host=…&token=…`), through Play services' code scanner, which owns the
+  (`HostLink`: `tereditor://connect?host=…&token=…`), through Play services' code scanner, which owns the
   camera, so the app declares no camera permission. A device without Play services reports that and keeps
   the typed fields.
 - A workbench whose host stays unreachable for 45 seconds of running time closes and returns to the
@@ -194,12 +194,12 @@ profile) and the endpoint.
 | Library | Source | Built by |
 | --- | --- | --- |
 | `libGhosttyAvaloniaVt.so` | libghostty-vt at the commit pinned in `src/Ghostty.Avalonia/build-native.sh`, behind the Skia control's C shim | `src/Ghostty.Avalonia/build-android.sh` |
-| `libSharpRailTailscale.so` | pinned Tailscale `tsnet` behind the app-private C ABI | `scripts/build-tailscale-android.sh` |
+| `libTereditorTailscale.so` | pinned Tailscale `tsnet` behind the app-private C ABI | `scripts/build-tailscale-android.sh` |
 | `libpdfium.so` | `bblanchon.PDFium.Android`, pinned with the desktop PDFium packages | NuGet |
-| `libSharpRailMermaid.so` | Merman 0.7.0's prebuilt `libmerman_ffi.so` (the desktop's C ABI) from `merman-android-v0.7.0.aar`, pinned in `mise.android.lock` | `scripts/tool merman-android` |
+| `libTereditorMermaid.so` | Merman 0.7.0's prebuilt `libmerman_ffi.so` (the desktop's C ABI) from `merman-android-v0.7.0.aar`, pinned in `mise.android.lock` | `scripts/tool merman-android` |
 
 The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty) for `arm64-v8a` and `x86_64` before every build,
-copies Merman's `jni/<abi>/libmerman_ffi.so` to `obj/native/android/<abi>/libSharpRailMermaid.so` (the name `MermaidRenderer`'s
+copies Merman's `jni/<abi>/libmerman_ffi.so` to `obj/native/android/<abi>/libTereditorMermaid.so` (the name `MermaidRenderer`'s
 P/Invoke loads; the library has no SONAME, depends only on libc, libm and libdl, and its release build already aligns
 segments to 16 KB), and adds their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that mise installs on first use (`scripts/tool android-ndk`), target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
 checkout's `src/Ghostty.Avalonia/obj/native/android/<abi>`, copied from the machine-wide cache. PDF Preview's desktop PDFium packages are referenced with
@@ -231,9 +231,9 @@ selection and deliberate taps retain their feedback and behavior.
 
 `scripts/mise run android [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
 needs the Android SDK in `ANDROID_HOME` and runs with the pinned Temurin JDK 21 that mise installs on first use (`scripts/tool jdk`) (a set `JAVA_HOME` overrides it), and installs the `android` workload
-into the shared SDK when missing. `build` and `run` use Debug unless `SHARPRAIL_CONFIGURATION` says
+into the shared SDK when missing. `build` and `run` use Debug unless `TEREDITOR_CONFIGURATION` says
 otherwise; `run` also installs on the connected device or emulator and launches the app. `apk` builds Release
-and copies the signed package to `artifacts/android/SharpRail.apk`. No release keystore is configured, so the
+and copies the signed package to `artifacts/android/tereditor.apk`. No release keystore is configured, so the
 package carries the SDK's default signature.
 
 ## Limits
@@ -257,7 +257,7 @@ accessibility services, plugin UI beyond what the default workbench shows, HTTPS
 
 ## Tailscale pairing
 
-The connect screen can mount the builtin [Tailscale picker](../SharpRail.Plugins.Tailscale/SPEC.md). Android
+The connect screen can mount the builtin [Tailscale picker](../Tereditor.Plugins.Tailscale/SPEC.md). Android
 runs its own embedded userspace Tailscale node, with a separate tailnet device identity in app-private
 `tailscale-node` storage. A system browser handles Tailscale sign-in; no OAuth implementation, embedded
 web view, Tailscale application or system VPN interface is needed. The embedded native netmap supplies

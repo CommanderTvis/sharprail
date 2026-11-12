@@ -6,15 +6,15 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Scintilla;
-using SharpRail.UI;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Scintilla;
+using Tereditor.UI;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The expensive-diff guard, bounded stacked sections, per-hunk realization and file-card virtualization.</summary>
 internal static class DiffVirtualizationChecks

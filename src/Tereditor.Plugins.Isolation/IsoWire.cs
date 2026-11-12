@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
 
-using SharpRail.Wire;
+using Tereditor.Wire;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>A received frame broke the channel protocol; the host kills the runner that sent it.</summary>
 public sealed class IsolationProtocolException(string message, Exception? inner = null) : IOException(message, inner);

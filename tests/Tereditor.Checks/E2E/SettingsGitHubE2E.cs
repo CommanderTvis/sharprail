@@ -3,11 +3,11 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Panels;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class SettingsGitHubE2E
 {
@@ -30,7 +30,7 @@ internal static class SettingsGitHubE2E
             Until(() => app.Window.OpenSettingsViews.Any());
             var settings = app.Window.OpenSettingsViews.Single();
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_plugin_github_github"));
-            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.StartsWith("SharpRail uses the GitHub CLI", StringComparison.Ordinal) == true),
+            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.StartsWith("tereditor uses the GitHub CLI", StringComparison.Ordinal) == true),
                 "Settings must show the GitHub block.");
             var status = settings.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "GitHubStatus");
             var text = settings.GetLogicalDescendants().OfType<TextBlock>().Single(block => block.Name == "GitHubStatusText");

@@ -1,6 +1,6 @@
 # Android client
 
-The Android app is a client for a SharpRail host on another machine. It shows the same workbench, while projects,
+The Android app is a client for a tereditor host on another machine. It shows the same workbench, while projects,
 settings, plugins and shells stay on the host.
 
 ## What you can do
@@ -17,7 +17,7 @@ settings, plugins and shells stay on the host.
 ## Requirements
 
 - Android 7.0 or later, on arm64 or x86-64.
-- A running host, either the desktop app with its listener on or `SharpRail.Host.Remote`. See
+- A running host, either the desktop app with its listener on or `Tereditor.Host.Remote`. See
   [Remote hosts and clients](remote.md).
 - A network the phone shares with the host. The connection uses cleartext WebSockets, so use an encrypted network such
   as Tailscale.
@@ -48,7 +48,7 @@ pinned JDK into mise's shared data directory.
 
 ```sh
 scripts/mise run android run   # build, install on the connected device or emulator, and start
-scripts/mise run android apk   # Release package at artifacts/android/SharpRail.apk
+scripts/mise run android apk   # Release package at artifacts/android/tereditor.apk
 ```
 
-See `src/SharpRail.Android/SPEC.md` for the design and limits.
+See `src/Tereditor.Android/SPEC.md` for the design and limits.

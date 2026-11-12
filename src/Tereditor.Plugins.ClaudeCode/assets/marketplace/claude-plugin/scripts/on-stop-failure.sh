@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hook script for Claude Code StopFailure event.
-# Marks the terminal's status badge failed and asks SharpRail to raise a
+# Marks the terminal's status badge failed and asks tereditor to raise a
 # desktop notification: Claude's turn ended due to an API error.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

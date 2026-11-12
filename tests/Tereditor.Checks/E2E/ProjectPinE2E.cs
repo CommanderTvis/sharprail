@@ -3,12 +3,12 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>Pinning a project from its right-click menu moves it into the rail's top group, marks it, and survives a restart.</summary>
 internal static class ProjectPinE2E
@@ -76,13 +76,13 @@ internal static class ProjectPinE2E
                 "The name area never overlaps the trailing cluster, and the pin stays inside it.");
         }
         Require(ActionIcons.Asset(ActionIcon.Pin) != ActionIcons.Asset(ActionIcon.Unpin), "Pin and Unpin are distinct registry icons.");
-        var reread = new SharpRail.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath);
+        var reread = new Tereditor.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath);
         Require(reread.Data.PinnedProjects.SequenceEqual([third, second]), "The pins are saved to the user profile in pin order.");
 
         Choose(third);
         Until(() => Rows(app).SequenceEqual(Expected(second)));
         Require(Marked(app).SequenceEqual([second]), "Unpinning returns the project to its place among the rest and removes its marker.");
-        Require(new SharpRail.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath).Data.PinnedProjects.SequenceEqual([second]), "Unpinning is saved.");
+        Require(new Tereditor.UI.State.ProfileStore(app.Workbench.Profile.DirectoryPath).Data.PinnedProjects.SequenceEqual([second]), "Unpinning is saved.");
         Console.WriteLine("PASS project pins: Pin and Unpin from the project menu order the rail, mark pinned projects and persist");
     }
 

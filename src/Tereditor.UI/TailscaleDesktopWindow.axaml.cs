@@ -3,11 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 internal sealed partial class TailscaleDesktopWindow : Window
 {

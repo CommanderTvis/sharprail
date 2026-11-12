@@ -3,15 +3,15 @@ using System.Net;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.GitHub.UI;
-using SharpRail.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.GitHub.UI;
+using Tereditor.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Upstream #771 and #776: the host's branch status (remote facts, review and its details) and branch actions against
@@ -98,13 +98,13 @@ internal static class BranchStatusChecks
         File.SetUnixFileMode(gh, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var config = Path.Combine(parent, "gitconfig");
         await File.WriteAllTextAsync(config, "[user]\n\tname = T\n\temail = t@example.com\n[commit]\n\tgpgsign = false\n[http]\n\tproxy = http://127.0.0.1:1\n");
-        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "SHARPRAIL_GH_OFFLINE" }.ToDictionary(name => name, Environment.GetEnvironmentVariable);
+        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "TEREDITOR_GH_OFFLINE" }.ToDictionary(name => name, Environment.GetEnvironmentVariable);
         try
         {
             Environment.SetEnvironmentVariable("GIT_CONFIG_GLOBAL", config);
             Environment.SetEnvironmentVariable("GIT_CONFIG_NOSYSTEM", "1");
             Environment.SetEnvironmentVariable("SHIM_DIR", shim);
-            Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
+            Environment.SetEnvironmentVariable("TEREDITOR_GH_OFFLINE", null);
             Environment.SetEnvironmentVariable("PATH", shim + ":" + saved["PATH"]);
             await Plain(parent);
             await Hub(parent, shim);

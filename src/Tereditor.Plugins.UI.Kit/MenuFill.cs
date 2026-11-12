@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Opens a context menu whose items need off-UI-thread work only once those items are in. A native popup keeps the

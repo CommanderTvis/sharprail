@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>
 /// Folds Claude Code's stream-json messages (live or read back from a transcript) into the chat's ordered, id-keyed item

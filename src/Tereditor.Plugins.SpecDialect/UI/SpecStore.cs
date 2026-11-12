@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>
 /// The UI half's own state: the last graph read per workspace and whether the latest read failed. It lives outside

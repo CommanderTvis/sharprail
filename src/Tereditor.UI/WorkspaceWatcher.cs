@@ -2,12 +2,12 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -78,7 +78,7 @@ public sealed partial class WorkbenchWindow
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
             catch (Exception error) { Console.Error.WriteLine("Workspace watching interrupted: " + error.Message); }
-            if (remote && (state.Connection.Status == SharpRail.Host.Client.HostConnectionStatus.Disconnected || state.Generation != generation)) return;
+            if (remote && (state.Connection.Status == Tereditor.Host.Client.HostConnectionStatus.Disconnected || state.Generation != generation)) return;
             reconnect = true;
             try { await Task.Delay(1000, cancellationToken); }
             catch (OperationCanceledException) { return; }

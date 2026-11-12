@@ -5,11 +5,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Plugins.UI.Kit.Markdown;
+
+namespace Tereditor.Checks;
 
 /// <summary>HTML tables in Markdown follow GitHub: structure, spans, alignment and widths are read; Markdown inside a cell needs a blank line; style, script and frames are dropped.</summary>
 internal static class MarkdownHtmlTableChecks

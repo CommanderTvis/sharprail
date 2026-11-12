@@ -2,10 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>What an agent does with code actions, rename and formatting: list, prepare (preview) and commit. Writing happens only in commit.</summary>
 internal sealed partial class LanguageSession

@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class WorkspaceWatchChecks
 {
@@ -35,17 +35,17 @@ internal static class WorkspaceWatchChecks
             var waiting = stream.MoveNextAsync().AsTask();
             await server.StopAsync(timeout.Token);
             try { Require(!await waiting, "Host shutdown closes its file streams."); }
-            catch (SharpRail.Host.Protocol.RpcException) { }
+            catch (Tereditor.Host.Protocol.RpcException) { }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS workspace file streams: local/remote ready, nested write, rename, .sharprail config, Git metadata, root capture, cancellation and host shutdown");
+        Console.WriteLine("PASS workspace file streams: local/remote ready, nested write, rename, .tereditor config, Git metadata, root capture, cancellation and host shutdown");
     }
 
     private static async Task Cases(IProjectServices host, string root)
     {
         Directory.CreateDirectory(Path.Combine(root, "nested"));
         Directory.CreateDirectory(Path.Combine(root, ".git", "refs", "heads"));
-        Directory.CreateDirectory(Path.Combine(root, ".sharprail"));
+        Directory.CreateDirectory(Path.Combine(root, ".tereditor"));
         await host.OpenProjectAsync(root);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await using var stream = host.WatchFilesAsync(timeout.Token).GetAsyncEnumerator(timeout.Token);
@@ -64,8 +64,8 @@ internal static class WorkspaceWatchChecks
         await Changed("nested/before.txt");
         File.Move(Path.Combine(root, "nested", "before.txt"), Path.Combine(root, "nested", "after.txt"));
         await Changed("nested/before.txt", "nested/after.txt");
-        await File.WriteAllTextAsync(Path.Combine(root, ".sharprail", "workspace.toml"), "clone = []");
-        await Changed(".sharprail/workspace.toml");
+        await File.WriteAllTextAsync(Path.Combine(root, ".tereditor", "workspace.toml"), "clone = []");
+        await Changed(".tereditor/workspace.toml");
         await File.WriteAllTextAsync(Path.Combine(root, ".git", "HEAD"), "ref: refs/heads/main");
         while (!stream.Current.GitChanged) Require(await stream.MoveNextAsync(), "HEAD changes arrive as Git metadata.");
         var other = Path.Combine(root, "other-root");
@@ -75,7 +75,7 @@ internal static class WorkspaceWatchChecks
         await Changed("captured.txt");
         timeout.Cancel();
         try { Require(!await stream.MoveNextAsync(), "Cancellation closes the file stream."); }
-        catch (Exception error) when (error is OperationCanceledException or SharpRail.Host.Protocol.RpcException) { return; }
+        catch (Exception error) when (error is OperationCanceledException or Tereditor.Host.Protocol.RpcException) { return; }
     }
 
     private static void Require(bool condition, string message)

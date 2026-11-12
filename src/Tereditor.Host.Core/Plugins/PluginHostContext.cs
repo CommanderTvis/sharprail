@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
 /// One activation's view of the host. Every mutating member compares the registry's current activation with

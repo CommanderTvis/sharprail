@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>The registry document: parsing the registry JSON and choosing a distribution for this machine.</summary>
 internal static class AcpRegistry
@@ -28,11 +28,11 @@ internal static class AcpRegistry
     private static IReadOnlyList<string> Kinds(JsonObject? distribution) =>
         [.. new[] { "npx", "uvx", "binary" }.Where(kind => distribution?[kind] is JsonObject)];
 
-    /// <summary>Registry agent ids (exact match) that SharpRail supports directly, with the reason shown on the entry. Add a line to extend.</summary>
+    /// <summary>Registry agent ids (exact match) that tereditor supports directly, with the reason shown on the entry. Add a line to extend.</summary>
     internal static readonly IReadOnlyDictionary<string, string> NotRecommendedAgents = new Dictionary<string, string>
     {
-        ["claude-acp"] = "Claude Code has its own chat in SharpRail. Use that instead.",
-        ["pi-acp"] = "Pi has its own chat in SharpRail. Use that instead."
+        ["claude-acp"] = "Claude Code has its own chat in tereditor. Use that instead.",
+        ["pi-acp"] = "Pi has its own chat in tereditor. Use that instead."
     };
 
     public static AcpRegistryView View(JsonObject root, string source, string? fetchedAt, string? note, string platform)
@@ -78,7 +78,7 @@ internal static class AcpRegistry
                     var args = Arguments(package);
                     var spec = AcpFolder.Str(package, "package");
                     var line = chosen == "npx" ? new[] { "bun", "x", spec }.Concat(args) : new[] { "uvx", spec }.Concat(args);
-                    return plan with { Source = spec, CommandLine = string.Join(' ', line), Verification = IsPinned(chosen, spec) ? Pinned : NotPinned, Note = $"Runs the package {spec} from the {(chosen == "npx" ? "npm" : "PyPI")} registry on this machine, in the workspace directory." + (chosen == "npx" ? " SharpRail runs it with its pinned Bun, which it downloads and checks on first use, so Node and npx are not needed; npx runs it only when Bun cannot be provided." : "") };
+                    return plan with { Source = spec, CommandLine = string.Join(' ', line), Verification = IsPinned(chosen, spec) ? Pinned : NotPinned, Note = $"Runs the package {spec} from the {(chosen == "npx" ? "npm" : "PyPI")} registry on this machine, in the workspace directory." + (chosen == "npx" ? " tereditor runs it with its pinned Bun, which it downloads and checks on first use, so Node and npx are not needed; npx runs it only when Bun cannot be provided." : "") };
                 }
             case "binary" when (distribution["binary"]?[platform]) is JsonObject target:
                 {

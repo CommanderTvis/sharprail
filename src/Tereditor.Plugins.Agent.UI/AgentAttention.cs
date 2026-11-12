@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>Why an agent's terminal wants the user while they are away.</summary>
 public enum AgentAttentionReason { Blocked, Done, Failed }

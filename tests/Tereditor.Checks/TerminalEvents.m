@@ -171,7 +171,7 @@ bool sr_check_focused(void *pointer) {
 void sr_check_key(void *pointer, const char *text, unsigned short keyCode, bool control) {
     NSView *view = (__bridge NSView *)pointer;
     NSString *characters = [NSString stringWithUTF8String:text];
-    if (getenv("SHARPRAIL_CHECK_OS_INPUT")) {
+    if (getenv("TEREDITOR_CHECK_OS_INPUT")) {
         for (int down = 1; down >= 0; down--) {
             CGEventRef event = CGEventCreateKeyboardEvent(NULL, keyCode, down);
             UniChar buffer[16];
@@ -211,7 +211,7 @@ char *sr_check_select_layout(const char *identifier) {
 // Sends Option+Backspace through the application, as a keyboard would while the view has focus.
 void sr_check_option_backspace(void *pointer) {
     NSView *view = (__bridge NSView *)pointer;
-    if (getenv("SHARPRAIL_CHECK_OS_INPUT")) {
+    if (getenv("TEREDITOR_CHECK_OS_INPUT")) {
         for (int down = 1; down >= 0; down--) {
             CGEventRef event = CGEventCreateKeyboardEvent(NULL, 51, down);
             CGEventSetFlags(event, kCGEventFlagMaskAlternate);

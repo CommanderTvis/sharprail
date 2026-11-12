@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintStartFields">
+             x:Class="Tereditor.Plugins.Blueprint.UI.BlueprintStartFields">
   <StackPanel Spacing="12">
     <StackPanel Orientation="Horizontal" Spacing="8">
       <RadioButton x:Name="Idea" Content="An idea" IsChecked="True" GroupName="BlueprintSource" />

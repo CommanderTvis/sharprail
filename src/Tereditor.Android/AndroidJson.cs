@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>Source-generated JSON metadata, with the serializer's default options, for the saved endpoint and the embedded node's status.</summary>
 [JsonSerializable(typeof(HostEndpoint))]

@@ -1,4 +1,4 @@
-module sharprail.invalid/gopls-pin
+module tereditor.invalid/gopls-pin
 
 go 1.26.0
 

@@ -8,7 +8,7 @@ parent: group-platform
 
 # Performance toolkit
 
-The toolkit observes the [UI startup boundaries](../src/SharpRail.UI/SPEC.md) and owns repeatable macOS launch experiments, diagnostic collection, provenance and reports;
+The toolkit observes the [UI startup boundaries](../src/Tereditor.UI/SPEC.md) and owns repeatable macOS launch experiments, diagnostic collection, provenance and reports;
 it does not optimize the product or declare cross-platform acceptance. It runs published self-contained
 ReadyToRun app/host outputs in a separate bundle, verified against a complete file-hash manifest.
 Every launch uses isolated profile/state and the versioned signed two-file Git fixture. Runtime fixture
@@ -65,5 +65,5 @@ the v2 first-window, first-content, layout, readiness or memory sampling contrac
 ## Packaging
 
 NativeAOT replaces composite ReadyToRun for the app and the remote host in every package and in the profiling publisher
-(`NativeAot.props`; [Plugin security](../src/SharpRail.Plugins.Api/Security.SPEC.md) gives the reason). The checks publish
+(`NativeAot.props`; [Plugin security](../src/Tereditor.Plugins.Api/Security.SPEC.md) gives the reason). The checks publish
 non-composite ReadyToRun. Dated measurements are not kept here: rerun the toolkit for a number.

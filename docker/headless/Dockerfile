@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
-# The headless SharpRail image: `sharprail-headless mcp` over stdio. The contract is in src/SharpRail.Host.Headless/SPEC.md.
+# The headless tereditor image: `tereditor-headless mcp` over stdio. The contract is in src/Tereditor.Host.Headless/SPEC.md.
 #
-# sharprail-headless is a NativeAOT binary (NativeAot.props). Linux links with the pinned Zig against glibc 2.31, so every
+# tereditor-headless is a NativeAOT binary (NativeAot.props). Linux links with the pinned Zig against glibc 2.31, so every
 # publish runs under scripts/mise, from a Linux or a macOS host. CI publishes outside Docker, once per architecture, and
 # builds the default target (prebuilt):
-#   sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r linux-<arch> -o artifacts/headless/linux-<arch>
-#   docker build -f docker/headless/Dockerfile --build-arg PUBLISH_DIR=artifacts/headless/linux-<arch> -t sharprail .
+#   sh scripts/mise x -- dotnet publish src/Tereditor.Host.Headless -c Release -r linux-<arch> -o artifacts/headless/linux-<arch>
+#   docker build -f docker/headless/Dockerfile --build-arg PUBLISH_DIR=artifacts/headless/linux-<arch> -t tereditor .
 # For local use from a checkout, the "local" target publishes inside the SDK image instead, through the same scripts/mise:
-#   docker build -f docker/headless/Dockerfile --target local -t sharprail .
+#   docker build -f docker/headless/Dockerfile --target local -t tereditor .
 #
 # Base images are pinned by digest (the multi-architecture index, so amd64 and arm64 stay in step). To update one, read the
 # new digest of its tag (`docker buildx imagetools inspect <image>:<tag>`) and replace the digest; the headless check fails
@@ -18,7 +18,7 @@ ARG TARGETARCH
 WORKDIR /src
 COPY . .
 RUN case "$TARGETARCH" in amd64) rid=linux-x64 ;; arm64) rid=linux-arm64 ;; *) echo "unsupported architecture $TARGETARCH" >&2; exit 1 ;; esac \
-    && sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r "$rid" -o /out
+    && sh scripts/mise x -- dotnet publish src/Tereditor.Host.Headless -c Release -r "$rid" -o /out
 
 # clangd for linux/arm64. clangd/clangd publishes no arm64 build; LLVM's release has one inside its 1.1 GB toolchain archive, too big to
 # download at run time. This stage downloads it once at build time, checks the pinned SHA-256 before unpacking, and keeps only bin/clangd and
@@ -36,7 +36,7 @@ RUN mkdir -p /out \
          && echo "$CLANGD_ARM64_SHA256  /tmp/llvm.tar.zst" | sha256sum -c - \
          && zstd -dc --long=30 /tmp/llvm.tar.zst | tar -x -C /out --strip-components=1 --wildcards '*/bin/clangd' '*/lib/clang/*/include' \
          && test -x /out/bin/clangd && ls /out/lib/clang/*/include/stddef.h \
-         && printf '{"sha256":"%s","url":"%s"}' "$CLANGD_ARM64_SHA256" "$CLANGD_ARM64_URL" > /out/.sharprail-artifact.json \
+         && printf '{"sha256":"%s","url":"%s"}' "$CLANGD_ARM64_SHA256" "$CLANGD_ARM64_URL" > /out/.tereditor-artifact.json \
          && rm -f /tmp/llvm.tar.zst; \
        fi
 
@@ -47,42 +47,42 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && (userdel --remove ubuntu 2>/dev/null || true) \
-    && useradd --uid 1000 --home-dir /cache/home --no-create-home --shell /usr/sbin/nologin sharprail \
+    && useradd --uid 1000 --home-dir /cache/home --no-create-home --shell /usr/sbin/nologin tereditor \
     && mkdir -p /cache/home /cache/managed /cache/state /workspace \
-    && chown -R sharprail:sharprail /cache /workspace \
-    && ln -s /opt/sharprail/sharprail-headless /usr/local/bin/sharprail-headless
-COPY --from=clangd --chmod=a+rX /out/ /opt/sharprail/preinstalled/clangd/
+    && chown -R tereditor:tereditor /cache /workspace \
+    && ln -s /opt/tereditor/tereditor-headless /usr/local/bin/tereditor-headless
+COPY --from=clangd --chmod=a+rX /out/ /opt/tereditor/preinstalled/clangd/
 ENV HOME=/cache/home \
-    SHARPRAIL_TOOLCHAINS=managed \
-    SHARPRAIL_MANAGED_CACHE=/cache/managed \
-    SHARPRAIL_STATE_DIR=/cache/state \
-    SHARPRAIL_ROOT=/workspace \
+    TEREDITOR_TOOLCHAINS=managed \
+    TEREDITOR_MANAGED_CACHE=/cache/managed \
+    TEREDITOR_STATE_DIR=/cache/state \
+    TEREDITOR_ROOT=/workspace \
     DOTNET_NOLOGO=1 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     GIT_CONFIG_COUNT=1 \
     GIT_CONFIG_KEY_0=safe.directory \
     GIT_CONFIG_VALUE_0=*
-USER sharprail
+USER tereditor
 WORKDIR /workspace
 VOLUME /cache
-ENTRYPOINT ["sharprail-headless"]
+ENTRYPOINT ["tereditor-headless"]
 CMD ["mcp"]
 
 FROM base AS local
-COPY --from=publish --chmod=a+rX /out/ /opt/sharprail/
+COPY --from=publish --chmod=a+rX /out/ /opt/tereditor/
 
 FROM base AS prebuilt
 ARG TARGETARCH
 ARG PUBLISH_DIR=artifacts/headless/linux-${TARGETARCH}
-COPY --chmod=a+rX ${PUBLISH_DIR}/ /opt/sharprail/
+COPY --chmod=a+rX ${PUBLISH_DIR}/ /opt/tereditor/
 
 # Labels sit on the last stage, which is the default target. The local target is for development and carries none.
 FROM prebuilt
 ARG REVISION=unknown
 ARG CREATED=unknown
-LABEL org.opencontainers.image.title="sharprail-headless" \
-      org.opencontainers.image.description="SharpRail without a window: language, spec and Blueprint tools over MCP on stdio, for one workspace" \
-      org.opencontainers.image.source="https://github.com/CommanderTvis/sharprail" \
+LABEL org.opencontainers.image.title="tereditor-headless" \
+      org.opencontainers.image.description="tereditor without a window: language, spec and Blueprint tools over MCP on stdio, for one workspace" \
+      org.opencontainers.image.source="https://github.com/CommanderTvis/tereditor" \
       org.opencontainers.image.licenses="PolyForm-Shield-1.0.0" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.created="${CREATED}"

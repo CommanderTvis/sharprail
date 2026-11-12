@@ -2,14 +2,14 @@
   <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
   <!-- The chat view shared by the plugins that offer a chat: the drawn transcript, the composer and the pickers. -->
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Chat/SharpRail.Plugins.Chat.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Chat/Tereditor.Plugins.Chat.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Agent.UI/Tereditor.Plugins.Agent.UI.csproj" />
     <PackageReference Include="Avalonia" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
-    <InternalsVisibleTo Include="SharpRail.Plugins.ClaudeCode.UI" />
-    <InternalsVisibleTo Include="SharpRail.Plugins.Pi.UI" />
-    <InternalsVisibleTo Include="SharpRail.Plugins.Acp.UI" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
+    <InternalsVisibleTo Include="Tereditor.Plugins.ClaudeCode.UI" />
+    <InternalsVisibleTo Include="Tereditor.Plugins.Pi.UI" />
+    <InternalsVisibleTo Include="Tereditor.Plugins.Acp.UI" />
   </ItemGroup>
 </Project>

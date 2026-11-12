@@ -6,10 +6,10 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// The Running section of the Code Intelligence tool window: every running language server on the host grouped by workspace (the current one first)

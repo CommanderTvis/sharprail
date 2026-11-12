@@ -19,8 +19,8 @@ between them except this page and its code.
   with a warning; adding an API key replaces it only when the user does so.
 - Pi: `auth.json` in the agent directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`): `{"<provider id>": {"type": "api_key", "key": "..."}}`.
   Other entries, including sign-ins, are kept as they are. The catalog is the table in Pi's `docs/providers.md`.
-- omp: `<omp home>/.omp/profiles/sharprail/agent/.env` (`SHARPRAIL_OMP_HOME` moves the home, as for the omp plugin), one `NAME=value` line per
-  provider variable (https://omp.sh/docs/env); omp reads it for launches with SharpRail's profile. Only the named variable's line is replaced or
+- omp: `<omp home>/.omp/profiles/tereditor/agent/.env` (`TEREDITOR_OMP_HOME` moves the home, as for the omp plugin), one `NAME=value` line per
+  provider variable (https://omp.sh/docs/env); omp reads it for launches with tereditor's profile. Only the named variable's line is replaced or
   removed; other lines and comments stay. omp's own credential database is never written. The catalog is the variable table on that page.
 - A provider the catalog does not list is added by hand with an id, an optional name and, for omp (and optionally Pi), the variable that holds its
   key. Custom providers are remembered in the plugin's state without their keys; removing the key forgets the provider.

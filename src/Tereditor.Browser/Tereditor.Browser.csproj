@@ -5,23 +5,23 @@
     <RuntimeIdentifiers></RuntimeIdentifiers>
     <TargetFramework>net10.0-browser</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AssemblyName>SharpRail.UI</AssemblyName>
-    <RootNamespace>SharpRail.UI</RootNamespace>
+    <AssemblyName>Tereditor.UI</AssemblyName>
+    <RootNamespace>Tereditor.UI</RootNamespace>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <DefineConstants>$(DefineConstants);BROWSER</DefineConstants>
     <DefineConstants Condition="'$(BrowserChecks)' == 'true'">$(DefineConstants);BROWSER_CHECKS</DefineConstants>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EmccFlags>$(EmccFlags) -Wno-version-check</EmccFlags>
-    <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == '' and '$(Configuration)' == 'Release'">true</SharpRailBrowserAot>
-    <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == ''">false</SharpRailBrowserAot>
-    <RunAOTCompilation>$(SharpRailBrowserAot)</RunAOTCompilation>
-    <RunAOTCompilationAfterBuild>$(SharpRailBrowserAot)</RunAOTCompilationAfterBuild>
-    <PublishTrimmed Condition="'$(SharpRailBrowserAot)' == 'true'">true</PublishTrimmed>
+    <TereditorBrowserAot Condition="'$(TereditorBrowserAot)' == '' and '$(Configuration)' == 'Release'">true</TereditorBrowserAot>
+    <TereditorBrowserAot Condition="'$(TereditorBrowserAot)' == ''">false</TereditorBrowserAot>
+    <RunAOTCompilation>$(TereditorBrowserAot)</RunAOTCompilation>
+    <RunAOTCompilationAfterBuild>$(TereditorBrowserAot)</RunAOTCompilationAfterBuild>
+    <PublishTrimmed Condition="'$(TereditorBrowserAot)' == 'true'">true</PublishTrimmed>
     <TrimMode>copy</TrimMode>
     <IsTrimmable>false</IsTrimmable>
-    <EnableTrimAnalyzer Condition="'$(SharpRailBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">false</EnableTrimAnalyzer>
-    <SuppressTrimAnalysisWarnings Condition="'$(SharpRailBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">true</SuppressTrimAnalysisWarnings>
+    <EnableTrimAnalyzer Condition="'$(TereditorBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">false</EnableTrimAnalyzer>
+    <SuppressTrimAnalysisWarnings Condition="'$(TereditorBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">true</SuppressTrimAnalysisWarnings>
     <TrimmerRemoveSymbols>false</TrimmerRemoveSymbols>
     <WasmStripILAfterAOT>false</WasmStripILAfterAOT>
     <AOTMode>LLVMOnlyInterp</AOTMode>
@@ -36,47 +36,47 @@
     <!-- Release has no browser debugger: the native runtime omits the debugger component and the boot config lists no .pdb files (Chromium and Firefox download them at start otherwise). -->
     <WasmDebugLevel Condition="'$(Configuration)' == 'Release'">0</WasmDebugLevel>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
-    <UiSources>../SharpRail.UI/</UiSources>
+    <UiSources>../Tereditor.UI/</UiSources>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.LocalApproval.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Pointer.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Settings.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Prose.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Mermaid.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Phone.cs" Condition="'$(BrowserChecks)' == 'true'" />
-    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Perf.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.LocalApproval.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Pointer.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Settings.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Prose.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Mermaid.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Phone.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/Tereditor.Browser.Checks/BrowserChecks.Perf.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
     <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
     <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
-    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Core/Tereditor.Host.Core.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Client/Tereditor.Host.Client.csproj" />
+    <ProjectReference Include="../Tereditor.Scintilla/Tereditor.Scintilla.csproj" />
     <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.GitHub/UI/SharpRail.Plugins.GitHub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Epub/UI/SharpRail.Plugins.Epub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Review/UI/SharpRail.Plugins.Review.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Processes/UI/SharpRail.Plugins.Processes.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Acp/UI/SharpRail.Plugins.Acp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirGateway/UI/SharpRail.Plugins.AirGateway.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.SpecDialect/UI/Tereditor.Plugins.SpecDialect.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Blueprint/UI/Tereditor.Plugins.Blueprint.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Env/UI/Tereditor.Plugins.Env.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.GitHub/UI/Tereditor.Plugins.GitHub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Epub/UI/Tereditor.Plugins.Epub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.ClaudeCode/UI/Tereditor.Plugins.ClaudeCode.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Discord/UI/Tereditor.Plugins.Discord.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.BranchGraph/UI/Tereditor.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Review/UI/Tereditor.Plugins.Review.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Processes/UI/Tereditor.Plugins.Processes.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Visualize/UI/Tereditor.Plugins.Visualize.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Codex/UI/Tereditor.Plugins.Codex.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Omp/UI/Tereditor.Plugins.Omp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Pi/UI/Tereditor.Plugins.Pi.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Acp/UI/Tereditor.Plugins.Acp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Providers/UI/Tereditor.Plugins.Providers.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirGateway/UI/Tereditor.Plugins.AirGateway.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirContext/UI/Tereditor.Plugins.AirContext.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Tailscale/UI/Tereditor.Plugins.Tailscale.UI.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Browser" />
     <PackageReference Include="Microsoft.NET.WebAssembly.Threading" />
@@ -95,7 +95,7 @@
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-nontrapping-float-to-int" />
     <!-- The post-link wasm-opt pass otherwise only rewrites features; -Oz shrinks the AOT code, which the transfer size is mostly made of. -->
-    <WasmOptConfigurationFlags Include="-Oz" Condition="'$(Configuration)' == 'Release' and '$(SharpRailWasmOz)' != 'false'" />
+    <WasmOptConfigurationFlags Include="-Oz" Condition="'$(Configuration)' == 'Release' and '$(TereditorWasmOz)' != 'false'" />
     <NativeFileReference Include="obj/wasm-native/GhosttyAvaloniaVt.a" />
   </ItemGroup>
   <Import Project="BrowserAot.targets" />
@@ -125,7 +125,7 @@
   </Target>
   <!-- The vendored assets come from the pnpm lockfile, the PDFium pin, the licence files and the tab's Pi agent sources. -->
   <ItemGroup>
-    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.cs;../../mise.browser.lock;../../LICENSE.md;../../NOTICE;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/licenses/**;../SharpRail.Scintilla/licenses/**;../*/NOTICE.md" />
+    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.cs;../../mise.browser.lock;../../LICENSE.md;../../NOTICE;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/licenses/**;../Tereditor.Scintilla/licenses/**;../*/NOTICE.md" />
   </ItemGroup>
   <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
           Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">

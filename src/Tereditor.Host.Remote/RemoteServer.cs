@@ -4,13 +4,13 @@ using System.Text;
 
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Tailscale;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Tailscale;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 public static class RemoteServer
 {
@@ -49,7 +49,7 @@ public static class RemoteServer
         tailscale.EnsureListening = (tailnetAddress, _) =>
         {
             if (!address.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any) && address.ToString() != tailnetAddress)
-                throw new IOException("Start this host with SHARPRAIL_BIND set to its Tailscale address.");
+                throw new IOException("Start this host with TEREDITOR_BIND set to its Tailscale address.");
             var endpoint = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
                 .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.First();
             return ValueTask.FromResult(new UriBuilder("http", tailnetAddress, new Uri(endpoint).Port).Uri.ToString());

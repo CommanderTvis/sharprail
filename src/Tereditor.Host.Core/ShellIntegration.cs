@@ -1,8 +1,8 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
-/// Loads SharpRail's own shell-integration scripts (<c>shell-integration/</c> next to the assemblies, from
-/// <c>src/SharpRail.Host.Core/shell-integration</c>) into a shell the host starts: zsh through <c>ZDOTDIR</c>, bash in
+/// Loads tereditor's own shell-integration scripts (<c>shell-integration/</c> next to the assemblies, from
+/// <c>src/Tereditor.Host.Core/shell-integration</c>) into a shell the host starts: zsh through <c>ZDOTDIR</c>, bash in
 /// POSIX mode through <c>ENV</c>. The scripts then mark prompts, input and command output (OSC 133) and report the
 /// working directory (OSC 7). fish 4 marks its prompts itself and gets nothing; Apple's /bin/bash 3.2 ignores
 /// <c>ENV</c> in that mode and is left alone.
@@ -13,10 +13,10 @@ internal static class ShellIntegration
     internal static string DefaultResources => Path.Combine(AppContext.BaseDirectory, "shell-integration");
 
     /// <summary>The prefix of the variables the injection sets; the scripts remove them, and the host drops inherited ones.</summary>
-    internal const string VariablePrefix = "SHARPRAIL_SHELL_";
+    internal const string VariablePrefix = "TEREDITOR_SHELL_";
 
     /// <summary>
-    /// The variables to set and the arguments to put before the login option, or null when the shell is not one SharpRail
+    /// The variables to set and the arguments to put before the login option, or null when the shell is not one tereditor
     /// integrates or the scripts are missing. <paramref name="environment"/> is the shell's environment so far.
     /// </summary>
     internal static (Dictionary<string, string> Variables, string[] Arguments)? For(string shell, string resources,
@@ -34,7 +34,7 @@ internal static class ShellIntegration
                 variables["ZDOTDIR"] = zsh;
                 break;
             case "bash":
-                var script = Path.Combine(resources, "bash", "sharprail.bash");
+                var script = Path.Combine(resources, "bash", "tereditor.bash");
                 if (OperatingSystem.IsMacOS() && shell == "/bin/bash" || !File.Exists(script)) return null;
                 // POSIX mode reads ENV instead of the startup files; the script restores normal mode and sources them.
                 arguments = ["--posix"];

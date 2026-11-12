@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
 using Tomlyn;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>Where the tools a language server needs (the .NET SDK today) come from: the host, the pinned runtimes in the cache, or both.</summary>
 internal enum ToolchainSource
@@ -21,9 +21,9 @@ internal enum ToolchainSource
 /// <summary>The <c>[toolchains] source</c> setting and the cache locations the managed runtimes use.</summary>
 internal static class Toolchains
 {
-    internal const string SourceVariable = "SHARPRAIL_TOOLCHAINS";
-    internal const string CacheVariable = "SHARPRAIL_MANAGED_CACHE";
-    internal const string OfflineVariable = "SHARPRAIL_OFFLINE";
+    internal const string SourceVariable = "TEREDITOR_TOOLCHAINS";
+    internal const string CacheVariable = "TEREDITOR_MANAGED_CACHE";
+    internal const string OfflineVariable = "TEREDITOR_OFFLINE";
 
     internal static ToolchainSource? Parse(string? text) => text?.Trim().ToLowerInvariant() switch
     {
@@ -33,7 +33,7 @@ internal static class Toolchains
         _ => null
     };
 
-    /// <summary>The source in force: <c>SHARPRAIL_TOOLCHAINS</c> first, then the host setting, then <see cref="ToolchainSource.Path"/> (desktop behaviour).</summary>
+    /// <summary>The source in force: <c>TEREDITOR_TOOLCHAINS</c> first, then the host setting, then <see cref="ToolchainSource.Path"/> (desktop behaviour).</summary>
     internal static ToolchainSource Effective(string? setting) =>
         Parse(Environment.GetEnvironmentVariable(SourceVariable)) ?? Parse(setting) ?? ToolchainSource.Path;
 
@@ -96,7 +96,7 @@ internal static class ManagedRuntimes
 
     internal static ManagedRuntimeKind? KindOf(string tool) => Kinds.FirstOrDefault(kind => kind.Tools.Contains(tool));
 
-    /// <summary>The cache root: <c>SHARPRAIL_MANAGED_CACHE</c> when set to an absolute path (the container points it at /cache), else the host's own directory.</summary>
+    /// <summary>The cache root: <c>TEREDITOR_MANAGED_CACHE</c> when set to an absolute path (the container points it at /cache), else the host's own directory.</summary>
     internal static string CacheRoot(string directory) =>
         Environment.GetEnvironmentVariable(Toolchains.CacheVariable) is { Length: > 0 } cache && Path.IsPathFullyQualified(cache) ? cache : directory;
 
@@ -104,7 +104,7 @@ internal static class ManagedRuntimes
 
     internal static string InstallDirectory(string directory, ManagedRuntimePin pin) => Path.Combine(RuntimesRoot(directory), pin.Id, pin.Version + "-" + pin.Sha256[..8]);
 
-    internal static bool IsInstalled(string directory, ManagedRuntimePin pin) => File.Exists(Path.Combine(InstallDirectory(directory, pin), ".sharprail-artifact.json"));
+    internal static bool IsInstalled(string directory, ManagedRuntimePin pin) => File.Exists(Path.Combine(InstallDirectory(directory, pin), ".tereditor-artifact.json"));
 
     internal static IReadOnlyList<ManagedRuntimePin> For(string id, string platform) =>
         [.. Pins.Where(pin => pin.Id == id && pin.Platform == platform).OrderByDescending(pin => Numbers(pin.Version), VersionOrder.Instance)];

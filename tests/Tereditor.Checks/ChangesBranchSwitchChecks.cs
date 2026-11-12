@@ -5,13 +5,13 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.UI;
+using Tereditor.Checks.E2E;
+using Tereditor.UI;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Re-pointing Changes from a target with no changes to one with thousands: a probe thread posts to the dispatcher
@@ -24,7 +24,7 @@ internal static class ChangesBranchSwitchChecks
 
     internal static void Run(string root)
     {
-        var budget = double.TryParse(Environment.GetEnvironmentVariable("SHARPRAIL_BRANCH_SWITCH_STALL_BUDGET_MS"), out var value) ? value : 250;
+        var budget = double.TryParse(Environment.GetEnvironmentVariable("TEREDITOR_BRANCH_SWITCH_STALL_BUDGET_MS"), out var value) ? value : 250;
         using var git = new IsolatedGit(Path.Combine(root, "changes-branch-switch-git"));
         using var app = OpenFixtureProject(Path.Combine(root, "changes-branch-switch"));
         Git(app.Root, "checkout", "-b", "wide");
@@ -67,7 +67,7 @@ internal static class ChangesBranchSwitchChecks
         double[] samples;
         lock (stalls) samples = [.. stalls.Order()];
         var max = samples[^1];
-        Console.WriteLine($"SHARPRAIL_BRANCH_SWITCH_STALL_MS max={max:F1} pick={returned:F1} budget={budget:F0} samples={samples.Length} total={started.Elapsed.TotalMilliseconds:F0}");
+        Console.WriteLine($"TEREDITOR_BRANCH_SWITCH_STALL_MS max={max:F1} pick={returned:F1} budget={budget:F0} samples={samples.Length} total={started.Elapsed.TotalMilliseconds:F0}");
         Require(returned < budget, $"Picking a comparison target must return at once (took {returned:F1} ms).");
         Require(max < budget, $"Listing {Files} changes after a target switch must not stall the dispatcher beyond {budget:F0} ms (max {max:F1}).");
 

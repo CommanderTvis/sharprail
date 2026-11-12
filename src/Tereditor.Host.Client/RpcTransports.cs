@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>Endpoint-scoped transports for private userspace networks.</summary>
 public static class RpcTransports

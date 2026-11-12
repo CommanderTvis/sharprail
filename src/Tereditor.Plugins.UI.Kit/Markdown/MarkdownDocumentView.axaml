@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView">
+             xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView">
   <Grid RowDefinitions="32,*">
     <Border Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1"

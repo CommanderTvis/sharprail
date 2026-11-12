@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 internal sealed class GraphLabels : Control
 {

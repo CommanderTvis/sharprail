@@ -1,4 +1,4 @@
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Whether the window has no top bar: its left column is the fixed Projects rail with the project, branch and overflow

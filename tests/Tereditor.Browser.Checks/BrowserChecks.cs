@@ -10,13 +10,13 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using Ghostty.Avalonia;
-using SharpRail.Scintilla;
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
-using SharpRail.UI.Browser;
+using Tereditor.Scintilla;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
+using Tereditor.UI.Browser;
 using SkiaSharp;
 
-namespace SharpRail.Browser.Checks;
+namespace Tereditor.Browser.Checks;
 
 // Compiled only by the browser acceptance build, never by the shipped client.
 internal static partial class BrowserChecks
@@ -74,7 +74,7 @@ internal static partial class BrowserChecks
     public static async Task<string> CheckWatchedReplay()
     {
         var endpoint = BrowserSession.Current!.Endpoint!;
-        using var adapter = new SharpRail.Host.Client.RemoteTerminalAdapter(endpoint.Uri!, endpoint.Token);
+        using var adapter = new Tereditor.Host.Client.RemoteTerminalAdapter(endpoint.Uri!, endpoint.Token);
         var root = Workbench.ActiveWindow!.ProjectRoot;
         var id = "browser-watched-replay-" + Guid.NewGuid().ToString("N");
         await using var holder = await adapter.AttachAsync(new(id, root, "acceptance-holder", 100, 30));
@@ -221,14 +221,14 @@ internal static partial class BrowserChecks
     [JSExport]
     public static async Task<string> SettingsText()
     {
-        return await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsView>()
+        return await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(Workbench.ActiveWindow!.GetVisualDescendants().OfType<Tereditor.UI.Panels.SettingsView>()
             .SelectMany(window => window.GetVisualDescendants().OfType<TextBlock>()).Select(text => text.Text).ToArray()));
     }
 
     [JSExport]
     public static async Task ClickSettingsButton(string name)
     {
-        await Dispatcher.UIThread.InvokeAsync(() => Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsView>()
+        await Dispatcher.UIThread.InvokeAsync(() => Workbench.ActiveWindow!.GetVisualDescendants().OfType<Tereditor.UI.Panels.SettingsView>()
             .SelectMany(window => window.GetVisualDescendants().OfType<Button>()).Single(button => button.Name == name)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
     }
@@ -241,11 +241,11 @@ internal static partial class BrowserChecks
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             acceptsFileDrops = accepts;
-            var terminal = Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().First();
+            var terminal = Workbench.ActiveWindow!.GetVisualDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().First();
             if (terminal.Accessories.Children.Any(control => control.Name == "FileDropProbe")) return;
             var receiver = new Border { Name = "FileDropProbe" };
-            receiver.SetValue(SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty, () => acceptsFileDrops);
-            receiver.SetValue(SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty, paths => droppedFiles.AddRange(paths));
+            receiver.SetValue(Tereditor.Plugins.UI.Kit.FileDrop.AcceptsProperty, () => acceptsFileDrops);
+            receiver.SetValue(Tereditor.Plugins.UI.Kit.FileDrop.AttachProperty, paths => droppedFiles.AddRange(paths));
             terminal.Accessories.Children.Add(receiver);
         });
     }

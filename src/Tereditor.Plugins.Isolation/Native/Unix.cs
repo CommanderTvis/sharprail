@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace SharpRail.Plugins.Isolation.Native;
+namespace Tereditor.Plugins.Isolation.Native;
 
 /// <summary>
 /// libc entry points of the channel and the runner process on macOS and Linux (64-bit only). Layouts and constants

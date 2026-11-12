@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Kotlin;
+namespace Tereditor.Plugins.Lsp.Kotlin;
 
 /// <summary>The Kotlin (Kotlin LS) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Kotlin.dll"
+        Host = "Tereditor.Plugins.Lsp.Kotlin.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

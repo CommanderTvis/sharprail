@@ -9,7 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 // A phone's side pages have no room for two groups stacked or two tools side by side. The left page is Projects
 // alone, without a tab strip; the right page lists every other side tool as a section header and shows one of

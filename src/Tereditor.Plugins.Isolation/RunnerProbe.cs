@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>
 /// The members of the runner's <c>probe echo</c> mode, which exercises the channel and the process with no plugin

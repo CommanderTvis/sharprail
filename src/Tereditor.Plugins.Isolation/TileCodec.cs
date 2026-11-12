@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>How one tile's bytes are written. Zero is never sent.</summary>
 public enum TileCodecKind { None, Solid, Qoi }

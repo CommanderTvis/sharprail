@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 public record WorkspaceInfo(string Name, string ProjectName, string RootPath)
 {

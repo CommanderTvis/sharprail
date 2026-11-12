@@ -4,7 +4,7 @@ using System.Text.Json;
 using TextMateSharp.Internal.Grammars.Reader;
 using TextMateSharp.Registry;
 
-namespace SharpRail.Plugins.UI.Kit.Editor;
+namespace Tereditor.Plugins.UI.Kit.Editor;
 
 internal sealed record CustomGrammar(string Name, string Scope, string[] Patterns, string Grammar);
 

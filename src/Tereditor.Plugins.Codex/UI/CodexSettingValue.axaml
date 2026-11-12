@@ -1,6 +1,6 @@
 <Panel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-       x:Class="SharpRail.Plugins.Codex.UI.CodexSettingValue" x:ClassModifier="internal">
+       xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+       x:Class="Tereditor.Plugins.Codex.UI.CodexSettingValue" x:ClassModifier="internal">
   <Panel.Styles>
     <Style Selector="TextBlock.value">
       <Setter Property="FontFamily" Value="{x:Static kit:Ui.CodeFont}" />

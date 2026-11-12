@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Keeps a macOS machine from idle-sleeping under a run. The assertion is scoped to system sleep and to

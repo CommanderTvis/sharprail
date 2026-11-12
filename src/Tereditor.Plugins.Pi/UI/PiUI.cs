@@ -2,13 +2,13 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Pi.UI;
+namespace Tereditor.Plugins.Pi.UI;
 
 /// <summary>The Pi plugin's UI half: Settings › Pi, the side pane, the chat document and the launcher that opens a chat.</summary>
 public sealed class PiUI : PluginUIModule

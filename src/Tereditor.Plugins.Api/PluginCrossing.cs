@@ -1,22 +1,22 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
 /// How a synchronous member, or a callback a plugin passes in, crosses into the isolated runtime, where the plugin runs
-/// in another process than SharpRail. Asynchronous members cross as calls and <see langword="void"/> members as one-way
-/// messages without being named here. Builtin plugins run in SharpRail's process and are unaffected.
+/// in another process than tereditor. Asynchronous members cross as calls and <see langword="void"/> members as one-way
+/// messages without being named here. Builtin plugins run in tereditor's process and are unaffected.
 /// </summary>
 public enum PluginCrossing
 {
-    /// <summary>The plugin process keeps a copy fed by SharpRail; a read never waits.</summary>
+    /// <summary>The plugin process keeps a copy fed by tereditor; a read never waits.</summary>
     Mirrored,
 
-    /// <summary>A pure callback SharpRail calls with a deadline and caches per argument until the plugin invalidates it.</summary>
+    /// <summary>A pure callback tereditor calls with a deadline and caches per argument until the plugin invalidates it.</summary>
     Resolver,
 
-    /// <summary>A callback SharpRail calls with a deadline at a known moment and does not cache; a miss counts as no contribution.</summary>
+    /// <summary>A callback tereditor calls with a deadline at a known moment and does not cache; a miss counts as no contribution.</summary>
     Live,
 
-    /// <summary>A callback SharpRail calls before it takes a lock, applying the result under the lock.</summary>
+    /// <summary>A callback tereditor calls before it takes a lock, applying the result under the lock.</summary>
     UnderLock,
 
     /// <summary>A synchronous call the plugin process blocks on with a short deadline; a miss throws <see cref="TimeoutException"/>.</summary>

@@ -1,6 +1,6 @@
 <Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-        x:Class="SharpRail.UI.Panels.PluginCard" x:ClassModifier="internal" Name="PluginRow">
+        xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+        x:Class="Tereditor.UI.Panels.PluginCard" x:ClassModifier="internal" Name="PluginRow">
   <StackPanel>
     <TextBlock x:Name="PluginCategory" Classes="settings-label" Margin="0,12,0,8" IsVisible="False" />
     <Border x:Name="PluginFrame" Margin="0,0,0,8" Padding="12,8" CornerRadius="4" BorderThickness="1"

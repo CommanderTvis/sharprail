@@ -1,16 +1,16 @@
 using System.Reflection;
 using System.Security.Cryptography;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// Under <c>SHARPRAIL_PACKAGED_APP</c> the gate is the packaged one. The app ships as one NativeAOT binary beside its native
+/// Under <c>TEREDITOR_PACKAGED_APP</c> the gate is the packaged one. The app ships as one NativeAOT binary beside its native
 /// libraries and assets, so no product assembly ships; the checks run beside the shipped files, byte for byte, and load
 /// the shipped native libraries, while <see cref="PackagedBinaries"/> runs the binaries themselves.
 /// </summary>
 internal static class PackagedApp
 {
-    internal const string Variable = "SHARPRAIL_PACKAGED_APP";
+    internal const string Variable = "TEREDITOR_PACKAGED_APP";
 
     /// <summary>Adds the checks' own files to a copy of the shipped files; a shipped file is never replaced.</summary>
     internal static void AddCheckFiles(string source, string destination)
@@ -29,7 +29,7 @@ internal static class PackagedApp
         if (Environment.GetEnvironmentVariable(Variable) is not { Length: > 0 } bundle) return;
         // A macOS bundle keeps its files in Contents/MacOS; the variable names the Linux AppImage payload directly.
         var shipped = Path.Combine(bundle, "Contents", "MacOS");
-        var count = Verify(Directory.Exists(shipped) ? shipped : bundle, AppContext.BaseDirectory, "SharpRail.UI", Identity);
+        var count = Verify(Directory.Exists(shipped) ? shipped : bundle, AppContext.BaseDirectory, "Tereditor.UI", Identity);
         Console.WriteLine($"PASS packaged app: a NativeAOT app with no managed assemblies; its {count} shipped files are the ones under test");
     }
 

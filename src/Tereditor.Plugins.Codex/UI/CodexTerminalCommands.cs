@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Agent.UI;
+using Tereditor.Plugins.Agent.UI;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>How the terminal accessory types a slash command into Codex: what it writes, how long it waits, and a hold on the user's keys.</summary>
 public interface ICodexTerminalIo

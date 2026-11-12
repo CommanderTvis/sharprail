@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The context-menu action that sends a file, or the lines selected in it, to Claude Code's prompt as an
@@ -34,7 +34,7 @@ internal static class ClaudeMention
             if (result.Sessions == 0)
             {
                 context.Notify(PluginNotificationKind.Error, "No Claude Code session took the reference",
-                    "Turn on IDE context for the session with /ide, or start Claude from a SharpRail terminal.");
+                    "Turn on IDE context for the session with /ide, or start Claude from a tereditor terminal.");
                 return;
             }
             // With one Claude terminal the reference landed there, so the user continues typing in it.

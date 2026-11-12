@@ -1,7 +1,7 @@
 <Button xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-        x:Class="SharpRail.Plugins.BranchGraph.UI.GraphCommitRow"
+        xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+        x:Class="Tereditor.Plugins.BranchGraph.UI.GraphCommitRow"
         x:ClassModifier="internal" Name="GraphCommit"
         Height="40" Padding="8,0" CornerRadius="0" BorderThickness="0" Background="Transparent"
         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">

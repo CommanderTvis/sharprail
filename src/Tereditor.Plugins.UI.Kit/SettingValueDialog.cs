@@ -9,7 +9,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>The value shapes a setting can be composed as.</summary>
 public enum ValueShape { Text, Number, Switch, List }

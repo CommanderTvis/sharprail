@@ -1,6 +1,6 @@
-using SharpRail.UI;
+using Tereditor.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The desktop app and the standalone host ship with the memory settings measured in performance/README.md, Android and Browser
@@ -13,9 +13,9 @@ internal static class GcSettingsChecks
         var repo = FindRepository();
         if (repo is not null)
         {
-            foreach (var project in new[] { "src/SharpRail.UI/SharpRail.UI.csproj", "src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" })
+            foreach (var project in new[] { "src/Tereditor.UI/Tereditor.UI.csproj", "src/Tereditor.Host.Remote/Tereditor.Host.Remote.csproj" })
                 Require(File.ReadAllText(Path.Combine(repo, project)).Contains("DesktopGc.props", StringComparison.Ordinal), project + " does not import DesktopGc.props.");
-            foreach (var project in new[] { "src/SharpRail.Android/SharpRail.Android.csproj", "src/SharpRail.Browser/SharpRail.Browser.csproj", "Directory.Build.props" })
+            foreach (var project in new[] { "src/Tereditor.Android/Tereditor.Android.csproj", "src/Tereditor.Browser/Tereditor.Browser.csproj", "Directory.Build.props" })
             {
                 var text = File.ReadAllText(Path.Combine(repo, project));
                 Require(!text.Contains("DesktopGc.props", StringComparison.Ordinal) && !text.Contains("System.GC.", StringComparison.Ordinal), project + " carries the desktop GC settings.");
@@ -25,8 +25,8 @@ internal static class GcSettingsChecks
         }
         if (!OperatingSystem.IsWindows())
         {
-            if (Environment.GetEnvironmentVariable(PackagedBinaries.ClientVariable) is { Length: > 0 } client) VerifyCompiledIn(Path.Combine(client, "SharpRail.UI"));
-            if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, "SharpRail.Host.Remote"));
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.ClientVariable) is { Length: > 0 } client) VerifyCompiledIn(Path.Combine(client, "Tereditor.UI"));
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, "Tereditor.Host.Remote"));
         }
         IdleTrim();
         ScrollTooltips();
@@ -91,7 +91,7 @@ internal static class GcSettingsChecks
     private static string? FindRepository()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-            if (File.Exists(Path.Combine(directory.FullName, "SharpRail.slnx"))) return directory.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "Tereditor.slnx"))) return directory.FullName;
         return null;
     }
 

@@ -2,10 +2,10 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>
 /// The host half of chat mode: the registry of chats, the launch rules for their headless child (the same environment,
@@ -352,7 +352,7 @@ internal sealed class ClaudeChatHost
         var environment = new Dictionary<string, string>(pluginEnvironment(terminal))
         {
             ["THINKRAIL_MCP_URL"] = $"{loopbackRoot()}/mcp/{context.TerminalToken(terminal)}",
-            ["SHARPRAIL_UI_LAUNCH"] = "claude",
+            ["TEREDITOR_UI_LAUNCH"] = "claude",
             // The chat reports its own status from the stream; the hook plugin must not report it a second time.
             [ClaudeCodeContract.StatusUrlVariable] = ""
         };

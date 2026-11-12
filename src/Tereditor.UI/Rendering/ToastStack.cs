@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.UI.State;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>Draws a <see cref="ToastQueue"/> as stacked <see cref="ToastCard"/>s, newest last, and ends each toast when its lifetime runs out.</summary>
 public sealed class ToastStack : StackPanel

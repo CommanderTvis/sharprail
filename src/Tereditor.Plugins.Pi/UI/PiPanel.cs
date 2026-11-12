@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Pi.UI;
+namespace Tereditor.Plugins.Pi.UI;
 
 /// <summary>The Pi side tool: the Early badge and the version of the Pi this host runs, or why there is none.</summary>
 internal static class PiPanel

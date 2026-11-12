@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>Source-generated JSON metadata, with the serializer's default options, for the values state changes carry as text.</summary>
 [JsonSerializable(typeof(TerminalRef))]

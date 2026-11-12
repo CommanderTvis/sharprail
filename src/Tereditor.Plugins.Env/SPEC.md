@@ -28,14 +28,14 @@ plugins are its dependents, each providing one step. It owns:
 
 It does not spawn processes or read project files: the steps do, through the host. The mechanism stays in
 Host.Core, because terminals need the environment before plugin UI loads (startup performance): the host runs the
-steps, `Env` supplies the policy ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#workspace-environment-pipeline-h22-h23)).
+steps, `Env` supplies the policy ([Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#workspace-environment-pipeline-h22-h23)).
 
 ## Hooks
 
 H22 (the policy and the resolution observer), H23 (a step, on each dependent), W11 (the chips accessory) and the
 state channel `changed` (keyed by `workspaceId`, snapshot `get`, published only when the chips differ). H23 and the
 `Env` side of H22 are a host-hooks surface increase over the former single H22; `dependsOn` is the existing manifest
-mechanism ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#settings-namespaces)), not a new one.
+mechanism ([Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#settings-namespaces)), not a new one.
 
 ## Switching off
 

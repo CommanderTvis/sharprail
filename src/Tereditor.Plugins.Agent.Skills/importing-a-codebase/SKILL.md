@@ -1,6 +1,6 @@
 ---
 name: importing-a-codebase
-description: "Use only when the user asks for the initial SharpRail spec graph of an existing codebase that has source code but no specs. Normally reached via setting-up-a-project; never on your own initiative."
+description: "Use only when the user asks for the initial tereditor spec graph of an existing codebase that has source code but no specs. Normally reached via setting-up-a-project; never on your own initiative."
 ---
 
 # Importing a codebase

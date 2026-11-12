@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 using QRCoder;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>Draws text as a QR code, dark on white whatever the theme, so a camera reads it.</summary>
 public sealed class QrCodeView : Control

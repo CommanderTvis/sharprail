@@ -1,6 +1,6 @@
 // Command tsforward is a test-only tailnet node: it joins a control server with a pre-auth key
 // through a userspace tsnet node and forwards tailnet TCP ports to loopback addresses. The headless
-// Headscale connectivity check runs it as the "host" side so the real SharpRail host stays on loopback.
+// Headscale connectivity check runs it as the "host" side so the real tereditor host stays on loopback.
 //
 // Configuration comes from the environment (the auth key must not appear in a process listing):
 // TSF_STATE, TSF_CONTROL_URL, TSF_AUTH_KEY, TSF_HOSTNAME. Arguments are "tailnetPort=host:port"

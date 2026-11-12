@@ -2,11 +2,11 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Discord.UI;
+namespace Tereditor.Plugins.Discord.UI;
 
 /// <summary>
 /// Settings › Discord: the application id, the file-name switch and the blocked projects, all in the plugin's

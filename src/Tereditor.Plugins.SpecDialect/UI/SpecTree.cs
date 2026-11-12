@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 public sealed record SpecTreeNode(SpecGraphNode Node, IReadOnlyList<SpecTreeNode> Children);
 

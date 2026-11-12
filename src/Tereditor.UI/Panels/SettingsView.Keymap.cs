@@ -7,10 +7,10 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>Settings › Keymap: pick or edit the keymap preset every window of this client follows.</summary>
 public sealed partial class SettingsView

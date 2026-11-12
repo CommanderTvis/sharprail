@@ -3,17 +3,17 @@
 `sh scripts/build-tailscale-wasm.sh` (or `scripts/mise run tailscale:wasm`) builds this module for
 `GOOS=js GOARCH=wasm` with the checksum-pinned Go from `scripts/tailscale-go.sh`, Tailscale v1.104.1 from
 `go.sum`, and `ts_omit_*` tags for features a browser node does not use. The browser build runs it when its
-inputs change. Output: `src/SharpRail.Browser/obj/tailscale-wasm`, deployed under `tailscale/` in the AppBundle:
+inputs change. Output: `src/Tereditor.Browser/obj/tailscale-wasm`, deployed under `tailscale/` in the AppBundle:
 
 - `manifest.json`: `version`, `build` (`<version>-<input hash>`), `module`, `exec`, `size`, `transferSize` (Brotli);
-- `<build>/sharprail-tailscale.wasm` and its `.br` sidecar, `<build>/wasm_exec.js` (from the pinned Go);
+- `<build>/tereditor-tailscale.wasm` and its `.br` sidecar, `<build>/wasm_exec.js` (from the pinned Go);
 - `licenses/`: Tailscale and Go licenses and the dependency notice bundle.
 
 `main.go` is adapted from upstream `cmd/tsconnect/wasm/wasm_js.go`: the same userspace engine and netstack, but a
 persistent (non-ephemeral) node, no SSH or fetch, no log uploads (no-logs-no-support and the logtail kill switch),
-and a TCP dial for SharpRail's pairing and WebSocket RPC.
+and a TCP dial for tereditor's pairing and WebSocket RPC.
 
-`sharprailTailscale({ stateStorage, hostname, controlURL?, authKey? })` returns:
+`tereditorTailscale({ stateStorage, hostname, controlURL?, authKey? })` returns:
 
 - `start()`: starts the backend; does not wait for authentication.
 - `status()`: JSON `{ state, authUrl, online, peers: [{ name, address }], error? }`; peers are online IPv4 nodes.

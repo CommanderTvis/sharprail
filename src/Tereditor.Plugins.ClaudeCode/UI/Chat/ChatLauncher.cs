@@ -1,11 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Chat.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Chat.UI;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace Tereditor.Plugins.ClaudeCode.UI.Chat;
 
 /// <summary>Starts Claude Code as a chat tab when the setting says so, from the same presets the terminal launcher offers.</summary>
 internal static class ChatLauncher

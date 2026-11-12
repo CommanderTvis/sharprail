@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 
-using SharpRail.UI.Android;
+using Tereditor.UI.Android;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 // Settings › Host on a client: the host it is connected to, and the way back to the connect screen.
 public sealed partial class SettingsView

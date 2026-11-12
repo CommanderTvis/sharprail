@@ -5,14 +5,14 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Scintilla;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Scintilla;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class LineWidthE2E
 {
@@ -189,7 +189,7 @@ internal static class LineWidthE2E
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts, converge on broadcasts, and persist");
     }
 
-    internal static void SaveWidth(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, string kind, int value)
+    internal static void SaveWidth(E2eWorkspace app, Tereditor.UI.Panels.SettingsView settings, string kind, int value)
     {
         Type(app, settings, Named<TextBox>(settings, kind + "LineWidthInput"), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         settings.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
@@ -197,7 +197,7 @@ internal static class LineWidthE2E
         Until(() => kind == "File" ? app.Window.Preferences.FileLineWidth == value : app.Window.Preferences.MarkdownLineWidth == value);
     }
 
-    private static void Type(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, TextBox input, string text)
+    private static void Type(E2eWorkspace app, Tereditor.UI.Panels.SettingsView settings, TextBox input, string text)
     {
         app.Click(input);
         input.SelectAll();

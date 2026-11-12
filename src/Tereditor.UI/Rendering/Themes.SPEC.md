@@ -125,7 +125,7 @@ fixed mode it pins the manifest's variant. Application is atomic from consumers'
 and resources are written before `ThemeChanged` fires. The listener is per window and never writes host
 state, so one device's appearance never affects another client.
 
-Coverage lives in `tests/SharpRail.Checks` (`E2E/ThemeE2E.cs`, `StateChecks.cs`, `Design/ThemeGates.cs`):
+Coverage lives in `tests/Tereditor.Checks` (`E2E/ThemeE2E.cs`, `StateChecks.cs`, `Design/ThemeGates.cs`):
 catalogue order and ids, high-contrast metadata, pair derivation, host round-tripping of mode and pair,
 all-or-nothing rejection of partial, unknown and non-canonical manifests, schema agreement and the contrast
 floors. `-- --design` runs the theme translations and gates alone.

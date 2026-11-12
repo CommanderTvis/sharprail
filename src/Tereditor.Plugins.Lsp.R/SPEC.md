@@ -16,4 +16,4 @@ The plugin id is `lsp-r`; it ships enabled. Its host half is a `LanguageServerPl
 the catalog, its sessions stop and its saved settings are kept. Implementation: languageserver · REditorSupport.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).

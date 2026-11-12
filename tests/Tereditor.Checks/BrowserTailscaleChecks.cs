@@ -2,11 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Tailscale;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Tailscale;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The browser client's Tailscale pieces that run headlessly: manifest and cache versioning, the lazy-download state
@@ -20,7 +20,7 @@ internal static class BrowserTailscaleChecks
         if (!condition) throw new InvalidOperationException(message);
     }
 
-    private const string ManifestJson = """{"version":"1.104.1","build":"1.104.1-abc","module":"tailscale/1.104.1-abc/sharprail-tailscale.wasm","exec":"tailscale/1.104.1-abc/wasm_exec.js","size":1000,"transferSize":4696811}""";
+    private const string ManifestJson = """{"version":"1.104.1","build":"1.104.1-abc","module":"tailscale/1.104.1-abc/tereditor-tailscale.wasm","exec":"tailscale/1.104.1-abc/wasm_exec.js","size":1000,"transferSize":4696811}""";
 
     internal static async Task Run()
     {
@@ -33,13 +33,13 @@ internal static class BrowserTailscaleChecks
     private static void Manifest()
     {
         var manifest = TailscaleWasmManifest.Parse(ManifestJson);
-        Require(manifest.CacheName == "sharprail-tailscale-1.104.1-abc", "Each build has its own Cache Storage name.");
+        Require(manifest.CacheName == "tereditor-tailscale-1.104.1-abc", "Each build has its own Cache Storage name.");
         Require(manifest.TransferLabel == "~4.7 MB", "The download button names the compressed size: " + manifest.TransferLabel);
-        var stale = manifest.Stale(["sharprail-tailscale-1.104.1-abc", "sharprail-tailscale-1.102.0-old", "other-app", "sharprail-tailscale-1.104.1-def"]);
-        Require(stale.SequenceEqual(["sharprail-tailscale-1.102.0-old", "sharprail-tailscale-1.104.1-def"]), "Only other builds of this cache are stale; foreign caches are kept.");
+        var stale = manifest.Stale(["tereditor-tailscale-1.104.1-abc", "tereditor-tailscale-1.102.0-old", "other-app", "tereditor-tailscale-1.104.1-def"]);
+        Require(stale.SequenceEqual(["tereditor-tailscale-1.102.0-old", "tereditor-tailscale-1.104.1-def"]), "Only other builds of this cache are stale; foreign caches are kept.");
         foreach (var bad in new[]
         {
-            ManifestJson.Replace("tailscale/1.104.1-abc/sharprail", "https://evil.example/sharprail", StringComparison.Ordinal),
+            ManifestJson.Replace("tailscale/1.104.1-abc/tereditor", "https://evil.example/tereditor", StringComparison.Ordinal),
             ManifestJson.Replace("tailscale/1.104.1-abc/wasm_exec", "tailscale/../wasm_exec", StringComparison.Ordinal),
             ManifestJson.Replace("\"size\":1000", "\"size\":0", StringComparison.Ordinal),
             ManifestJson.Replace("1.104.1-abc\",\"module", "a/b\",\"module", StringComparison.Ordinal),
@@ -54,7 +54,7 @@ internal static class BrowserTailscaleChecks
 
     private sealed class FakeStore : ITailscaleWasmStore
     {
-        internal readonly HashSet<string> Caches = ["sharprail-tailscale-1.0.0-old", "unrelated"];
+        internal readonly HashSet<string> Caches = ["tereditor-tailscale-1.0.0-old", "unrelated"];
         internal string? FailManifest;
         internal string? FailDownload;
         internal TaskCompletionSource? Gate;
@@ -93,19 +93,19 @@ internal static class BrowserTailscaleChecks
         Require(module.State == TailscaleWasmState.Downloading && module.Progress == 0.25, "Progress reports decoded module bytes against the manifest size.");
         module.Cancel();
         await running;
-        Require(module.State == TailscaleWasmState.NotDownloaded && module.Downloaded == 0 && !store.Caches.Contains("sharprail-tailscale-1.104.1-abc"),
+        Require(module.State == TailscaleWasmState.NotDownloaded && module.Downloaded == 0 && !store.Caches.Contains("tereditor-tailscale-1.104.1-abc"),
             "Cancelling returns to the offer and caches nothing.");
 
         store.Gate = null;
         store.FailDownload = "connection reset";
         await module.DownloadAsync();
-        Require(module.State == TailscaleWasmState.Failed && module.Error!.Contains("connection reset", StringComparison.Ordinal) && store.Caches.Contains("sharprail-tailscale-1.0.0-old"),
+        Require(module.State == TailscaleWasmState.Failed && module.Error!.Contains("connection reset", StringComparison.Ordinal) && store.Caches.Contains("tereditor-tailscale-1.0.0-old"),
             "A failed download reports why and keeps older caches.");
 
         store.FailDownload = null;
         await module.DownloadAsync();
         Require(module.State == TailscaleWasmState.Cached && module.Progress == 1, "Retrying after a failure downloads and caches.");
-        Require(!store.Caches.Contains("sharprail-tailscale-1.0.0-old") && store.Caches.Contains("unrelated"), "Caching a build deletes older builds' caches only.");
+        Require(!store.Caches.Contains("tereditor-tailscale-1.0.0-old") && store.Caches.Contains("unrelated"), "Caching a build deletes older builds' caches only.");
 
         var revisit = new TailscaleWasmModule(store);
         await revisit.CheckAsync(CancellationToken.None);
@@ -147,10 +147,10 @@ internal static class BrowserTailscaleChecks
         }
         using (var http = new HttpClient(new StreamHttpHandler(Dial)) { BaseAddress = new Uri($"http://127.0.0.1:{bootstrapPort}/") })
         {
-            var discovery = await http.GetStringAsync("sharprail", token);
+            var discovery = await http.GetStringAsync("tereditor", token);
             Require(discovery.Contains("fixture.tailnet.ts.net", StringComparison.Ordinal), "Discovery answers over a dialed stream.");
-            using var request = new HttpRequestMessage(HttpMethod.Post, "sharprail/pair");
-            request.Headers.Add("X-SharpRail-Pairing", pairingToken);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "tereditor/pair");
+            request.Headers.Add("X-tereditor-Pairing", pairingToken);
             using var response = await http.SendAsync(request, token);
             var reply = await response.Content.ReadFromJsonAsync<TailscalePairReply>(PluginJson.Options, token);
             Require(reply is { State: "approved" } && reply.Address == endpoint.ToString(), "Pairing over a dialed stream returns the approved endpoint.");

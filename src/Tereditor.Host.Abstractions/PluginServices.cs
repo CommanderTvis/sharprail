@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 // A payload is the typed value in process and a JsonElement after the wire; PluginJson.Convert reads either.
 // ClientKey names one app instance connected to the host, so a publish can be addressed back to it.

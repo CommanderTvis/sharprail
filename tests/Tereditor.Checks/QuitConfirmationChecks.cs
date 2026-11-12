@@ -1,6 +1,6 @@
-using SharpRail.UI;
+using Tereditor.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Translations of upstream's quitConfirmation.test.ts against a fake clock and scheduler.</summary>
 internal static class QuitConfirmationChecks

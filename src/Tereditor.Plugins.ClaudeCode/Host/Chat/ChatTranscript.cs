@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>Reads a session's transcript JSONL, and its subagents' files beside it, back into a <see cref="ChatFolder"/>.</summary>
 internal static class ChatTranscript

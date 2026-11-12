@@ -13,8 +13,8 @@ return Guard(() =>
     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
     var arch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x86_64";
     Check("clang", ["-dynamiclib", "-arch", arch, "-fobjc-arc", "-mmacosx-version-min=13.0", "-O2", "-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter",
-        "src/SharpRail.UI/Native/Notifications.m", "-framework", "AppKit", "-framework", "Foundation", "-framework", "UserNotifications",
-        "-install_name", "@rpath/libSharpRailNotifications.dylib", "-o", output + ".partial"], Root);
+        "src/Tereditor.UI/Native/Notifications.m", "-framework", "AppKit", "-framework", "Foundation", "-framework", "UserNotifications",
+        "-install_name", "@rpath/libTereditorNotifications.dylib", "-o", output + ".partial"], Root);
     File.Move(output + ".partial", output, true);
     return 0;
 });

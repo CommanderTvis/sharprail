@@ -14,17 +14,17 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Translates the fork's e2e/plugins/visualize/visualize.spec.ts terminal scenario. The fork drives the terminal's
 // MCP address with curl; the remote case uses the HTTP address emitted by its real host PTY. The local case
@@ -127,7 +127,7 @@ internal static class VisualizeE2E
             "A tab without a visualization has no strip and no gap above its surface.");
         // The tool draws a live view keyed to this very terminal: an embedded pane in the terminal's own body, not a tab.
         var drawn = Call("""{"type":"diagram","title":"Wired graph","mermaid":"graph TD;A-->B;"}""");
-        Require(drawn.Contains("Rendered \"Wired graph\" in SharpRail (revision 1)", StringComparison.Ordinal), "The tool reports the drawing: " + drawn);
+        Require(drawn.Contains("Rendered \"Wired graph\" in tereditor (revision 1)", StringComparison.Ordinal), "The tool reports the drawing: " + drawn);
         Until(() => Pane() is { IsEffectivelyVisible: true } pane && Has(pane, "VisualizationPane"));
         var pane = Pane()!;
         Require(TerminalsE2E.TerminalTabs(app).Length == terminals, "The pane must not cost the terminal its tab.");
@@ -137,7 +137,7 @@ internal static class VisualizeE2E
         var stripTop = strip.TranslatePoint(new Point(0, 0), terminal);
         var surface = terminal.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalBody");
         Require(stripTop is { } origin && Math.Abs(origin.X) < 0.5 && Math.Abs(origin.Y) < 0.5 && Math.Abs(strip.Bounds.Width - terminal.Bounds.Width) < 0.5 &&
-            Math.Abs(strip.Bounds.Height - SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && strip.BorderThickness.Bottom == 1 && Equals(strip.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.BorderBrush) &&
+            Math.Abs(strip.Bounds.Height - Tereditor.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip) < 0.5 && strip.BorderThickness.Bottom == 1 && Equals(strip.BorderBrush, Tereditor.Plugins.UI.Kit.Ui.BorderBrush) &&
             Math.Abs(surface.Bounds.Top - strip.Bounds.Height) < 0.5,
             $"The strip is the tab's top row, full width, one slim row high with a divider below: {stripTop}, {strip.Bounds}, surface at {surface.Bounds.Top}.");
         var filesGroup = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
@@ -244,7 +244,7 @@ internal static class VisualizeE2E
         {
             // At 680 the splitter sits on the terminal's left edge, under the dock's own resize handle, so the way back is the saved-width setter.
             if (size > 640) ResizeCompanion(companion.Bounds.Width - size);
-            else { ((SharpRail.UI.Terminal.TerminalView)terminal).CompanionWidth = size; Settle(); }
+            else { ((Tereditor.UI.Terminal.TerminalView)terminal).CompanionWidth = size; Settle(); }
             Require(options.Columns == (options.Bounds.Width >= 640 ? 2 : 1) && (size > 640) == (options.Columns == 2),
                 $"Comparison columns follow the pane width: pane {size}, options {options.Bounds.Width}, columns {options.Columns}");
         }
@@ -290,8 +290,8 @@ internal static class VisualizeE2E
         var selections = new List<EditorSelectionEvent>();
         using var selectionEvents = app.Workbench.PluginLoader.Editors.On(change => { if (change is EditorSelectionEvent selected) selections.Add(selected); });
         Call(JsonSerializer.Serialize(new { type = "markdown", title = "Notes", markdown = Notes }));
-        Until(() => Pane() is { } markdownPane && markdownPane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
-        var preview = Pane()!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
+        Until(() => Pane() is { } markdownPane && markdownPane.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
+        var preview = Pane()!.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
         var first = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(block => (block.Inlines?.Text ?? block.Text ?? "").StartsWith("First paragraph", StringComparison.Ordinal));
         first.SelectAll();
         Named(Pane()!, "VisualizationPane").RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.A });
@@ -315,7 +315,7 @@ internal static class VisualizeE2E
             window.ShowSettings("Plugins");
             Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
-            var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("visualize")!;
+            var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("visualize")!;
             row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
             Until(() => app.Workbench.PluginLoader.Registry.Active.Contains("visualize") == enabled);
             settings.Close();

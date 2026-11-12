@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Blueprint;
+namespace Tereditor.Plugins.Blueprint;
 
 public sealed record BlueprintScope(string WorkspaceId);
 public sealed record BlueprintOpen(string WorkspaceId, BlueprintSource Source, BlueprintAgentId AgentId);
@@ -35,8 +35,8 @@ public static class BlueprintContract
         EnabledByDefault = false,
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("spec-dialect", 1)],
-        Host = "SharpRail.Plugins.Blueprint.Host.dll",
-        Ui = "SharpRail.Plugins.Blueprint.UI.dll",
+        Host = "Tereditor.Plugins.Blueprint.Host.dll",
+        Ui = "Tereditor.Plugins.Blueprint.UI.dll",
         Contributes = new() { FileViewers = [new() { Names = [File], Read = PluginFileRead.None }] }
     };
 }

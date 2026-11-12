@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Acp.UI.AcpSettingsView" x:ClassModifier="internal"
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Acp.UI.AcpSettingsView" x:ClassModifier="internal"
             Name="SettingsAcp" Spacing="16">
   <StackPanel.Styles>
     <Style Selector="TextBlock">
@@ -24,7 +24,7 @@
         <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
       </Border>
     </StackPanel>
-    <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only use agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
+    <TextBlock Classes="detail" Text="Chat with any ACP agent in tereditor's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only use agents you trust. Sign-in happens in the agent's own tool; tereditor never asks for credentials." />
   </StackPanel>
   <TextBlock x:Name="AcpDefaultNote" Classes="detail" IsVisible="False" />
   <Border x:Name="AcpListHost" />

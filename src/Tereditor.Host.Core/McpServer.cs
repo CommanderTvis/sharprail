@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>A minimal, stateless Model Context Protocol server over single JSON-RPC requests, serving agents in a
 /// terminal exactly the tools its caller hands it. A tool failure is an <c>isError</c> result, never a protocol error.</summary>
@@ -9,7 +9,7 @@ public static class McpServer
     private const string LatestProtocol = "2025-06-18";
     private static readonly HashSet<string> KnownProtocols = ["2024-11-05", "2025-03-26", LatestProtocol];
     private const string Instructions =
-        "SharpRail's workspace tools and enabled plugins' project tools for the workspace this session runs in. Use those relevant to the task and the project's workflow. set_title titles this terminal once the task is clear; workspace_delete removes a finished workspace you created.";
+        "tereditor's workspace tools and enabled plugins' project tools for the workspace this session runs in. Use those relevant to the task and the project's workflow. set_title titles this terminal once the task is clear; workspace_delete removes a finished workspace you created.";
 
     /// <summary>A host or active plugin tool on the table; it validates its own arguments.</summary>
     public sealed record McpTool(string Name, string Title, string Description, JsonObject InputSchema, Func<JsonObject, CancellationToken, Task<(string Text, bool Error)>> Call);
@@ -30,7 +30,7 @@ public static class McpServer
                 {
                     ["protocolVersion"] = requested is not null && KnownProtocols.Contains(requested) ? requested : LatestProtocol,
                     ["capabilities"] = new JsonObject { ["tools"] = new JsonObject { ["listChanged"] = false } },
-                    ["serverInfo"] = new JsonObject { ["name"] = "sharprail", ["version"] = "1" },
+                    ["serverInfo"] = new JsonObject { ["name"] = "tereditor", ["version"] = "1" },
                     ["instructions"] = instructions ?? Instructions
                 });
             case "ping":

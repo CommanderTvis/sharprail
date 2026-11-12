@@ -1,5 +1,5 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>Gap buffer (upstream src/SplitVector.h): efficient insertion and deletion near a movable gap.</summary>
 /// <remarks>Out-of-range reads through <see cref="ValueAt"/> return <c>default</c>; out-of-range edits are ignored, as upstream.</remarks>

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Discord.Host;
+namespace Tereditor.Plugins.Discord.Host;
 
 /// <summary>The one decision of what may reach Discord: publish an activity, clear it, or stay silent.</summary>
 internal abstract record PresenceDecision

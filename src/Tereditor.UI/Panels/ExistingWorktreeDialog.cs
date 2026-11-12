@@ -2,10 +2,10 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>Chooses one of the project's worktrees that no workspace represents yet and attaches it in place.</summary>
 public sealed class ExistingWorktreeDialog
@@ -17,7 +17,7 @@ public sealed class ExistingWorktreeDialog
     private int request;
     private bool opening;
 
-    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
+    public Tereditor.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public ExistingWorktreeDialog(Func<Task<IReadOnlyList<ExistingWorktree>>> list, Func<string, Task<WorkspaceRecord>> attach)
     {
@@ -25,7 +25,7 @@ public sealed class ExistingWorktreeDialog
         Window = Dialogs.Create("Open existing worktree", 560);
         Window.Tag = "ExistingWorktreeDialog";
         var description = Window.FindControl<TextBlock>("DialogExplanation")!;
-        description.Text = "Choose a checkout already registered with this Git repository. SharpRail will use it in place without moving, renaming, or taking ownership of it.";
+        description.Text = "Choose a checkout already registered with this Git repository. tereditor will use it in place without moving, renaming, or taking ownership of it.";
         description.IsVisible = true;
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
         fields.Children.Add(new ScrollViewer { Content = rows, MaxHeight = 320, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });

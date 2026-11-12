@@ -1,13 +1,13 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+using Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>
 /// The <c>--permission-mode</c> choices of the CLI this host runs, read once per executable from <c>claude --help</c>
-/// and kept for the process; a CLI whose help names none gets SharpRail's fallback list.
+/// and kept for the process; a CLI whose help names none gets tereditor's fallback list.
 /// </summary>
 internal sealed class PermissionModeProbe
 {

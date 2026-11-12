@@ -2,7 +2,7 @@ using System.Net.Sockets;
 using System.Runtime.Versioning;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.Codex.Host.IdeBridge;
+namespace Tereditor.Plugins.Codex.Host.IdeBridge;
 
 /// <summary>
 /// Joins the Codex router at a socket path, or becomes it when none is listening, and keeps reconnecting (one timer)

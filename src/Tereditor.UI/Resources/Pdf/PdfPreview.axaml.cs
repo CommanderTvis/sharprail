@@ -10,10 +10,10 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.UI.Resources.Pdf;
+namespace Tereditor.UI.Resources.Pdf;
 
 /// <summary>
 /// A PDF file's pages, rasterized by PDFium at the zoom they are shown at so text stays sharp, with a selectable text

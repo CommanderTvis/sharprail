@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Sockets;
 
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Sits between a client and a real WebSocket RPC host so a check can cut the connection, or hold new
 // connections back, while the host and its sessions keep running.
@@ -90,7 +90,7 @@ internal sealed class TcpProxy : IAsyncDisposable
 }
 
 // Faults the reply to a terminal attach, as a connection lost or slowed right after the host answered.
-internal sealed class AttachFaults : SharpRail.Host.Client.ITerminalRpcInterceptor
+internal sealed class AttachFaults : Tereditor.Host.Client.ITerminalRpcInterceptor
 {
     private int calls;
     internal int Calls => Volatile.Read(ref calls);

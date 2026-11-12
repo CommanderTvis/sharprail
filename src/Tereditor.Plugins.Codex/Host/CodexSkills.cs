@@ -2,13 +2,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
-/// SharpRail's workflow skills for Codex, which discovers a user's skills as <c>$CODEX_HOME/skills/&lt;name&gt;/SKILL.md</c>.
-/// Activation copies the shipped ones there and disabling takes them away again. One stamp file in SharpRail's state
-/// directory holds the SHA-256 of each text SharpRail last wrote: a file still matching its stamp is SharpRail's to
-/// refresh or remove, an edited one is the user's, and a skill of the same name SharpRail never wrote is left alone.
+/// tereditor's workflow skills for Codex, which discovers a user's skills as <c>$CODEX_HOME/skills/&lt;name&gt;/SKILL.md</c>.
+/// Activation copies the shipped ones there and disabling takes them away again. One stamp file in tereditor's state
+/// directory holds the SHA-256 of each text tereditor last wrote: a file still matching its stamp is tereditor's to
+/// refresh or remove, an edited one is the user's, and a skill of the same name tereditor never wrote is left alone.
 /// </summary>
 public static class CodexSkills
 {
@@ -18,7 +18,7 @@ public static class CodexSkills
     public static string ShippedRoot(string? assetsDirectory) =>
         Path.Combine(assetsDirectory ?? Path.Combine(AppContext.BaseDirectory, "plugins", CodexManifest.Id, "assets"), "skills");
 
-    private static string StampsPath() => Path.Combine(CodexSystemPrompt.StateDirectory(), CodexManifest.Id, "skills.sharprail-default");
+    private static string StampsPath() => Path.Combine(CodexSystemPrompt.StateDirectory(), CodexManifest.Id, "skills.tereditor-default");
 
     private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
@@ -43,7 +43,7 @@ public static class CodexSkills
 
     private static string? Read(string relative) => File.Exists(Installed(relative)) ? File.ReadAllText(Installed(relative)) : null;
 
-    // Takes the file away while it is still the text SharpRail wrote, with the directories that leaves empty.
+    // Takes the file away while it is still the text tereditor wrote, with the directories that leaves empty.
     private static void Forget(string relative, Dictionary<string, string> stamps)
     {
         var current = Read(relative);
@@ -63,7 +63,7 @@ public static class CodexSkills
         var shipped = Directory.EnumerateFiles(shippedRoot, "*", SearchOption.AllDirectories)
             .ToDictionary(file => Path.GetRelativePath(shippedRoot, file).Replace(Path.DirectorySeparatorChar, '/'), File.ReadAllText);
         var stamps = ReadStamps();
-        // An edited file SharpRail no longer ships stays, and stops being tracked.
+        // An edited file tereditor no longer ships stays, and stops being tracked.
         foreach (var dropped in stamps.Keys.Except(shipped.Keys).ToArray())
         {
             Forget(dropped, stamps);
@@ -90,7 +90,7 @@ public static class CodexSkills
         WriteStamps(stamps);
     }
 
-    /// <summary>Removes the files SharpRail installed; an edited one stays, still known as SharpRail's skill with the user's text.</summary>
+    /// <summary>Removes the files tereditor installed; an edited one stays, still known as tereditor's skill with the user's text.</summary>
     public static void Remove()
     {
         var stamps = ReadStamps();

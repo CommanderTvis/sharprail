@@ -26,14 +26,14 @@ The UI owns grammar semantics; Core validates the bounded transport/persistence 
 
 The transport-independent contract between the workbench and a host: service interfaces and the domain
 records they exchange. The UI programs only against these types, so an embedded host and a remote one are
-interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, implementations in
-`SharpRail.Host.Core`, adapters in `SharpRail.Host.Client` and `SharpRail.Host.Remote`.
+interchangeable adapter choices. Wire DTOs live in `Tereditor.Host.Protocol`, implementations in
+`Tereditor.Host.Core`, adapters in `Tereditor.Host.Client` and `Tereditor.Host.Remote`.
 
 ## Boundary
 
 - Owns the service contracts and domain records for workspace identity, project operations,
   shared state, workspace lifecycle, terminal sessions and catalogs, and agreed file limits.
-- Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
+- Allowed deps: the .NET base library and `Tereditor.Plugins.Api`, whose roster, agent-record and project
   records `HostState` and `IPluginService` share with plugins rather than mirror.
 - Forbidden: serialization attributes, WebSocket RPC, Avalonia, filesystem or process access, and any AI or agent
   behaviour. A terminal's agent record is data a plugin writes; the host only stores and broadcasts it.
@@ -47,11 +47,11 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   detection/launch. Every call is
   cancellable. Paths are workspace-relative.
 - `ImportFilesAsync` carries a pinned workspace, a destination folder (null for private prompt attachments)
-  and relative file/directory entries; it returns absolute host paths. See [host files](../SharpRail.Host.Core/Files.SPEC.md).
+  and relative file/directory entries; it returns absolute host paths. See [host files](../Tereditor.Host.Core/Files.SPEC.md).
   `FileAction.WorkspaceRoot` optionally pins a move/copy to its originating workspace.
 - `ListHostDirectoryAsync` is the read-only exception to workspace-relative paths: it lists any absolute
   host directory (or `~`) with its parent and the host home, since protocol 11
-  (`HostProtocol.HostDirectoryBrowse`). See [host files](../SharpRail.Host.Core/Files.SPEC.md#host-folder-listing).
+  (`HostProtocol.HostDirectoryBrowse`). See [host files](../Tereditor.Host.Core/Files.SPEC.md#host-folder-listing).
 - `ListWorkspacesAsync` and `ApplyWorkspaceActionAsync` name their project or workspace explicitly rather
   than using the session's root, so a client can list and change any open project's workspaces. Kinds are
   `default`, `managed` and `external`; a record's id never changes. Results also reach every client
@@ -104,15 +104,15 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   retry, the generic plugin call and channel subscription, and reads of a plugin's assets. Payloads
   are typed objects in process and JSON elements after the wire; plugin settings namespaces and extra plugin
   roots are host state, changed through `HostStateChange.PluginSettings`/`PluginEnabled`/`PluginPaths`. See
-  `src/SharpRail.Plugins.Api/SPEC.md`.
+  `src/Tereditor.Plugins.Api/SPEC.md`.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
 - `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
   implementation simply offers no badge.
-- `IProjectServices.GetSharprailDirectoryAsync`/`ExcludeSharprailDirectoryAsync` (protocol 9,
-  `HostProtocol.SharprailExclude`) answer a `SharprailDirectoryStatus`; the first defaults to an absent
-  directory. `HostState.SharprailExcludeDeclined` lists the project roots whose user chose to keep an
-  untracked `.sharprail` in the repository (`HostStateChange.DeclineSharprailExclude`), so no client asks again.
+- `IProjectServices.GetTereditorDirectoryAsync`/`ExcludeTereditorDirectoryAsync` (protocol 9,
+  `HostProtocol.TereditorExclude`) answer a `TereditorDirectoryStatus`; the first defaults to an absent
+  directory. `HostState.TereditorExcludeDeclined` lists the project roots whose user chose to keep an
+  untracked `.tereditor` in the repository (`HostStateChange.DeclineTereditorExclude`), so no client asks again.
 
 ## API validation
 
@@ -128,7 +128,7 @@ second list of declarations.
 - One definition per concept: a diff scope is a string understood identically by status, commit listing
   and diff reads (`all`, `uncommitted`, `staged`, `commit`, `pinned`, plus `branch` and `working` for diff reads).
 - A record added here gets a Protocol DTO and both adapters in the same change, with local/remote
-  parity verified in `tests/SharpRail.Checks`.
+  parity verified in `tests/Tereditor.Checks`.
 - Size limits that both sides must agree on (`FileLimits`) are defined once here.
 
 ## Not yet ported
@@ -205,9 +205,9 @@ that distinction and do not infer package ownership or complete imports from eit
 
 Language results advertise full semantic-color capability through SemanticColoring. Tokens preserve space-separated modifier names from the server legend; empty defaults keep providers without semantic tokens compatible. The editor can distinguish lexical-only and semantic-capable running providers without retrieving tokens first.
 
-Air Context is a builtin plugin ([module](../SharpRail.Plugins.AirContext/SPEC.md)): its consent, workspace operations, enabled-workspace list and
+Air Context is a builtin plugin ([module](../Tereditor.Plugins.AirContext/SPEC.md)): its consent, workspace operations, enabled-workspace list and
 visibility left the typed project services and the host state at protocol 8 (`HostProtocol.AirContextPlugin`). The plugin ships disabled; opening a state file that still carries the old keys migrates them once (hidden disables it, a profile that used it enables it).
 
-Project language-server autostart choices belong to host state; [language services](../SharpRail.Host.Core/Language/SPEC.md) define their scope and launch behavior.
+Project language-server autostart choices belong to host state; [language services](../Tereditor.Host.Core/Language/SPEC.md) define their scope and launch behavior.
 
 - Protocol 15 (`HostProtocol.NeutralPullRequest`): `BranchStatus.Provider` is the owning repo hosting plugin's id (empty for a plain remote) and `BranchStatus.Review` the neutral `PullRequest` (state `open`/`merged`/`closed`, checks, review, mergeability, merge methods, same repository, unpushed and behind); `PrResult.Problem` replaces `GhProblem`; `GetOpenReviewAsync` and `GetGitHubAuthenticationAsync` are gone. A client below 15 reads no review; sign-in status is the GitHub plugin's `signIn` method.

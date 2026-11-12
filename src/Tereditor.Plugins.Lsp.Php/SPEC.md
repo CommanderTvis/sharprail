@@ -16,6 +16,6 @@ The plugin id is `lsp-php`; it ships enabled. Its host half is a `LanguageServer
 the catalog, its sessions stop and its saved settings are kept. Implementation: Intelephense · Ben Mewburn.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
-It keeps Intelephense's workspace and global storage in SharpRail's per-workspace state and per-version cache unless the user set them.
+It keeps Intelephense's workspace and global storage in tereditor's per-workspace state and per-version cache unless the user set them.

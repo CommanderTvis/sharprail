@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Last recorded screens of terminal sessions, one file per session id, so a restarted host can show them again.
 // Everything is best effort: a failed or corrupt file loses a picture, never a session.

@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Epub.UI;
+namespace Tereditor.Plugins.Epub.UI;
 
 /// <summary>Registers the book viewer for the <c>.epub</c> files the manifest claims.</summary>
 public sealed class EpubUI : PluginUIModule

@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Plugins;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Plugins;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// A named place in one of core's pages (W23): the sections active plugins contribute to it, each under a rule. It
@@ -52,7 +52,7 @@ internal sealed class PluginSlot : StackPanel
             Children.Add(new Border
             {
                 Name = "PluginSlotSection_" + row.PluginId,
-                BorderBrush = SharpRail.Plugins.UI.Kit.Ui.BorderBrush,
+                BorderBrush = Tereditor.Plugins.UI.Kit.Ui.BorderBrush,
                 BorderThickness = new(0, 1, 0, 0),
                 Margin = new(0, 16, 0, 0),
                 Padding = new(0, 16, 0, 0),

@@ -4,7 +4,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.RepresentationModel;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>An indexed spec: its path and frontmatter fields. The text stays on disk; grep and edits read it when they run.</summary>
 internal sealed record SpecFile(string Path, SpecFields Frontmatter)

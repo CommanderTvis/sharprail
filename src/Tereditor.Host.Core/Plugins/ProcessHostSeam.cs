@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>What the page lends the Processes plugin where there is no process table: the usage of the Web Workers its language servers run in.</summary>
 public static class ProcessLinks

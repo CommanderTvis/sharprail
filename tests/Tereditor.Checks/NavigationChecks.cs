@@ -8,13 +8,13 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class NavigationChecks
 {
@@ -108,7 +108,7 @@ internal static class NavigationChecks
         var flyout = (Flyout)overflow.Flyout!;
         var content = (Control)flyout.Content!;
         var popup = TopLevel.GetTopLevel(content)!;
-        Require(flyout.IsOpen && SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0 && content.Bounds.Width == 288,
+        Require(flyout.IsOpen && Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 0 && content.Bounds.Width == 288,
             "Tab search must be an anchored dropdown rather than an owned dialog.");
         var search = content.GetLogicalDescendants().OfType<TextBox>().Single(item => item.Name == "TabOverflowSearch");
         var placeholder = search.GetVisualDescendants().OfType<TextBlock>().Single(item => item.IsVisible && item.Text == "Find an open tab…");
@@ -122,7 +122,7 @@ internal static class NavigationChecks
         var presenter = selectedRow.GetVisualDescendants().OfType<ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
         Require(presenter.Background is SolidColorBrush background && background.Color == Ui.Hover.Color,
             "The dropdown selected row must use the reference's muted background.");
-        Require(results.ItemCount == 1 && (results.SelectedItem as SharpRail.UI.Docking.DockTab)?.Id == selected.Id,
+        Require(results.ItemCount == 1 && (results.SelectedItem as Tereditor.UI.Docking.DockTab)?.Id == selected.Id,
             $"Overflow filter mismatch: {results.ItemCount} results, selected {results.SelectedItem}.");
         popup.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
         popup.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();

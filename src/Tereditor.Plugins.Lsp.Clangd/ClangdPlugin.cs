@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp.Clangd;
+namespace Tereditor.Plugins.Lsp.Clangd;
 
 /// <summary>The C / C++ (clangd) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Clangd.dll"
+        Host = "Tereditor.Plugins.Lsp.Clangd.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

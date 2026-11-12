@@ -1,8 +1,8 @@
 using System.Globalization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Processes.Host;
+namespace Tereditor.Plugins.Processes.Host;
 
 /// <summary>A terminal as the model sees it: its shell, the agent the roster records for it (null for none) and its tab label and the title the tab shows (null for none).</summary>
 internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string? AgentKind, string Tab, string? Title = null, string? Memory = null);

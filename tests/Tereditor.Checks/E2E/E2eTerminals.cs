@@ -5,11 +5,11 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Headless terminal tabs run real host PTY sessions; Ghostty needs a native window. Sessions belong to
 // the host, as in the app, so windows of one E2E app share an instance and reattach to its sessions.
@@ -99,7 +99,7 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
     }
 }
 
-internal sealed partial class HostTerminal : ITerminalBackend, SharpRail.UI.Terminal.ITerminalOutput
+internal sealed partial class HostTerminal : ITerminalBackend, Tereditor.UI.Terminal.ITerminalOutput
 {
     public event Action? Output;
     private readonly ITerminalService service;

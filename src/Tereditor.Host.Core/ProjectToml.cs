@@ -7,10 +7,10 @@ using Tomlyn.Model;
 using Tomlyn.Serialization;
 using Tomlyn.Syntax;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
-/// The small TOML toolkit behind the project's <c>.sharprail</c> files (<c>workspace.toml</c>, <c>language.toml</c>, <c>instructions.toml</c>): a
+/// The small TOML toolkit behind the project's <c>.tereditor</c> files (<c>workspace.toml</c>, <c>language.toml</c>, <c>instructions.toml</c>): a
 /// tolerant parse into JSON nodes (unknown keys stay, callers read only what they know), the shared size limit, helpers for
 /// editing the syntax tree so comments and layout survive, and an atomic replace.
 /// </summary>

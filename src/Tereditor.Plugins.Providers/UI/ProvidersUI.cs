@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Providers.UI;
+namespace Tereditor.Plugins.Providers.UI;
 
 /// <summary>The Model providers plugin's UI half: one Settings page for the providers of Pi and omp.</summary>
 public sealed class ProvidersUI : PluginUIModule

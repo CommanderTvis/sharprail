@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>The spec dialect's host half: the per-workspace graph read, its eviction on workspace removal, and the MCP spec tools.</summary>
 public sealed class SpecDialectHost : PluginHostModule

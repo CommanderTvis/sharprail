@@ -1,4 +1,4 @@
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>
 /// Ports of Scintilla 5.6.7 test/unit/test*.cxx for the managed editor (--scintilla-core). Each component owns its

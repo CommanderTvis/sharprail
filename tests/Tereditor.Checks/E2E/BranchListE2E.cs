@@ -6,15 +6,15 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-using ThemeCatalog = SharpRail.UI.Rendering.Themes;
+using ThemeCatalog = Tereditor.UI.Rendering.Themes;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class BranchListE2E
 {
@@ -202,7 +202,7 @@ internal static class BranchListE2E
             // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.
             Close(app);
             app.Click(Named<Button>(dialog, "BranchDeleteConfirm"));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is Tereditor.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
             Until(() => Git(app.Root, "branch", "--list", name).Length == 0);
         }
         var oldTip = Git(app.Root, "rev-parse", "unmerged-branch");
@@ -219,7 +219,7 @@ internal static class BranchListE2E
         // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.
         Close(app);
         app.Click(Named<Button>(confirm, "BranchDeleteConfirm"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is Tereditor.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
         Until(() => Git(app.Root, "branch", "--list", "spare-branch").Length == 0);
         Until(() => Row(list, "spare-branch") is null && Row(list, branch) is not null);
         Until(() => app.Find<Button>("ScopeBranch").Flyout is Flyout { IsOpen: true });

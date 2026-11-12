@@ -2,12 +2,12 @@ using System.Text.Json;
 
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.State;
+namespace Tereditor.UI.State;
 
 /// <summary>
 /// The app's subscription to its host's shared state. Every window of the app reads it; changes

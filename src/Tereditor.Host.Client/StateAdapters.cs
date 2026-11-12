@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>Interactive clients retry a dropped host with bounded exponential backoff.</summary>
 internal static class StateAdapterDefaults
@@ -132,7 +132,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
         UnreadWorkspaces = reply.UnreadWorkspaces.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLabels = reply.ProjectLabels.ToDictionary(label => label.Path, label => label.Label),
-        SharprailExcludeDeclined = reply.SharprailExcludeDeclined.ToArray(),
+        TereditorExcludeDeclined = reply.TereditorExcludeDeclined.ToArray(),
         WorkspaceLanguages = reply.WorkspaceLanguages.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageAutostart = reply.ProjectLanguageAutostart.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageHidden = reply.ProjectLanguageHidden.ToDictionary(entry => entry.Path, entry => entry.Reference),

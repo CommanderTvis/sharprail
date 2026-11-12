@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 /// <summary>
 /// What every terminal's programs currently show its viewers, by host session: an OSC 9;4 progress and an unseen bell.

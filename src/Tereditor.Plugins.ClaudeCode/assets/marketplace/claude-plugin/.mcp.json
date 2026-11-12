@@ -1,6 +1,6 @@
 {
 	"mcpServers": {
-		"sharprail": {
+		"tereditor": {
 			"type": "http",
 			"url": "${THINKRAIL_MCP_URL}"
 		}

@@ -3,12 +3,12 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Checks of the runner itself: case selection, lanes, the repair loop, the idle-sleep assertion and interrupt cleanup.</summary>
 internal static class RunnerChecks
 {
-    private const string FixtureCases = "SHARPRAIL_CHECKS_FIXTURE_CASES", FixtureFailure = "SHARPRAIL_CHECKS_FIXTURE_FAIL";
+    private const string FixtureCases = "TEREDITOR_CHECKS_FIXTURE_CASES", FixtureFailure = "TEREDITOR_CHECKS_FIXTURE_FAIL";
 
     private static void Require(bool value, string message)
     {
@@ -58,9 +58,9 @@ internal static class RunnerChecks
 
     private static void Packaged(string directory)
     {
-        var shipped = Path.Combine(directory, "SharpRail.app", "Contents", "MacOS");
+        var shipped = Path.Combine(directory, "tereditor.app", "Contents", "MacOS");
         var staged = Path.Combine(directory, "stage");
-        var executable = OperatingSystem.IsWindows() ? "SharpRail.UI.exe" : "SharpRail.UI";
+        var executable = OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : "Tereditor.UI";
         foreach (var folder in new[] { shipped, staged })
         {
             Directory.CreateDirectory(Path.Combine(folder, "nested"));
@@ -74,23 +74,23 @@ internal static class RunnerChecks
         void Stage(string name, string text) => File.WriteAllText(Path.Combine(staged, name), text);
         void Rejects(string message)
         {
-            try { PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity); }
+            try { PackagedApp.Verify(shipped, staged, "Tereditor.UI", Identity); }
             catch (InvalidOperationException) { return; }
             throw new InvalidOperationException(message);
         }
-        Require(PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity) == 3, "A stage holding the bundle's own files must pass.");
+        Require(PackagedApp.Verify(shipped, staged, "Tereditor.UI", Identity) == 3, "A stage holding the bundle's own files must pass.");
         var checks = Path.Combine(directory, "checks");
         Directory.CreateDirectory(checks);
-        File.WriteAllText(Path.Combine(checks, "SharpRail.Checks.dll"), "SharpRail.Checks 1.0");
+        File.WriteAllText(Path.Combine(checks, "Tereditor.Checks.dll"), "Tereditor.Checks 1.0");
         File.WriteAllText(Path.Combine(checks, "libnative.so"), "the checks' native library");
         File.WriteAllText(Path.Combine(checks, executable), "the checks' launcher");
         PackagedApp.AddCheckFiles(checks, staged);
-        Require(PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity) == 3 && File.Exists(Path.Combine(staged, "SharpRail.Checks.dll")),
+        Require(PackagedApp.Verify(shipped, staged, "Tereditor.UI", Identity) == 3 && File.Exists(Path.Combine(staged, "Tereditor.Checks.dll")),
             "Staging must add the checks' own files and keep every shipped file's bytes.");
         foreach (var (name, text, message) in new[]
         {
-            ("SharpRail.UI.dll", "SharpRail.UI 1.0", "A shipped managed assembly must fail: the app is NativeAOT."),
-            ("SharpRail.UI.runtimeconfig.json", "{}", "A shipped runtimeconfig.json must fail."),
+            ("Tereditor.UI.dll", "Tereditor.UI 1.0", "A shipped managed assembly must fail: the app is NativeAOT."),
+            ("Tereditor.UI.runtimeconfig.json", "{}", "A shipped runtimeconfig.json must fail."),
             ("libcoreclr.so", "runtime", "A shipped JIT runtime must fail."),
         })
         {

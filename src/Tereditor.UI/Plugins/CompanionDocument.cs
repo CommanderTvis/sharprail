@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The body of a plugin document that hosts companions (a chat tab): the document beside an embedded split for the open

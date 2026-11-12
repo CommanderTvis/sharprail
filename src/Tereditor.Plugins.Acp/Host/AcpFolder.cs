@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>
 /// Folds ACP <c>session/update</c> payloads into the chat's ordered, id-keyed item list. Pure state, no process and no publishing, so the

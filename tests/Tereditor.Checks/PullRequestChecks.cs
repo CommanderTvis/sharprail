@@ -3,14 +3,14 @@ using System.Net;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.GitHub.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.GitHub.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Open-PR lookup and PR opening against local bare origins and PATH shims for gh; nothing reaches a network.</summary>
 internal static class PullRequestChecks
@@ -60,7 +60,7 @@ internal static class PullRequestChecks
         """;
 
     /// <summary>The open pull request of the branch through the host's branch status.</summary>
-    private static async Task<SharpRail.Host.Abstractions.PullRequest?> OpenReview(IProjectServices host, bool fresh) =>
+    private static async Task<Tereditor.Host.Abstractions.PullRequest?> OpenReview(IProjectServices host, bool fresh) =>
         (await host.GetBranchStatusAsync(fresh))?.Review is { State: "open" } review ? review : null;
 
     private static int Calls(string shim, string text) =>
@@ -110,14 +110,14 @@ internal static class PullRequestChecks
         var config = Path.Combine(parent, "gitconfig");
         await File.WriteAllTextAsync(config, "[user]\n\tname = T\n\temail = t@example.com\n[commit]\n\tgpgsign = false\n[http]\n\tproxy = http://127.0.0.1:1\n");
 
-        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "SHARPRAIL_GH_OFFLINE", "GIT_SSH_COMMAND" }
+        var saved = new[] { "PATH", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "SHIM_DIR", "TEREDITOR_GH_OFFLINE", "GIT_SSH_COMMAND" }
             .ToDictionary(name => name, Environment.GetEnvironmentVariable);
         try
         {
             Environment.SetEnvironmentVariable("GIT_CONFIG_GLOBAL", config);
             Environment.SetEnvironmentVariable("GIT_CONFIG_NOSYSTEM", "1");
             Environment.SetEnvironmentVariable("SHIM_DIR", shim);
-            Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
+            Environment.SetEnvironmentVariable("TEREDITOR_GH_OFFLINE", null);
             Environment.SetEnvironmentVariable("GIT_SSH_COMMAND", null);
             await Plain(parent, gitOnly);
             await ProviderOff(parent, shim, gitOnly);
@@ -252,9 +252,9 @@ internal static class PullRequestChecks
 
         // The offline seam never calls gh; a missing gh is reported as missing.
         File.Delete(Path.Combine(shim, "log"));
-        Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", "1");
+        Environment.SetEnvironmentVariable("TEREDITOR_GH_OFFLINE", "1");
         Require((await host.OpenPrAsync(new("T", false, "", false))).Action == "compare" && Calls(shim, "pr") == 0, "Offline mode must not call gh.");
-        Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
+        Environment.SetEnvironmentVariable("TEREDITOR_GH_OFFLINE", null);
         var path = Environment.GetEnvironmentVariable("PATH");
         Environment.SetEnvironmentVariable("PATH", gitOnly);
         try { Require((await host.OpenPrAsync(new("T", false, "", false))).Problem == "missing", "A missing gh must be reported."); }

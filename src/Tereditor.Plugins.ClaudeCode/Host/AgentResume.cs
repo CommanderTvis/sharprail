@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>Rebuilds the command that started a Claude session so a revived terminal resumes it instead of starting over.</summary>
 internal static partial class AgentResume
@@ -26,7 +26,7 @@ internal static partial class AgentResume
         IsSessionId(sessionId) && Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} --resume {sessionId}" : null;
 
     /// <summary>
-    /// The same invocation starting a new conversation under a known id: a session SharpRail started with
+    /// The same invocation starting a new conversation under a known id: a session tereditor started with
     /// <c>--session-id</c> that never saved a transcript cannot be resumed, so its revival starts it afresh under the id
     /// the tab already records.
     /// </summary>
@@ -88,7 +88,7 @@ internal static partial class AgentResume
                     var path = candidate.Trim('\'', '"').Replace('\\', '/');
                     if (path == pluginDirectory.Replace('\\', '/') ||
                         path.EndsWith("/plugins/claude-code/assets/marketplace/claude-plugin", StringComparison.Ordinal) ||
-                        path.EndsWith("/.sharprail/claude-code/marketplace/claude-plugin", StringComparison.Ordinal))
+                        path.EndsWith("/.tereditor/claude-code/marketplace/claude-plugin", StringComparison.Ordinal))
                     { index = end; removed = true; break; }
                 }
                 if (removed) continue;

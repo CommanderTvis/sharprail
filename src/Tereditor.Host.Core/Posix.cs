@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // libc entry points used by the PTY host, the terminal relay and workspace resolution. .NET exposes no PTY API.
 internal static class Posix

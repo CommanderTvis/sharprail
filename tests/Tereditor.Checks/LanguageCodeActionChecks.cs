@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The fixture server's code-action answers (offer, resolve, edit), shared by the agent tool checks.
@@ -18,7 +18,7 @@ internal static class LanguageCodeActionChecks
         var extra = new List<object>();
         // Actions the agent checks use: an edit outside the workspace, and one with file operations.
         if (text.Contains("outside", StringComparison.Ordinal))
-            extra.Add(new { title = "Edit outside", kind = "quickfix", edit = new { changes = new Dictionary<string, object[]> { [new Uri(Path.Combine(Path.GetTempPath(), "sharprail-outside.ts")).AbsoluteUri] = [new { range = Range, newText = "x" }] } } });
+            extra.Add(new { title = "Edit outside", kind = "quickfix", edit = new { changes = new Dictionary<string, object[]> { [new Uri(Path.Combine(Path.GetTempPath(), "tereditor-outside.ts")).AbsoluteUri] = [new { range = Range, newText = "x" }] } } });
         if (text.Contains("fileops", StringComparison.Ordinal))
         {
             var folder = Path.GetDirectoryName(new Uri(uri).LocalPath)!;

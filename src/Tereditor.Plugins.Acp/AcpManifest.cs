@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Acp;
+namespace Tereditor.Plugins.Acp;
 
 public static class AcpManifest
 {
@@ -14,7 +14,7 @@ public static class AcpManifest
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Acp.Host.dll",
+        Host = "Tereditor.Plugins.Acp.Host.dll",
         Assets = "assets",
         UnavailableOn = [HostKind.PureWeb]
     };

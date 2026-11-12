@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 public sealed record SpecGrepParams([property: Description("Regex or substring to search for within spec files.")] string Pattern)
 {

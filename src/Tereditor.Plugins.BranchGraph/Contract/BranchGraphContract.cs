@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.BranchGraph;
+namespace Tereditor.Plugins.BranchGraph;
 
 /// <summary>One commit as the graph draws it: its parents are the edges, its refs the labels.</summary>
 /// <param name="Refs">Ref names pointing here, as <c>%D</c> reports them, already split.</param>
@@ -10,7 +10,7 @@ namespace SharpRail.Plugins.BranchGraph;
 public sealed record GitGraphCommit(string Sha, string ShortSha, IReadOnlyList<string> Parents, IReadOnlyList<string> Refs,
     string Subject, string Author, string CommittedAt, IReadOnlyList<string>? Branches = null);
 
-/// <summary>A worktree sitting on a commit; the workspace is absent for one SharpRail does not list.</summary>
+/// <summary>A worktree sitting on a commit; the workspace is absent for one tereditor does not list.</summary>
 public sealed record GitGraphWorktree(string Sha, string Name, string? WorkspaceId = null);
 
 /// <param name="HasMore">True when older commits follow this page.</param>
@@ -40,8 +40,8 @@ public static class BranchGraphPlugin
         Description = "Shows the project's branch graph as a side tool.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.BranchGraph.Host.dll",
-        Ui = "SharpRail.Plugins.BranchGraph.UI.dll",
+        Host = "Tereditor.Plugins.BranchGraph.Host.dll",
+        Ui = "Tereditor.Plugins.BranchGraph.UI.dll",
         Contributes = new()
         {
             SideTools = [new(Tool, "Git Graph", "git-branch", PluginToolSide.Right) { RequiresGit = true }]

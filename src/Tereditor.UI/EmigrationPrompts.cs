@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>Asks the user about each agent's pending <c>workspace_emigrate</c> request; any client's answer settles it for all.</summary>
 public sealed partial class WorkbenchWindow

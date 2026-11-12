@@ -1,53 +1,53 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
-    /// <summary>How long the offer to exclude <c>.sharprail</c> stays; it is dismissible and its action is also in the Changes row menu.</summary>
-    public TimeSpan SharprailPromptLifetime { get; set; } = TimeSpan.FromSeconds(30);
+    /// <summary>How long the offer to exclude <c>.tereditor</c> stays; it is dismissible and its action is also in the Changes row menu.</summary>
+    public TimeSpan TereditorPromptLifetime { get; set; } = TimeSpan.FromSeconds(30);
 
     // Workspaces this window has already asked about, so a refresh never raises the offer again.
-    private readonly HashSet<string> sharprailOffered = [];
+    private readonly HashSet<string> tereditorOffered = [];
 
-    private static bool IsSharprailPath(string path) => path == ".sharprail" || path.StartsWith(".sharprail/", StringComparison.Ordinal);
+    private static bool IsTereditorPath(string path) => path == ".tereditor" || path.StartsWith(".tereditor/", StringComparison.Ordinal);
 
-    private bool CanExcludeSharprail(GitChange change) =>
-        change.IndexStatus == "?" && IsSharprailPath(change.Path) && state.Supports(HostProtocol.SharprailExclude);
+    private bool CanExcludeTereditor(GitChange change) =>
+        change.IndexStatus == "?" && IsTereditorPath(change.Path) && state.Supports(HostProtocol.TereditorExclude);
 
     // The snapshot just applied already lists the directory as untracked, so no extra scan is needed to notice it;
     // the host is asked only then, and only once per workspace for a project that has not declined.
-    private void ConsiderSharprailExclude(long request, GitSnapshot snapshot)
+    private void ConsiderTereditorExclude(long request, GitSnapshot snapshot)
     {
-        if (!snapshot.IsRepository || !snapshot.Changes.Any(CanExcludeSharprail)) return;
-        if (state.Current.SharprailExcludeDeclined.Contains(projectRoot) || !sharprailOffered.Add(workspaceRoot)) return;
-        _ = OfferSharprailExcludeAsync(request);
+        if (!snapshot.IsRepository || !snapshot.Changes.Any(CanExcludeTereditor)) return;
+        if (state.Current.TereditorExcludeDeclined.Contains(projectRoot) || !tereditorOffered.Add(workspaceRoot)) return;
+        _ = OfferTereditorExcludeAsync(request);
     }
 
-    private async Task OfferSharprailExcludeAsync(long request)
+    private async Task OfferTereditorExcludeAsync(long request)
     {
         var directory = workspaceRoot;
         var project = projectRoot;
         try
         {
-            var status = await Task.Run(async () => await host.GetSharprailDirectoryAsync(lifetime.Token), lifetime.Token);
-            if (request != projectRequest || directory != workspaceRoot || !status.CanExclude || state.Current.SharprailExcludeDeclined.Contains(project)) return;
-            Toasts.Push(ToastVariant.Info, ".sharprail added to this project — add to .git/info/exclude?", duration: SharprailPromptLifetime,
-                action: new("Add to .git/info/exclude", () => _ = ExcludeSharprailAsync(request)),
-                secondary: new("Keep it in the repo", () => _ = ShareAsync(HostStateChange.DeclineSharprailExclude(project))));
+            var status = await Task.Run(async () => await host.GetTereditorDirectoryAsync(lifetime.Token), lifetime.Token);
+            if (request != projectRequest || directory != workspaceRoot || !status.CanExclude || state.Current.TereditorExcludeDeclined.Contains(project)) return;
+            Toasts.Push(ToastVariant.Info, ".tereditor added to this project — add to .git/info/exclude?", duration: TereditorPromptLifetime,
+                action: new("Add to .git/info/exclude", () => _ = ExcludeTereditorAsync(request)),
+                secondary: new("Keep it in the repo", () => _ = ShareAsync(HostStateChange.DeclineTereditorExclude(project))));
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { Console.Error.WriteLine(error); }
     }
 
-    private async Task ExcludeSharprailAsync(long request)
+    private async Task ExcludeTereditorAsync(long request)
     {
-        if (request != projectRequest || !WorkspaceMounted) { Toasts.Push(ToastVariant.Info, "The workspace changed — exclude .sharprail again from its Changes list"); return; }
+        if (request != projectRequest || !WorkspaceMounted) { Toasts.Push(ToastVariant.Info, "The workspace changed — exclude .tereditor again from its Changes list"); return; }
         try
         {
-            var status = await Task.Run(async () => await host.ExcludeSharprailDirectoryAsync(lifetime.Token), lifetime.Token);
-            if (status.Written) Toasts.Push(ToastVariant.Success, ".sharprail is excluded in .git/info/exclude");
+            var status = await Task.Run(async () => await host.ExcludeTereditorDirectoryAsync(lifetime.Token), lifetime.Token);
+            if (status.Written) Toasts.Push(ToastVariant.Success, ".tereditor is excluded in .git/info/exclude");
             else if (status.Detail.Length > 0) Toasts.Push(ToastVariant.Info, status.Detail);
         }
         catch (OperationCanceledException) { return; }

@@ -7,12 +7,12 @@ using System.Text;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// The plugin channel and the runner process (src/SharpRail.Plugins.Api/Security.SPEC.md): the frame codec; protocol
+/// The plugin channel and the runner process (src/Tereditor.Plugins.Api/Security.SPEC.md): the frame codec; protocol
 /// violations against a raw in-process end; then the real runner's <c>probe echo</c> for calls, cancellation, deadlines,
 /// handles and tombstones, stream credits, one-way order, descriptor passing, refused descriptors, kills, exit codes,
 /// reaping and what the runner inherits; and <c>probe avalonia-private</c>.
@@ -133,7 +133,7 @@ internal static class PluginChannelChecks
         using var devNull = File.OpenHandle("/dev/null");
         byte[] unfinished = [100, 0, 0, 0, 0];
 
-        var (hostEnd, runnerEnd) = SharpRail.Plugins.Isolation.Native.Unix.OpenSocketPair();
+        var (hostEnd, runnerEnd) = Tereditor.Plugins.Isolation.Native.Unix.OpenSocketPair();
         using (var host = new UnixFdTransport(new SafeFileHandle(hostEnd, true), acceptDescriptors: false))
         using (var runner = new UnixFdTransport(new SafeFileHandle(runnerEnd, true), acceptDescriptors: true))
         {
@@ -141,7 +141,7 @@ internal static class PluginChannelChecks
             Refused(host, "only the host", "The host must refuse a descriptor as it arrives, before its frame completes.");
         }
 
-        (hostEnd, runnerEnd) = SharpRail.Plugins.Isolation.Native.Unix.OpenSocketPair();
+        (hostEnd, runnerEnd) = Tereditor.Plugins.Isolation.Native.Unix.OpenSocketPair();
         using (var host = new UnixFdTransport(new SafeFileHandle(hostEnd, true), acceptDescriptors: false))
         using (var runner = new UnixFdTransport(new SafeFileHandle(runnerEnd, true), acceptDescriptors: true))
         {
@@ -209,7 +209,7 @@ internal static class PluginChannelChecks
         var shared = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
         var root = Path.GetFullPath(Path.Combine(shared, "..", "..", ".."));
         if (!Directory.Exists(Path.Combine(root, "shared", "Microsoft.NETCore.App"))) return null;
-        var program = Path.Combine(AppContext.BaseDirectory, "plugin-runner", OperatingSystem.IsWindows() ? "SharpRail.PluginRunner.exe" : "SharpRail.PluginRunner");
+        var program = Path.Combine(AppContext.BaseDirectory, "plugin-runner", OperatingSystem.IsWindows() ? "Tereditor.PluginRunner.exe" : "Tereditor.PluginRunner");
         Require(File.Exists(program), "The checks' build must place the plugin runner at " + program);
         return new(program, root);
     }
@@ -348,7 +348,7 @@ internal static class PluginChannelChecks
     }
 
     /// <summary>The member tables the runner must have been generated with: the host context's, then the UI context's.</summary>
-    internal const string TableHash = SharpRail.Plugins.Isolation.PluginHostContextMembers.Hash + "." + SharpRail.Plugins.Isolation.UI.PluginUIContextMembers.Hash;
+    internal const string TableHash = Tereditor.Plugins.Isolation.PluginHostContextMembers.Hash + "." + Tereditor.Plugins.Isolation.UI.PluginUIContextMembers.Hash;
 
     private static async Task Refusals(RunnerLaunch runner)
     {

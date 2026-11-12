@@ -4,15 +4,15 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Api;
-using SharpRail.UI;
-using SharpRail.UI.State;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Api;
+using Tereditor.UI;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>Projects groups a workspace under the terminal that created it when the preference is on, and only then.</summary>
 internal static class RailGroupingE2E
@@ -155,7 +155,7 @@ internal static class RailGroupingE2E
             var marked = name.GetVisualAncestors().OfType<MarkedRow>().First();
             var dotShown = row.GetLogicalDescendants().OfType<Border>().Single(item => item.Name == "WorkspaceUnread").IsVisible;
             // A title may take the row's width minus the icon column and the padding, which reserves the dot's column only while a dot shows.
-            Require(Math.Abs(button.Padding.Right - (dotShown ? SharpRail.UI.WorkbenchWindow.RailDotInset : 4)) < 0.01, "The row reserves the indicator column only while an indicator shows: " + path);
+            Require(Math.Abs(button.Padding.Right - (dotShown ? Tereditor.UI.WorkbenchWindow.RailDotInset : 4)) < 0.01, "The row reserves the indicator column only while an indicator shows: " + path);
             Require(name.Bounds.Left == MarkedRow.LeadingWidth + MarkedRow.Gap && name.Bounds.Width <= marked.Bounds.Width - name.Bounds.Left + 0.5, "The title starts after the icon column and stays within the row: " + path);
             var branch = row.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(text => text.Name == "WorkspaceBranch");
             if (branch is not null) foreach (var number in row.GetLogicalDescendants().OfType<StackPanel>().Single(item => item.Name == "WorkspaceDiffStats").Children.OfType<TextBlock>())

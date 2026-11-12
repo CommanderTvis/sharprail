@@ -13,28 +13,28 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.UI.Android;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.UI.Android;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// The opt-in `--headscale` mode: a real SharpRail host and a real client on two distinct tailnet nodes of a
-/// throwaway Headscale control server. Provisioned by `scripts/build-headscale-test.sh`; see tests/SharpRail.Checks/SPEC.md.
+/// The opt-in `--headscale` mode: a real tereditor host and a real client on two distinct tailnet nodes of a
+/// throwaway Headscale control server. Provisioned by `scripts/build-headscale-test.sh`; see tests/Tereditor.Checks/SPEC.md.
 /// </summary>
 internal static class HeadscaleChecks
 {
-    private const string RequireVariable = "SHARPRAIL_REQUIRE_HEADSCALE";
+    private const string RequireVariable = "TEREDITOR_REQUIRE_HEADSCALE";
     private static readonly TimeSpan Budget = TimeSpan.FromSeconds(170);
 
     internal static async Task Run(string root)
     {
         var tools = CheckRoot.SharedCache("headscale-test");
-        var library = Path.Combine(tools, OperatingSystem.IsMacOS() ? "libSharpRailTailscale.dylib" : "libSharpRailTailscale.so");
+        var library = Path.Combine(tools, OperatingSystem.IsMacOS() ? "libTereditorTailscale.dylib" : "libTereditorTailscale.so");
         var missing = new[] { "headscale", "tsforward" }.Select(name => Path.Combine(tools, name)).Append(library).Where(path => !File.Exists(path)).ToArray();
         var reason = !(OperatingSystem.IsMacOS() || OperatingSystem.IsLinux()) ? "Headscale checks run on macOS and Linux only."
             : missing.Length > 0 ? "Run `sh scripts/build-headscale-test.sh` first; missing " + string.Join(", ", missing) + "."
@@ -58,13 +58,13 @@ internal static class HeadscaleChecks
             var token = timeout.Token;
             var control = await Headscale.StartAsync(Path.Combine(tools, "headscale"), Path.Combine(fixture, "control"), processes, token);
             Stage($"headscale started at {control.Url} with config {control.Config}");
-            var hostKey = await control.PreAuthKeyAsync("sharprail-host", token);
-            var clientKey = await control.PreAuthKeyAsync("sharprail-client", token);
-            Stage("pre-auth keys created for users sharprail-host and sharprail-client");
+            var hostKey = await control.PreAuthKeyAsync("tereditor-host", token);
+            var clientKey = await control.PreAuthKeyAsync("tereditor-client", token);
+            Stage("pre-auth keys created for users tereditor-host and tereditor-client");
 
             // The host: a real Kestrel host with its pairing token, on loopback only. Its tailnet presence is a
             // separate userspace node that forwards the RPC and pairing ports to it.
-            var pairing = TailscaleClient.NewPairing("sharprail-host");
+            var pairing = TailscaleClient.NewPairing("tereditor-host");
             await using var rpc = RemoteServer.Create(root, IPAddress.Loopback, 0, pairing.Token, stateDirectory: Path.Combine(fixture, "host-state"));
             await rpc.StartAsync(token);
             var rpcPort = PortOf(rpc);
@@ -73,16 +73,16 @@ internal static class HeadscaleChecks
             var builder = WebApplication.CreateBuilder();
             builder.WebHost.UseKestrel().UseUrls("http://127.0.0.1:0");
             await using var bootstrap = builder.Build();
-            bootstrap.MapGet("/sharprail", () => Results.Json(new { name = "Headscale fixture" }));
-            bootstrap.MapPost("/sharprail/pair", (HttpContext context) =>
+            bootstrap.MapGet("/tereditor", () => Results.Json(new { name = "Headscale fixture" }));
+            bootstrap.MapPost("/tereditor/pair", (HttpContext context) =>
             {
-                Check(context.Request.Headers["X-SharpRail-Pairing"] == pairing.Token, "Pairing lost its approval credential in transit.");
+                Check(context.Request.Headers["X-tereditor-Pairing"] == pairing.Token, "Pairing lost its approval credential in transit.");
                 return Results.Json(new { state = Interlocked.Increment(ref pairRequests) == 1 ? "pending" : "approved", address = advertised });
             });
             await bootstrap.StartAsync(token);
 
             var hostNode = await Child.StartForwarderAsync(Path.Combine(tools, "tsforward"), Path.Combine(fixture, "host-node"), control.Url, hostKey,
-                "sharprail-host", [$"{rpcPort}=127.0.0.1:{rpcPort}", $"{TailscaleContract.DiscoveryPort}=127.0.0.1:{PortOf(bootstrap)}"], processes, token);
+                "tereditor-host", [$"{rpcPort}=127.0.0.1:{rpcPort}", $"{TailscaleContract.DiscoveryPort}=127.0.0.1:{PortOf(bootstrap)}"], processes, token);
             Stage($"host node {hostNode.Ip} joined");
             advertised = $"http://{hostNode.Ip}:{rpcPort}/";
 
@@ -288,7 +288,7 @@ internal static class HeadscaleChecks
                 dns:
                   magic_dns: false
                   override_local_dns: false
-                  base_domain: sharprail.test
+                  base_domain: tereditor.test
                   nameservers:
                     global: []
                 log:

@@ -13,7 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 public sealed partial class DockSurface
 {

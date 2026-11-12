@@ -3,13 +3,13 @@ using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class WelcomeE2E
 {
@@ -28,7 +28,7 @@ internal static class WelcomeE2E
         Until(() => HasWelcome(app));
         app.Window.GetLogicalDescendants().OfType<DockSurface>().Single().RefreshEmptyContents();
         Require(!app.Window.WorkspaceMounted && app.Tabs.Count == 0, "A fresh start must not mount a workspace or open center tabs.");
-        Require(WelcomeTitle(app) == "SharpRail", "The clean Welcome must show the product title.");
+        Require(WelcomeTitle(app) == "tereditor", "The clean Welcome must show the product title.");
         var cta = app.Find<Button>("WelcomeCta");
         Require(Text(cta).Contains("Open project", StringComparison.Ordinal) && !Buttons(app).Any(button => button.Name == "WelcomeAction"),
             "The clean Welcome offers only Open project.");
@@ -78,7 +78,7 @@ internal static class WelcomeE2E
         app.Click(cta.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open project")), freshGesture: false);
         Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == plain && HasWelcome(app));
         Settle(500);
-        Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !Directory.Exists(Path.Combine(plain, ".git")), "A plain folder opens without git init.");
+        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !Directory.Exists(Path.Combine(plain, ".git")), "A plain folder opens without git init.");
         Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The plain folder must join the rail.");
         Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "A plain folder must land on its Project Home.");
         Require(!Buttons(app).Any(button => button.IsEffectivelyVisible && Text(button).Contains("Create workspace", StringComparison.Ordinal)),
@@ -93,7 +93,7 @@ internal static class WelcomeE2E
         Require(Named<Avalonia.Controls.Primitives.ToggleButton>(menuDialog, "WsTargetDefault").IsChecked == true,
             "The project context menu must open the same folder-mode Start work dialog.");
         Press(menuDialog, Avalonia.Input.Key.Escape);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         app.Click(app.Find<Button>("AddWorkspace"));
         var dialog = Dialog(app, "NewWorkspaceDialog");
         Require(!Named<Avalonia.Controls.Primitives.ToggleButton>(dialog, "WsTargetWorktree").IsVisible &&
@@ -102,9 +102,9 @@ internal static class WelcomeE2E
         Require(!Named<Button>(dialog, "WsBranchPicker").IsVisible && !Named<TextBox>(dialog, "WsName").IsVisible &&
             Text(Named<Button>(dialog, "WsCreate")) == "Start", "Folder mode must offer Start without branch or name fields.");
         app.Click(Named<Button>(dialog, "WsCreate"));
-        Until(() => !app.Window.AtProjectHome && app.Window.WorkspaceRoot == plain && !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !app.Window.AtProjectHome && app.Window.WorkspaceRoot == plain && !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         app.ShowTool("projects");
-        _ = app.Workbench.State.ChangeAsync(SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true));
+        _ = app.Workbench.State.ChangeAsync(Tereditor.Host.Abstractions.HostStateChange.PluginEnabled("codex", true));
         var rail = app.Window.GetLogicalDescendants().OfType<ContentControl>()
             .Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, plain));
         Until(() => rail.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + app.Center) &&

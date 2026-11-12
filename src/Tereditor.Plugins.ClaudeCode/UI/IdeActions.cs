@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// Answers the IDE actions the host relays from a Claude CLI, with the app's editors. Always replies: a thrown error
@@ -89,7 +89,7 @@ internal sealed class IdeActions(IPluginUIContext context) : IDisposable
                 // The protocol selects from startText to endText; revealing where the range starts is what the editors offer.
                 if (await context.Editors.OpenAsync(workspaceId, path, new()
                 { Preview = parameters.Preview == true, Line = await LineOfAsync(workspaceId, path, parameters.StartText) }) is not { } file)
-                    throw new InvalidOperationException("The session's workspace is not open in a SharpRail window");
+                    throw new InvalidOperationException("The session's workspace is not open in a tereditor window");
                 Track(workspaceId, file, wasOpen);
                 return Reply(("success", true));
             case IdeActionKind.OpenDiff:

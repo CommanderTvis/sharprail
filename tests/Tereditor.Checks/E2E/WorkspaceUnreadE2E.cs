@@ -3,17 +3,17 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
-/// Upstream #770 on SharpRail's unread model (STATUS A18): an agent result in a workspace the user is not looking at
+/// Upstream #770 on tereditor's unread model (STATUS A18): an agent result in a workspace the user is not looking at
 /// leaves it unread in host state for every window; seeing it in a focused window reads it; the workspace menu marks it
 /// unread (held while shown) or read, and Mark as read keeps a waiting agent's mark.
 /// </summary>
@@ -52,7 +52,7 @@ internal static class WorkspaceUnreadE2E
         Require(entries[0].Name == "WorkspaceCopyPath" && entries[0].Header is "Copy absolute path" && entries[1].Name == "WorkspaceCopyLink" && entries[2].Name == "WorkspaceOpenIn",
             "The workspace menu opens with Copy absolute path, Copy link, then Open in.");
         var removal = entries.SingleOrDefault(item => item.Name == "WorkspaceRemove");
-        Require(removal is null || removal.Header is "Remove worktree…" or "Remove from SharpRail", "Removal is not the workspace menu's last item.");
+        Require(removal is null || removal.Header is "Remove worktree…" or "Remove from tereditor", "Removal is not the workspace menu's last item.");
         Require(entries.Where(item => item.Icon is not null).Select(item => item.Name).Order()
             .SequenceEqual(new[] { "WorkspaceCopyPath", "WorkspaceRemove" }.Where(name => entries.Any(item => item.Name == name)).Order()),
             "Only Copy absolute path and Remove worktree carry icons in the workspace menu.");
@@ -105,12 +105,12 @@ internal static class WorkspaceUnreadE2E
         Require(Within(tabRow).Contains(Within(tabDot)), "The tab dot must sit inside its tab row.");
         // Each indicator sits right after its row's title, a small constant gap away, not at the row's far edge.
         var nameRight = Within(nameBox).Right;
-        Require(Math.Abs(Within(Dot(app, other)).Left - (nameRight + SharpRail.UI.MarkedRow.Gap)) < 0.5, "The workspace dot must follow the name by the row gap: dot " + Within(Dot(app, other)) + ", name " + Within(nameBox));
+        Require(Math.Abs(Within(Dot(app, other)).Left - (nameRight + Tereditor.UI.MarkedRow.Gap)) < 0.5, "The workspace dot must follow the name by the row gap: dot " + Within(Dot(app, other)) + ", name " + Within(nameBox));
         var tabTitle = tabRow.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text is { Length: > 0 } && text.Name != "TabSubtitle");
-        var tabMark = tabDot.GetLogicalAncestors().OfType<Control>().Prepend(tabDot).First(control => control.Parent is SharpRail.UI.MarkedRow);
-        Require(Math.Abs(Within(tabMark).Left - (Within(tabTitle).Right + SharpRail.UI.MarkedRow.Gap)) < 0.5, "A tab's indicator must follow its title by the row gap: mark " + Within(tabMark) + ", title " + Within(tabTitle));
+        var tabMark = tabDot.GetLogicalAncestors().OfType<Control>().Prepend(tabDot).First(control => control.Parent is Tereditor.UI.MarkedRow);
+        Require(Math.Abs(Within(tabMark).Left - (Within(tabTitle).Right + Tereditor.UI.MarkedRow.Gap)) < 0.5, "A tab's indicator must follow its title by the row gap: mark " + Within(tabMark) + ", title " + Within(tabTitle));
         // The row's own title and the trailing controls keep their places.
-        Require(Within(Dot(app, other)).Right <= rowBounds.Right - SharpRail.UI.WorkbenchWindow.RailDotInset + 0.5, "The workspace dot must stay clear of the row's trailing area.");
+        Require(Within(Dot(app, other)).Right <= rowBounds.Right - Tereditor.UI.WorkbenchWindow.RailDotInset + 0.5, "The workspace dot must stay clear of the row's trailing area.");
         app.Window.Layout.NewTerminal(app.Center, "nested-row");
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")));
         // The row moved when the nested tab row was added: measure it again.
@@ -118,7 +118,7 @@ internal static class WorkspaceUnreadE2E
         Require(Math.Abs(Within(tabDot).Center.Y - Within(tabRow).Center.Y) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - rowBounds.Center.Y) < 1, "Each dot must be vertically centred on its own row.");
         WorkspaceTabsE2E.Switch(app, other);
         app.Window.Activate();
-        Until(() => Mark(other) is null && !app.Workbench.Signals.Failed(SharpRail.UI.Terminal.TerminalLaunch.SessionFor(other, failedTab)));
+        Until(() => Mark(other) is null && !app.Workbench.Signals.Failed(Tereditor.UI.Terminal.TerminalLaunch.SessionFor(other, failedTab)));
         Console.WriteLine("PASS a failed agent is named on its workspace row and tab row, inside their rows; seeing the workspace clears both");
     }
 }

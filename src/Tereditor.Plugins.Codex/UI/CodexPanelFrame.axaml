@@ -1,6 +1,6 @@
 <DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-           xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-           x:Class="SharpRail.Plugins.Codex.UI.CodexPanelFrame" x:ClassModifier="internal"
+           xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+           x:Class="Tereditor.Plugins.Codex.UI.CodexPanelFrame" x:ClassModifier="internal"
            Name="CodexConfig" Background="{x:Static kit:Ui.Sidebar}">
   <DockPanel.Styles>
     <Style Selector="ToggleButton">

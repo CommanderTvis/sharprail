@@ -42,11 +42,11 @@ profiles carrying a Metal preference from another platform.
   subscription, its reconnect loop and the mirroring of snapshot settings into `Preferences`.
 - Forbidden: UI controls or dialogs; writing host-owned values locally as the source of truth; persisting
   derived snapshots such as commit catalogs or file listings; project-directory state (default user state
-  lives in `~/.sharprail`; `SHARPRAIL_PROFILE` overrides it for isolated checks).
+  lives in `~/.tereditor`; `TEREDITOR_PROFILE` overrides it for isolated checks).
 
 ## Ownership split
 
-The [host state service](../../SharpRail.Host.Core/HostState.SPEC.md) holds appearance mode, the fixed
+The [host state service](../../Tereditor.Host.Core/HostState.SPEC.md) holds appearance mode, the fixed
 theme and system pair, file and Markdown line widths with their bounded switches, custom layout presets,
 workspace display labels, the open project list and recents, and workspace lifecycle.
 Tabs always live in Projects; legacy host and profile tab-mode fields are retained for
@@ -133,8 +133,8 @@ the generated resolver.
 
 Shared fields migrate once: `OpenState` seeds the local host's `state.json` from the profile's pre-host
 fields and clears them only after the state file is written, so a failed migration never loses data. A
-remote host keeps its own state in `SHARPRAIL_STATE_DIR`. The local terminal service saves recorded screens
-in the profile directory's `terminals` subdirectory, so `SHARPRAIL_PROFILE` isolates them.
+remote host keeps its own state in `TEREDITOR_STATE_DIR`. The local terminal service saves recorded screens
+in the profile directory's `terminals` subdirectory, so `TEREDITOR_PROFILE` isolates them.
 
 Plugins add two profile fields. `PluginPreferences` holds a UI half's client-local preferences under
 `<endpoint>|plugin:<id>:<key>`, so two hosts' plugins never share a value; the endpoint is `Workbench.Endpoint`
@@ -184,7 +184,7 @@ app preference shared across windows; historical scopes remain read-only.
 Each window has its own queue of transient notifications, displayed oldest first. A toast
 has a variant (info, success, error), a message, an optional title, an optional code-font value, its own duration and
 a list of actions. One link action (an Undo receipt) sits beside the message; several, or any button-styled one (primary or
-plain), share a row under it (the `.sharprail` exclusion offer, a plugin prompt). An asynchronous action disables the
+plain), share a row under it (the `.tereditor` exclusion offer, a plugin prompt). An asynchronous action disables the
 toast's buttons while it runs, shows its failure inline under them, and dismisses the toast on success unless it is
 marked as not closing. Without a duration, info and success end after five seconds and an error stays until
 dismissed; a sticky toast (a plugin prompt) stays until dismissed or taken down by its owner. Pushing a notification identical to a visible actionless one returns that one instead of adding

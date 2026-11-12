@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Acp;
+namespace Tereditor.Plugins.Acp;
 
 public sealed record AcpSettings
 {

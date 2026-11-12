@@ -1,4 +1,4 @@
-# Using SharpRail
+# Using tereditor
 
 ## Get started
 
@@ -54,7 +54,7 @@
 - Each new workspace opens a terminal in the bottom panel. Add more from a pane's + menu.
 - ⌘⇧J shows and hides the bottom panel, even from inside a terminal.
 - Option acts as Alt on U.S. layouts, as in Ghostty, so Option+Backspace deletes a word.
-- ⌘V pastes images as quoted file paths, saving PNG files under `~/.sharprail/clipboard`.
+- ⌘V pastes images as quoted file paths, saving PNG files under `~/.tereditor/clipboard`.
 - Quitting the app ends local shells.
 - Change the terminal renderer in Settings without restarting your shells. If Metal texture rendering fails, the app
   switches to Skia and keeps the shell running.

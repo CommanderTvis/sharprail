@@ -3,10 +3,10 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>
 /// The Codex start action: a click starts <c>codex</c>; the right-click menu continues, resumes or forks a session,

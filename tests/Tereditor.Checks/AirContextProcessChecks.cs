@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.AirContext.Host;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.AirContext.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class AirContextChecks
 {

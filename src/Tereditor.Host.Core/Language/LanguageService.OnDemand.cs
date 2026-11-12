@@ -1,8 +1,8 @@
 using System.Diagnostics;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 public sealed partial class LanguageService
 {

@@ -4,10 +4,10 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Protocol;
-using SharpRail.Wire;
+using Tereditor.Host.Protocol;
+using Tereditor.Wire;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The generated RPC payload codec (scripts/generate-rpc.py) against Fixtures/rpc-codec/golden.jsonl: per record a
@@ -69,7 +69,7 @@ internal static class RpcCodecChecks
         }
         if (update && refreshed > 0)
         {
-            var source = Path.Combine(BoundaryChecks.Checkout() ?? throw new InvalidOperationException("--update needs a source checkout."), "tests/SharpRail.Checks", Fixture);
+            var source = Path.Combine(BoundaryChecks.Checkout() ?? throw new InvalidOperationException("--update needs a source checkout."), "tests/Tereditor.Checks", Fixture);
             File.WriteAllLines(source, records.Select(record => record.ToJsonString()));
             Console.WriteLine($"Refreshed {refreshed} golden records or types from the generated codec in {source}");
         }

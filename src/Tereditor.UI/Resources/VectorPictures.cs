@@ -7,7 +7,7 @@ using SkiaSharp;
 
 using Svg.Skia;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>
 /// SVG drawn inert: the document is reduced to shapes that reference nothing outside itself, then rasterised. Script,

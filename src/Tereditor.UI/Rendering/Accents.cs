@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>One curated accent: a hue and saturation, whose lightness each theme solves for.</summary>
 public sealed record AccentChoice(string Id, string Label, double Hue, double Saturation);

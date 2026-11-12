@@ -1,688 +1,688 @@
 #nullable enable
-const SharpRail.Plugins.UI.Kit.LineWidths.FileDefault = 120 -> int
-const SharpRail.Plugins.UI.Kit.LineWidths.MarkdownDefault = 78 -> int
-const SharpRail.Plugins.UI.Kit.LineWidths.Maximum = 240 -> int
-const SharpRail.Plugins.UI.Kit.LineWidths.Minimum = 40 -> int
-const SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.SpecScheme = "spec:" -> string!
-const SharpRail.Plugins.UI.Kit.Ui.InterfaceWeight = (Avalonia.Media.FontWeight)370 -> Avalonia.Media.FontWeight
-const SharpRail.Plugins.UI.Kit.Ui.SelectionForegroundKey = "ThemeSelectionForeground" -> string!
-const SharpRail.Plugins.UI.Kit.ViewerLimits.RenderedMarkdown = 1048576 -> int
-const SharpRail.Plugins.UI.Kit.ViewerLimits.Scintilla = 33554432 -> int
-const SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.InlineCap = 480 -> double
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.ThemeManifest.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.ThemeManifest.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.ThemeManifest.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.ToString() -> string!
-SharpRail.Plugins.UI.Kit.DialogWindow
-SharpRail.Plugins.UI.Kit.DialogWindow.DialogWindow() -> void
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.Editor.get -> SharpRail.Scintilla.ScintillaEditor!
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.ThemeApplied -> System.Action?
-SharpRail.Plugins.UI.Kit.FindBar
-SharpRail.Plugins.UI.Kit.FindBar.Attach(Avalonia.Controls.Control! host) -> void
-SharpRail.Plugins.UI.Kit.FindBar.Close() -> void
-SharpRail.Plugins.UI.Kit.FindBar.FindBar(System.Func<Avalonia.Controls.Control?>! root) -> void
-SharpRail.Plugins.UI.Kit.FindBar.Missed.get -> bool
-SharpRail.Plugins.UI.Kit.FindBar.Open() -> void
-SharpRail.Plugins.UI.Kit.IDialogOwner
-SharpRail.Plugins.UI.Kit.IDialogOwner.Dim() -> System.Action!
-SharpRail.Plugins.UI.Kit.LineWidths
-SharpRail.Plugins.UI.Kit.Markdown.Frontmatter
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Deconstruct(out System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, out string! Raw, out bool Readable, out int Lines) -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.FrontmatterBlock(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, string! Raw, bool Readable, int Lines) -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.get -> int
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.get -> string!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.get -> bool
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Deconstruct(out string! Key, out string? Text, out System.Collections.Generic.IReadOnlyList<string!>? Items, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries) -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>?
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.FrontmatterProperty(string! Key, string? Text = null, System.Collections.Generic.IReadOnlyList<string!>? Items = null, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries = null) -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.get -> System.Collections.Generic.IReadOnlyList<string!>?
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.get -> string!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.get -> string?
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Deconstruct(out System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, out System.Func<string!, string?>! ResolveSpecLink, out System.Action<string!, string?>! Navigate, out double FontSize, out int LineWidth, out bool LineWidthBounded) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.get -> double
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.get -> int
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.get -> bool
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.MarkdownContext(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, System.Func<string!, string?>! ResolveSpecLink, System.Action<string!, string?>! Navigate, double FontSize, int LineWidth, bool LineWidthBounded) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.get -> System.Action<string!, string?>!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.get -> System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.get -> System.Func<string!, string?>!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Dispose() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Reload(string! text) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Preview = 0 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Source = 1 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Split = 2 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Preview.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ScrollToAnchor(string! id) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Show(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode next) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.View.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownLink
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownLink.MarkdownLink(Avalonia.Controls.TextBlock! label) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Dispose() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Document.get -> Markdig.Syntax.MarkdownDocument!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Headings.get -> System.Collections.Generic.IEnumerable<(int Level, string! Text, string! Id, int Line)>!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.RefreshSpecLinks() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToAnchor(string? id) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToTitle() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectionChanged -> System.Action<string!>?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Spec.get -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SpecTitle.get -> Avalonia.Controls.TextBlock?
-SharpRail.Plugins.UI.Kit.Markdown.Outline
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity!
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Deconstruct(out string! Id, out string! Type, out string? Title) -> void
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Id.get -> string!
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Id.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.SpecIdentity(string! Id, string! Type, string? Title) -> void
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Title.get -> string?
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Title.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.get -> string!
-SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.init -> void
-SharpRail.Plugins.UI.Kit.SvgAsset
-SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size) -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest
-SharpRail.Plugins.UI.Kit.ThemeManifest.<Clone>$() -> SharpRail.Plugins.UI.Kit.ThemeManifest!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Ansi.get -> System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Ansi.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Appearance.get -> string!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Appearance.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Colors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Colors.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Contrast.get -> string!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Contrast.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Equals(SharpRail.Plugins.UI.Kit.ThemeManifest? other) -> bool
-SharpRail.Plugins.UI.Kit.ThemeManifest.Id.get -> string!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Id.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.IsHighContrast.get -> bool
-SharpRail.Plugins.UI.Kit.ThemeManifest.IsLight.get -> bool
-SharpRail.Plugins.UI.Kit.ThemeManifest.Label.get -> string!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Label.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Order.get -> int
-SharpRail.Plugins.UI.Kit.ThemeManifest.Order.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.this[string! key].get -> Avalonia.Media.Color
-SharpRail.Plugins.UI.Kit.Ui
-SharpRail.Plugins.UI.Kit.ViewerLimits
-SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.<Clone>$() -> SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Deconstruct(out string? Svg, out string? Error) -> void
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? other) -> bool
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.get -> string?
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Result(string? Svg, string? Error) -> void
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.get -> string?
-SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.init -> void
-static readonly SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.SpecTypes -> string![]!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Accent -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.BorderBrush -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlDisabledText -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlDisabledBorder -> Avalonia.Media.SolidColorBrush!
-SharpRail.Plugins.UI.Kit.Switch
-SharpRail.Plugins.UI.Kit.Switch.Switch() -> void
-SharpRail.Plugins.UI.Kit.Switch.Switch(string! label, bool isChecked, System.Action<bool>! onCheckedChange) -> void
-SharpRail.Plugins.UI.Kit.Switch.Label.get -> string!
-SharpRail.Plugins.UI.Kit.Switch.Label.set -> void
-SharpRail.Plugins.UI.Kit.Switch.CheckedChange -> System.Action<bool>?
-static readonly SharpRail.Plugins.UI.Kit.Switch.LabelProperty -> Avalonia.StyledProperty<string!>!
-SharpRail.Plugins.UI.Kit.Switch.IsChecked.get -> bool
-SharpRail.Plugins.UI.Kit.Switch.IsChecked.set -> void
-static readonly SharpRail.Plugins.UI.Kit.Switch.IsCheckedProperty -> Avalonia.StyledProperty<bool>!
-static readonly SharpRail.Plugins.UI.Kit.Ui.CodeFont -> Avalonia.Media.FontFamily!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Danger -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.DangerWash -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.DialogShadow -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Elevated -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FadeFromElevated -> Avalonia.Media.LinearGradientBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FadeToElevated -> Avalonia.Media.LinearGradientBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Header -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Hint -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Hover -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Info -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.InfoWash -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.InterfaceFont -> Avalonia.Media.FontFamily!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Muted -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.OnPrimary -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryFill -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryFillHover -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimarySubtle -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Sidebar -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Success -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.SuccessWash -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Surface -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.TextBrush -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.TextSelection -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Warning -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.WarningWash -> Avalonia.Media.SolidColorBrush!
-static SharpRail.Plugins.UI.Kit.DialogWindow.Create(string! title, double width) -> SharpRail.Plugins.UI.Kit.DialogWindow!
-static SharpRail.Plugins.UI.Kit.LineWidths.Code(int columns) -> double
-static SharpRail.Plugins.UI.Kit.LineWidths.File(int width, bool bounded) -> double
-static SharpRail.Plugins.UI.Kit.LineWidths.IsValid(int columns) -> bool
-static SharpRail.Plugins.UI.Kit.LineWidths.Markdown(int width, bool bounded, double fontSize) -> double
-static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.LinkifyWikiLinks(string! text) -> string!
-static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.Parse(string! content) -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock?
-static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.Spec(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? block) -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity?
-static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator !=(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator ==(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator !=(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator ==(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.operator !=(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.operator ==(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Code(string! text) -> Avalonia.Controls.SelectableTextBlock!
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(string! text) -> Markdig.Syntax.MarkdownDocument!
-static SharpRail.Plugins.UI.Kit.Markdown.Outline.Fill(Avalonia.Controls.StackPanel! entries, SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview! preview, string! sourceText, System.Action<int>? revealSource) -> void
-static SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.operator !=(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? left, SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.operator ==(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? left, SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
-static SharpRail.Plugins.UI.Kit.ThemeManifest.operator !=(SharpRail.Plugins.UI.Kit.ThemeManifest? left, SharpRail.Plugins.UI.Kit.ThemeManifest? right) -> bool
-static SharpRail.Plugins.UI.Kit.ThemeManifest.operator ==(SharpRail.Plugins.UI.Kit.ThemeManifest? left, SharpRail.Plugins.UI.Kit.ThemeManifest? right) -> bool
-static SharpRail.Plugins.UI.Kit.Ui.Alpha(Avalonia.Media.Color color, int percent) -> Avalonia.Media.Color
-static SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.Plugins.UI.Kit.ThemeManifest! theme) -> void
-static SharpRail.Plugins.UI.Kit.Ui.ApplyResources(Avalonia.Application! app) -> void
-static SharpRail.Plugins.UI.Kit.Ui.Button(string! label, System.Action! action, string? icon = null) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.UI.Kit.Ui.Chip(Avalonia.Controls.Control! child, Avalonia.Thickness? padding = null) -> Avalonia.Controls.Border!
-static SharpRail.Plugins.UI.Kit.Ui.FontSize.get -> double
-static SharpRail.Plugins.UI.Kit.Ui.FontSize.set -> void
-static SharpRail.Plugins.UI.Kit.Ui.Frame(Avalonia.Controls.Control! child, Avalonia.Media.IBrush? background = null) -> Avalonia.Controls.Border!
-static SharpRail.Plugins.UI.Kit.Ui.Icon(string! name, Avalonia.Media.IBrush? color = null, double size = 16) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.Ui.IconButton(string! icon, string! tooltip, System.Action! action) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.UI.Kit.Ui.Menu(string! label, System.Action! action, bool enabled = true) -> Avalonia.Controls.MenuItem!
-static SharpRail.Plugins.UI.Kit.Ui.Over(Avalonia.Media.Color color, Avalonia.Media.Color background) -> Avalonia.Media.Color
-static SharpRail.Plugins.UI.Kit.Ui.Place(Avalonia.Controls.Grid! grid, Avalonia.Controls.Control! child, int row = 0, int column = 0) -> void
-static SharpRail.Plugins.UI.Kit.Ui.Row(string! icon, string! text, Avalonia.Media.IBrush? color = null) -> Avalonia.Controls.StackPanel!
-static SharpRail.Plugins.UI.Kit.Ui.Segment(string! name, string! label) -> Avalonia.Controls.Primitives.ToggleButton!
-static SharpRail.Plugins.UI.Kit.Ui.Text(string! text, Avalonia.Media.IBrush? color = null, double? size = null) -> Avalonia.Controls.TextBlock!
-static SharpRail.Plugins.UI.Kit.Ui.Theme.get -> SharpRail.Plugins.UI.Kit.ThemeManifest!
-static SharpRail.Plugins.UI.Kit.Ui.ThemeChanged -> System.Action?
-static SharpRail.Plugins.UI.Kit.ViewerLimits.TooLarge(string! what, int length) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.Inline(Avalonia.Svg.Skia.SvgSource! diagram, Avalonia.Size natural, Avalonia.Controls.Control! fullscreen) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.Show(Avalonia.Controls.Window! owner, Avalonia.Svg.Skia.SvgSource! diagram) -> void
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Options() -> string!
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Render(string! source, string! options) -> SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator !=(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator ==(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
-SharpRail.Plugins.UI.Kit.InterfaceZoom
-const SharpRail.Plugins.UI.Kit.InterfaceZoom.ResourceKey = "InterfaceZoom" -> string!
-static readonly SharpRail.Plugins.UI.Kit.InterfaceZoom.Factors -> double[]!
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.Current.get -> double
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.Changed -> System.Action?
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.Next(double current, int step) -> double
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.Normalize(double factor) -> double
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.Apply(Avalonia.Application! app, double factor) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedText.get -> string!
-SharpRail.Plugins.UI.Kit.ScopedSetting
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.<Clone>$() -> SharpRail.Plugins.UI.Kit.ScopedSettingShadow!
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Deconstruct(out string! Scope, out string? Path, out string! ValueText) -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Equals(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? other) -> bool
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Path.get -> string?
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Path.init -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Scope.get -> string!
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Scope.init -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ScopedSettingShadow(string! Scope, string? Path, string! ValueText) -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ValueText.get -> string!
-SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ValueText.init -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingSource
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.<Clone>$() -> SharpRail.Plugins.UI.Kit.ScopedSettingSource!
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Deconstruct(out string! Scope, out string? Path) -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Equals(SharpRail.Plugins.UI.Kit.ScopedSettingSource? other) -> bool
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Path.get -> string?
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Path.init -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Scope.get -> string!
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.Scope.init -> void
-SharpRail.Plugins.UI.Kit.ScopedSettingSource.ScopedSettingSource(string! Scope, string? Path) -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialog
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.<Clone>$() -> SharpRail.Plugins.UI.Kit.SettingValueDialogOptions!
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.get -> System.Text.Json.JsonElement?
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Deconstruct(out string! NamePrefix, out string! SettingKey, out System.Text.Json.JsonElement? CurrentValue, out System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, out string! SubmitLabel) -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Equals(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? other) -> bool
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.get -> string?
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.get -> bool
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.get -> string!
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.get -> string!
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingValueDialogOptions(string! NamePrefix, string! SettingKey, System.Text.Json.JsonElement? CurrentValue, System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, string! SubmitLabel) -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.get -> System.Func<string!, SharpRail.Plugins.UI.Kit.ValueShape?>?
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.init -> void
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.get -> string!
-SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.init -> void
-SharpRail.Plugins.UI.Kit.ValueShape
-SharpRail.Plugins.UI.Kit.ValueShape.List = 3 -> SharpRail.Plugins.UI.Kit.ValueShape
-SharpRail.Plugins.UI.Kit.ValueShape.Number = 1 -> SharpRail.Plugins.UI.Kit.ValueShape
-SharpRail.Plugins.UI.Kit.ValueShape.Switch = 2 -> SharpRail.Plugins.UI.Kit.ValueShape
-SharpRail.Plugins.UI.Kit.ValueShape.Text = 0 -> SharpRail.Plugins.UI.Kit.ValueShape
-override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.ScopedSettingSource.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.ScopedSettingSource.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.ScopedSettingSource.ToString() -> string!
-override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ToString() -> string!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(string! path) -> string!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.RowAction(string! name, string! label, System.Action! onClick, bool danger = false) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.ScopeChip(string! scope, string! name = "ScopeChip") -> Avalonia.Controls.Border!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.SettingRow(string! namePrefix, string! settingKey, Avalonia.Controls.Control! value, SharpRail.Plugins.UI.Kit.ScopedSettingSource! source, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.ScopedSettingShadow!>! shadowed, System.Action<string!>! onOpen, System.Collections.Generic.IEnumerable<Avalonia.Controls.Control!>? actions = null, string? docsUrl = null, string? docsTitle = null) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.SettingsToolbar(string! namePrefix, string! query, System.Action<string!>! onQuery, System.Action? onAdd) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.ScopedSetting.SourcePath(string! path, System.Action<string!>! onOpen, string! name = "SourcePath") -> Avalonia.Controls.Button!
-static SharpRail.Plugins.UI.Kit.ScopedSettingShadow.operator !=(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? left, SharpRail.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
-static SharpRail.Plugins.UI.Kit.ScopedSettingShadow.operator ==(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? left, SharpRail.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
-static SharpRail.Plugins.UI.Kit.ScopedSettingSource.operator !=(SharpRail.Plugins.UI.Kit.ScopedSettingSource? left, SharpRail.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
-static SharpRail.Plugins.UI.Kit.ScopedSettingSource.operator ==(SharpRail.Plugins.UI.Kit.ScopedSettingSource? left, SharpRail.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
-static SharpRail.Plugins.UI.Kit.SettingValueDialog.ShapeOf(System.Text.Json.JsonElement? value) -> SharpRail.Plugins.UI.Kit.ValueShape?
-static SharpRail.Plugins.UI.Kit.SettingValueDialog.ShowAsync(Avalonia.Controls.Window! owner, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions! options) -> System.Threading.Tasks.Task<(string! Key, System.Text.Json.JsonElement Value)?>!
-static SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.operator !=(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? left, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
-static SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.operator ==(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? left, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
-SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size = 16, Avalonia.Media.IBrush? color = null) -> void
-const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.MaxScale = 6 -> double
-const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.MinScale = 0.25 -> double
-const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.ScaleStep = 1.15 -> double
-SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture
-static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.Clamp(double scale) -> double
-static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.ForWheel(double scale, double deltaLines) -> double
-static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.IsZoom(Avalonia.Input.KeyModifiers modifiers) -> bool
-override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.ToString() -> string!
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.<Clone>$() -> SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView!
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.ComparisonOptionView(string! Name, string? Description, System.Collections.Generic.IReadOnlyList<string!>! Pros, System.Collections.Generic.IReadOnlyList<string!>! Cons, bool Recommended, string? Mermaid) -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Deconstruct(out string! Name, out string? Description, out System.Collections.Generic.IReadOnlyList<string!>! Pros, out System.Collections.Generic.IReadOnlyList<string!>! Cons, out bool Recommended, out string? Mermaid) -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.get -> string?
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? other) -> bool
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.get -> string?
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.get -> string!
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.get -> bool
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.init -> void
-SharpRail.Plugins.UI.Kit.Visualization.MermaidView
-SharpRail.Plugins.UI.Kit.Visualization.MermaidView.MermaidView(string! source, bool interactive = false, System.Action<string?>? onRender = null) -> void
-SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs
-SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard
-static SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator !=(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
-static SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator ==(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
-static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.ComparisonOptions(System.Text.Json.JsonElement value) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView!>!
-static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.String(System.Text.Json.JsonElement args, string! key) -> string!
-static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.Create(System.Text.Json.JsonElement args, bool interactive = false, System.Action<string?>? onRender = null) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.SelectedLines(Avalonia.Controls.Control! card) -> (int Start, int End)?
-static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.SelectedText(Avalonia.Controls.Control! card) -> string!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.get -> double
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.init -> void
-SharpRail.Plugins.UI.Kit.CommandKeys
-static SharpRail.Plugins.UI.Kit.CommandKeys.Matches(Avalonia.Input.KeyEventArgs! e, char letter) -> bool
-static SharpRail.Plugins.UI.Kit.CommandKeys.IsClose(Avalonia.Input.KeyEventArgs! e) -> bool
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame(string! text, string! name, Avalonia.Media.SolidColorBrush? canvas = null) -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.DiffFocus!
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Blocks.get -> System.Collections.Generic.IReadOnlyList<bool>!
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Blocks.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Deconstruct(out System.Collections.Generic.IReadOnlyList<bool>! Blocks, out System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>! Items, out System.Collections.Generic.ISet<string!>! Expanded, out System.Action? ExpandedChanged) -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.DiffFocus(System.Collections.Generic.IReadOnlyList<bool>! Blocks, System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>! Items, System.Collections.Generic.ISet<string!>! Expanded, System.Action? ExpandedChanged = null) -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Equals(SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Expanded.get -> System.Collections.Generic.ISet<string!>!
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Expanded.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.ExpandedChanged.get -> System.Action?
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.ExpandedChanged.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Items.get -> System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>!
-SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Items.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? focus = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null, bool progressive = false) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.RenderComplete.get -> bool
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Rendered -> System.Action?
-const SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Context = 2 -> int
-override SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.ToString() -> string!
-static SharpRail.Plugins.UI.Kit.InterfaceZoom.ForGesture(double start, double scale) -> double
-static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Create(string! before, string! merged, Markdig.Syntax.MarkdownDocument! document, System.Collections.Generic.ISet<string!>! expanded, System.Action? expandedChanged = null, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> SharpRail.Plugins.UI.Kit.Markdown.DiffFocus!
-static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Segments(System.Collections.Generic.IReadOnlyList<bool>! changed) -> System.Collections.Generic.List<(int Start, int Count, bool Hidden)>!
-static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.operator !=(SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? left, SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.operator ==(SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? left, SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff.Merge(string! before, string! after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ResolveLink(string! document, string! url) -> string?
-static SharpRail.Plugins.UI.Kit.Ui.EditorSelection.get -> Avalonia.Media.Color
-static SharpRail.Plugins.UI.Kit.Ui.EditorSelectionText.get -> Avalonia.Media.Color?
-static SharpRail.Plugins.UI.Kit.Ui.RelativeTime(System.DateTimeOffset time, System.DateTimeOffset now) -> string!
-static SharpRail.Plugins.UI.Kit.Ui.SelectionText.get -> Avalonia.Media.Color?
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlBorder -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlBorderActive -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlDisabledFill -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ControlFill -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.DifferenceBase -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Overlay -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PopoverShadow -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryDisabledFill -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryDisabledText -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PrimarySoft -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Selected -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Terminal -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.Workspace -> Avalonia.Media.SolidColorBrush!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Deconstruct(out string! Id, out string! Label, out int Order, out string! Appearance, out string! Contrast, out System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, out System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi, out System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>! Syntax) -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.Syntax.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>!
-SharpRail.Plugins.UI.Kit.ThemeManifest.Syntax.init -> void
-SharpRail.Plugins.UI.Kit.ThemeManifest.ThemeManifest(string! Id, string! Label, int Order, string! Appearance, string! Contrast, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>! Syntax) -> void
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff.Sequence(string![]! a, string![]! b, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.List<(int Side, string! Value)>!
-static SharpRail.Plugins.UI.Kit.Ui.FollowEnabled(Avalonia.Controls.Button! button) -> void
-~override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(object obj) -> bool
-~override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ToString() -> string
-override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.GetHashCode() -> int
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Restore(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState state) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.State.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Deconstruct(out SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, out Avalonia.Vector Preview, out Avalonia.Vector Source) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState other) -> bool
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.get -> Avalonia.Vector
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.get -> Avalonia.Vector
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, Avalonia.Vector Preview, Avalonia.Vector Source) -> void
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator !=(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
-static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator ==(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
+const Tereditor.Plugins.UI.Kit.LineWidths.FileDefault = 120 -> int
+const Tereditor.Plugins.UI.Kit.LineWidths.MarkdownDefault = 78 -> int
+const Tereditor.Plugins.UI.Kit.LineWidths.Maximum = 240 -> int
+const Tereditor.Plugins.UI.Kit.LineWidths.Minimum = 40 -> int
+const Tereditor.Plugins.UI.Kit.Markdown.Frontmatter.SpecScheme = "spec:" -> string!
+const Tereditor.Plugins.UI.Kit.Ui.InterfaceWeight = (Avalonia.Media.FontWeight)370 -> Avalonia.Media.FontWeight
+const Tereditor.Plugins.UI.Kit.Ui.SelectionForegroundKey = "ThemeSelectionForeground" -> string!
+const Tereditor.Plugins.UI.Kit.ViewerLimits.RenderedMarkdown = 1048576 -> int
+const Tereditor.Plugins.UI.Kit.ViewerLimits.Scintilla = 33554432 -> int
+const Tereditor.Plugins.UI.Kit.Visualization.MermaidDialog.InlineCap = 480 -> double
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.ThemeManifest.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.ThemeManifest.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.ThemeManifest.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.ToString() -> string!
+Tereditor.Plugins.UI.Kit.DialogWindow
+Tereditor.Plugins.UI.Kit.DialogWindow.DialogWindow() -> void
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.Editor.get -> Tereditor.Scintilla.ScintillaEditor!
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.ThemeApplied -> System.Action?
+Tereditor.Plugins.UI.Kit.FindBar
+Tereditor.Plugins.UI.Kit.FindBar.Attach(Avalonia.Controls.Control! host) -> void
+Tereditor.Plugins.UI.Kit.FindBar.Close() -> void
+Tereditor.Plugins.UI.Kit.FindBar.FindBar(System.Func<Avalonia.Controls.Control?>! root) -> void
+Tereditor.Plugins.UI.Kit.FindBar.Missed.get -> bool
+Tereditor.Plugins.UI.Kit.FindBar.Open() -> void
+Tereditor.Plugins.UI.Kit.IDialogOwner
+Tereditor.Plugins.UI.Kit.IDialogOwner.Dim() -> System.Action!
+Tereditor.Plugins.UI.Kit.LineWidths
+Tereditor.Plugins.UI.Kit.Markdown.Frontmatter
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.<Clone>$() -> Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Deconstruct(out System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, out string! Raw, out bool Readable, out int Lines) -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.FrontmatterBlock(System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, string! Raw, bool Readable, int Lines) -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.get -> int
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.get -> string!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.get -> bool
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.<Clone>$() -> Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Deconstruct(out string! Key, out string? Text, out System.Collections.Generic.IReadOnlyList<string!>? Items, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries) -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>?
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty? other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.FrontmatterProperty(string! Key, string? Text = null, System.Collections.Generic.IReadOnlyList<string!>? Items = null, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries = null) -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.get -> string!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.get -> string?
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.<Clone>$() -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.Deconstruct(out System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, out System.Func<string!, string?>! ResolveSpecLink, out System.Action<string!, string?>! Navigate, out double FontSize, out int LineWidth, out bool LineWidthBounded) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext? other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.get -> double
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.get -> int
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.get -> bool
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.MarkdownContext(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, System.Func<string!, string?>! ResolveSpecLink, System.Action<string!, string?>! Navigate, double FontSize, int LineWidth, bool LineWidthBounded) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.get -> System.Action<string!, string?>!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.get -> System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.get -> System.Func<string!, string?>!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Dispose() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Reload(string! text) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Preview = 0 -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Source = 1 -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Split = 2 -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Preview.get -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ScrollToAnchor(string! id) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Show(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode next) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.View.get -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownLink
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownLink.MarkdownLink(Avalonia.Controls.TextBlock! label) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Dispose() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Document.get -> Markdig.Syntax.MarkdownDocument!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Headings.get -> System.Collections.Generic.IEnumerable<(int Level, string! Text, string! Id, int Line)>!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(string! text, string! path, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.RefreshSpecLinks() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToAnchor(string? id) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToTitle() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectionChanged -> System.Action<string!>?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Spec.get -> Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SpecTitle.get -> Avalonia.Controls.TextBlock?
+Tereditor.Plugins.UI.Kit.Markdown.Outline
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.<Clone>$() -> Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity!
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Deconstruct(out string! Id, out string! Type, out string? Title) -> void
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity? other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Id.get -> string!
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Id.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.SpecIdentity(string! Id, string! Type, string? Title) -> void
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Title.get -> string?
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Title.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Type.get -> string!
+Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.Type.init -> void
+Tereditor.Plugins.UI.Kit.SvgAsset
+Tereditor.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size) -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest
+Tereditor.Plugins.UI.Kit.ThemeManifest.<Clone>$() -> Tereditor.Plugins.UI.Kit.ThemeManifest!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Ansi.get -> System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Ansi.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Appearance.get -> string!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Appearance.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Colors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Colors.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Contrast.get -> string!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Contrast.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Equals(Tereditor.Plugins.UI.Kit.ThemeManifest? other) -> bool
+Tereditor.Plugins.UI.Kit.ThemeManifest.Id.get -> string!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Id.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.IsHighContrast.get -> bool
+Tereditor.Plugins.UI.Kit.ThemeManifest.IsLight.get -> bool
+Tereditor.Plugins.UI.Kit.ThemeManifest.Label.get -> string!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Label.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Order.get -> int
+Tereditor.Plugins.UI.Kit.ThemeManifest.Order.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.this[string! key].get -> Avalonia.Media.Color
+Tereditor.Plugins.UI.Kit.Ui
+Tereditor.Plugins.UI.Kit.ViewerLimits
+Tereditor.Plugins.UI.Kit.Visualization.MermaidDialog
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.<Clone>$() -> Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Deconstruct(out string? Svg, out string? Error) -> void
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? other) -> bool
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.get -> string?
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Result(string? Svg, string? Error) -> void
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.get -> string?
+Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.init -> void
+static readonly Tereditor.Plugins.UI.Kit.Markdown.Frontmatter.SpecTypes -> string![]!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Accent -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.BorderBrush -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlDisabledText -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlDisabledBorder -> Avalonia.Media.SolidColorBrush!
+Tereditor.Plugins.UI.Kit.Switch
+Tereditor.Plugins.UI.Kit.Switch.Switch() -> void
+Tereditor.Plugins.UI.Kit.Switch.Switch(string! label, bool isChecked, System.Action<bool>! onCheckedChange) -> void
+Tereditor.Plugins.UI.Kit.Switch.Label.get -> string!
+Tereditor.Plugins.UI.Kit.Switch.Label.set -> void
+Tereditor.Plugins.UI.Kit.Switch.CheckedChange -> System.Action<bool>?
+static readonly Tereditor.Plugins.UI.Kit.Switch.LabelProperty -> Avalonia.StyledProperty<string!>!
+Tereditor.Plugins.UI.Kit.Switch.IsChecked.get -> bool
+Tereditor.Plugins.UI.Kit.Switch.IsChecked.set -> void
+static readonly Tereditor.Plugins.UI.Kit.Switch.IsCheckedProperty -> Avalonia.StyledProperty<bool>!
+static readonly Tereditor.Plugins.UI.Kit.Ui.CodeFont -> Avalonia.Media.FontFamily!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Danger -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.DangerWash -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.DialogShadow -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Elevated -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FadeFromElevated -> Avalonia.Media.LinearGradientBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FadeToElevated -> Avalonia.Media.LinearGradientBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Header -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Hint -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Hover -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Info -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.InfoWash -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.InterfaceFont -> Avalonia.Media.FontFamily!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Muted -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.OnPrimary -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimaryFill -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimaryFillHover -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimaryMuted -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimarySubtle -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Sidebar -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Success -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.SuccessWash -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Surface -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.TextBrush -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.TextSelection -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Warning -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.WarningWash -> Avalonia.Media.SolidColorBrush!
+static Tereditor.Plugins.UI.Kit.DialogWindow.Create(string! title, double width) -> Tereditor.Plugins.UI.Kit.DialogWindow!
+static Tereditor.Plugins.UI.Kit.LineWidths.Code(int columns) -> double
+static Tereditor.Plugins.UI.Kit.LineWidths.File(int width, bool bounded) -> double
+static Tereditor.Plugins.UI.Kit.LineWidths.IsValid(int columns) -> bool
+static Tereditor.Plugins.UI.Kit.LineWidths.Markdown(int width, bool bounded, double fontSize) -> double
+static Tereditor.Plugins.UI.Kit.Markdown.Frontmatter.LinkifyWikiLinks(string! text) -> string!
+static Tereditor.Plugins.UI.Kit.Markdown.Frontmatter.Parse(string! content) -> Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock?
+static Tereditor.Plugins.UI.Kit.Markdown.Frontmatter.Spec(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? block) -> Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity?
+static Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator !=(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator ==(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator !=(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator ==(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.operator !=(Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext? left, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.operator ==(Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext? left, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Code(string! text) -> Avalonia.Controls.SelectableTextBlock!
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(string! text) -> Markdig.Syntax.MarkdownDocument!
+static Tereditor.Plugins.UI.Kit.Markdown.Outline.Fill(Avalonia.Controls.StackPanel! entries, Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview! preview, string! sourceText, System.Action<int>? revealSource) -> void
+static Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.operator !=(Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity? left, Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity.operator ==(Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity? left, Tereditor.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
+static Tereditor.Plugins.UI.Kit.ThemeManifest.operator !=(Tereditor.Plugins.UI.Kit.ThemeManifest? left, Tereditor.Plugins.UI.Kit.ThemeManifest? right) -> bool
+static Tereditor.Plugins.UI.Kit.ThemeManifest.operator ==(Tereditor.Plugins.UI.Kit.ThemeManifest? left, Tereditor.Plugins.UI.Kit.ThemeManifest? right) -> bool
+static Tereditor.Plugins.UI.Kit.Ui.Alpha(Avalonia.Media.Color color, int percent) -> Avalonia.Media.Color
+static Tereditor.Plugins.UI.Kit.Ui.Apply(Tereditor.Plugins.UI.Kit.ThemeManifest! theme) -> void
+static Tereditor.Plugins.UI.Kit.Ui.ApplyResources(Avalonia.Application! app) -> void
+static Tereditor.Plugins.UI.Kit.Ui.Button(string! label, System.Action! action, string? icon = null) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.UI.Kit.Ui.Chip(Avalonia.Controls.Control! child, Avalonia.Thickness? padding = null) -> Avalonia.Controls.Border!
+static Tereditor.Plugins.UI.Kit.Ui.FontSize.get -> double
+static Tereditor.Plugins.UI.Kit.Ui.FontSize.set -> void
+static Tereditor.Plugins.UI.Kit.Ui.Frame(Avalonia.Controls.Control! child, Avalonia.Media.IBrush? background = null) -> Avalonia.Controls.Border!
+static Tereditor.Plugins.UI.Kit.Ui.Icon(string! name, Avalonia.Media.IBrush? color = null, double size = 16) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.Ui.IconButton(string! icon, string! tooltip, System.Action! action) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.UI.Kit.Ui.Menu(string! label, System.Action! action, bool enabled = true) -> Avalonia.Controls.MenuItem!
+static Tereditor.Plugins.UI.Kit.Ui.Over(Avalonia.Media.Color color, Avalonia.Media.Color background) -> Avalonia.Media.Color
+static Tereditor.Plugins.UI.Kit.Ui.Place(Avalonia.Controls.Grid! grid, Avalonia.Controls.Control! child, int row = 0, int column = 0) -> void
+static Tereditor.Plugins.UI.Kit.Ui.Row(string! icon, string! text, Avalonia.Media.IBrush? color = null) -> Avalonia.Controls.StackPanel!
+static Tereditor.Plugins.UI.Kit.Ui.Segment(string! name, string! label) -> Avalonia.Controls.Primitives.ToggleButton!
+static Tereditor.Plugins.UI.Kit.Ui.Text(string! text, Avalonia.Media.IBrush? color = null, double? size = null) -> Avalonia.Controls.TextBlock!
+static Tereditor.Plugins.UI.Kit.Ui.Theme.get -> Tereditor.Plugins.UI.Kit.ThemeManifest!
+static Tereditor.Plugins.UI.Kit.Ui.ThemeChanged -> System.Action?
+static Tereditor.Plugins.UI.Kit.ViewerLimits.TooLarge(string! what, int length) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidDialog.Inline(Avalonia.Svg.Skia.SvgSource! diagram, Avalonia.Size natural, Avalonia.Controls.Control! fullscreen) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidDialog.Show(Avalonia.Controls.Window! owner, Avalonia.Svg.Skia.SvgSource! diagram) -> void
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Options() -> string!
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Render(string! source, string! options) -> Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator !=(Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator ==(Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
+Tereditor.Plugins.UI.Kit.InterfaceZoom
+const Tereditor.Plugins.UI.Kit.InterfaceZoom.ResourceKey = "InterfaceZoom" -> string!
+static readonly Tereditor.Plugins.UI.Kit.InterfaceZoom.Factors -> double[]!
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.Current.get -> double
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.Changed -> System.Action?
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.Next(double current, int step) -> double
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.Normalize(double factor) -> double
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.Apply(Avalonia.Application! app, double factor) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedText.get -> string!
+Tereditor.Plugins.UI.Kit.ScopedSetting
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.<Clone>$() -> Tereditor.Plugins.UI.Kit.ScopedSettingShadow!
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Deconstruct(out string! Scope, out string? Path, out string! ValueText) -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Equals(Tereditor.Plugins.UI.Kit.ScopedSettingShadow? other) -> bool
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Path.get -> string?
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Path.init -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Scope.get -> string!
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Scope.init -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.ScopedSettingShadow(string! Scope, string? Path, string! ValueText) -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.ValueText.get -> string!
+Tereditor.Plugins.UI.Kit.ScopedSettingShadow.ValueText.init -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingSource
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.<Clone>$() -> Tereditor.Plugins.UI.Kit.ScopedSettingSource!
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Deconstruct(out string! Scope, out string? Path) -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Equals(Tereditor.Plugins.UI.Kit.ScopedSettingSource? other) -> bool
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Path.get -> string?
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Path.init -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Scope.get -> string!
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.Scope.init -> void
+Tereditor.Plugins.UI.Kit.ScopedSettingSource.ScopedSettingSource(string! Scope, string? Path) -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialog
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.<Clone>$() -> Tereditor.Plugins.UI.Kit.SettingValueDialogOptions!
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Choices.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Choices.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.get -> System.Text.Json.JsonElement?
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Deconstruct(out string! NamePrefix, out string! SettingKey, out System.Text.Json.JsonElement? CurrentValue, out System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, out string! SubmitLabel) -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Equals(Tereditor.Plugins.UI.Kit.SettingValueDialogOptions? other) -> bool
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.get -> string?
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.get -> bool
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.get -> string!
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.get -> string!
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.SettingValueDialogOptions(string! NamePrefix, string! SettingKey, System.Text.Json.JsonElement? CurrentValue, System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, string! SubmitLabel) -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.get -> System.Func<string!, Tereditor.Plugins.UI.Kit.ValueShape?>?
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.init -> void
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.get -> string!
+Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.init -> void
+Tereditor.Plugins.UI.Kit.ValueShape
+Tereditor.Plugins.UI.Kit.ValueShape.List = 3 -> Tereditor.Plugins.UI.Kit.ValueShape
+Tereditor.Plugins.UI.Kit.ValueShape.Number = 1 -> Tereditor.Plugins.UI.Kit.ValueShape
+Tereditor.Plugins.UI.Kit.ValueShape.Switch = 2 -> Tereditor.Plugins.UI.Kit.ValueShape
+Tereditor.Plugins.UI.Kit.ValueShape.Text = 0 -> Tereditor.Plugins.UI.Kit.ValueShape
+override Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.ScopedSettingShadow.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.ScopedSettingShadow.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.ScopedSettingSource.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.ScopedSettingSource.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.ScopedSettingSource.ToString() -> string!
+override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.ToString() -> string!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(string! path) -> string!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.RowAction(string! name, string! label, System.Action! onClick, bool danger = false) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.ScopeChip(string! scope, string! name = "ScopeChip") -> Avalonia.Controls.Border!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.SettingRow(string! namePrefix, string! settingKey, Avalonia.Controls.Control! value, Tereditor.Plugins.UI.Kit.ScopedSettingSource! source, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.ScopedSettingShadow!>! shadowed, System.Action<string!>! onOpen, System.Collections.Generic.IEnumerable<Avalonia.Controls.Control!>? actions = null, string? docsUrl = null, string? docsTitle = null) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.SettingsToolbar(string! namePrefix, string! query, System.Action<string!>! onQuery, System.Action? onAdd) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.SourcePath(string! path, System.Action<string!>! onOpen, string! name = "SourcePath") -> Avalonia.Controls.Button!
+static Tereditor.Plugins.UI.Kit.ScopedSettingShadow.operator !=(Tereditor.Plugins.UI.Kit.ScopedSettingShadow? left, Tereditor.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
+static Tereditor.Plugins.UI.Kit.ScopedSettingShadow.operator ==(Tereditor.Plugins.UI.Kit.ScopedSettingShadow? left, Tereditor.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
+static Tereditor.Plugins.UI.Kit.ScopedSettingSource.operator !=(Tereditor.Plugins.UI.Kit.ScopedSettingSource? left, Tereditor.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
+static Tereditor.Plugins.UI.Kit.ScopedSettingSource.operator ==(Tereditor.Plugins.UI.Kit.ScopedSettingSource? left, Tereditor.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
+static Tereditor.Plugins.UI.Kit.SettingValueDialog.ShapeOf(System.Text.Json.JsonElement? value) -> Tereditor.Plugins.UI.Kit.ValueShape?
+static Tereditor.Plugins.UI.Kit.SettingValueDialog.ShowAsync(Avalonia.Controls.Window! owner, Tereditor.Plugins.UI.Kit.SettingValueDialogOptions! options) -> System.Threading.Tasks.Task<(string! Key, System.Text.Json.JsonElement Value)?>!
+static Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.operator !=(Tereditor.Plugins.UI.Kit.SettingValueDialogOptions? left, Tereditor.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
+static Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.operator ==(Tereditor.Plugins.UI.Kit.SettingValueDialogOptions? left, Tereditor.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
+Tereditor.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size = 16, Avalonia.Media.IBrush? color = null) -> void
+const Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.MaxScale = 6 -> double
+const Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.MinScale = 0.25 -> double
+const Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.ScaleStep = 1.15 -> double
+Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture
+static Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.Clamp(double scale) -> double
+static Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.ForWheel(double scale, double deltaLines) -> double
+static Tereditor.Plugins.UI.Kit.Visualization.ZoomGesture.IsZoom(Avalonia.Input.KeyModifiers modifiers) -> bool
+override Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.ToString() -> string!
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.<Clone>$() -> Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView!
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.ComparisonOptionView(string! Name, string? Description, System.Collections.Generic.IReadOnlyList<string!>! Pros, System.Collections.Generic.IReadOnlyList<string!>! Cons, bool Recommended, string? Mermaid) -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Deconstruct(out string! Name, out string? Description, out System.Collections.Generic.IReadOnlyList<string!>! Pros, out System.Collections.Generic.IReadOnlyList<string!>! Cons, out bool Recommended, out string? Mermaid) -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.get -> string?
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView? other) -> bool
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.get -> string?
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.get -> string!
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.get -> bool
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.init -> void
+Tereditor.Plugins.UI.Kit.Visualization.MermaidView
+Tereditor.Plugins.UI.Kit.Visualization.MermaidView.MermaidView(string! source, bool interactive = false, System.Action<string?>? onRender = null) -> void
+Tereditor.Plugins.UI.Kit.Visualization.VisualizationArgs
+Tereditor.Plugins.UI.Kit.Visualization.VisualizationCard
+static Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator !=(Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
+static Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator ==(Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
+static Tereditor.Plugins.UI.Kit.Visualization.VisualizationArgs.ComparisonOptions(System.Text.Json.JsonElement value) -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView!>!
+static Tereditor.Plugins.UI.Kit.Visualization.VisualizationArgs.String(System.Text.Json.JsonElement args, string! key) -> string!
+static Tereditor.Plugins.UI.Kit.Visualization.VisualizationCard.Create(System.Text.Json.JsonElement args, bool interactive = false, System.Action<string?>? onRender = null) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.Visualization.VisualizationCard.SelectedLines(Avalonia.Controls.Control! card) -> (int Start, int End)?
+static Tereditor.Plugins.UI.Kit.Visualization.VisualizationCard.SelectedText(Avalonia.Controls.Control! card) -> string!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.get -> double
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.init -> void
+Tereditor.Plugins.UI.Kit.CommandKeys
+static Tereditor.Plugins.UI.Kit.CommandKeys.Matches(Avalonia.Input.KeyEventArgs! e, char letter) -> bool
+static Tereditor.Plugins.UI.Kit.CommandKeys.IsClose(Avalonia.Input.KeyEventArgs! e) -> bool
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame(string! text, string! name, Avalonia.Media.SolidColorBrush? canvas = null) -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.<Clone>$() -> Tereditor.Plugins.UI.Kit.Markdown.DiffFocus!
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Blocks.get -> System.Collections.Generic.IReadOnlyList<bool>!
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Blocks.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Deconstruct(out System.Collections.Generic.IReadOnlyList<bool>! Blocks, out System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>! Items, out System.Collections.Generic.ISet<string!>! Expanded, out System.Action? ExpandedChanged) -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.DiffFocus(System.Collections.Generic.IReadOnlyList<bool>! Blocks, System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>! Items, System.Collections.Generic.ISet<string!>! Expanded, System.Action? ExpandedChanged = null) -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Equals(Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Expanded.get -> System.Collections.Generic.ISet<string!>!
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Expanded.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.ExpandedChanged.get -> System.Action?
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.ExpandedChanged.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Items.get -> System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>!
+Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Items.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDiff
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? focus = null, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null, bool progressive = false) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.RenderComplete.get -> bool
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Rendered -> System.Action?
+const Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Context = 2 -> int
+override Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.ToString() -> string!
+static Tereditor.Plugins.UI.Kit.InterfaceZoom.ForGesture(double start, double scale) -> double
+static Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Create(string! before, string! merged, Markdig.Syntax.MarkdownDocument! document, System.Collections.Generic.ISet<string!>! expanded, System.Action? expandedChanged = null, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> Tereditor.Plugins.UI.Kit.Markdown.DiffFocus!
+static Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Segments(System.Collections.Generic.IReadOnlyList<bool>! changed) -> System.Collections.Generic.List<(int Start, int Count, bool Hidden)>!
+static Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.operator !=(Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? left, Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.operator ==(Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? left, Tereditor.Plugins.UI.Kit.Markdown.DiffFocus? right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownDiff.Merge(string! before, string! after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ResolveLink(string! document, string! url) -> string?
+static Tereditor.Plugins.UI.Kit.Ui.EditorSelection.get -> Avalonia.Media.Color
+static Tereditor.Plugins.UI.Kit.Ui.EditorSelectionText.get -> Avalonia.Media.Color?
+static Tereditor.Plugins.UI.Kit.Ui.RelativeTime(System.DateTimeOffset time, System.DateTimeOffset now) -> string!
+static Tereditor.Plugins.UI.Kit.Ui.SelectionText.get -> Avalonia.Media.Color?
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlBorder -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlBorderActive -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlDisabledFill -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ControlFill -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.DifferenceBase -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Overlay -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PopoverShadow -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimaryDisabledFill -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimaryDisabledText -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PrimarySoft -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Selected -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Terminal -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.Workspace -> Avalonia.Media.SolidColorBrush!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Deconstruct(out string! Id, out string! Label, out int Order, out string! Appearance, out string! Contrast, out System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, out System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi, out System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>! Syntax) -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.Syntax.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>!
+Tereditor.Plugins.UI.Kit.ThemeManifest.Syntax.init -> void
+Tereditor.Plugins.UI.Kit.ThemeManifest.ThemeManifest(string! Id, string! Label, int Order, string! Appearance, string! Contrast, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>! Syntax) -> void
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownDiff.Sequence(string![]! a, string![]! b, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.List<(int Side, string! Value)>!
+static Tereditor.Plugins.UI.Kit.Ui.FollowEnabled(Avalonia.Controls.Button! button) -> void
+~override Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(object obj) -> bool
+~override Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ToString() -> string
+override Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.GetHashCode() -> int
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Restore(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState state) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.State.get -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Deconstruct(out Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, out Avalonia.Vector Preview, out Avalonia.Vector Source) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState other) -> bool
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.get -> Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.get -> Avalonia.Vector
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.get -> Avalonia.Vector
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.init -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, Avalonia.Vector Preview, Avalonia.Vector Source) -> void
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator !=(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
+static Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator ==(Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
 
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, System.Func<string!, Avalonia.Controls.Control!>? sourceFactory) -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Source.get -> Avalonia.Controls.Control?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.PreviewChanged -> System.Action?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text) -> System.Threading.Tasks.Task!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> System.Threading.Tasks.Task!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.get -> System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.set -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedLines.get -> (int Start, int End)?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext! context, System.Func<string!, Avalonia.Controls.Control!>? sourceFactory) -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Source.get -> Avalonia.Controls.Control?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.PreviewChanged -> System.Action?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text) -> System.Threading.Tasks.Task!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text, Tereditor.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> System.Threading.Tasks.Task!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.get -> System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.set -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedLines.get -> (int Start, int End)?
 
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.FollowCursor.get -> bool
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.FollowCursor.init -> void
-SharpRail.Plugins.UI.Kit.RowActivation
-static SharpRail.Plugins.UI.Kit.RowActivation.OnActivate(Avalonia.Controls.Control! row, System.Func<Avalonia.Controls.Control!, bool>! accepts, System.Action<int>! action) -> void
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.PrefixLength.get -> int
-override SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.ToString() -> string!
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.PrefixLength.init -> void
-static SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.operator !=(SharpRail.Plugins.UI.Kit.Editor.SyntaxLine? left, SharpRail.Plugins.UI.Kit.Editor.SyntaxLine? right) -> bool
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Old.get -> bool
-static SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.operator ==(SharpRail.Plugins.UI.Kit.Editor.SyntaxLine? left, SharpRail.Plugins.UI.Kit.Editor.SyntaxLine? right) -> bool
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Old.init -> void
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Reset.get -> bool
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.New.get -> bool
-override SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.GetHashCode() -> int
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Reset.init -> void
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.New.init -> void
-override SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Equals(object? obj) -> bool
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Equals(SharpRail.Plugins.UI.Kit.Editor.SyntaxLine? other) -> bool
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.<Clone>$() -> SharpRail.Plugins.UI.Kit.Editor.SyntaxLine!
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Deconstruct(out int PrefixLength, out bool Old, out bool New, out bool Reset) -> void
-SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.SyntaxLine(int PrefixLength, bool Old, bool New, bool Reset = false) -> void
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.Highlight(string! path, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Editor.SyntaxLine!>? lines = null, System.Collections.Generic.IReadOnlyList<int>? lineStyles = null) -> void
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.PlatformRender.set -> void
-static SharpRail.Plugins.UI.Kit.CommandKeys.Modifier.get -> Avalonia.Input.KeyModifiers
-static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string! source, string! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!>!
-SharpRail.Plugins.UI.Kit.FileDrop
-static readonly SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty -> Avalonia.AttachedProperty<System.Func<bool>?>!
-static readonly SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.AttachedProperty<System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?>!
-const SharpRail.Plugins.UI.Kit.LayoutRoles.LocationIconSlot = 16 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderControl = 24 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow = 28 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip = 32 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelRow = 22 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.TopbarRow = 40 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.MenuIconSlot = 16 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.TreeIndent = 8 -> double
-override SharpRail.Plugins.UI.Kit.TextRole.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.TextRole.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.TextRole.ToString() -> string!
-SharpRail.Plugins.UI.Kit.LayoutRoles
-SharpRail.Plugins.UI.Kit.TextRole
-SharpRail.Plugins.UI.Kit.TextRole.<Clone>$() -> SharpRail.Plugins.UI.Kit.TextRole!
-SharpRail.Plugins.UI.Kit.TextRole.Class.get -> string!
-SharpRail.Plugins.UI.Kit.TextRole.Class.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.Deconstruct(out string! Class, out Avalonia.Media.FontFamily! FontFamily, out double FontSize, out Avalonia.Media.FontWeight FontWeight, out double LineHeight, out double LetterSpacing, out bool Uppercase) -> void
-SharpRail.Plugins.UI.Kit.TextRole.Equals(SharpRail.Plugins.UI.Kit.TextRole? other) -> bool
-SharpRail.Plugins.UI.Kit.TextRole.FontFamily.get -> Avalonia.Media.FontFamily!
-SharpRail.Plugins.UI.Kit.TextRole.FontFamily.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.FontSize.get -> double
-SharpRail.Plugins.UI.Kit.TextRole.FontSize.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.FontWeight.get -> Avalonia.Media.FontWeight
-SharpRail.Plugins.UI.Kit.TextRole.FontWeight.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.LetterSpacing.get -> double
-SharpRail.Plugins.UI.Kit.TextRole.LetterSpacing.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.LineHeight.get -> double
-SharpRail.Plugins.UI.Kit.TextRole.LineHeight.init -> void
-SharpRail.Plugins.UI.Kit.TextRole.TextRole(string! Class, Avalonia.Media.FontFamily! FontFamily, double FontSize, Avalonia.Media.FontWeight FontWeight, double LineHeight, double LetterSpacing, bool Uppercase) -> void
-SharpRail.Plugins.UI.Kit.TextRole.Uppercase.get -> bool
-SharpRail.Plugins.UI.Kit.TextRole.Uppercase.init -> void
-SharpRail.Plugins.UI.Kit.Typography
-static readonly SharpRail.Plugins.UI.Kit.Typography.All -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.TextRole!>!
-static readonly SharpRail.Plugins.UI.Kit.Typography.BodyReading -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.BrandHero -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.CodeDocument -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.CodeOtp -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.CodeText -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.CodeTextSmall -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingLg -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingMd -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingSm -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingXl -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.TitleCard -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.TitleCompact -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.TitleDialog -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.TitleEntity -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.TitleSection -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiAction -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiCaption -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiDefault -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiEmphasis -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiEyebrow -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiLabelPill -> SharpRail.Plugins.UI.Kit.TextRole!
-static readonly SharpRail.Plugins.UI.Kit.Typography.UiMetadata -> SharpRail.Plugins.UI.Kit.TextRole!
-static SharpRail.Plugins.UI.Kit.TextRole.operator !=(SharpRail.Plugins.UI.Kit.TextRole? left, SharpRail.Plugins.UI.Kit.TextRole? right) -> bool
-static SharpRail.Plugins.UI.Kit.TextRole.operator ==(SharpRail.Plugins.UI.Kit.TextRole? left, SharpRail.Plugins.UI.Kit.TextRole? right) -> bool
-static SharpRail.Plugins.UI.Kit.Typography.Apply<T>(T! control, SharpRail.Plugins.UI.Kit.TextRole! role) -> T!
-static SharpRail.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PdfPaper -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.PdfSelection -> Avalonia.Media.SolidColorBrush!
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.FollowCursor.get -> bool
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.FollowCursor.init -> void
+Tereditor.Plugins.UI.Kit.RowActivation
+static Tereditor.Plugins.UI.Kit.RowActivation.OnActivate(Avalonia.Controls.Control! row, System.Func<Avalonia.Controls.Control!, bool>! accepts, System.Action<int>! action) -> void
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.PrefixLength.get -> int
+override Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.ToString() -> string!
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.PrefixLength.init -> void
+static Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.operator !=(Tereditor.Plugins.UI.Kit.Editor.SyntaxLine? left, Tereditor.Plugins.UI.Kit.Editor.SyntaxLine? right) -> bool
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Old.get -> bool
+static Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.operator ==(Tereditor.Plugins.UI.Kit.Editor.SyntaxLine? left, Tereditor.Plugins.UI.Kit.Editor.SyntaxLine? right) -> bool
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Old.init -> void
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Reset.get -> bool
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.New.get -> bool
+override Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.GetHashCode() -> int
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Reset.init -> void
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.New.init -> void
+override Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Equals(object? obj) -> bool
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Equals(Tereditor.Plugins.UI.Kit.Editor.SyntaxLine? other) -> bool
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.<Clone>$() -> Tereditor.Plugins.UI.Kit.Editor.SyntaxLine!
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.Deconstruct(out int PrefixLength, out bool Old, out bool New, out bool Reset) -> void
+Tereditor.Plugins.UI.Kit.Editor.SyntaxLine.SyntaxLine(int PrefixLength, bool Old, bool New, bool Reset = false) -> void
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.Highlight(string! path, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Editor.SyntaxLine!>? lines = null, System.Collections.Generic.IReadOnlyList<int>? lineStyles = null) -> void
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.PlatformRender.set -> void
+static Tereditor.Plugins.UI.Kit.CommandKeys.Modifier.get -> Avalonia.Input.KeyModifiers
+static Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string! source, string! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Tereditor.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!>!
+Tereditor.Plugins.UI.Kit.FileDrop
+static readonly Tereditor.Plugins.UI.Kit.FileDrop.AcceptsProperty -> Avalonia.AttachedProperty<System.Func<bool>?>!
+static readonly Tereditor.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.AttachedProperty<System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?>!
+const Tereditor.Plugins.UI.Kit.LayoutRoles.LocationIconSlot = 16 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.PanelHeaderControl = 24 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow = 28 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.PaneHeaderStrip = 32 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.PanelRow = 22 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.TopbarRow = 40 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.MenuIconSlot = 16 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.TreeIndent = 8 -> double
+override Tereditor.Plugins.UI.Kit.TextRole.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.TextRole.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.TextRole.ToString() -> string!
+Tereditor.Plugins.UI.Kit.LayoutRoles
+Tereditor.Plugins.UI.Kit.TextRole
+Tereditor.Plugins.UI.Kit.TextRole.<Clone>$() -> Tereditor.Plugins.UI.Kit.TextRole!
+Tereditor.Plugins.UI.Kit.TextRole.Class.get -> string!
+Tereditor.Plugins.UI.Kit.TextRole.Class.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.Deconstruct(out string! Class, out Avalonia.Media.FontFamily! FontFamily, out double FontSize, out Avalonia.Media.FontWeight FontWeight, out double LineHeight, out double LetterSpacing, out bool Uppercase) -> void
+Tereditor.Plugins.UI.Kit.TextRole.Equals(Tereditor.Plugins.UI.Kit.TextRole? other) -> bool
+Tereditor.Plugins.UI.Kit.TextRole.FontFamily.get -> Avalonia.Media.FontFamily!
+Tereditor.Plugins.UI.Kit.TextRole.FontFamily.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.FontSize.get -> double
+Tereditor.Plugins.UI.Kit.TextRole.FontSize.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.FontWeight.get -> Avalonia.Media.FontWeight
+Tereditor.Plugins.UI.Kit.TextRole.FontWeight.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.LetterSpacing.get -> double
+Tereditor.Plugins.UI.Kit.TextRole.LetterSpacing.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.LineHeight.get -> double
+Tereditor.Plugins.UI.Kit.TextRole.LineHeight.init -> void
+Tereditor.Plugins.UI.Kit.TextRole.TextRole(string! Class, Avalonia.Media.FontFamily! FontFamily, double FontSize, Avalonia.Media.FontWeight FontWeight, double LineHeight, double LetterSpacing, bool Uppercase) -> void
+Tereditor.Plugins.UI.Kit.TextRole.Uppercase.get -> bool
+Tereditor.Plugins.UI.Kit.TextRole.Uppercase.init -> void
+Tereditor.Plugins.UI.Kit.Typography
+static readonly Tereditor.Plugins.UI.Kit.Typography.All -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.TextRole!>!
+static readonly Tereditor.Plugins.UI.Kit.Typography.BodyReading -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.BrandHero -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.CodeDocument -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.CodeOtp -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.CodeText -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.CodeTextSmall -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.HeadingLg -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.HeadingMd -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.HeadingSm -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.HeadingXl -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.TitleCard -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.TitleCompact -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.TitleDialog -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.TitleEntity -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.TitleSection -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiAction -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiCaption -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiDefault -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiEmphasis -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiEyebrow -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiLabelPill -> Tereditor.Plugins.UI.Kit.TextRole!
+static readonly Tereditor.Plugins.UI.Kit.Typography.UiMetadata -> Tereditor.Plugins.UI.Kit.TextRole!
+static Tereditor.Plugins.UI.Kit.TextRole.operator !=(Tereditor.Plugins.UI.Kit.TextRole? left, Tereditor.Plugins.UI.Kit.TextRole? right) -> bool
+static Tereditor.Plugins.UI.Kit.TextRole.operator ==(Tereditor.Plugins.UI.Kit.TextRole? left, Tereditor.Plugins.UI.Kit.TextRole? right) -> bool
+static Tereditor.Plugins.UI.Kit.Typography.Apply<T>(T! control, Tereditor.Plugins.UI.Kit.TextRole! role) -> T!
+static Tereditor.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PdfPaper -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PdfSelection -> Avalonia.Media.SolidColorBrush!
 
-override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Equals(object? obj) -> bool
-override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.GetHashCode() -> int
-override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.ToString() -> string!
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.ApplySemanticTokensAsync(string! text, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Editor.SemanticToken!>! tokens) -> System.Threading.Tasks.Task!
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.<Clone>$() -> SharpRail.Plugins.UI.Kit.Editor.SemanticToken!
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Column.get -> int
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Column.init -> void
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Deconstruct(out int Line, out int Column, out int Length, out string! Type) -> void
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Equals(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? other) -> bool
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Length.get -> int
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Length.init -> void
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Line.get -> int
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Line.init -> void
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.SemanticToken(int Line, int Column, int Length, string! Type) -> void
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Type.get -> string!
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Type.init -> void
-static SharpRail.Plugins.UI.Kit.Editor.SemanticToken.operator !=(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? left, SharpRail.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
-static SharpRail.Plugins.UI.Kit.Editor.SemanticToken.operator ==(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? left, SharpRail.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.HighlightingReady.get -> System.Threading.Tasks.Task!
+override Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.Editor.SemanticToken.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.Editor.SemanticToken.ToString() -> string!
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.ApplySemanticTokensAsync(string! text, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Editor.SemanticToken!>! tokens) -> System.Threading.Tasks.Task!
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.<Clone>$() -> Tereditor.Plugins.UI.Kit.Editor.SemanticToken!
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Column.get -> int
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Column.init -> void
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Deconstruct(out int Line, out int Column, out int Length, out string! Type) -> void
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Equals(Tereditor.Plugins.UI.Kit.Editor.SemanticToken? other) -> bool
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Length.get -> int
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Length.init -> void
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Line.get -> int
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Line.init -> void
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.SemanticToken(int Line, int Column, int Length, string! Type) -> void
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Type.get -> string!
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Type.init -> void
+static Tereditor.Plugins.UI.Kit.Editor.SemanticToken.operator !=(Tereditor.Plugins.UI.Kit.Editor.SemanticToken? left, Tereditor.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
+static Tereditor.Plugins.UI.Kit.Editor.SemanticToken.operator ==(Tereditor.Plugins.UI.Kit.Editor.SemanticToken? left, Tereditor.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.HighlightingReady.get -> System.Threading.Tasks.Task!
 
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.get -> bool
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.set -> void
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.get -> bool
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.set -> void
 
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.get -> bool
-SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.init -> void
-SharpRail.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView() -> void
-SharpRail.Plugins.UI.Kit.Visualization.MermaidView.MermaidView() -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.LineOffset(int line, bool reveal = true, double fraction = 0) -> double?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SourceAt(double offset) -> (int Line, double Fraction)?
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToLine(int line) -> bool
-SharpRail.Plugins.UI.Kit.MenuFill
-static SharpRail.Plugins.UI.Kit.MenuFill.FillBeforeOpening<T>(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! owner, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! gather, System.Action<T>! apply, System.Action<System.Exception!>? failed = null, System.Threading.CancellationToken lifetime = default(System.Threading.CancellationToken)) -> void
-static SharpRail.Plugins.UI.Kit.MenuFill.Open(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! target) -> void
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.get -> string?
-SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.init -> void
-SharpRail.Plugins.UI.Kit.ZoomChords
-static SharpRail.Plugins.UI.Kit.ZoomChords.FocusOwned(Avalonia.Controls.TopLevel? top) -> bool
-static SharpRail.Plugins.UI.Kit.ZoomChords.GetOwns(Avalonia.Controls.Control! control) -> bool
-static SharpRail.Plugins.UI.Kit.ZoomChords.SetOwns(Avalonia.Controls.Control! control, bool value) -> void
-static readonly SharpRail.Plugins.UI.Kit.ZoomChords.OwnsProperty -> Avalonia.AttachedProperty<bool>!
-const SharpRail.Plugins.UI.Kit.LayoutRoles.ChipGap = 4 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.CaretGap = 1 -> double
-const SharpRail.Plugins.UI.Kit.LayoutRoles.RowInset = 4 -> double
-SharpRail.Plugins.UI.Kit.Chips
-static SharpRail.Plugins.UI.Kit.Chips.Button(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.UI.Kit.Chips.Gap.get -> Avalonia.Thickness
-static SharpRail.Plugins.UI.Kit.Chips.Label(string! text) -> Avalonia.Controls.TextBlock!
-static SharpRail.Plugins.UI.Kit.Chips.Tip<T>(T! control, string! tooltip) -> T!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconCode -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMarkup -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconData -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconScript -> Avalonia.Media.SolidColorBrush!
-static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMedia -> Avalonia.Media.SolidColorBrush!
-SharpRail.Plugins.UI.Kit.PathLine
-SharpRail.Plugins.UI.Kit.PathLine.Path.get -> string?
-SharpRail.Plugins.UI.Kit.PathLine.Path.set -> void
-SharpRail.Plugins.UI.Kit.PathLine.PathLine() -> void
-static SharpRail.Plugins.UI.Kit.PathLine.Label(string? path) -> string?
-SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Add = 4 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Branch = 8 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Check = 9 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Close = 5 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Clone = 13 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Continue = 10 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.CopyPath = 3 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Delete = 0 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.EnterPath = 12 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Home = 7 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.NewFile = 1 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.NewFolder = 2 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.OpenFolder = 6 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Resume = 11 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcons
-static SharpRail.Plugins.UI.Kit.ActionIcons.All.get -> System.Collections.Generic.IReadOnlyList<(SharpRail.Plugins.UI.Kit.ActionIcon Icon, string! Asset)>!
-static SharpRail.Plugins.UI.Kit.ActionIcons.Asset(SharpRail.Plugins.UI.Kit.ActionIcon icon) -> string!
-static SharpRail.Plugins.UI.Kit.ActionIcons.Create(SharpRail.Plugins.UI.Kit.ActionIcon icon, Avalonia.Media.IBrush? color = null, double size = 14) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.UI.Kit.Ui.IconMenu(string! label, System.Action! action, SharpRail.Plugins.UI.Kit.ActionIcon icon, bool enabled = true) -> Avalonia.Controls.MenuItem!
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock! block, System.Action<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!>! commit, System.Func<string!, System.Collections.Generic.IEnumerable<string!>?>? suggestions = null) -> void
-SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.Properties.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
-SharpRail.Plugins.UI.Kit.ActionIcon.CopyAbsolutePath = 14 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Settings = 15 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Pin = 16 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.Unpin = 17 -> SharpRail.Plugins.UI.Kit.ActionIcon
-SharpRail.Plugins.UI.Kit.ActionIcon.OpenWorktree = 18 -> SharpRail.Plugins.UI.Kit.ActionIcon
-static SharpRail.Plugins.UI.Kit.TabNames.Quote(string? title) -> string!
-SharpRail.Plugins.UI.Kit.TabNames
-SharpRail.Plugins.UI.Kit.IDialogOwner.Present(Avalonia.Controls.Control! card, System.Action! dismiss, double width, double height, bool sheet) -> System.Action?
-SharpRail.Plugins.UI.Kit.DialogWindow.InWindow.get -> bool
-SharpRail.Plugins.UI.Kit.DialogWindow.InWindow.set -> void
-SharpRail.Plugins.UI.Kit.DialogWindow.Surface.get -> Avalonia.Controls.Control?
-SharpRail.Plugins.UI.Kit.DialogWindow.Host.get -> Avalonia.Controls.Window?
-SharpRail.Plugins.UI.Kit.DialogWindow.InOverlay.get -> bool
-SharpRail.Plugins.UI.Kit.DialogWindow.IsVisible.get -> bool
-SharpRail.Plugins.UI.Kit.DialogWindow.ShowDialog(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task!
-SharpRail.Plugins.UI.Kit.DialogWindow.ShowDialog<T>(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task<T>!
-SharpRail.Plugins.UI.Kit.DialogWindow.Close() -> void
-SharpRail.Plugins.UI.Kit.DialogWindow.Close(object? dialogResult) -> void
-static SharpRail.Plugins.UI.Kit.DialogWindow.On(Avalonia.Controls.Window! owner) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Window!>!
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Italic.get -> bool
+Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Italic.init -> void
+Tereditor.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView() -> void
+Tereditor.Plugins.UI.Kit.Visualization.MermaidView.MermaidView() -> void
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.LineOffset(int line, bool reveal = true, double fraction = 0) -> double?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SourceAt(double offset) -> (int Line, double Fraction)?
+Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToLine(int line) -> bool
+Tereditor.Plugins.UI.Kit.MenuFill
+static Tereditor.Plugins.UI.Kit.MenuFill.FillBeforeOpening<T>(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! owner, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! gather, System.Action<T>! apply, System.Action<System.Exception!>? failed = null, System.Threading.CancellationToken lifetime = default(System.Threading.CancellationToken)) -> void
+static Tereditor.Plugins.UI.Kit.MenuFill.Open(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! target) -> void
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.get -> string?
+Tereditor.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.init -> void
+Tereditor.Plugins.UI.Kit.ZoomChords
+static Tereditor.Plugins.UI.Kit.ZoomChords.FocusOwned(Avalonia.Controls.TopLevel? top) -> bool
+static Tereditor.Plugins.UI.Kit.ZoomChords.GetOwns(Avalonia.Controls.Control! control) -> bool
+static Tereditor.Plugins.UI.Kit.ZoomChords.SetOwns(Avalonia.Controls.Control! control, bool value) -> void
+static readonly Tereditor.Plugins.UI.Kit.ZoomChords.OwnsProperty -> Avalonia.AttachedProperty<bool>!
+const Tereditor.Plugins.UI.Kit.LayoutRoles.ChipGap = 4 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.CaretGap = 1 -> double
+const Tereditor.Plugins.UI.Kit.LayoutRoles.RowInset = 4 -> double
+Tereditor.Plugins.UI.Kit.Chips
+static Tereditor.Plugins.UI.Kit.Chips.Button(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.UI.Kit.Chips.Gap.get -> Avalonia.Thickness
+static Tereditor.Plugins.UI.Kit.Chips.Label(string! text) -> Avalonia.Controls.TextBlock!
+static Tereditor.Plugins.UI.Kit.Chips.Tip<T>(T! control, string! tooltip) -> T!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FileIconCode -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FileIconMarkup -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FileIconData -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FileIconScript -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.FileIconMedia -> Avalonia.Media.SolidColorBrush!
+Tereditor.Plugins.UI.Kit.PathLine
+Tereditor.Plugins.UI.Kit.PathLine.Path.get -> string?
+Tereditor.Plugins.UI.Kit.PathLine.Path.set -> void
+Tereditor.Plugins.UI.Kit.PathLine.PathLine() -> void
+static Tereditor.Plugins.UI.Kit.PathLine.Label(string? path) -> string?
+Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Add = 4 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Branch = 8 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Check = 9 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Close = 5 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Clone = 13 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Continue = 10 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.CopyPath = 3 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Delete = 0 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.EnterPath = 12 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Home = 7 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.NewFile = 1 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.NewFolder = 2 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.OpenFolder = 6 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Resume = 11 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcons
+static Tereditor.Plugins.UI.Kit.ActionIcons.All.get -> System.Collections.Generic.IReadOnlyList<(Tereditor.Plugins.UI.Kit.ActionIcon Icon, string! Asset)>!
+static Tereditor.Plugins.UI.Kit.ActionIcons.Asset(Tereditor.Plugins.UI.Kit.ActionIcon icon) -> string!
+static Tereditor.Plugins.UI.Kit.ActionIcons.Create(Tereditor.Plugins.UI.Kit.ActionIcon icon, Avalonia.Media.IBrush? color = null, double size = 14) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.UI.Kit.Ui.IconMenu(string! label, System.Action! action, Tereditor.Plugins.UI.Kit.ActionIcon icon, bool enabled = true) -> Avalonia.Controls.MenuItem!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor(Tereditor.Plugins.UI.Kit.Markdown.FrontmatterBlock! block, System.Action<System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!>! commit, System.Func<string!, System.Collections.Generic.IEnumerable<string!>?>? suggestions = null) -> void
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor.Properties.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
+Tereditor.Plugins.UI.Kit.ActionIcon.CopyAbsolutePath = 14 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Settings = 15 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Pin = 16 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.Unpin = 17 -> Tereditor.Plugins.UI.Kit.ActionIcon
+Tereditor.Plugins.UI.Kit.ActionIcon.OpenWorktree = 18 -> Tereditor.Plugins.UI.Kit.ActionIcon
+static Tereditor.Plugins.UI.Kit.TabNames.Quote(string? title) -> string!
+Tereditor.Plugins.UI.Kit.TabNames
+Tereditor.Plugins.UI.Kit.IDialogOwner.Present(Avalonia.Controls.Control! card, System.Action! dismiss, double width, double height, bool sheet) -> System.Action?
+Tereditor.Plugins.UI.Kit.DialogWindow.InWindow.get -> bool
+Tereditor.Plugins.UI.Kit.DialogWindow.InWindow.set -> void
+Tereditor.Plugins.UI.Kit.DialogWindow.Surface.get -> Avalonia.Controls.Control?
+Tereditor.Plugins.UI.Kit.DialogWindow.Host.get -> Avalonia.Controls.Window?
+Tereditor.Plugins.UI.Kit.DialogWindow.InOverlay.get -> bool
+Tereditor.Plugins.UI.Kit.DialogWindow.IsVisible.get -> bool
+Tereditor.Plugins.UI.Kit.DialogWindow.ShowDialog(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task!
+Tereditor.Plugins.UI.Kit.DialogWindow.ShowDialog<T>(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task<T>!
+Tereditor.Plugins.UI.Kit.DialogWindow.Close() -> void
+Tereditor.Plugins.UI.Kit.DialogWindow.Close(object? dialogResult) -> void
+static Tereditor.Plugins.UI.Kit.DialogWindow.On(Avalonia.Controls.Window! owner) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Window!>!
 
-SharpRail.Plugins.UI.Kit.RegistryRow
-const SharpRail.Plugins.UI.Kit.RegistryRow.StatusWidth = 16 -> double
-const SharpRail.Plugins.UI.Kit.RegistryRow.IconWidth = 28 -> double
-const SharpRail.Plugins.UI.Kit.RegistryRow.SettingsWidth = 28 -> double
-static SharpRail.Plugins.UI.Kit.RegistryRow.Create(string! name, Avalonia.Controls.Control? status, Avalonia.Controls.Control? icon, Avalonia.Controls.Control! title, Avalonia.Controls.Control? settings, Avalonia.Controls.Control? action, Avalonia.Controls.Control? details) -> Avalonia.Controls.Border!
-SharpRail.Plugins.UI.Kit.MasterDetail
-SharpRail.Plugins.UI.Kit.MasterDetail.MasterDetail(string! name, double railWidth = 200) -> void
-SharpRail.Plugins.UI.Kit.MasterDetail.Rail.get -> Avalonia.Controls.ListBox!
-SharpRail.Plugins.UI.Kit.MasterDetail.Detail.get -> Avalonia.Controls.ContentControl!
-SharpRail.Plugins.UI.Kit.MasterDetail.Selected -> System.Action<string?>?
-SharpRail.Plugins.UI.Kit.MasterDetail.SelectedId.get -> string?
-SharpRail.Plugins.UI.Kit.MasterDetail.SetRows(System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>! rows, string? select, bool none = false) -> void
-static SharpRail.Plugins.UI.Kit.MasterDetail.Row(string! id, Avalonia.Controls.Control? icon, string! name, string? subtitle, string? problem) -> Avalonia.Controls.Control!
-SharpRail.Plugins.UI.Kit.MasterDetail.Footer.get -> Avalonia.Controls.StackPanel!
-SharpRail.Plugins.UI.Kit.MasterDetail.Header.get -> Avalonia.Controls.StackPanel!
-const SharpRail.Plugins.UI.Kit.Units.NoBreak = ' ' -> char
-SharpRail.Plugins.UI.Kit.Units
-static SharpRail.Plugins.UI.Kit.Units.Count(long count, string! singular, string? plural = null) -> string!
-static SharpRail.Plugins.UI.Kit.Units.Duration(long seconds) -> string!
-static SharpRail.Plugins.UI.Kit.Units.Pair(long number, string! unit) -> string!
-static SharpRail.Plugins.UI.Kit.Units.Pair(string! number, string! unit) -> string!
-static SharpRail.Plugins.UI.Kit.Units.Seconds(long seconds) -> string!
-static SharpRail.Plugins.UI.Kit.Units.Size(long bytes) -> string!
-static readonly SharpRail.Plugins.UI.Kit.Ui.ChipFill -> Avalonia.Media.SolidColorBrush!
-static SharpRail.Plugins.UI.Kit.Ui.Blend(Avalonia.Media.Color from, Avalonia.Media.Color toward, int percent) -> Avalonia.Media.Color
-override SharpRail.Plugins.UI.Kit.LinkedTextBlock.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
-override SharpRail.Plugins.UI.Kit.LinkedTextBlock.StyleKeyOverride.get -> System.Type!
-SharpRail.Plugins.UI.Kit.LinkClickedEventArgs
-SharpRail.Plugins.UI.Kit.LinkClickedEventArgs.LinkClickedEventArgs(System.Uri! url) -> void
-SharpRail.Plugins.UI.Kit.LinkClickedEventArgs.Url.get -> System.Uri!
-SharpRail.Plugins.UI.Kit.LinkedTextBlock
-SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClicked -> System.EventHandler<SharpRail.Plugins.UI.Kit.LinkClickedEventArgs!>?
-SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkedTextBlock() -> void
-SharpRail.Plugins.UI.Kit.LinkedTextBlock.Source.get -> string?
-SharpRail.Plugins.UI.Kit.LinkedTextBlock.Source.set -> void
-static readonly SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent -> Avalonia.Interactivity.RoutedEvent<SharpRail.Plugins.UI.Kit.LinkClickedEventArgs!>!
-static readonly SharpRail.Plugins.UI.Kit.LinkedTextBlock.SourceProperty -> Avalonia.StyledProperty<string?>!
-static SharpRail.Plugins.UI.Kit.LinkedTextBlock.Split(string? text) -> System.Collections.Generic.IReadOnlyList<(string! Text, System.Uri? Url)>!
+Tereditor.Plugins.UI.Kit.RegistryRow
+const Tereditor.Plugins.UI.Kit.RegistryRow.StatusWidth = 16 -> double
+const Tereditor.Plugins.UI.Kit.RegistryRow.IconWidth = 28 -> double
+const Tereditor.Plugins.UI.Kit.RegistryRow.SettingsWidth = 28 -> double
+static Tereditor.Plugins.UI.Kit.RegistryRow.Create(string! name, Avalonia.Controls.Control? status, Avalonia.Controls.Control? icon, Avalonia.Controls.Control! title, Avalonia.Controls.Control? settings, Avalonia.Controls.Control? action, Avalonia.Controls.Control? details) -> Avalonia.Controls.Border!
+Tereditor.Plugins.UI.Kit.MasterDetail
+Tereditor.Plugins.UI.Kit.MasterDetail.MasterDetail(string! name, double railWidth = 200) -> void
+Tereditor.Plugins.UI.Kit.MasterDetail.Rail.get -> Avalonia.Controls.ListBox!
+Tereditor.Plugins.UI.Kit.MasterDetail.Detail.get -> Avalonia.Controls.ContentControl!
+Tereditor.Plugins.UI.Kit.MasterDetail.Selected -> System.Action<string?>?
+Tereditor.Plugins.UI.Kit.MasterDetail.SelectedId.get -> string?
+Tereditor.Plugins.UI.Kit.MasterDetail.SetRows(System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>! rows, string? select, bool none = false) -> void
+static Tereditor.Plugins.UI.Kit.MasterDetail.Row(string! id, Avalonia.Controls.Control? icon, string! name, string? subtitle, string? problem) -> Avalonia.Controls.Control!
+Tereditor.Plugins.UI.Kit.MasterDetail.Footer.get -> Avalonia.Controls.StackPanel!
+Tereditor.Plugins.UI.Kit.MasterDetail.Header.get -> Avalonia.Controls.StackPanel!
+const Tereditor.Plugins.UI.Kit.Units.NoBreak = ' ' -> char
+Tereditor.Plugins.UI.Kit.Units
+static Tereditor.Plugins.UI.Kit.Units.Count(long count, string! singular, string? plural = null) -> string!
+static Tereditor.Plugins.UI.Kit.Units.Duration(long seconds) -> string!
+static Tereditor.Plugins.UI.Kit.Units.Pair(long number, string! unit) -> string!
+static Tereditor.Plugins.UI.Kit.Units.Pair(string! number, string! unit) -> string!
+static Tereditor.Plugins.UI.Kit.Units.Seconds(long seconds) -> string!
+static Tereditor.Plugins.UI.Kit.Units.Size(long bytes) -> string!
+static readonly Tereditor.Plugins.UI.Kit.Ui.ChipFill -> Avalonia.Media.SolidColorBrush!
+static Tereditor.Plugins.UI.Kit.Ui.Blend(Avalonia.Media.Color from, Avalonia.Media.Color toward, int percent) -> Avalonia.Media.Color
+override Tereditor.Plugins.UI.Kit.LinkedTextBlock.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override Tereditor.Plugins.UI.Kit.LinkedTextBlock.StyleKeyOverride.get -> System.Type!
+Tereditor.Plugins.UI.Kit.LinkClickedEventArgs
+Tereditor.Plugins.UI.Kit.LinkClickedEventArgs.LinkClickedEventArgs(System.Uri! url) -> void
+Tereditor.Plugins.UI.Kit.LinkClickedEventArgs.Url.get -> System.Uri!
+Tereditor.Plugins.UI.Kit.LinkedTextBlock
+Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkClicked -> System.EventHandler<Tereditor.Plugins.UI.Kit.LinkClickedEventArgs!>?
+Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkedTextBlock() -> void
+Tereditor.Plugins.UI.Kit.LinkedTextBlock.Source.get -> string?
+Tereditor.Plugins.UI.Kit.LinkedTextBlock.Source.set -> void
+static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent -> Avalonia.Interactivity.RoutedEvent<Tereditor.Plugins.UI.Kit.LinkClickedEventArgs!>!
+static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.SourceProperty -> Avalonia.StyledProperty<string?>!
+static Tereditor.Plugins.UI.Kit.LinkedTextBlock.Split(string? text) -> System.Collections.Generic.IReadOnlyList<(string! Text, System.Uri? Url)>!

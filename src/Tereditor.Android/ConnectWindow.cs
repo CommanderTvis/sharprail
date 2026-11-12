@@ -4,13 +4,13 @@ using Avalonia.Input.TextInput;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Tailscale;
-using SharpRail.Plugins.Tailscale.UI;
-using SharpRail.UI.Android.Windowing;
-using SharpRail.UI.State;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale.UI;
+using Tereditor.UI.Android.Windowing;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>The client's one screen of its own: the host's address and session token.</summary>
 public sealed partial class ConnectWindow : Window
@@ -167,7 +167,7 @@ public sealed partial class ConnectWindow : Window
         try { scanned = await QrScanner.ScanAsync(activity); }
         catch (IOException) { Fail("This device has no QR scanner. Type the address and token instead."); return; }
         if (scanned is null || !IsVisible) return;
-        if (!HostLink.TryParse(scanned, out var host, out var session)) { Fail("That code is not a SharpRail host."); return; }
+        if (!HostLink.TryParse(scanned, out var host, out var session)) { Fail("That code is not a tereditor host."); return; }
         address.Text = host; token.Text = session;
         await ConnectAsync();
     }

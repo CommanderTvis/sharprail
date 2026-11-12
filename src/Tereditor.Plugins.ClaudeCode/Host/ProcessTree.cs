@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 internal interface IProcessSnapshot
 {
@@ -100,9 +100,9 @@ internal static partial class ProcessTree
         return output is null ? null : FromRows(ParseRows(output));
     }
 
-    /// <summary>Another SharpRail app (the bundle and apphost are <c>SharpRail.UI</c>): its terminals' agents belong to its own tabs, so the search never descends through it.</summary>
-    public static bool IsSharpRailHost(string name) =>
-        name.Equals("SharpRail.UI", StringComparison.OrdinalIgnoreCase) || name.Equals("SharpRail", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Another tereditor app (the bundle and apphost are <c>Tereditor.UI</c>): its terminals' agents belong to its own tabs, so the search never descends through it.</summary>
+    public static bool IsTereditorHost(string name) =>
+        name.Equals("Tereditor.UI", StringComparison.OrdinalIgnoreCase) || name.Equals("tereditor", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The first process named in <paramref name="wanted"/> below <paramref name="rootPid"/>, breadth first.</summary>
     public static (int Pid, string Name)? FindDescendant(IProcessSnapshot snapshot, int rootPid, IReadOnlyCollection<string> wanted, int maxDepth = MaxDescendantDepth)
@@ -118,7 +118,7 @@ internal static partial class ProcessTree
                     if (!seen.Add(child)) continue;
                     var name = snapshot.NameOf(child);
                     if (name is not null && wanted.Contains(name)) return (child, name);
-                    if (name is null || !IsSharpRailHost(name)) next.Add(child);
+                    if (name is null || !IsTereditorHost(name)) next.Add(child);
                 }
             frontier = next;
         }
@@ -155,7 +155,7 @@ internal static partial class ProcessTree
     internal static bool? CaptureUiLaunch(int pid)
     {
         if (pid <= 0 || OperatingSystem.IsWindows()) return null;
-        const string marker = "SHARPRAIL_UI_LAUNCH=claude";
+        const string marker = "TEREDITOR_UI_LAUNCH=claude";
         try
         {
             if (OperatingSystem.IsLinux()) return File.ReadAllText($"/proc/{pid}/environ").Split('\0').Contains(marker);

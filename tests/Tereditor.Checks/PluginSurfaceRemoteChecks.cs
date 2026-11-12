@@ -10,21 +10,21 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Core.Plugins.Isolation;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Isolation;
-using SharpRail.UI.Plugins;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Core.Plugins.Isolation;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Isolation;
+using Tereditor.UI.Plugins;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// <c>--plugin-surface-remote</c>: an external plugin's views on remote clients over WebSocket RPC
-/// (src/SharpRail.Plugins.Api/Security.SPEC.md, UI halves). A frame larger than a surface message is split under the
+/// (src/Tereditor.Plugins.Api/Security.SPEC.md, UI halves). A frame larger than a surface message is split under the
 /// 1 MiB cap, and a client that leaves 1,024 of the plugin's calls unread loses its session at the next. Then two
 /// headless workbenches, each behind its own relay, on one remote host with the isolation seam: both show the outsider
 /// fixture's side tool with the plugin's own pixels from one runner process; one client's popups show and take input

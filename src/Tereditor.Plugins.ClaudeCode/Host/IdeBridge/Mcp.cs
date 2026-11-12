@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.IdeBridge;
+namespace Tereditor.Plugins.ClaudeCode.Host.IdeBridge;
 
 internal sealed record JsonRpcRequest(string Method, JsonNode? Id, JsonNode? Params);
 

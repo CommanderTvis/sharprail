@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.EnvPython;
+namespace Tereditor.Plugins.EnvPython;
 
 public sealed record EnvPythonSettings;
 
@@ -23,7 +23,7 @@ public static class EnvPythonContract
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
-        Host = "SharpRail.Plugins.EnvPython.Host.dll"
+        Host = "Tereditor.Plugins.EnvPython.Host.dll"
     };
 }
 

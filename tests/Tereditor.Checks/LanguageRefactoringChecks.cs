@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The agent tools that change code through a language server (lsp_code_actions, lsp_rename, lsp_format) against the fixture server:
@@ -28,7 +28,7 @@ internal static class LanguageRefactoringChecks
             Directory.CreateDirectory(Path.Combine(Workspace, ".tools"));
             if (bare) await File.WriteAllTextAsync(Path.Combine(Workspace, ".tools", "no-rename"), "");
             if (mode == "report") await File.WriteAllTextAsync(Path.Combine(Workspace, ".tools", "workspace-diagnostic"), "");
-            disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+            disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
             State = new HostStateStore(Path.Combine(root, bare ? "bare-state" : mode.Length > 0 ? mode + "-state" : "state"));
             var executable = Environment.ProcessPath!;
             string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, mode == "push" ? "--fake-lsp-push" : "--fake-lsp"] : [mode == "push" ? "--fake-lsp-push" : "--fake-lsp"];
@@ -63,7 +63,7 @@ internal static class LanguageRefactoringChecks
         public async ValueTask DisposeAsync()
         {
             await State.StopLanguagesAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
         }
     }
 
@@ -262,7 +262,7 @@ internal static class LanguageRefactoringChecks
         rig.Write("code.ts", "😀 broken outside");
         listed = await rig.List("code.ts");
         var outside = await rig.Call("lsp_code_actions", new { operation = "apply", id = Rig.Id(listed, "Edit outside") });
-        Require(outside["state"]!.ToString() == "unsupported" && !File.Exists(Path.Combine(Path.GetTempPath(), "sharprail-outside.ts")), "An outside edit was not refused: " + outside.ToJsonString());
+        Require(outside["state"]!.ToString() == "unsupported" && !File.Exists(Path.Combine(Path.GetTempPath(), "tereditor-outside.ts")), "An outside edit was not refused: " + outside.ToJsonString());
 
         // An editor's unsaved buffer is never overwritten.
         rig.Write("code.ts", "😀 broken");

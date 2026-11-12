@@ -3,7 +3,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// The compact key/value editor for a YAML frontmatter block, shared by every Markdown view and the Blueprint pane:

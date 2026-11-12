@@ -12,13 +12,13 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow : Window, IDialogOwner
 {
@@ -45,7 +45,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly TextBlock errorText;
     private readonly DockSurface surface;
     private readonly bool unified;
-    /// <summary>Whether this window has no top bar (see <see cref="SharpRail.UI.UnifiedChrome"/>); a phone-sized workbench keeps its own pages.</summary>
+    /// <summary>Whether this window has no top bar (see <see cref="Tereditor.UI.UnifiedChrome"/>); a phone-sized workbench keeps its own pages.</summary>
     internal bool HasUnifiedChrome => unified;
     private ContextMenu viewMenu = new();
     /// <summary>The View menu as the overflow button (or, without chrome, the header) opens it.</summary>
@@ -218,7 +218,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var registry = workbench.PluginRegistry;
         foreach (var row in registry.KeymapActions)
         {
-            if (!registry.Active.Contains(row.PluginId) || !ActiveKeymap.Matches(SharpRail.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), e)) continue;
+            if (!registry.Active.Contains(row.PluginId) || !ActiveKeymap.Matches(Tereditor.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), e)) continue;
             if (row.Value.Enabled is { } enabled && !enabled()) continue;
             try { row.Value.Run(); }
             catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine($"Plugin {row.PluginId} keymap action {row.Value.Id} failed: {error.Message}"); }
@@ -294,7 +294,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (settings.Parent is Panel trailing) trailing.Children.Insert(0, headerItems);
         void SyncSettingsTip()
         {
-            var chord = ActiveKeymap.Chords(SharpRail.Host.Abstractions.KeymapActions.Settings) is [var first, ..] ? $"Settings ({first.Display(ActiveKeymap.Platform)})" : "Settings";
+            var chord = ActiveKeymap.Chords(Tereditor.Host.Abstractions.KeymapActions.Settings) is [var first, ..] ? $"Settings ({first.Display(ActiveKeymap.Platform)})" : "Settings";
             ToolTip.SetTip(settings, chord); AutomationProperties.SetName(settings, chord);
         }
         SyncSettingsTip();
@@ -555,8 +555,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                     startupMilestones.Emit("workspace-layout");
                     _ = RecordFirstContentAsync(request);
                 }
-                Console.WriteLine($"SHARPRAIL_WORKSPACE_LAYOUT {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
-                Console.WriteLine($"SHARPRAIL_TREE logical={this.GetLogicalDescendants().Distinct().Count()}");
+                Console.WriteLine($"TEREDITOR_WORKSPACE_LAYOUT {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
+                Console.WriteLine($"TEREDITOR_TREE logical={this.GetLogicalDescendants().Distinct().Count()}");
             }, DispatcherPriority.Loaded);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }

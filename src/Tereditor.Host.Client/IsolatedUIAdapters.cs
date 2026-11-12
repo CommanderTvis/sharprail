@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Isolation;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>
 /// External plugins' UI halves on a remote host (Security.SPEC.md, UI halves): each session is one surface call

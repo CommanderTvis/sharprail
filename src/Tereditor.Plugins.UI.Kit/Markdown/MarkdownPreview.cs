@@ -23,9 +23,9 @@ using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 {

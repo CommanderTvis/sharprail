@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed class LanguageServerIconConverter : IValueConverter
 {

@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 using Avalonia.Controls;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// macOS 26 (Tahoe) rounds a window by its style: a titled window with a toolbar gets the large radius system windows
@@ -33,7 +33,7 @@ public static class MacWindowChrome
         try
         {
             if (Send(nsWindow, Selector("toolbar")) != 0) return;
-            var identifier = SendUtf8(Class("NSString"), Selector("stringWithUTF8String:"), "SharpRailWindow");
+            var identifier = SendUtf8(Class("NSString"), Selector("stringWithUTF8String:"), "TereditorWindow");
             var toolbar = Send(Send(Class("NSToolbar"), Selector("alloc")), Selector("initWithIdentifier:"), identifier);
             SendInt(toolbar, Selector("setShowsBaselineSeparator:"), 0);
             SendInt(nsWindow, Selector("setToolbarStyle:"), UnifiedCompact);

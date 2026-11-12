@@ -1,6 +1,6 @@
 ---
 name: starting-a-new-project
-description: "Use only when the workspace is empty, has no code, and the user asks to turn a raw project idea into a SharpRail spec before building. Normally reached via setting-up-a-project; not for an existing project, and not merely because a directory is empty."
+description: "Use only when the workspace is empty, has no code, and the user asks to turn a raw project idea into a tereditor spec before building. Normally reached via setting-up-a-project; not for an existing project, and not merely because a directory is empty."
 ---
 
 # Starting a new project

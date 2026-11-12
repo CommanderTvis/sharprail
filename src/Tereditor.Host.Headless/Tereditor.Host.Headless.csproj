@@ -3,11 +3,11 @@
   <Import Project="../../NativeAot.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>sharprail-headless</AssemblyName>
-    <RootNamespace>SharpRail.Host.Headless</RootNamespace>
+    <AssemblyName>tereditor-headless</AssemblyName>
+    <RootNamespace>Tereditor.Host.Headless</RootNamespace>
   </PropertyGroup>
-  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Tereditor.Checks" /></ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Core/Tereditor.Host.Core.csproj" />
   </ItemGroup>
 </Project>

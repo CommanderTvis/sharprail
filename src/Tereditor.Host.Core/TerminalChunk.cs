@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // One PTY read in a pooled array, shared by every consumer of a hosted terminal's output without copying.
 // Each holder owns one reference: whoever keeps the chunk past the call that handed it over retains it first,

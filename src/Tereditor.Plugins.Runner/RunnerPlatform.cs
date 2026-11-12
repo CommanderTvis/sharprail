@@ -6,12 +6,12 @@ using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
-/// Avalonia in the plugin process: SharpRail's remote platform backend (<see cref="RemotePlatform"/>) with Skia's CPU
+/// Avalonia in the plugin process: tereditor's remote platform backend (<see cref="RemotePlatform"/>) with Skia's CPU
 /// raster, on the thread that starts it, which becomes the plugin's UI thread. Every plugin call runs there. Popups are
 /// top-levels of their own, which the client places, not drawn inside their surface.
 /// </summary>

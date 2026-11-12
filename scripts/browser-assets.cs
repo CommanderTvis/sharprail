@@ -1,5 +1,5 @@
 // Stages the browser client's vendored assets (renderer, fonts, licences, the tab's Pi agent and CSS language server) into
-// src/SharpRail.Browser/wwwroot/vendor. Run by the browser project's StageBrowserAssets target (under the browser mise
+// src/Tereditor.Browser/wwwroot/vendor. Run by the browser project's StageBrowserAssets target (under the browser mise
 // environment, so node, pnpm and the PDFium pin are on PATH); from anywhere inside the checkout:
 //   MISE_ENV=browser scripts/mise x -- dotnet run --file scripts/browser-assets.cs
 using System.Diagnostics;
@@ -7,24 +7,24 @@ using System.Text;
 using System.Text.Json;
 
 var checkout = Directory.GetCurrentDirectory();
-while (!File.Exists(Path.Combine(checkout, "SharpRail.slnx")))
-    checkout = Path.GetDirectoryName(checkout) ?? throw new InvalidOperationException("Run inside the SharpRail checkout.");
+while (!File.Exists(Path.Combine(checkout, "Tereditor.slnx")))
+    checkout = Path.GetDirectoryName(checkout) ?? throw new InvalidOperationException("Run inside the tereditor checkout.");
 var root = checkout;
-var project = Path.Combine(root, "src/SharpRail.Browser");
+var project = Path.Combine(root, "src/Tereditor.Browser");
 var vendor = Path.Combine(project, "wwwroot/vendor");
 var utf8 = new UTF8Encoding(false);
 Directory.CreateDirectory(vendor);
 CopyDirectory(Path.Combine(root, "licenses"), Path.Combine(vendor, "licenses"));
 foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" })
     Copy(Path.Combine(root, file), Path.Combine(vendor, file));
-foreach (var dependency in new[] { "Ghostty.Avalonia", "SharpRail.Scintilla" })
+foreach (var dependency in new[] { "Ghostty.Avalonia", "Tereditor.Scintilla" })
     CopyDirectory(Path.Combine(root, "src", dependency, "licenses"), Path.Combine(vendor, "licenses", dependency));
 foreach (var font in new[] { "Geist-OFL.txt", "JetBrainsMono-OFL.txt" })
-    Copy(Path.Combine(root, "src/SharpRail.Plugins.UI.Kit/Assets/Fonts", font), Path.Combine(vendor, "licenses", font));
+    Copy(Path.Combine(root, "src/Tereditor.Plugins.UI.Kit/Assets/Fonts", font), Path.Combine(vendor, "licenses", font));
 foreach (var directory in Directory.GetDirectories(Path.Combine(root, "src")))
 {
     var name = Path.GetFileName(directory);
-    if (!name.StartsWith("SharpRail.Plugins.", StringComparison.Ordinal)) continue;
+    if (!name.StartsWith("Tereditor.Plugins.", StringComparison.Ordinal)) continue;
     var notice = Path.Combine(directory, "NOTICE.md");
     if (File.Exists(notice)) Copy(notice, Path.Combine(vendor, "licenses", $"{name}-NOTICE.md"));
 }
@@ -70,7 +70,7 @@ File.WriteAllBytes(chunk, utf8.GetBytes(source.Replace(Shrink, "advancePx > maxW
 Copy(Modules("restty/LICENSE"), Path.Combine(vendor, "Restty-LICENSE"));
 // pnpm keeps restty's dependencies beside its real directory, not at the top of node_modules.
 Copy(Path.Combine(new DirectoryInfo(Modules("restty")).ResolveLinkTarget(true)?.FullName ?? Modules("restty"), "../text-shaper/LICENSE"), Path.Combine(vendor, "TextShaper-LICENSE"));
-Copy(Path.Combine(root, "src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"), Path.Combine(vendor, "JetBrainsMono-Regular.ttf"));
+Copy(Path.Combine(root, "src/Tereditor.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"), Path.Combine(vendor, "JetBrainsMono-Regular.ttf"));
 // PDFium's WASM build is pinned and checksummed in mise.browser.toml; `scripts/tool pdfium-wasm` prints where mise keeps it.
 var cache = Run(root, null, "sh", Path.Combine(root, "scripts/tool"), "pdfium-wasm").Trim();
 Copy(Path.Combine(cache, "lib/pdfium.wasm"), Path.Combine(vendor, "pdfium.wasm"));

@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.EnvDirenv.Host;
+namespace Tereditor.Plugins.EnvDirenv.Host;
 
 /// <summary>Applies <c>direnv export json</c> for a workspace's <c>.envrc</c> to its shell, after mise so <c>use mise</c> sees the same tools.</summary>
 public sealed class EnvDirenvHost : PluginHostModule

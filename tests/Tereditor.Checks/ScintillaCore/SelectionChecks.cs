@@ -1,7 +1,7 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-using SharpRail.Scintilla.Core;
+using Tereditor.Scintilla.Core;
 
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Port of Scintilla test/unit/testSelection.cxx (single selection). Not ported: serialization and
 /// multiple/rectangular selection (not used).</summary>
@@ -168,7 +168,7 @@ internal static class SelectionChecks
 
     private static void SelectionMain()
     {
-        var sel = new SharpRail.Scintilla.Core.Selection();
+        var sel = new Tereditor.Scintilla.Core.Selection();
         var rangeZero = new SelectionRange(0);
         Expect.Equal(1, sel.Count, "Selection count");
         Expect.Equal(rangeZero, sel.RangeMain, "Selection main range");

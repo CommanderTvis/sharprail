@@ -1,8 +1,8 @@
 using System.Diagnostics;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Processes.Host;
+namespace Tereditor.Plugins.Processes.Host;
 
 /// <summary>Where the sampler reads: the real host in the plugin, fakes in the checks. Every member may read the process table or wait.</summary>
 internal interface IProcessSource

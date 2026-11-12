@@ -1,6 +1,6 @@
-using SharpRail.Plugins.AirContext;
+using Tereditor.Plugins.AirContext;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 /// <summary>A workspace-scoped Context operation. Enable, disable and login are user-interface controls only.</summary>
 internal sealed record ContextRequest(string Workspace, string Operation = "status", string Query = "", string Path = "", int Limit = 20);

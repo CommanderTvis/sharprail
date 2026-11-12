@@ -16,6 +16,6 @@ The plugin id is `lsp-kotlin`; it ships enabled. Its host half is a `LanguageSer
 the catalog, its sessions stop and its saved settings are kept. Implementation: Kotlin Language Server · JetBrains.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 It shapes initialization like the IntelliJ server (no IntelliJ extensions, a projects array, the project JDK from SDKMAN with Maven/Gradle imports using it) and logs which JDK it chose.

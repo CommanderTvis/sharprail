@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>
 /// The <c>@</c> mention search, shaped like Claude Code's own: files and the directories above them, matched fuzzily (the query's characters

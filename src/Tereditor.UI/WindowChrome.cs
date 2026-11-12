@@ -5,9 +5,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>What a double-click on the title bar does, following the macOS preference.</summary>
 public enum TitleBarAction { Zoom, Minimize, None }

@@ -84,7 +84,8 @@
       "LastAtHome": false,
       "Companions": {
         "$ROOT/project-ws\nterminal:1": "claude-code:chat"
-      }
+      },
+      "CompanionWidths": {}
     },
     {
       "Layout": {
@@ -93,7 +94,7 @@
         "DefaultProjectPanes": null,
         "ProjectPanes": {},
         "Center": {
-          "GroupId": "1df5b64caf314b6f8be6a605df04b5d2",
+          "GroupId": "f1757c2bd34f4df89f29d116dd05680f",
           "Axis": "horizontal",
           "Ratio": 0.5,
           "First": null,
@@ -102,14 +103,14 @@
         },
         "Groups": [
           {
-            "Id": "1df5b64caf314b6f8be6a605df04b5d2",
+            "Id": "f1757c2bd34f4df89f29d116dd05680f",
             "Region": "center",
             "Tools": [],
             "Folded": false,
             "Weight": 1
           },
           {
-            "Id": "a717c4d31379478d85094a0310f1c4b4",
+            "Id": "e131a48dda0247f6b6dc58dd249860b7",
             "Region": "left",
             "Tools": [
               {
@@ -127,7 +128,7 @@
             "Weight": 1
           },
           {
-            "Id": "e6a7a2ec889b4a329dc63f2dcde9fb86",
+            "Id": "d676c7f1652548b193bf5f10d4ca1b8b",
             "Region": "right",
             "Tools": [
               {
@@ -155,7 +156,7 @@
             "Weight": 1.25
           },
           {
-            "Id": "8355b3375d9c4c9880f8f348df6cdf34",
+            "Id": "6f44d5739aa74cd29cb4434ecf916963",
             "Region": "right",
             "Tools": [
               {
@@ -189,10 +190,12 @@
       "LastProject": "",
       "LastProjectRoot": "",
       "LastAtHome": true,
-      "Companions": {}
+      "Companions": {},
+      "CompanionWidths": {}
     }
   ],
   "CollapsedProjects": [],
+  "PinnedProjects": [],
   "CollapsedRemotes": [],
   "GitSelections": {},
   "FilesTrees": {},

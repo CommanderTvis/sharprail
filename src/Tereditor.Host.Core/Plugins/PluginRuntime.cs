@@ -7,11 +7,11 @@ using System.Text.Json.Schema;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
 /// The host's plugin runtime: builtin and discovered plugins in one registry, converged on their settings by a
@@ -439,7 +439,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             ? flag.ValueKind == JsonValueKind.True
             : entry.Origin == PluginOrigin.Builtin && (kind == HostKind.Headless && entry.Manifest.HeadlessEnabledByDefault is { } headless ? headless : entry.Manifest.EnabledByDefault);
 
-    private static string KindName(HostKind kind) => kind switch { HostKind.PureWeb => "in the Playground", HostKind.Headless => "in headless SharpRail", _ => "on this host" };
+    private static string KindName(HostKind kind) => kind switch { HostKind.PureWeb => "in the Playground", HostKind.Headless => "in headless tereditor", _ => "on this host" };
 
     // Why a dependency keeps its dependent off, or null when it is usable: known, not failed or refused, at the
     // declared wire version, and itself desired this pass.
@@ -953,7 +953,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     }
 
     /// <param name="workspace">The absolute workspace a session starts in, whose languages the Code Intelligence text names
-    /// and whose project's <c>.sharprail/instructions.toml</c> turns sections off; empty for the workspace-independent text.</param>
+    /// and whose project's <c>.tereditor/instructions.toml</c> turns sections off; empty for the workspace-independent text.</param>
     internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace = "")
     {
         var disabled = workspace.Length > 0 ? Seams.State.ProjectInstructions(workspace).Disabled.ToHashSet(StringComparer.Ordinal) : [];
@@ -994,7 +994,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         var profile = workspace.Length > 0 && placement == PromptPlacement.Section ? Seams.State.ProjectLanguages(workspace) : null;
         var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled && Seams.State.LanguageCatalog.Count > 0, () => Seams.State.LanguageCatalog, profile, workspace,
             Projects().Select(project => project.Path).ToArray(), path => Projects().FirstOrDefault(project => project.Path == path)?.WorktreesDirectory).Where(item => Applies(item, "host"))
-            .Select(item => (SectionId(null, item.Id), (string?)null, "SharpRail", item));
+            .Select(item => (SectionId(null, item.Id), (string?)null, "tereditor", item));
         var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry, item)))
             .Where(pair => Applies(pair.item, pair.Entry.Id)).OrderBy(pair => pair.item.Order)
             .Select(pair => (SectionId(pair.Entry.Id, pair.item.Id), (string?)pair.Entry.Id, pair.Entry.Manifest.Label, pair.item));
@@ -1149,13 +1149,13 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     internal void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record)
     {
         Seams.State.SetTerminalAgent(terminal, record);
-        // A running agent's reported session is this host's: its lock tells every other SharpRail not to resume it.
+        // A running agent's reported session is this host's: its lock tells every other tereditor not to resume it.
         var agents = Seams.State.AgentSessions;
         _ = Ownership(() =>
         {
             if (record is not { SessionId: { Length: > 0 } id }) agents.Release(terminal);
             else if (!agents.Hold(terminal, record.Kind, id))
-                Seams.Log("plugins", "warning", $"The {record.Kind} session {id} in {terminal.TabKey} is also open in another SharpRail process.");
+                Seams.Log("plugins", "warning", $"The {record.Kind} session {id} in {terminal.TabKey} is also open in another tereditor process.");
         });
         OnTerminal(new TerminalAgentChanged(terminal, record));
     }
@@ -1173,7 +1173,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
-    // A revived tab never resumes its agent on its own: another SharpRail process may have the same session open. The
+    // A revived tab never resumes its agent on its own: another tereditor process may have the same session open. The
     // tab's shell starts alone and every client shows the offer until the user answers it.
     private bool OfferResume(TerminalRef terminal, TerminalPrefill prefill)
     {
@@ -1187,7 +1187,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     /// <summary>
     /// Settles a resume offer. Resuming checks machine-wide that nobody has the session open and takes its lock before the
     /// resume command is typed; one open elsewhere stays offered as such, naming the owner. "quit" first ends an owner that is
-    /// a stray left by a SharpRail instance that no longer runs (never a live instance's, never an ancestor of this tab's
+    /// a stray left by a tereditor instance that no longer runs (never a live instance's, never an ancestor of this tab's
     /// shell), then resumes. A fresh start forgets the record and types the agent's fresh launch. Runs off the UI thread.
     /// </summary>
     internal async Task AnswerResume(TerminalRef terminal, string answer)

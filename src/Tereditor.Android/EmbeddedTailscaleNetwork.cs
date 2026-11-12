@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Tailscale;
+using Tereditor.Plugins.Tailscale;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>The app-private userspace node. Neither the system VPN nor another application's state is used.</summary>
 internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsyncDisposable
@@ -37,7 +37,7 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
             if (!started)
             {
                 Directory.CreateDirectory(stateDirectory);
-                status = await CallAsync("start", new JsonObject { ["stateDirectory"] = stateDirectory, ["hostname"] = "sharprail-android" }.ToJsonString(), cancellationToken);
+                status = await CallAsync("start", new JsonObject { ["stateDirectory"] = stateDirectory, ["hostname"] = "tereditor-android" }.ToJsonString(), cancellationToken);
                 started = true;
             }
             return status!;
@@ -150,7 +150,7 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
             peer.Name.Split('.')[0].Equals(input, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (matches.Length > 1) throw new IOException("More than one Tailscale device has that short name. Choose a discovered host or use its full name.");
         var peer = matches.SingleOrDefault();
-        if (peer is null) throw new IOException("This host is not an online device in SharpRail's tailnet. Refresh hosts or check its Tailscale connection.");
+        if (peer is null) throw new IOException("This host is not an online device in tereditor's tailnet. Refresh hosts or check its Tailscale connection.");
         // Use an address from the embedded netmap, never system DNS or an arbitrary user-supplied socket.
         return new UriBuilder("http", peer.Address, TailscaleContract.DiscoveryPort).Uri;
     }
@@ -186,7 +186,7 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
         IntPtr reply;
         try { reply = Native.Call(operation, input); }
         catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException)
-        { throw new IOException("Embedded Tailscale is missing from this package. Install a complete SharpRail Android build.", error); }
+        { throw new IOException("Embedded Tailscale is missing from this package. Install a complete tereditor Android build.", error); }
         if (reply == IntPtr.Zero) throw new IOException("Embedded Tailscale could not return its status.");
         try { return Marshal.PtrToStringUTF8(reply) ?? throw new IOException("Embedded Tailscale sent no status."); }
         finally { Native.Free(reply); }
@@ -194,9 +194,9 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
 
     private static class Native
     {
-        [DllImport("SharpRailTailscale", EntryPoint = "sr_ts_call", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("TereditorTailscale", EntryPoint = "sr_ts_call", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr Call([MarshalAs(UnmanagedType.LPUTF8Str)] string operation, [MarshalAs(UnmanagedType.LPUTF8Str)] string input);
-        [DllImport("SharpRailTailscale", EntryPoint = "sr_ts_free", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("TereditorTailscale", EntryPoint = "sr_ts_free", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void Free(IntPtr value);
     }
 }

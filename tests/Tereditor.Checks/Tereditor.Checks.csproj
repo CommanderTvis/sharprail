@@ -1,34 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/SharpRail.UI/SharpRail.UI.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <ProjectReference Include="../../src/Tereditor.UI/Tereditor.UI.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Host.Remote/Tereditor.Host.Remote.csproj" />
     <!-- Launched as a child process by the headless check; its output lands next to the checks. -->
-    <ProjectReference Include="../../src/SharpRail.Host.Headless/SharpRail.Host.Headless.csproj" />
-    <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
-    <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
-    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation.UI/SharpRail.Plugins.Isolation.UI.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Host.Headless/Tereditor.Host.Headless.csproj" />
+    <ProjectReference Include="../Tereditor.PluginFixture/Tereditor.PluginFixture.Host.csproj" />
+    <ProjectReference Include="../Tereditor.PluginFixture.UI/Tereditor.PluginFixture.UI.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Acp/Host/Tereditor.Plugins.Acp.Host.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Isolation/Tereditor.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Isolation.UI/Tereditor.Plugins.Isolation.UI.csproj" />
     <!-- The isolation generator as a library, so the crossing checks can run its rules on in-memory snippets. -->
-    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation.Generator/SharpRail.Plugins.Isolation.Generator.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Isolation.Generator/Tereditor.Plugins.Isolation.Generator.csproj" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <!-- The plugin runner, framework-dependent, in plugin-runner/ of the build output only; a RID publish leaves it out. -->
-    <ProjectReference Include="../../src/SharpRail.Plugins.Runner/SharpRail.Plugins.Runner.csproj" ReferenceOutputAssembly="false" OutputItemType="PluginRunnerOutput" Condition="'$(RuntimeIdentifier)' == ''" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Runner/Tereditor.Plugins.Runner.csproj" ReferenceOutputAssembly="false" OutputItemType="PluginRunnerOutput" Condition="'$(RuntimeIdentifier)' == ''" />
     <!-- The outsider fixture, an external plugin the checks install from disk: plugin-fixture/outsider-ui/ of the build output only. -->
-    <ProjectReference Include="../SharpRail.PluginFixture.Outsider/SharpRail.PluginFixture.Outsider.UI.csproj" ReferenceOutputAssembly="false" OutputItemType="OutsiderFixtureOutput" Condition="'$(RuntimeIdentifier)' == ''" />
+    <ProjectReference Include="../Tereditor.PluginFixture.Outsider/Tereditor.PluginFixture.Outsider.UI.csproj" ReferenceOutputAssembly="false" OutputItemType="OutsiderFixtureOutput" Condition="'$(RuntimeIdentifier)' == ''" />
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Headless" />
     <!-- The Android client builds only with the Android workload; its platform-free endpoint is checked here. -->
-    <Compile Include="../../src/SharpRail.Android/AndroidJson.cs" Link="Android/AndroidJson.cs" />
-    <Compile Include="../../src/SharpRail.Android/EmbeddedTailscaleNetwork.cs" Link="Android/EmbeddedTailscaleNetwork.cs" />
-    <Compile Include="../../src/SharpRail.Android/HostEndpoint.cs" Link="Android/HostEndpoint.cs" />
-    <Compile Include="../../src/SharpRail.Android/TouchClicks.cs" Link="Android/TouchClicks.cs" />
+    <Compile Include="../../src/Tereditor.Android/AndroidJson.cs" Link="Android/AndroidJson.cs" />
+    <Compile Include="../../src/Tereditor.Android/EmbeddedTailscaleNetwork.cs" Link="Android/EmbeddedTailscaleNetwork.cs" />
+    <Compile Include="../../src/Tereditor.Android/HostEndpoint.cs" Link="Android/HostEndpoint.cs" />
+    <Compile Include="../../src/Tereditor.Android/TouchClicks.cs" Link="Android/TouchClicks.cs" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Using Include="SharpRail.Plugins.UI.Kit" />
-    <Using Include="SharpRail.Plugins.UI.Kit.Editor" />
-    <Using Include="SharpRail.Plugins.UI.Kit.Markdown" />
-    <Using Include="SharpRail.Plugins.UI.Kit.Visualization" />
+    <Using Include="Tereditor.Plugins.UI.Kit" />
+    <Using Include="Tereditor.Plugins.UI.Kit.Editor" />
+    <Using Include="Tereditor.Plugins.UI.Kit.Markdown" />
+    <Using Include="Tereditor.Plugins.UI.Kit.Visualization" />
   </ItemGroup>
   <Target Name="CopyPluginRunner" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == ''">
     <PropertyGroup>

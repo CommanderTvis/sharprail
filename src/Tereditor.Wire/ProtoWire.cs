@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace SharpRail.Wire;
+namespace Tereditor.Wire;
 
 /// <summary>Marks a wire message; <c>scripts/generate-rpc.cs</c> emits its codec into the owning project's <c>*Codec.Generated.cs</c>.</summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]

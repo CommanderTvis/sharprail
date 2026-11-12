@@ -6,10 +6,10 @@ using Avalonia.Input.TextInput;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 
-using SharpRail.Host.Client;
-using SharpRail.UI.State;
+using Tereditor.Host.Client;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>The client's one screen of its own: the host's address and session token.</summary>
 public sealed partial class ConnectWindow : Window
@@ -149,7 +149,7 @@ public sealed partial class ConnectWindow : Window
         {
             failure = fault.StatusCode switch
             {
-                HttpStatusCode.Forbidden => "The connection was not approved in SharpRail.",
+                HttpStatusCode.Forbidden => "The connection was not approved in tereditor.",
                 HttpStatusCode.TooManyRequests => "Please wait a moment before requesting approval again.",
                 HttpStatusCode.RequestTimeout => "The approval request expired. Try again.",
                 HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed => "This host does not offer app approval. Enter its session token.",
@@ -158,7 +158,7 @@ public sealed partial class ConnectWindow : Window
         }
         catch (Exception fault) when (RemoteErrors.IsUnauthenticated(fault))
         {
-            if (endpoint.LocalApproval) { token.Text = ""; approvedToken = null; failure = "Browser access expired or was revoked. Connect again to request approval in SharpRail."; }
+            if (endpoint.LocalApproval) { token.Text = ""; approvedToken = null; failure = "Browser access expired or was revoked. Connect again to request approval in tereditor."; }
             else failure = "The host rejected this session token.";
         }
         catch (Exception fault) when (RemoteErrors.IsTransport(fault) || fault is OperationCanceledException or IOException or HttpRequestException)

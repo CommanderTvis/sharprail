@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>
 /// What an icon from the registry must be before it is shown: a small, plain SVG. The registry is remote and its files are untrusted, so anything
@@ -103,7 +103,7 @@ internal sealed class AcpIconCache(string directory, AcpFetch fetch, Func<DateTi
     {
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = TimeSpan.FromSeconds(10) };
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd("SharpRail-ACP/0.1");
+        request.Headers.UserAgent.ParseAdd("tereditor-ACP/0.1");
         if (etag is not null) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
         if (lastModified is not null) request.Headers.TryAddWithoutValidation("If-Modified-Since", lastModified);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

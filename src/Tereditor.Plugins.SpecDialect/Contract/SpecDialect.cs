@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>One spec in a workspace's graph. <c>Path</c> is worktree-relative; absent lists are empty, and an absent status or parent is left out.</summary>
 public sealed record SpecGraphNode(
@@ -46,8 +46,8 @@ public static class SpecDialectManifest
         Description = "Reads the project's spec graph and shows it in a Specs panel.",
         EnabledByDefault = false,
         Headless = HeadlessSupport.Yes,
-        Host = "SharpRail.Plugins.SpecDialect.Host.dll",
-        Ui = "SharpRail.Plugins.SpecDialect.UI.dll",
+        Host = "Tereditor.Plugins.SpecDialect.Host.dll",
+        Ui = "Tereditor.Plugins.SpecDialect.UI.dll",
         Contributes = new() { SideTools = [new(Tool, "Specs", "book-open", PluginToolSide.Right)] }
     };
 }

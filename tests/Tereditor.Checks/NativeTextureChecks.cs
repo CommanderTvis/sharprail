@@ -19,14 +19,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Terminal;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Terminal;
+
+namespace Tereditor.Checks;
 
 internal static class NativeTextureChecks
 {
@@ -40,7 +40,7 @@ internal static class NativeTextureChecks
     private static bool framePumpBenchmark;
     private static bool promptCheck;
     private static bool surfaceMemoryMeasure;
-    private const string Title = "SharpRail Ghostty texture check";
+    private const string Title = "tereditor Ghostty texture check";
 
     public static void Run(string[] args)
     {
@@ -84,7 +84,7 @@ internal static class NativeTextureChecks
         {
             Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
             // Terminal views read the workbench palette, which App applies at startup; without it TerminalTheme throws.
-            SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.UI.Rendering.Themes.All[0]);
+            Tereditor.Plugins.UI.Kit.Ui.Apply(Tereditor.UI.Rendering.Themes.All[0]);
         }
         public override void OnFrameworkInitializationCompleted()
         {

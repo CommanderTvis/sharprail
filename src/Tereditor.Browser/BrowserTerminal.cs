@@ -2,10 +2,10 @@ using System.Runtime.InteropServices.JavaScript;
 
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 internal sealed class BrowserTerminal : Border, ITerminalBackend
 {

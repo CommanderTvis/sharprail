@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 internal enum ScintillaMessage : uint

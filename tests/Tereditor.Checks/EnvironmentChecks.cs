@@ -2,25 +2,25 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Env;
-using SharpRail.Plugins.Env.Host;
-using SharpRail.Plugins.EnvDirenv;
-using SharpRail.Plugins.EnvDirenv.Host;
-using SharpRail.Plugins.EnvJavaScript;
-using SharpRail.Plugins.EnvJavaScript.Host;
-using SharpRail.Plugins.EnvJvm;
-using SharpRail.Plugins.EnvJvm.Host;
-using SharpRail.Plugins.EnvMise;
-using SharpRail.Plugins.EnvMise.Host;
-using SharpRail.Plugins.EnvPython;
-using SharpRail.Plugins.EnvPython.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Env;
+using Tereditor.Plugins.Env.Host;
+using Tereditor.Plugins.EnvDirenv;
+using Tereditor.Plugins.EnvDirenv.Host;
+using Tereditor.Plugins.EnvJavaScript;
+using Tereditor.Plugins.EnvJavaScript.Host;
+using Tereditor.Plugins.EnvJvm;
+using Tereditor.Plugins.EnvJvm.Host;
+using Tereditor.Plugins.EnvMise;
+using Tereditor.Plugins.EnvMise.Host;
+using Tereditor.Plugins.EnvPython;
+using Tereditor.Plugins.EnvPython.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The environment plugins (mise, direnv, Python .venv, JavaScript node_modules/.bin) composed by the host's
 // workspace environment pipeline, with fake tools on PATH (neither mise nor direnv is a prerequisite of the checks), trust inherited from the default
@@ -36,7 +36,7 @@ internal static partial class EnvironmentChecks
         trust="$FAKE_TOOLS_STATE/trust-mise"
         case "$1" in
           env)
-            [ -n "$SHARPRAIL_TOKEN" ] && echo leaked >> "$FAKE_TOOLS_STATE/leaks"
+            [ -n "$TEREDITOR_TOKEN" ] && echo leaked >> "$FAKE_TOOLS_STATE/leaks"
             if ! grep -qx "$PWD" "$trust" 2>/dev/null; then echo "mise ERROR Config files in $PWD/mise.toml are not trusted." >&2; exit 1; fi
             printf '{"MISE_FLAG":"on","PATH":"/mise/tools:%s"}\n' "$PATH" ;;
           trust) echo "$PWD" >> "$trust" ;;
@@ -53,7 +53,7 @@ internal static partial class EnvironmentChecks
             printf '{"config":{},"state":{"foundRC":{"allowed":%s,"path":"%s/.envrc"}}}\n' "$allowed" "$PWD" ;;
           allow) echo "$PWD" >> "$trust" ;;
           export)
-            [ -n "$SHARPRAIL_TOKEN" ] && echo leaked >> "$FAKE_TOOLS_STATE/leaks"
+            [ -n "$TEREDITOR_TOKEN" ] && echo leaked >> "$FAKE_TOOLS_STATE/leaks"
             printf '{"DIRENV_FLAG":"on","FROM_MISE":"%s","PATH":"/direnv/bin:%s","DROP_ME":null,"JAVA_HOME":"/direnv/jdk"}\n' "$MISE_FLAG" "$PATH" ;;
         esac
         """;
@@ -76,7 +76,7 @@ internal static partial class EnvironmentChecks
             Category = PluginCategories.Environment,
             EnabledByDefault = true,
             DependsOn = [new("env", 1)],
-            Host = "SharpRail.Checks.dll"
+            Host = "Tereditor.Checks.dll"
         };
 
         public override PluginContract Contract => ProbeContract;
@@ -234,7 +234,7 @@ internal static partial class EnvironmentChecks
         Directory.CreateDirectory(Path.Combine(worktree, ".venv"));
         File.WriteAllText(Path.Combine(worktree, ".venv", "pyvenv.cfg"), "home = /usr/bin\n");
         Directory.CreateDirectory(Path.Combine(worktree, "node_modules", ".bin"));
-        var result = await Resolve(worktree, origin, ("SHARPRAIL_TOKEN", "secret"), ("DROP_ME", "present"));
+        var result = await Resolve(worktree, origin, ("TEREDITOR_TOKEN", "secret"), ("DROP_ME", "present"));
         Require(result.GetValueOrDefault("MISE_FLAG") == "on" && result.GetValueOrDefault("DIRENV_FLAG") == "on", "mise and direnv both contribute: " + string.Join(", ", log.Lines));
         Require(result.GetValueOrDefault("FROM_MISE") == "on", "direnv runs after mise and sees its variables.");
         Require(result.GetValueOrDefault("VIRTUAL_ENV") == Path.Combine(worktree, ".venv"), "An existing .venv is activated.");
@@ -242,7 +242,7 @@ internal static partial class EnvironmentChecks
         Require(path[0] == Path.Combine(worktree, "node_modules", ".bin") && path[1] == Path.Combine(worktree, ".venv", "bin") && path[2] == "/direnv/bin" && path[3] == "/mise/tools" && path[4] == tools.Bin,
             "PATH entries stack in plugin order, the last plugin first: " + result["PATH"]);
         Require(tools.Trusted("mise", worktree) && tools.Trusted("direnv", worktree) && log.Has("info", "matches the project's default workspace"), "Identical configuration inherits both trust decisions.");
-        Require(!tools.Leaked && !result.ContainsKey("SHARPRAIL_TOKEN"), "The host's session token never reaches a tool or the shell.");
+        Require(!tools.Leaked && !result.ContainsKey("TEREDITOR_TOKEN"), "The host's session token never reaches a tool or the shell.");
         Require(result.GetValueOrDefault("PROBE_LAST") == "on|on|" + Path.Combine(worktree, ".venv"), "A step id the policy does not know runs after all the known ones: " + result.GetValueOrDefault("PROBE_LAST"));
         var ranks = new[] { "mise", "direnv", "python", "javascript", "jvm", "zzz-unknown" }.Select(new EnvHost.StepPolicy().Rank).ToArray();
         Require(ranks.SequenceEqual(ranks.Order()) && ranks.Distinct().Count() == ranks.Length && ranks[^1] == int.MaxValue, "The policy orders mise, direnv, Python, JavaScript, JVM, then unknown ids.");
@@ -254,8 +254,8 @@ internal static partial class EnvironmentChecks
         Require(full.Facts.Select(fact => fact.Label).SequenceEqual(["mise", "direnv", "venv", "node_modules"]), "Every applied environment is reported in step order: " + string.Join(", ", full.Facts.Select(fact => fact.Label)));
         Require(full.Facts[0].Detail!.Contains("Sets MISE_FLAG, PATH", StringComparison.Ordinal) && full.Facts[2].Detail!.Contains("Sets PATH, VIRTUAL_ENV", StringComparison.Ordinal),
             "A chip's tooltip names the variables its step set: " + full.Facts[0].Detail + " / " + full.Facts[2].Detail);
-        Require(full.Variables["SHARPRAIL_SHELL_INIT_ZSH"].Contains("mise' activate zsh", StringComparison.Ordinal) && full.Variables["SHARPRAIL_SHELL_INIT_ZSH"].Contains("direnv' hook zsh", StringComparison.Ordinal) &&
-            full.Variables["SHARPRAIL_SHELL_INIT_FISH"].Contains("mise' activate fish", StringComparison.Ordinal) && File.Exists(Path.Combine(full.Variables["SHARPRAIL_SHELL_INTEGRATION"], "zsh", ".zshrc")),
+        Require(full.Variables["TEREDITOR_SHELL_INIT_ZSH"].Contains("mise' activate zsh", StringComparison.Ordinal) && full.Variables["TEREDITOR_SHELL_INIT_ZSH"].Contains("direnv' hook zsh", StringComparison.Ordinal) &&
+            full.Variables["TEREDITOR_SHELL_INIT_FISH"].Contains("mise' activate fish", StringComparison.Ordinal) && File.Exists(Path.Combine(full.Variables["TEREDITOR_SHELL_INTEGRATION"], "zsh", ".zshrc")),
             "mise and direnv add their zsh and fish hooks and the shim files exist.");
 
         // Changed configuration is not trusted, and one plugin's refusal leaves the others working.
@@ -295,7 +295,7 @@ internal static partial class EnvironmentChecks
         try
         {
             var launched = await WithEnvironment(tools, [("PATH", "/usr/bin:/bin"), ("MISE_INSTALL_PATH", "")], async () => await runtime.ResolveEnvironmentAsync(worktree, origin, CancellationToken.None));
-            Require(launched.Variables.GetValueOrDefault("MISE_FLAG") == "on" && launched.Variables["SHARPRAIL_SHELL_INIT_ZSH"].Contains($"'{Path.Combine(tools.Bin, "mise")}' activate zsh", StringComparison.Ordinal),
+            Require(launched.Variables.GetValueOrDefault("MISE_FLAG") == "on" && launched.Variables["TEREDITOR_SHELL_INIT_ZSH"].Contains($"'{Path.Combine(tools.Bin, "mise")}' activate zsh", StringComparison.Ordinal),
                 "mise found outside PATH applies, and the hook runs it by absolute path.");
         }
         finally { EnvMiseHost.SearchDirectories = searched.Item1; }

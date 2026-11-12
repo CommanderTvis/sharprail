@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Omp.Host;
+namespace Tereditor.Plugins.Omp.Host;
 
 /// <summary>
 /// The context files omp reads for a launch directory, as https://omp.sh/docs/context-files describes them: per scope
@@ -14,7 +14,7 @@ public static partial class OmpContext
 
     private sealed record Candidate(string Provider, string Path);
 
-    /// <summary>The omp home's agent directory, or the SharpRail profile's when launches use it.</summary>
+    /// <summary>The omp home's agent directory, or the tereditor profile's when launches use it.</summary>
     public static string UserDirectory(string home, bool profile) =>
         profile ? Path.Combine(home, ".omp", "profiles", OmpLaunch.Profile, "agent") : Path.Combine(home, ".omp", "agent");
 

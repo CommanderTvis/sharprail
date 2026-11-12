@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Protocol;
+namespace Tereditor.Host.Protocol;
 
 public enum StatusCode { OK, Cancelled, Unknown, InvalidArgument, DeadlineExceeded, NotFound, AlreadyExists, PermissionDenied, ResourceExhausted, FailedPrecondition, Aborted, OutOfRange, Unimplemented, Internal, Unavailable, DataLoss, Unauthenticated }
 public readonly record struct Status(StatusCode StatusCode, string Detail)

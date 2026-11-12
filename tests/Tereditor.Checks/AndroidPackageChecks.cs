@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The built Android package (scripts/mise run package:android): Merman ships for every packaged ABI under the name the
@@ -17,12 +17,12 @@ internal static class AndroidPackageChecks
 
     internal static void Run(string? package)
     {
-        package ??= Path.Combine(FindRepository(), "artifacts", "android", "SharpRail.apk");
+        package ??= Path.Combine(FindRepository(), "artifacts", "android", "tereditor.apk");
         Require(File.Exists(package), $"{package} does not exist; run scripts/mise run package:android first.");
         using var archive = ZipFile.OpenRead(package);
         foreach (var (abi, machine) in new[] { ("arm64-v8a", (ushort)0xB7), ("x86_64", (ushort)0x3E) })
         {
-            var entry = archive.GetEntry($"lib/{abi}/libSharpRailMermaid.so");
+            var entry = archive.GetEntry($"lib/{abi}/libTereditorMermaid.so");
             Require(entry is not null, $"The package has no Merman library for {abi}.");
             using var stream = new MemoryStream();
             using (var input = entry!.Open()) input.CopyTo(stream);
@@ -50,7 +50,7 @@ internal static class AndroidPackageChecks
     private static string FindRepository()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-            if (File.Exists(Path.Combine(directory.FullName, "SharpRail.slnx"))) return directory.FullName;
-        throw new InvalidOperationException("The checks are not running from a SharpRail checkout.");
+            if (File.Exists(Path.Combine(directory.FullName, "Tereditor.slnx"))) return directory.FullName;
+        throw new InvalidOperationException("The checks are not running from a tereditor checkout.");
     }
 }

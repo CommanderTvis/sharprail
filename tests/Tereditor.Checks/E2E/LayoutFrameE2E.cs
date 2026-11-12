@@ -11,15 +11,15 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.Host.Client;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class LayoutFrameE2E
 {
@@ -194,8 +194,8 @@ internal static class LayoutFrameE2E
 
     private static void FrameSurvivesSwitch(string root)
     {
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
-        if (string.IsNullOrEmpty(source)) { Console.WriteLine("SKIP upstream layout.spec.ts one local frame: set SHARPRAIL_TEST_GIT_SOURCE."); return; }
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
+        if (string.IsNullOrEmpty(source)) { Console.WriteLine("SKIP upstream layout.spec.ts one local frame: set TEREDITOR_TEST_GIT_SOURCE."); return; }
         using var app = new E2eWorkspace(WorkspaceTabsE2E.Repository(root, "layout-frame-switch", source));
         app.Open("README.md", true);
         var separator = app.Find<ResizeHandle>("rightSeparator");

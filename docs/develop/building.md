@@ -8,14 +8,14 @@ Ghostty (libghostty-vt 1.0.0), Zig 0.17.1 and Merman into machine-wide caches sh
 Ghostty application is required.
 
 ```sh
-scripts/mise x -- dotnet run --project src/SharpRail.UI -c Release
+scripts/mise x -- dotnet run --project src/Tereditor.UI -c Release
 ```
 
 To build the macOS app bundle (the app as a NativeAOT binary):
 
 ```sh
 scripts/mise run package:macos
-open artifacts/SharpRail.app
+open artifacts/tereditor.app
 ```
 
 ## Run the optimised local build

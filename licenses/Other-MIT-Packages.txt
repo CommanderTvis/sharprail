@@ -1,4 +1,4 @@
-NuGet packages shipped with SharpRail under the MIT License whose repositories publish no license file
+NuGet packages shipped with tereditor under the MIT License whose repositories publish no license file
 alongside the package. The copyright holders are those named in each package's .nuspec.
 
   ExCSS 4.3.1                      Copyright (c) Tyler Brinks              https://github.com/TylerBrinks/ExCSS

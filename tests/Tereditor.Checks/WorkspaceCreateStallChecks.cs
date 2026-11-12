@@ -5,11 +5,11 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// An agent's workspace_create, with a sizeable ignored tree to clone, while the window shows the
@@ -20,26 +20,26 @@ internal static class WorkspaceCreateStallChecks
 {
     internal static void Run(string root)
     {
-        var budget = double.TryParse(Environment.GetEnvironmentVariable("SHARPRAIL_CREATE_STALL_BUDGET_MS"), out var value) ? value : 50;
-        using var app = new SharpRail.Checks.E2E.E2eWorkspace(Path.Combine(root, "workspace-create-stall"), embedded: true);
+        var budget = double.TryParse(Environment.GetEnvironmentVariable("TEREDITOR_CREATE_STALL_BUDGET_MS"), out var value) ? value : 50;
+        using var app = new Tereditor.Checks.E2E.E2eWorkspace(Path.Combine(root, "workspace-create-stall"), embedded: true);
         File.WriteAllText(Path.Combine(app.Root, ".gitignore"), "node_modules/\n");
-        Directory.CreateDirectory(Path.Combine(app.Root, ".sharprail"));
-        File.WriteAllText(Path.Combine(app.Root, ".sharprail", "workspace.toml"), "version = 1\n\n[clone]\ninclude = [\"node_modules\"]\n");
+        Directory.CreateDirectory(Path.Combine(app.Root, ".tereditor"));
+        File.WriteAllText(Path.Combine(app.Root, ".tereditor", "workspace.toml"), "version = 1\n\n[clone]\ninclude = [\"node_modules\"]\n");
         for (var package = 0; package < 60; package++)
         {
             var directory = Directory.CreateDirectory(Path.Combine(app.Root, "node_modules", $"package-{package}", "lib")).FullName;
             for (var file = 0; file < 200; file++) File.WriteAllText(Path.Combine(directory, $"m{file}.js"), new string('x', 2048));
         }
-        // SHARPRAIL_CREATE_STALL_LSP (server ids, comma-separated) also starts language servers, as agents ask; the C# fixture gives csharp a project.
-        var servers = Environment.GetEnvironmentVariable("SHARPRAIL_CREATE_STALL_LSP")?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? [];
+        // TEREDITOR_CREATE_STALL_LSP (server ids, comma-separated) also starts language servers, as agents ask; the C# fixture gives csharp a project.
+        var servers = Environment.GetEnvironmentVariable("TEREDITOR_CREATE_STALL_LSP")?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? [];
         if (servers.Length > 0) File.WriteAllText(Path.Combine(app.Root, "Probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>\n");
         if (servers.Length > 0) File.WriteAllText(Path.Combine(app.Root, "Probe.cs"), "class Probe { }\n");
-        SharpRail.Checks.E2E.IsolatedGit.Run(app.Root, "init", "-b", "main");
-        SharpRail.Checks.E2E.IsolatedGit.Run(app.Root, "add", "-A");
-        SharpRail.Checks.E2E.IsolatedGit.Run(app.Root, "commit", "-m", "fixture");
+        Tereditor.Checks.E2E.IsolatedGit.Run(app.Root, "init", "-b", "main");
+        Tereditor.Checks.E2E.IsolatedGit.Run(app.Root, "add", "-A");
+        Tereditor.Checks.E2E.IsolatedGit.Run(app.Root, "commit", "-m", "fixture");
         Until(() => app.Window.WorkspaceMounted);
-        // SHARPRAIL_CREATE_STALL_OTHERS fills Projects with that many workspaces first.
-        var others = int.TryParse(Environment.GetEnvironmentVariable("SHARPRAIL_CREATE_STALL_OTHERS"), out var count) ? count : 0;
+        // TEREDITOR_CREATE_STALL_OTHERS fills Projects with that many workspaces first.
+        var others = int.TryParse(Environment.GetEnvironmentVariable("TEREDITOR_CREATE_STALL_OTHERS"), out var count) ? count : 0;
         for (var index = 0; index < others; index++)
         {
             var other = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Create(app.Root).Call(new JsonObject { ["description"] = $"Other {index}" }, default));
@@ -79,7 +79,7 @@ internal static class WorkspaceCreateStallChecks
         double[] samples;
         lock (stalls) samples = [.. stalls.Order()];
         double max = samples[^1], p99 = samples[(int)(samples.Length * 0.99)];
-        Console.WriteLine($"SHARPRAIL_CREATE_STALL_MS max={max:F1} p99={p99:F1} budget={budget:F0} samples={samples.Length} total={started.Elapsed.TotalMilliseconds:F0}");
+        Console.WriteLine($"TEREDITOR_CREATE_STALL_MS max={max:F1} p99={p99:F1} budget={budget:F0} samples={samples.Length} total={started.Elapsed.TotalMilliseconds:F0}");
         Require(max < budget, $"Creating a workspace must not stall the dispatcher beyond {budget:F0} ms (max {max:F1}, p99 {p99:F1}).");
         Console.WriteLine($"PASS workspace_create with a cloned tree keeps the dispatcher under {budget:F0} ms (max {max:F1})");
     }

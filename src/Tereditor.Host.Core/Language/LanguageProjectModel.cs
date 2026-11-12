@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 internal sealed record LanguageProjectModel(string Workspace, string Server, string[] Manifests, bool Truncated)
 {

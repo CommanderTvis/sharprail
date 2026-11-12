@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.Plugins.Epub.UI.EpubViewer"
+             x:Class="Tereditor.Plugins.Epub.UI.EpubViewer"
              Focusable="True">
   <Grid RowDefinitions="Auto,*">
     <Border x:Name="Toolbar" Padding="8,4" BorderThickness="0,0,0,1">

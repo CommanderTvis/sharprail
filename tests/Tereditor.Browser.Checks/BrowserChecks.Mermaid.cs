@@ -6,12 +6,12 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
-using SharpRail.UI.Browser;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
+using Tereditor.UI.Browser;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.Browser.Checks;
+namespace Tereditor.Browser.Checks;
 
 internal static partial class BrowserChecks
 {

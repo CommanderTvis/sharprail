@@ -2,23 +2,23 @@ using Android.Content.PM;
 
 using Avalonia.Android;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Android.Windowing;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Android.Windowing;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>
 /// The app's one activity. It handles every configuration change itself, so a rotation or a keyboard resizes the
 /// workbench instead of recreating it.
 /// </summary>
-[global::Android.App.Activity(Label = "SharpRail", Theme = "@style/SharpRail", Icon = "@mipmap/icon", MainLauncher = true, Exported = true,
+[global::Android.App.Activity(Label = "tereditor", Theme = "@style/tereditor", Icon = "@mipmap/icon", MainLauncher = true, Exported = true,
     LaunchMode = LaunchMode.SingleTask, WindowSoftInputMode = global::Android.Views.SoftInput.AdjustResize,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize |
         ConfigChanges.UiMode | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden | ConfigChanges.Navigation | ConfigChanges.Density |
         ConfigChanges.FontScale | ConfigChanges.Locale | ConfigChanges.LayoutDirection)]
 [global::Android.App.IntentFilter([global::Android.Content.Intent.ActionSend, global::Android.Content.Intent.ActionSendMultiple],
-    Categories = [global::Android.Content.Intent.CategoryDefault], DataMimeType = "*/*", Label = "SharpRail agent")]
+    Categories = [global::Android.Content.Intent.CategoryDefault], DataMimeType = "*/*", Label = "tereditor agent")]
 public sealed class MainActivity : AvaloniaActivity
 {
     private ClientSession? session;
@@ -73,7 +73,7 @@ public sealed class MainActivity : AvaloniaActivity
                 if (entries.Count == 0 && !string.IsNullOrEmpty(text)) entries.Add(new("shared.txt", false, System.Text.Encoding.UTF8.GetBytes(text)));
                 SharedAttachments.Add(entries);
             }
-            catch (Exception error) { global::Android.Util.Log.Warn("SharpRail", "Shared item not attached: " + error.Message); }
+            catch (Exception error) { global::Android.Util.Log.Warn("tereditor", "Shared item not attached: " + error.Message); }
         });
     }
 

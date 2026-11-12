@@ -2,40 +2,40 @@
   <Import Project="../../DesktopGc.props" />
   <Import Project="../../NativeAot.props" />
   <PropertyGroup><OutputType>WinExe</OutputType><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
-  <!-- The About screen's version: the packaging tasks pass SharpRailBuildStamp (UTC date and short commit); a local build reads "dev". -->
+  <!-- The About screen's version: the packaging tasks pass TereditorBuildStamp (UTC date and short commit); a local build reads "dev". -->
   <PropertyGroup>
-    <InformationalVersion Condition="'$(SharpRailBuildStamp)' == ''">dev</InformationalVersion>
-    <InformationalVersion Condition="'$(SharpRailBuildStamp)' != ''">0.2.0+$(SharpRailBuildStamp)</InformationalVersion>
+    <InformationalVersion Condition="'$(TereditorBuildStamp)' == ''">dev</InformationalVersion>
+    <InformationalVersion Condition="'$(TereditorBuildStamp)' != ''">0.2.0+$(TereditorBuildStamp)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
-    <ProjectReference Include="../SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Tailscale/UI/Tereditor.Plugins.Tailscale.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Core/Tereditor.Host.Core.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Client/Tereditor.Host.Client.csproj" />
+    <ProjectReference Include="../Tereditor.Host.Remote/Tereditor.Host.Remote.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Tereditor.Scintilla/Tereditor.Scintilla.csproj" />
     <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.GitHub/UI/SharpRail.Plugins.GitHub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Epub/UI/SharpRail.Plugins.Epub.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Review/UI/SharpRail.Plugins.Review.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Processes/UI/SharpRail.Plugins.Processes.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Acp/UI/SharpRail.Plugins.Acp.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirGateway/UI/SharpRail.Plugins.AirGateway.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.UI/Tereditor.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.SpecDialect/UI/Tereditor.Plugins.SpecDialect.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Blueprint/UI/Tereditor.Plugins.Blueprint.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Env/UI/Tereditor.Plugins.Env.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.GitHub/UI/Tereditor.Plugins.GitHub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Epub/UI/Tereditor.Plugins.Epub.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.ClaudeCode/UI/Tereditor.Plugins.ClaudeCode.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Discord/UI/Tereditor.Plugins.Discord.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.BranchGraph/UI/Tereditor.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Review/UI/Tereditor.Plugins.Review.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Processes/UI/Tereditor.Plugins.Processes.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Visualize/UI/Tereditor.Plugins.Visualize.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Codex/UI/Tereditor.Plugins.Codex.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Omp/UI/Tereditor.Plugins.Omp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Pi/UI/Tereditor.Plugins.Pi.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Acp/UI/Tereditor.Plugins.Acp.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Providers/UI/Tereditor.Plugins.Providers.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirGateway/UI/Tereditor.Plugins.AirGateway.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.AirContext/UI/Tereditor.Plugins.AirContext.UI.csproj" />
     <PackageReference Include="bblanchon.PDFium.macOS" />
     <PackageReference Include="bblanchon.PDFium.Linux" />
     <PackageReference Include="Avalonia" />
@@ -46,22 +46,22 @@
     <PackageReference Include="QRCoder" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <AvaloniaResource Include="Assets/**" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
   <PropertyGroup>
-    <MermaidLibrary>$(MSBuildProjectDirectory)/obj/native/libSharpRailMermaid.dylib</MermaidLibrary>
-    <NotificationsLibrary>$(MSBuildProjectDirectory)/obj/native/libSharpRailNotifications.dylib</NotificationsLibrary>
+    <MermaidLibrary>$(MSBuildProjectDirectory)/obj/native/libTereditorMermaid.dylib</MermaidLibrary>
+    <NotificationsLibrary>$(MSBuildProjectDirectory)/obj/native/libTereditorNotifications.dylib</NotificationsLibrary>
   </PropertyGroup>
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
-    <Content Include="$(MermaidLibrary)" Link="libSharpRailMermaid.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="$(NotificationsLibrary)" Link="libSharpRailNotifications.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == ''">
+    <Content Include="$(MermaidLibrary)" Link="libTereditorMermaid.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(NotificationsLibrary)" Link="libTereditorNotifications.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Native libraries are MSBuild targets: they rebuild when an input is newer than the output, and only then. -->
-  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
+  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/../../scripts/build-merman.cs;$(MSBuildProjectDirectory)/../../mise.lock" Outputs="$(MermaidLibrary)">
     <Exec Command="$(MiseRun) &quot;$(DOTNET_HOST_PATH)&quot; run &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.cs&quot; -- &quot;$(MermaidLibrary)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
   </Target>
-  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
+  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(TereditorLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/Native/Notifications.m;$(MSBuildProjectDirectory)/../../scripts/build-notifications.cs" Outputs="$(NotificationsLibrary)">
     <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.cs&quot; -- &quot;$(NotificationsLibrary)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
   </Target>

@@ -26,8 +26,8 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 
 ## Where the code lives
 
-The shared controls this spec describes moved into [the plugin UI kit](../../SharpRail.Plugins.UI.Kit/SPEC.md)
-(`SharpRail.Plugins.UI.Kit`), so a plugin's UI half renders with the same copy the app uses: `Ui`, `ThemeManifest`,
+The shared controls this spec describes moved into [the plugin UI kit](../../Tereditor.Plugins.UI.Kit/SPEC.md)
+(`Tereditor.Plugins.UI.Kit`), so a plugin's UI half renders with the same copy the app uses: `Ui`, `ThemeManifest`,
 `DialogWindow`, `FindBar`, `LineWidths`, `ViewerLimits`, the Markdown controls, `EditorFrame` and the Mermaid
 controls, with `Assets/Icons` and `Assets/Fonts`. Their rules below apply unchanged wherever they live. This folder
 keeps the theme catalogue (`Themes.cs`), `DiffView`, `MarkdownDiff` and `MarkdownContexts`, which binds the kit's
@@ -41,7 +41,7 @@ since the kit has no theme of its own.
   the interface font size, and the primitive factories: `Icon`, `Text`, `Row`, `Button`, `IconButton`,
   `Frame`, `Menu` and `Place`. These play the role of upstream's shared primitives; a panel composes them
   rather than restyling Fluent controls ad hoc.
-- `Icon` uses the shared vector masks described by [the kit's icon contract](../../SharpRail.Plugins.UI.Kit/SPEC.md),
+- `Icon` uses the shared vector masks described by [the kit's icon contract](../../Tereditor.Plugins.UI.Kit/SPEC.md),
   so glyphs scale with their box and take their colour from a live brush.
 - `MarkdownPreview` renders Markdown natively through Markdig into Avalonia controls. `Frontmatter` reads properties and spec identity; `FindBar` searches rendered documents. The `Preview | Source`
   header of a Markdown file is the resource pane's view toggle ([../SPEC.md](../SPEC.md)).
@@ -173,7 +173,7 @@ unavailability message. Rendered Markdown diffs render unchanged Mermaid fences 
 Large rendered Markdown previews and diffs share the UI kit's block virtualization,
 including chunked large tables/lists/code blocks, estimated offscreen heights, expanded unchanged
 runs as top-level blocks, whole-document selection/search and offscreen anchor realization; see the
-[kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#reaches-replaced-by-parameters).
+[kit contract](../../Tereditor.Plugins.UI.Kit/SPEC.md#reaches-replaced-by-parameters).
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
   is a silent no-op), a side-by-side toggle when showing source (on splits, off shows the diff inline),
@@ -186,7 +186,7 @@ runs as top-level blocks, whole-document selection/search and offscreen anchor r
   for that tab while wide enough. Narrow panes hide the toggle and use inline even after a pinned split.
   Markdown Source uses the same toggle and width rule outside continuous Changes review. Source
   lines wrap at the file line width. Upstream's diffs stopped honouring that width when they moved off the
-  editor component to a diff library that scrolls horizontally; SharpRail's source diffs are still editors,
+  editor component to a diff library that scrolls horizontally; tereditor's source diffs are still editors,
   so they keep wrapping.
 - On macOS source diffs are read-only Scintilla editors (`Editor/EditorFrame`), so only visible lines are laid
   out and large diffs stay responsive. Each line carries a whole-line style: added/removed lines get a tinted
@@ -200,7 +200,7 @@ runs as top-level blocks, whole-document selection/search and offscreen anchor r
   (added or deleted) diffs are never guarded. Show diff anyway is remembered per diff tab and per review
   section for the window's session. Diffs up to 64 Ki characters are parsed where they are drawn; longer ones
   are parsed and counted on the thread pool, and a newer render, text change or disposal drops the stale
-  result. The fork's order-sensitive check is not ported: SharpRail's budget covers its own counting parse.
+  result. The fork's order-sensitive check is not ported: tereditor's budget covers its own counting parse.
 - A stacked review section over 1000 source lines, unchanged context included, gets a bounded 640 px viewport
   (the fork's `boundedDiff: "large"`): its editor scrolls on its own and draws only visible lines, and wheel
   input over it stays inside it. Smaller stacked sections with more than one hunk realize per hunk: each hunk
@@ -215,7 +215,7 @@ runs as top-level blocks, whole-document selection/search and offscreen anchor r
   common prefix and suffix, with a bounded edit budget before falling back to replacing the changed region),
   diffs only paired changed lines word by word, and keeps whitespace outside the marks so emphasis and line
   structure survive. Pipe-table merging preserves the structure and marks cell content as defined in
-  [the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md). The merged document renders through the same
+  [the UI kit contract](../../Tereditor.Plugins.UI.Kit/SPEC.md). The merged document renders through the same
   `MarkdownPreview` pipeline. The merge runs
   on a thread-pool thread; a newer merge or leaving the rendered view cancels the stale one, and a content
   update keeps the current rendering visible until the fresh merge lands.
@@ -227,7 +227,7 @@ Source diffs can share a continuous review's outer scroll by growing their edito
 triage supplies content-keyed Keep controls on source change blocks; individual file tabs and historical
 scopes supply no triage. Markdown review previews grow naturally; other rendered review sections use a bounded viewport and the existing registry.
 Syntax highlighting for editable files, Markdown Source and source diffs follows
-[the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#syntax-highlighting).
+[the UI kit contract](../../Tereditor.Plugins.UI.Kit/SPEC.md#syntax-highlighting).
 Source diffs retain the line backgrounds and metadata styling described above while
 code tokens use the current syntax palette.
 
@@ -272,9 +272,9 @@ commit rows in the scope menu append it to the short SHA and author.
 
 - Per-renderer natural-height capabilities for continuous review. Source and Markdown diffs grow with their content;
   other rendered sections use a bounded viewport rather than format-specific sizing contracts.
-- Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
+- Content-shaped skeleton rows and the fade-in reveal of resolved content; tereditor's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
-  viewers; SharpRail uses Fluent's scrollbars.
+  viewers; tereditor uses Fluent's scrollbars.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
@@ -289,7 +289,7 @@ commit rows in the scope menu append it to the short SHA and author.
   one line glyph per info, success, warning and error, and a fourth `warning` severity next to the existing
   three. Body text keeps the default colour. A notice is a single row (icon, message, actions) or, when it has a
   secondary line or can wrap, a content row over a right-aligned action row; toasts always use the latter.
-  Actions are small outline buttons, a secondary one ghost, never filled or coloured. SharpRail's toasts still
+  Actions are small outline buttons, a secondary one ghost, never filled or coloured. tereditor's toasts still
   draw a coloured variant stripe, and its inline error text is not a notice.
 - Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
 - Full typography adoption. [TYPOGRAPHY.md](TYPOGRAPHY.md) is the one vocabulary and the design gate holds

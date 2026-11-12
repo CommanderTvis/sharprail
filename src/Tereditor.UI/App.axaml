@@ -1,9 +1,9 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
-             xmlns:caret="using:SharpRail.UI.Rendering"
-             x:Class="SharpRail.UI.App"
-             Name="SharpRail">
+             xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+             xmlns:caret="using:Tereditor.UI.Rendering"
+             x:Class="Tereditor.UI.App"
+             Name="tereditor">
   <Application.Resources>
     <x:Double x:Key="TreeViewItemIndent">12</x:Double>
     <ControlTheme x:Key="{x:Type rendering:Switch}" TargetType="rendering:Switch">

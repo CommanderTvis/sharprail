@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 
-using SharpRail.UI.Panels;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Headless input for Settings, which is a control inside the workbench window's overlay rather than a window of its own:

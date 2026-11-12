@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>The latest token totals and plan Codex itself recorded in a rollout.</summary>
 public sealed record CodexRolloutFacts(CodexTokenUsage? Usage, IReadOnlyList<CodexPlanItem>? Plan)

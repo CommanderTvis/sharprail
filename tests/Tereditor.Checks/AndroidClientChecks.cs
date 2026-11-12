@@ -1,9 +1,9 @@
 using System.Net;
 
-using SharpRail.UI.Android;
-using SharpRail.UI.State;
+using Tereditor.UI.Android;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Android client's host endpoint: what the connect screen accepts and what the app remembers.</summary>
 internal static class AndroidClientChecks
@@ -26,13 +26,13 @@ internal static class AndroidClientChecks
         var link = HostLink.Format("192.168.1.20:54123", "s3cr&t=/+ key");
         Require(HostLink.TryParse(link, out var host, out var token) && host == "192.168.1.20:54123" && token == "s3cr&t=/+ key",
             "A connect link must carry the address and the token unchanged, whatever characters the token has.");
-        foreach (var invalid in new[] { null, "", "https://example.com", "sharprail://connect?host=1.2.3.4", "sharprail://connect?token=x" })
+        foreach (var invalid in new[] { null, "", "https://example.com", "tereditor://connect?host=1.2.3.4", "tereditor://connect?token=x" })
             Require(!HostLink.TryParse(invalid, out _, out _), $"'{invalid}' is not a connect link.");
         var addresses = new[] { IPAddress.Loopback, IPAddress.Parse("fe80::1"), IPAddress.Parse("192.168.1.20"), IPAddress.Parse("10.0.0.2") };
         Require(HostLink.Reachable(new Uri("http://0.0.0.0:6000"), () => addresses) == "192.168.1.20:6000", "A listener on every interface must be named by this computer's first network address.");
         Require(HostLink.Reachable(new Uri("http://192.168.1.7:6000"), () => addresses) == "192.168.1.7:6000", "A listener on one address must be named by it.");
         Require(HostLink.Reachable(new Uri("http://0.0.0.0:6000"), () => [IPAddress.Loopback]) == "0.0.0.0:6000", "Without a network the listener keeps its own address.");
-        var view = new SharpRail.UI.Panels.QrCodeView { Text = link };
+        var view = new Tereditor.UI.Panels.QrCodeView { Text = link };
 
         var directory = Path.Combine(root, "android-client");
         Directory.CreateDirectory(directory);

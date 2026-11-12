@@ -3,11 +3,11 @@ using System.Text.Json.Serialization;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.PluginFixture.UI;
+namespace Tereditor.PluginFixture.UI;
 
 // The UI half's own copy of the fixture contract: the UI half never references its host half's assembly, and the
 // payloads cross as JSON, so the two copies interoperate.

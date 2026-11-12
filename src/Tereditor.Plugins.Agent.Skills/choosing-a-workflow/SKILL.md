@@ -1,11 +1,11 @@
 ---
 name: choosing-a-workflow
-description: "Use at the start of PR lifecycle work, or of any change to what the product does — a feature, a behavior change, or a bug fix — in a project that keeps a SharpRail spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs, continuing work already routed to a workflow, non-PR questions, checks, explanations, or edits that change no behavior."
+description: "Use at the start of PR lifecycle work, or of any change to what the product does — a feature, a behavior change, or a bug fix — in a project that keeps a tereditor spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs, continuing work already routed to a workflow, non-PR questions, checks, explanations, or edits that change no behavior."
 ---
 
 # Choosing a Workflow
 
-The root router of the workflow skills SharpRail ships. It classifies new workflow-eligible work and
+The root router of the workflow skills tereditor ships. It classifies new workflow-eligible work and
 names the workflow skill that governs it — nothing more. Work already routed resumes its active
 workflow instead. A routed skill's steps live in that skill alone; read it, don't run it from memory.
 

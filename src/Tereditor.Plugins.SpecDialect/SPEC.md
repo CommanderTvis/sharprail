@@ -58,7 +58,7 @@ directories other assistants keep in a project (`.claude`, `.superpowers`, `.gsd
 by NFC-normalized name, then exact name. The first file with an id wins the graph node;
 validation retains all duplicate paths. A file is cached by modification time and size as its
 frontmatter values only; grep and edits read its text from disk. Every read discovers
-additions, edits and deletions. (SharpRail deviation: the fork walks every folder.)
+additions, edits and deletions. (tereditor deviation: the fork walks every folder.)
 
 Edges are `parent`, `depends-on`, `references` and `implements`. List fields also include `covers`
 and `tags`. The filesystem remains the source of truth. Graph slices preserve traversal order,

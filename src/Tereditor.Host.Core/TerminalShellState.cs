@@ -1,8 +1,8 @@
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// What a terminal's shell integration has said, read from its output as it streams past the host: the working

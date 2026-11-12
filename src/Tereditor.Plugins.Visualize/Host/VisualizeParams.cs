@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Visualize.Host;
+namespace Tereditor.Plugins.Visualize.Host;
 
 public enum VisualizationType
 {

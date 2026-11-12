@@ -5,11 +5,11 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Codex.UI;
+namespace Tereditor.Plugins.Codex.UI;
 
 /// <summary>With another plugin governing Codex launches, that source's account and credits instead; otherwise identity, ChatGPT usage windows and the CLI version, read through the plugin's <c>account</c> method on each show.</summary>
 public static class CodexAccountSurface

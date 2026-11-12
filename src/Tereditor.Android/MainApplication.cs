@@ -2,9 +2,9 @@ using Android.Runtime;
 
 using Avalonia;
 
-using SharpRail.UI.Android.Windowing;
+using Tereditor.UI.Android.Windowing;
 
-namespace SharpRail.UI.Android;
+namespace Tereditor.UI.Android;
 
 /// <summary>Starts Avalonia with the app's windows before any activity exists; the activity composes the workbench.</summary>
 [global::Android.App.Application]

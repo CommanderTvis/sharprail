@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Visualize.Host;
+namespace Tereditor.Plugins.Visualize.Host;
 
 public sealed class VisualizeHost : PluginHostModule
 {

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Discord.Host;
+namespace Tereditor.Plugins.Discord.Host;
 
 /// <summary>
 /// Owns one Discord IPC connection for an activation's lifetime: connecting on demand, a retry floor after a

@@ -7,11 +7,11 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.State;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class GitUiChecks
 {
@@ -124,7 +124,7 @@ internal static class GitUiChecks
             Change().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "+2"));
         Invoke(Action(Change(), "Open as tab"));
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "uncommitted"));
-        Require(window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor =>
+        Require(window.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Any(editor =>
             editor.Text.Contains("Untracked content", StringComparison.Ordinal)),
             "Uncommitted scope did not include the staged-only file and its diff.");
         Invoke(Action(Named("ChangesScope"), "All changes"));
@@ -149,9 +149,9 @@ internal static class GitUiChecks
         Pump(() => Action(Named("ChangesBranch"), "feature/tree/local").IsChecked);
         Require(!Action(Named("ChangesBranch"), "tree/remote/feature/tree/local").IsChecked,
             "Identical local and remote leaf names must select independent full references.");
-        Invoke(Action(Named("ChangesBranch"), "sharprail-fork"));
+        Invoke(Action(Named("ChangesBranch"), "tereditor-fork"));
         // Commit rows are read when the scope menu opens.
-        Pump(() => Action(Named("ChangesBranch"), "sharprail-fork").IsChecked);
+        Pump(() => Action(Named("ChangesBranch"), "tereditor-fork").IsChecked);
         Named("ChangesScope").ContextMenu!.Open(Named("ChangesScope"));
         Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true));
         Named("ChangesScope").ContextMenu!.Close();
@@ -171,14 +171,14 @@ internal static class GitUiChecks
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Scope == "commit" && tab.Comparison == commitId));
         Invoke(Action(Named("ChangesScope"), "Uncommitted"));
         Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked && Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
-        Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Changing scope discarded the independent comparison target.");
+        Require(Action(Named("ChangesBranch"), "tereditor-fork").IsChecked, "Changing scope discarded the independent comparison target.");
         Require(Action(Change(), "Stage file").IsEnabled, "A retained target disabled staging in Uncommitted scope.");
         Invoke(Commit());
         Pump(() => Commit().IsChecked);
 
         Click(window, Named("AddWorkspace"));
-        Pump(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(item => Equals(item.Tag, "NewWorkspaceDialog")));
-        var prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => Equals(item.Tag, "NewWorkspaceDialog"));
+        Pump(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any(item => Equals(item.Tag, "NewWorkspaceDialog")));
+        var prompt = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Single(item => Equals(item.Tag, "NewWorkspaceDialog"));
         Click(prompt, Buttons(prompt).Single(button => button.IsDefault));
         Pump(() => window.WorkspaceRoot != root && window.WorkspaceMounted);
         var worktree = window.WorkspaceRoot;
@@ -196,18 +196,18 @@ internal static class GitUiChecks
         Button Linked() => Buttons(window).Single(button => Equals(ToolTip.GetTip(button), worktree));
         Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item =>
             item.Name == "ChangesCommit_" + commitId && item.IsChecked));
-        Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Returning to a workspace lost its target and commit selection.");
+        Require(Action(Named("ChangesBranch"), "tereditor-fork").IsChecked, "Returning to a workspace lost its target and commit selection.");
         Invoke(Action(Linked(), "Remove worktree…"));
-        var confirmation = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
+        var confirmation = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
         confirmation.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Dispatcher.UIThread.RunJobs(); Require(Directory.Exists(worktree), "Cancelling removal deleted the worktree.");
         Invoke(Action(Linked(), "Remove worktree…"));
-        confirmation = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
+        confirmation = Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
         Click(confirmation, Buttons(confirmation).Single(button => button.Content is TextBlock { Text: "Remove worktree" }));
         Pump(() => !Directory.Exists(worktree) && !Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         window.Close();
         var saved = new ProfileStore(root + "-ui-profile");
-        Require(saved.Data.GitSelections[root].Target == "sharprail-fork" && saved.Data.GitSelections[root].Commit?.Sha == commitId,
+        Require(saved.Data.GitSelections[root].Target == "tereditor-fork" && saved.Data.GitSelections[root].Commit?.Sha == commitId,
             "The profile did not persist the independent target and commit.");
         state = saved.OpenState();
         window = new WorkbenchWindow(new ProjectServices(root, state), root, saved, E2E.E2eTerminals.Plain, state: state);
@@ -215,14 +215,14 @@ internal static class GitUiChecks
         Pump(() => window.WorkspaceMounted && Buttons(window).Any(button => button.Name == "ChangesBranch") &&
             Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "ChangesCommit_" + commitId));
         Require(Commit().IsChecked && Equals(ToolTip.GetTip(Named("ChangesScope")), subject) &&
-            Action(Named("ChangesBranch"), "sharprail-fork").IsChecked,
+            Action(Named("ChangesBranch"), "tereditor-fork").IsChecked,
             "A reopened window lost the persisted target, commit catalog or selected commit.");
         Invoke(Action(Named("ChangesScope"), "Uncommitted"));
         Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked);
         window.Close();
         saved = new ProfileStore(root + "-ui-profile");
         Require(saved.Data.GitSelections[root].Scope == "Uncommitted" && saved.Data.GitSelections[root].Commit is null &&
-            saved.Data.GitSelections[root].Target == "sharprail-fork",
+            saved.Data.GitSelections[root].Target == "tereditor-fork",
             "A changed pending scope did not persist independently of its target.");
         Console.WriteLine("PASS Git query restoration across fresh windows with commit catalogs and independent pending scope");
         Console.WriteLine("PASS Git UI stage/unstage, diff, create/switch worktree, cancel/confirm removal and main-worktree protection");

@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Review;
+namespace Tereditor.Plugins.Review;
 
 /// <summary>What the pane says about a workspace: whether it is a repository, its branch and how many files differ from HEAD.</summary>
 public sealed record ReviewSummary(bool IsRepository, string Branch, int Changed);
@@ -26,8 +26,8 @@ public static class ReviewPlugin
         Description = "The Review tool window: a summary of the workspace's changes and the repo host's pull request review.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Review.Host.dll",
-        Ui = "SharpRail.Plugins.Review.UI.dll",
+        Host = "Tereditor.Plugins.Review.Host.dll",
+        Ui = "Tereditor.Plugins.Review.UI.dll",
         Contributes = new()
         {
             SideTools = [new(Tool, "Review", "discuss-line", PluginToolSide.Right) { RequiresGit = true }]

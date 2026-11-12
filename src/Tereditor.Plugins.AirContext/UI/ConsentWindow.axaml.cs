@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.AirContext.UI;
+namespace Tereditor.Plugins.AirContext.UI;
 
 internal sealed partial class ConsentWindow : Window
 {

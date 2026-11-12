@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Swift;
+namespace Tereditor.Plugins.Lsp.Swift;
 
 /// <summary>The Swift (SourceKit-LS) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Swift.dll"
+        Host = "Tereditor.Plugins.Lsp.Swift.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

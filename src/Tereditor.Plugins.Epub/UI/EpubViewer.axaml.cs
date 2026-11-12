@@ -8,11 +8,11 @@ using Avalonia.Threading;
 
 using Markdig.Syntax;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Plugins.Epub.UI;
+namespace Tereditor.Plugins.Epub.UI;
 
 /// <summary>
 /// One book tab. The host converts the book to Markdown; the parse runs off the UI thread and the kit's Markdown

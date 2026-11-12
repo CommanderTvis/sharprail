@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 internal sealed record DiffTriage(Func<string, bool> IsKept, Action<string, bool, IReadOnlyList<string>> SetKept,
     Action<IReadOnlyList<string>> ReportKeys);

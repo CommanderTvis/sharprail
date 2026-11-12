@@ -7,15 +7,15 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Blueprint;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Blueprint;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class BlueprintStartChecks
 {
@@ -31,18 +31,18 @@ internal static class BlueprintStartChecks
         home.GetAwaiter().GetResult();
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
         app.Click(app.Find<Button>("ProjectDraftBlueprint"));
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         Require(!Find<Button>("Agent").IsVisible && !Find<Button>("BlueprintStart").IsEnabled, "With Claude Code off the dialog offers no Claude host at all.");
-        app.State!.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", true)]).AsTask().GetAwaiter().GetResult();
+        app.State!.ChangeAsync([Tereditor.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", true)]).AsTask().GetAwaiter().GetResult();
         Until(() => Find<Button>("Agent").IsVisible && Find<TextBlock>("AgentLabel").Text == "Claude Code");
-        app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
+        app.State.ChangeAsync([Tereditor.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
         Until(() => !Find<Button>("Agent").IsVisible);
-        app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true)]).AsTask().GetAwaiter().GetResult();
+        app.State.ChangeAsync([Tereditor.Host.Abstractions.HostStateChange.PluginEnabled("codex", true)]).AsTask().GetAwaiter().GetResult();
         Until(() => Find<Button>("Agent").IsVisible && Find<TextBlock>("AgentLabel").Text == "Codex");
         Require(!Find<ComboBox>("AgentChoice").IsVisible, "A sole Codex launcher is selected without requiring an author choice.");
-        app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", false)]).AsTask().GetAwaiter().GetResult();
+        app.State.ChangeAsync([Tereditor.Host.Abstractions.HostStateChange.PluginEnabled("codex", false)]).AsTask().GetAwaiter().GetResult();
         Until(() => !Find<Button>("Agent").IsVisible);
         dialog.Dismiss();
         Console.WriteLine("PASS fork plugins/blueprint/blueprint.spec.ts: the Claude host is offered only once its plugin is on");
@@ -73,8 +73,8 @@ internal static class BlueprintStartChecks
             home.GetAwaiter().GetResult();
             Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-            var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+            var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
             T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             var start = Find<Button>("BlueprintStart");
             var agent = Find<Button>("Agent");
@@ -107,12 +107,12 @@ internal static class BlueprintStartChecks
             Window Pick()
             {
                 app.Click(Find<Button>("Pick"));
-                Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Choose a document by path"));
-                return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Choose a document by path");
+                Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Choose a document by path"));
+                return Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Choose a document by path");
             }
             var picker = Pick();
             T PickControl<T>(string name) where T : Control => picker.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-            Require(PickControl<TextBlock>("DialogExplanation").Text?.Contains("file on the computer running SharpRail", StringComparison.Ordinal) == true &&
+            Require(PickControl<TextBlock>("DialogExplanation").Text?.Contains("file on the computer running tereditor", StringComparison.Ordinal) == true &&
                 PickControl<TextBox>("OpenProjectPathInput").PlaceholderText == "File path",
                 "A remote document picker asks for a host file, rather than a project directory.");
             PickControl<TextBox>("OpenProjectPathInput").Text = document;
@@ -126,7 +126,7 @@ internal static class BlueprintStartChecks
             Require(start.IsEnabled && Find<TextBox>("Brief").Text == "  Build a light controller  ",
                 "Switching source preserves the idea text.");
             app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" } || Equals(button.Content, "Cancel")));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog));
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog));
             Require(!File.Exists(Path.Combine(project, "BLUEPRINT.md")), "Cancelling the start dialog creates no blueprint.");
             Require(launches.Count == 0, "Cancelling does not launch an author.");
 
@@ -135,8 +135,8 @@ internal static class BlueprintStartChecks
             File.WriteAllText(outside, "# Outside\n");
             Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-            dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+            dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
             start = Find<Button>("BlueprintStart");
             app.Click(Find<RadioButton>("Spec"));
             picker = Pick();
@@ -145,17 +145,17 @@ internal static class BlueprintStartChecks
             Until(() => start.IsEnabled && Label() == "Take it over" && Find<TextBlock>("Path").Text == outside);
             app.Click(start);
             Until(() => app.Find<TextBlock>("GestureToastMessage").Text?.Contains("Choose a document inside this project", StringComparison.Ordinal) == true);
-            Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 0 && !File.Exists(Path.Combine(project, "BLUEPRINT.md")),
+            Require(Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 0 && !File.Exists(Path.Combine(project, "BLUEPRINT.md")),
                 "An outside document is refused with a notification, the dialog stays open and nothing starts.");
             app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" } || Equals(button.Content, "Cancel")));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog));
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog));
             home = app.Window.OpenProjectHomeAsync(project);
             Until(() => home.IsCompleted);
             home.GetAwaiter().GetResult();
             Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-            dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+            dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
             var codexLaunches = new List<LauncherCommandOptions>();
             app.Workbench.PluginRegistry.AddLauncher("codex-fixture", new("codex", "Codex fixture", "terminal", options => { codexLaunches.Add(options); launches.Add(options); return ":"; }, () => new(true)));
             Until(() => Find<ComboBox>("AgentChoice").IsVisible);
@@ -164,7 +164,7 @@ internal static class BlueprintStartChecks
             Require(Find<TextBlock>("AgentLabel").Text == "Codex fixture", "Selecting Codex updates the author chip.");
             app.Click(Find<RadioButton>("Product"));
             app.Click(Find<Button>("BlueprintStart"));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 1 &&
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 1 &&
                 app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "Blueprint"));
             var snapshot = app.Workbench.Plugins!.CallAsync(new("blueprint", BlueprintContract.Get.Name, new BlueprintScope(project), "start-check")).AsTask();
             Until(() => snapshot.IsCompleted);
@@ -179,11 +179,11 @@ internal static class BlueprintStartChecks
             home.GetAwaiter().GetResult();
             Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
-            dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+            dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
             Find<TextBox>("Brief").Text = "A different idea must not overwrite this project's blueprint.";
             app.Click(Find<Button>("BlueprintStart"));
-            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && !app.Window.AtProjectHome &&
+            Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && !app.Window.AtProjectHome &&
                 app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "Blueprint"));
             snapshot = app.Workbench.Plugins!.CallAsync(new("blueprint", BlueprintContract.Get.Name, new BlueprintScope(project), "start-check")).AsTask();
             Until(() => snapshot.IsCompleted);

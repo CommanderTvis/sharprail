@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>What the Settings pane knows about a server's license terms; only a known state may offer Review and accept terms.</summary>
 internal enum TermsKnowledge { Checking, NotInstalled, NotAccepted, Accepted, Unavailable }

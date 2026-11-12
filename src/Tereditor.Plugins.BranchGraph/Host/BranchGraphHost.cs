@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.BranchGraph.Host;
+namespace Tereditor.Plugins.BranchGraph.Host;
 
 /// <summary>The host half: the project's history through the host's Git runner, a page at a time, and a commit's patch.</summary>
 public sealed class BranchGraphHost : PluginHostModule

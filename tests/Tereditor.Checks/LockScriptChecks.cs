@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// scripts/lock.sh is the directory lock of the native build scripts: it must remove a lock whose owner is gone instead of waiting

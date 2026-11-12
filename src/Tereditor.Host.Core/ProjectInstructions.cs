@@ -1,9 +1,9 @@
-using SharpRail.Host.Core.Plugins;
+using Tereditor.Host.Core.Plugins;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
-/// The project's instruction-section disable-list, <c>.sharprail/instructions.toml</c> in the project root (the Default
+/// The project's instruction-section disable-list, <c>.tereditor/instructions.toml</c> in the project root (the Default
 /// checkout, so every workspace of the project agrees). Read lazily off the UI thread and re-read when its stamp changes;
 /// written only by an explicit toggle.
 /// </summary>

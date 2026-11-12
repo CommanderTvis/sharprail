@@ -3,10 +3,10 @@ using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed partial class SettingsView
 {
@@ -272,7 +272,7 @@ public sealed partial class SettingsView
             async json => await state.ChangeAsync(HostStateChange.Setting("language-limits", json)));
         refreshers.Add(limits.Refresh);
         if (panel is StackPanel limitsBody) limitsBody.Children.Add(limits);
-        if (panel is StackPanel body) body.Children.Add(new SharpRail.UI.Plugins.PluginSlot(window.Workbench.PluginRegistry, SharpRail.Plugins.Api.UI.UiSlots.CodeIntelligenceSettings, window.WorkspaceRoot));
+        if (panel is StackPanel body) body.Children.Add(new Tereditor.UI.Plugins.PluginSlot(window.Workbench.PluginRegistry, Tereditor.Plugins.Api.UI.UiSlots.CodeIntelligenceSettings, window.WorkspaceRoot));
         _ = LoadCatalog();
         return panel;
 

@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Providers;
+namespace Tereditor.Plugins.Providers;
 
 public static class ProvidersManifest
 {
@@ -14,8 +14,8 @@ public static class ProvidersManifest
         Support = PluginSupportLevels.Early,
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Providers.Host.dll",
-        Ui = "SharpRail.Plugins.Providers.UI.dll",
+        Host = "Tereditor.Plugins.Providers.Host.dll",
+        Ui = "Tereditor.Plugins.Providers.UI.dll",
         Assets = "assets"
     };
 }

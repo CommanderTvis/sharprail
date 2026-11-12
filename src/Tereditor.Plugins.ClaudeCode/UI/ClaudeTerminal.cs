@@ -4,12 +4,12 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The terminal accessory row: while the tab runs Claude, its facts (directory, model and effort chips, token usage,
@@ -117,7 +117,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         if (advisorAt >= 0 && advisorAt + 1 < words.Length) facts.Add(("advisor", $"advisor {words[advisorAt + 1].Trim('\'')}", "Started with --advisor"));
         if (words.Contains("--chrome")) facts.Add(("chrome", "chrome", "Started with Claude in Chrome (--chrome)"));
         if (TerminalFacts.CwdLabel(state.Cwd) is { } directory) facts.Add(("cwd", directory, $"Claude started in {state.Cwd}"));
-        // Read-only: Claude Code's hooks report the model and effort; SharpRail never types a command to change them.
+        // Read-only: Claude Code's hooks report the model and effort; tereditor never types a command to change them.
         if (state.Model is { } model) facts.Add(("model", System.Text.RegularExpressions.Regex.Replace(model.StartsWith("claude-", StringComparison.Ordinal) ? model[7..] : model, @"-\d{8}$", ""), $"{model} — as last reported by Claude Code's hooks"));
         if (state.Effort is { } effort) facts.Add(("effort", $"{effort} effort", "Reasoning effort as last reported by Claude Code's hooks"));
         return facts;

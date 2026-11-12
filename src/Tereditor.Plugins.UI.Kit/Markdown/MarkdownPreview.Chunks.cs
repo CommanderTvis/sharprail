@@ -8,7 +8,7 @@ using Avalonia.Media.TextFormatting;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// Large top-level tables, lists and code blocks render as consecutive chunks, so the block list can virtualize

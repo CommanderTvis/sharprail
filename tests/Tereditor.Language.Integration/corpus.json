@@ -681,7 +681,7 @@
         }
       ],
       "coverage": "cross-file references and document diagnostics",
-      "diagnosticProbe": "\nobject SharpRailInvalidProbe { val broken = }\n"
+      "diagnosticProbe": "\nobject TereditorInvalidProbe { val broken = }\n"
     },
     {
       "server": "php",
@@ -840,7 +840,7 @@
         }
       ],
       "coverage": "document symbols and diagnostics; project-wide references not asserted",
-      "diagnosticProbe": "\nfunction SharpRailInvalidProbe {\n"
+      "diagnosticProbe": "\nfunction TereditorInvalidProbe {\n"
     },
     {
       "server": "shell",
@@ -1078,7 +1078,7 @@
         }
       ],
       "coverage": "cross-file references and document diagnostics",
-      "diagnosticProbe": "\nvoid sharpRailInvalidProbe( {\n"
+      "diagnosticProbe": "\nvoid TereditorInvalidProbe( {\n"
     }
   ]
 }

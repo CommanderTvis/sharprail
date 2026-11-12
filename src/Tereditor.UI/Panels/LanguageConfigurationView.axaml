@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             xmlns:local="using:SharpRail.UI.Panels"
-             x:Class="SharpRail.UI.Panels.LanguageConfigurationView"
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             xmlns:local="using:Tereditor.UI.Panels"
+             x:Class="Tereditor.UI.Panels.LanguageConfigurationView"
              Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12">
   <UserControl.Styles>
     <Style Selector="UserControl.host-path-entry-only Button.host-path-picker"><Setter Property="IsVisible" Value="False" /></Style>
@@ -72,7 +72,7 @@
         </StackPanel>
       </StackPanel>
       <CheckBox x:Name="ProjectAutoStart" Content="Start before first agent in this project" ToolTip.Tip="Applies to every workspace of this project. Startup is requested before the agent runs; installation and indexing may continue afterward." />
-      <CheckBox x:Name="ShareWithProject" Content="Share with the project (.sharprail/language.toml)" ToolTip.Tip="Writes this server's portable options to the project's committed file, where teammates and agents can edit them. Host paths such as an installation directory and JDK stay on this host. Saving never creates the file unless this is checked." />
+      <CheckBox x:Name="ShareWithProject" Content="Share with the project (.tereditor/language.toml)" ToolTip.Tip="Writes this server's portable options to the project's committed file, where teammates and agents can edit them. Host paths such as an installation directory and JDK stay on this host. Saving never creates the file unless this is checked." />
       <TextBlock x:Name="ProjectFileNote" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       <CheckBox x:Name="AutoStart" Content="Start in new workspaces" ToolTip.Tip="New workspaces copy Default’s settings once, then remain independent." />
       <StackPanel x:Name="CompilerOptions" Spacing="8">

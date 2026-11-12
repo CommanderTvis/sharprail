@@ -4,6 +4,6 @@
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="HarfBuzzSharp" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 /// <param name="Lane">The lane the line occupies in the gap above this row.</param>
 /// <param name="Joins">Where it lands on this row: null for straight through, or the lane of a merge or branch joining this commit.</param>

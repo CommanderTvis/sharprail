@@ -1,10 +1,10 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Lsp.IntelliJ;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Lsp.IntelliJ;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>A fake licensing server (an in-process LSP peer) behind the IntelliJ plugin's license state and actions.</summary>
 internal static class IntelliJLicenseChecks
@@ -200,7 +200,7 @@ internal static class IntelliJLicenseChecks
             return new("ready", """{"ok":true,"message":null}""");
         };
         var trial = Licensing(new JsonObject { ["activeLicense"] = new JsonObject { ["source"] = "trial", ["status"] = "Valid", ["product"] = "intellij-server", ["daysLeft"] = 3, ["validThrough"] = "2026-11-05" } });
-        var view = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("intellij", "", "ready", "Ready", "263.7084.0") { PluginState = trial });
+        var view = new Tereditor.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("intellij", "", "ready", "Ready", "263.7084.0") { PluginState = trial });
         var window = new Avalonia.Controls.Window { Width = 700, Height = 900, Content = view };
         window.Show(app.Window);
         try
@@ -221,7 +221,7 @@ internal static class IntelliJLicenseChecks
             Require(calls[1].Query == "code" && JsonNode.Parse(calls[1].Configuration!)!["activationCode"]!.ToString() == " AB-12 ", "The activation code was not sent.");
             // The Code Intelligence row itself shows the notice, without opening the settings.
             rowState = trial;
-            var pane = new SharpRail.UI.Panels.LanguagePanel(app.Host, app.Root, _ => Task.CompletedTask, app.Workbench.State);
+            var pane = new Tereditor.UI.Panels.LanguagePanel(app.Host, app.Root, _ => Task.CompletedTask, app.Workbench.State);
             var paneWindow = new Avalonia.Controls.Window { Width = 520, Height = 700, Content = pane };
             paneWindow.Show();
             try
@@ -234,7 +234,7 @@ internal static class IntelliJLicenseChecks
                 }, "The Code Intelligence row did not show the trial notice.");
             }
             finally { paneWindow.Close(); }
-            var plain = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("typescript", "", "idle", "Fixture", "fixture"));
+            var plain = new Tereditor.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("typescript", "", "idle", "Fixture", "fixture"));
             Require(!Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.StackPanel>(plain, "LicensePanel")!.IsVisible, "A server without license state showed a license block.");
         }
         finally { window.Close(); }
@@ -244,21 +244,21 @@ internal static class IntelliJLicenseChecks
     /// <summary>The terms status is three-state: unknown shows no button, only a known state offers review, and the last known acceptance is cached per server version.</summary>
     internal static void TermsStatus()
     {
-        var checking = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.Checking);
+        var checking = Tereditor.UI.Panels.TermsStatusView.Of(Tereditor.UI.Panels.TermsKnowledge.Checking);
         Require(!checking.ShowReview && !checking.ReviewEnabled && !checking.Text.Contains("not accepted", StringComparison.OrdinalIgnoreCase), "The unknown state must show no button and not claim the terms are not accepted: " + checking.Text);
-        var notAccepted = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.NotAccepted);
+        var notAccepted = Tereditor.UI.Panels.TermsStatusView.Of(Tereditor.UI.Panels.TermsKnowledge.NotAccepted);
         Require(notAccepted.ShowReview && notAccepted.ReviewEnabled && notAccepted.Text.StartsWith("Terms not accepted", StringComparison.Ordinal), "A known not-accepted state must offer Review and accept terms.");
-        var accepted = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.Accepted, "2026-11-07", "263.7084.0");
+        var accepted = Tereditor.UI.Panels.TermsStatusView.Of(Tereditor.UI.Panels.TermsKnowledge.Accepted, "2026-11-07", "263.7084.0");
         Require(accepted.Text == "Terms accepted on 2026-11-07 (version 263.7084.0)." && !accepted.ReviewEnabled, "The accepted state must show the date and version: " + accepted.Text);
         const string server = "terms-cache-fixture";
-        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "An empty cache returned an acceptance.");
-        SharpRail.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "263.7084.0");
-        Require(SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out var at, out var version) && at == "2026-11-07" && version == "263.7084.0", "The cache did not return the stored acceptance.");
-        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "2", out _, out _), "A new server version must invalidate the cached acceptance.");
-        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "The invalidated acceptance came back.");
-        SharpRail.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "");
-        SharpRail.UI.Panels.TermsAcceptanceCache.Forget(server);
-        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "Forget kept the acceptance.");
+        Require(!Tereditor.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "An empty cache returned an acceptance.");
+        Tereditor.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "263.7084.0");
+        Require(Tereditor.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out var at, out var version) && at == "2026-11-07" && version == "263.7084.0", "The cache did not return the stored acceptance.");
+        Require(!Tereditor.UI.Panels.TermsAcceptanceCache.TryGet(server, "2", out _, out _), "A new server version must invalidate the cached acceptance.");
+        Require(!Tereditor.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "The invalidated acceptance came back.");
+        Tereditor.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "");
+        Tereditor.UI.Panels.TermsAcceptanceCache.Forget(server);
+        Require(!Tereditor.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "Forget kept the acceptance.");
         Console.WriteLine("PASS Settings terms status: unknown shows no button, known states offer review, acceptance cache invalidates on a new server version");
     }
 
@@ -301,7 +301,7 @@ internal static class IntelliJLicenseChecks
             }
             return null;
         };
-        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new Tereditor.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         try
         {
@@ -324,7 +324,7 @@ internal static class IntelliJLicenseChecks
             E2E.E2eWorkspace.Until(() => Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.Button>(dialog, "AcceptTerms")!.IsEnabled);
             Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.Button>(dialog, "AcceptTerms")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => terms.Any(request => request.Accept && request.Server == "intellij" && request.ArtifactId == Hash && request.EulaSha256 == Hash), "Accepting did not record the acknowledgement through the host call.");
-            E2E.E2eWorkspace.Until(() => dialog is SharpRail.UI.Panels.LanguageTermsWindow { Result.Accepted: true }, "The terms window did not take the host's accepted reply before closing.");
+            E2E.E2eWorkspace.Until(() => dialog is Tereditor.UI.Panels.LanguageTermsWindow { Result.Accepted: true }, "The terms window did not take the host's accepted reply before closing.");
             dialog.Close();
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms accepted on 2026-11-07", StringComparison.Ordinal), "The accepted status was not shown.");
             Require(!Find<Avalonia.Controls.Button>("LspReviewTerms").IsEnabled, "The review button stayed on after acceptance.");

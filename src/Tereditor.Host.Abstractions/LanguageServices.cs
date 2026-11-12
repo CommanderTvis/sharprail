@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>A workspace-explicit language request. Positions are zero-based UTF-16; null Text reads disk. Origin is empty for a person using the editor or panes, "config" for a configured autostart and "agent-tool" for an agent's MCP tool call.</summary>
 public sealed record LanguageRequest(string Workspace, string Path = "", string Operation = "inspect", int Line = 0,
@@ -108,7 +108,7 @@ public sealed record LanguageUsageSummary(int Calls, int Successes, int Failures
 
 /// <summary>
 /// The host's record of one language-server process ending. <paramref name="Reason"/> is one line of facts and labelled suspicions;
-/// <paramref name="Unexpected"/> is false for stops the user or SharpRail's lifecycle asked for. <paramref name="Details"/> is a copyable report with the
+/// <paramref name="Unexpected"/> is false for stops the user or tereditor's lifecycle asked for. <paramref name="Details"/> is a copyable report with the
 /// stderr tail, recent JSON-RPC messages and requests in flight.
 /// </summary>
 public sealed record LanguageExit(string Time, string Reason, bool Unexpected, string Initiator, int? ExitCode, string Signal, int UptimeSeconds, long MemoryBytes, string Details)

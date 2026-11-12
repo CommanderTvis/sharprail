@@ -2,13 +2,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// The header's status area through switches between projects whose content differs (a long and a short branch, no remote, ahead and

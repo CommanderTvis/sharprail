@@ -1,11 +1,11 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Pi;
-using SharpRail.Plugins.Pi.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Pi;
+using Tereditor.Plugins.Pi.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Pi plugin: its manifest (off by default, unavailable on a pure web host), the folding of Pi's RPC events and stored
 // messages into chat items, and a session driven end to end against a fixture `pi` that speaks the RPC protocol.

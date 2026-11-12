@@ -16,7 +16,7 @@ The plugin id is `lsp-clangd`; it ships enabled. Its host half is a `LanguageSer
 the catalog, its sessions stop and its saved settings are kept. Implementation: clangd · LLVM project.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
-and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../Tereditor.Host.Core/Language/SPEC.md)).
 
 It accepts include paths, compiler flags (sent as `fallbackFlags`) and a compilation database directory, and counts `build/compile_commands.json` and the configured database as manifests.
 

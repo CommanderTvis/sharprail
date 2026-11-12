@@ -6,10 +6,10 @@ using Avalonia.Input;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 [SupportedOSPlatform("macos")]
 internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITerminalResumeHint

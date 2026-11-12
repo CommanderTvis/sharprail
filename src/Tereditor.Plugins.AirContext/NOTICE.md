@@ -1,6 +1,6 @@
 # Air Context plugin
 
-Original SharpRail implementation. This plugin downloads and runs JetBrains' Context CLI only after the user
+Original tereditor implementation. This plugin downloads and runs JetBrains' Context CLI only after the user
 accepts JetBrains' terms; it bundles no JetBrains binary, source or server.
 
 `assets/air.svg` is the unmodified Air product icon from JetBrains' Air blog:

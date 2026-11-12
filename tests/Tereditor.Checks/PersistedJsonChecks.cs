@@ -1,11 +1,11 @@
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The files the host and the app persist keep their bytes: a representative <c>state.json</c> (with the language
@@ -21,7 +21,7 @@ internal static class PersistedJsonChecks
     internal static async Task Run(string root, bool update)
     {
         var lost = new List<string>();
-        foreach (var context in new System.Text.Json.Serialization.JsonSerializerContext[] { HostJson.Default, SharpRail.UI.AppJson.Default, SharpRail.Plugins.UI.Kit.KitJson.Default, SharpRail.Host.Protocol.LocalBrowserApprovalJson.Default })
+        foreach (var context in new System.Text.Json.Serialization.JsonSerializerContext[] { HostJson.Default, Tereditor.UI.AppJson.Default, Tereditor.Plugins.UI.Kit.KitJson.Default, Tereditor.Host.Protocol.LocalBrowserApprovalJson.Default })
         {
             var seen = new HashSet<Type>();
             foreach (var generated in context.GetType().GetProperties().Where(property => property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(JsonTypeInfo<>)))
@@ -35,7 +35,7 @@ internal static class PersistedJsonChecks
         CurrentProfile(Path.Combine(root, "persisted-current-profile"), outputs);
 
         var failures = new List<string>();
-        var source = update ? Path.Combine(BoundaryChecks.Checkout() ?? throw new InvalidOperationException("--update needs a source checkout."), "tests/SharpRail.Checks", Fixtures, "golden") : null;
+        var source = update ? Path.Combine(BoundaryChecks.Checkout() ?? throw new InvalidOperationException("--update needs a source checkout."), "tests/Tereditor.Checks", Fixtures, "golden") : null;
         foreach (var (name, text) in outputs)
         {
             if (source is not null) { Directory.CreateDirectory(source); File.WriteAllText(Path.Combine(source, name), text); continue; }

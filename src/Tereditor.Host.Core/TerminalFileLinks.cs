@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // Character scanner with existence-checked candidates, following IntelliJ's terminal filter approach.
 internal static class TerminalFileLinks

@@ -3,14 +3,14 @@ using System.Net;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // How much output a terminal keeps for replay is a host setting, read when a shell starts.
 internal static partial class TerminalHostChecks
@@ -53,7 +53,7 @@ internal static partial class TerminalHostChecks
             Require((await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "0")])).Settings.TerminalReplayKb == 0, "Zero must survive the wire as zero.");
             Require(await Replayed(terminals, workspace) == 0, "A remote host must apply a replay size of zero.");
             try { await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "2000")]); throw new InvalidOperationException("A remote host accepted an oversized replay size."); }
-            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.InvalidArgument) { }
+            catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode == Tereditor.Host.Protocol.StatusCode.InvalidArgument) { }
             await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "256")]);
             Require(await Replayed(terminals, workspace, id, close: false) > 128 * 1024, "A remote host must apply a larger replay size to terminals opened afterwards.");
         }

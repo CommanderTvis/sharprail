@@ -4,13 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The headless host as a real child process: no window is involved. Stdout carries JSON-RPC lines only, stderr the logs,
@@ -20,7 +20,7 @@ internal static partial class HeadlessChecks
 {
     private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
 
-    [GeneratedRegex(@"Avalonia|SkiaSharp|HarfBuzz|SharpRail\.UI|\.UI/|Ghostty|Scintilla|Plugins\.UI\.Kit|Host\.Remote|Host\.Client|Microsoft\.AspNetCore", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"Avalonia|SkiaSharp|HarfBuzz|tereditor\.UI|\.UI/|Ghostty|Scintilla|Plugins\.UI\.Kit|Host\.Remote|Host\.Client|Microsoft\.AspNetCore", RegexOptions.CultureInvariant)]
     private static partial Regex Forbidden();
 
     internal static async Task Run(string fixture)
@@ -51,7 +51,7 @@ internal static partial class HeadlessChecks
         {
             Require(await listing.ExitAsync(TimeSpan.FromSeconds(30)) == 0 && listing.Lines.Any(line => line.StartsWith("typescript\tJavaScript / TypeScript", StringComparison.Ordinal)) && listing.Lines.All(line => line.Split('\t').Length == 4), "The languages command did not list the served servers: " + string.Join('|', listing.Lines));
         }
-        Require(!Directory.Exists(Path.Combine(workspace, ".sharprail")), "A default run must create nothing in .sharprail.");
+        Require(!Directory.Exists(Path.Combine(workspace, ".tereditor")), "A default run must create nothing in .tereditor.");
         await Switches(root, state);
         Console.WriteLine("PASS headless host: JSON-RPC lines only on stdout, logs on stderr, EOF and SIGTERM exit 0, bad configuration exits 2, no UI reference");
     }
@@ -77,10 +77,10 @@ internal static partial class HeadlessChecks
     private static void Dependencies()
     {
         if (BoundaryChecks.Checkout() is not { } checkout) { Console.WriteLine("SKIP headless dependency graph: no source checkout"); return; }
-        var assets = Path.Combine(checkout, "src", "SharpRail.Host.Headless", "obj", "project.assets.json");
+        var assets = Path.Combine(checkout, "src", "Tereditor.Host.Headless", "obj", "project.assets.json");
         Require(File.Exists(assets), "Restore the headless project before checking its dependencies.");
         var libraries = JsonNode.Parse(File.ReadAllText(assets))!["libraries"]!.AsObject().Select(pair => pair.Key).ToArray();
-        Require(libraries.Any(name => name.StartsWith("SharpRail.Host.Core/", StringComparison.Ordinal)) && libraries.Length > 20, "The headless dependency graph is empty or lost the host core.");
+        Require(libraries.Any(name => name.StartsWith("Tereditor.Host.Core/", StringComparison.Ordinal)) && libraries.Length > 20, "The headless dependency graph is empty or lost the host core.");
         var offending = libraries.Where(name => Forbidden().IsMatch(name)).ToArray();
         Require(offending.Length == 0, "The headless host reaches UI or web server packages: " + string.Join(", ", offending));
     }
@@ -101,8 +101,8 @@ internal static partial class HeadlessChecks
         Require(Served("linux-aarch64") == "clangd csharp css kotlin php python shell typescript", "The headless languages on linux-aarch64 changed: " + Served("linux-aarch64"));
 
         // IntelliJ is opt-in: not in the roster unless the environment names it, then served on every platform that pins its archive.
-        Require(HeadlessLanguages.OptedIn(name => null).Count == 0 && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_PREFETCH" ? "intellij" : null).SequenceEqual(["lsp-intellij"])
-            && HeadlessLanguages.OptedIn(name => name == "SHARPRAIL_ACCEPT_TERMS" ? "csharp, intellij:" + new string('a', 64) : null).SequenceEqual(["lsp-intellij"]) && HeadlessLanguages.OptedIn(name => "csharp").Count == 0, "The opt-in rule for IntelliJ is wrong.");
+        Require(HeadlessLanguages.OptedIn(name => null).Count == 0 && HeadlessLanguages.OptedIn(name => name == "TEREDITOR_PREFETCH" ? "intellij" : null).SequenceEqual(["lsp-intellij"])
+            && HeadlessLanguages.OptedIn(name => name == "TEREDITOR_ACCEPT_TERMS" ? "csharp, intellij:" + new string('a', 64) : null).SequenceEqual(["lsp-intellij"]) && HeadlessLanguages.OptedIn(name => "csharp").Count == 0, "The opt-in rule for IntelliJ is wrong.");
         Require(Served("linux-x86_64", true).Contains("intellij", StringComparison.Ordinal) && Served("linux-aarch64", true).Contains("intellij", StringComparison.Ordinal) && Served("macos-aarch64", true).Contains("intellij", StringComparison.Ordinal), "IntelliJ is missing when asked for.");
 
         // The manifests are the source of truth: no platform drops a language from the declared set.
@@ -110,8 +110,8 @@ internal static partial class HeadlessChecks
         // The arm64 clangd is built into the image, which must carry exactly the pin the host verifies.
         var arm64 = BuiltinPlugins.Headless.Select(plugin => plugin.Host).OfType<LanguageServerPlugin>().First(plugin => plugin.Spec.Id == "clangd").Spec.Artifacts.First(item => item.Platform == "linux-aarch64");
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
-        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "SharpRail.slnx"))) repository = repository.Parent;
-        Require(repository is not null, "The checks are not running from a SharpRail checkout.");
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "Tereditor.slnx"))) repository = repository.Parent;
+        Require(repository is not null, "The checks are not running from a tereditor checkout.");
         var dockerfile = File.ReadAllText(Path.Combine(repository!.FullName, "docker", "headless", "Dockerfile"));
         Require(arm64.Format == "tar.zst" && dockerfile.Contains("ARG CLANGD_ARM64_URL=" + arm64.Url + "\n", StringComparison.Ordinal) && dockerfile.Contains("ARG CLANGD_ARM64_SHA256=" + arm64.Sha256 + "\n", StringComparison.Ordinal),
             "The Dockerfile's arm64 clangd URL or SHA-256 differs from the pin in ClangdPlugin.");
@@ -234,7 +234,7 @@ internal static partial class HeadlessChecks
             var node = JsonNode.Parse(line);
             Require(node is JsonObject frame && frame["jsonrpc"]?.GetValue<string>() == "2.0" && (frame.ContainsKey("result") || frame.ContainsKey("error")), "stdout carried something besides a JSON-RPC response: " + line[..Math.Min(line.Length, 200)]);
         }
-        Require(host.Errors.Contains("sharprail-headless: serving", StringComparison.Ordinal) && host.Errors.Contains("sharprail-headless: stopping", StringComparison.Ordinal), "stderr lost the host's log lines.");
+        Require(host.Errors.Contains("tereditor-headless: serving", StringComparison.Ordinal) && host.Errors.Contains("tereditor-headless: stopping", StringComparison.Ordinal), "stderr lost the host's log lines.");
     }
 
     private static readonly string[] LanguageTools = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format"];
@@ -253,27 +253,27 @@ internal static partial class HeadlessChecks
             Require(await host.ExitAsync(TimeSpan.FromSeconds(30)) == 0, "A headless run did not exit 0. stderr:\n" + host.Errors);
             return ([.. replies[2]["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>()).Order(StringComparer.Ordinal)], replies[1]["result"]!["instructions"]!.GetValue<string>(), replies[3]);
         }
-        var cold = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" });
+        var cold = await Session(new() { ["TEREDITOR_TOOLS_ENABLE"] = "" });
         Require(cold.Tools.SequenceEqual(LanguageTools.Order(StringComparer.Ordinal)), "A cold start must offer only the six language tools: " + string.Join(", ", cold.Tools));
         Require(cold.Instructions.Contains("lsp_navigate", StringComparison.Ordinal) && !cold.Instructions.Contains("spec_", StringComparison.Ordinal) && !cold.Instructions.Contains("blueprint_check", StringComparison.Ordinal)
-            && cold.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE=spec,blueprint", StringComparison.Ordinal), "The cold-start instructions must name only offered tools and the opt-in: " + cold.Instructions);
+            && cold.Instructions.Contains("TEREDITOR_TOOLS_ENABLE=spec,blueprint", StringComparison.Ordinal), "The cold-start instructions must name only offered tools and the opt-in: " + cold.Instructions);
         Require(cold.Call["error"]?["code"]?.GetValue<int>() == -32602, "A spec tool must be unknown on a cold start: " + cold.Call.ToJsonString());
 
-        var all = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint" });
+        var all = await Session(new() { ["TEREDITOR_TOOLS_ENABLE"] = "spec,blueprint" });
         Require(all.Tools.Length == 14 && all.Tools.Contains("blueprint_check") && all.Tools.Count(name => name.StartsWith("spec_", StringComparison.Ordinal)) == 7, "Opted in, the table must hold all 14 tools: " + string.Join(", ", all.Tools));
-        Require(all.Instructions.Contains("language, spec and Blueprint tools", StringComparison.Ordinal) && !all.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE", StringComparison.Ordinal), "The opted-in instructions must not offer an opt-in: " + all.Instructions);
+        Require(all.Instructions.Contains("language, spec and Blueprint tools", StringComparison.Ordinal) && !all.Instructions.Contains("TEREDITOR_TOOLS_ENABLE", StringComparison.Ordinal), "The opted-in instructions must not offer an opt-in: " + all.Instructions);
         Require(all.Call["result"]?["isError"] is null, "An opted-in spec tool failed: " + all.Call.ToJsonString());
 
-        var byFlag = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" }, ["--enable-tools", "blueprint"]);
+        var byFlag = await Session(new() { ["TEREDITOR_TOOLS_ENABLE"] = "" }, ["--enable-tools", "blueprint"]);
         Require(byFlag.Tools.Length == 14, "--enable-tools blueprint must bring the spec graph along: " + string.Join(", ", byFlag.Tools));
 
-        var specOnly = await Session(new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec" });
-        Require(specOnly.Tools.Length == 13 && !specOnly.Tools.Contains("blueprint_check") && specOnly.Instructions.Contains("SHARPRAIL_TOOLS_ENABLE=blueprint", StringComparison.Ordinal), "Spec alone must leave Blueprint off and say so: " + string.Join(", ", specOnly.Tools));
+        var specOnly = await Session(new() { ["TEREDITOR_TOOLS_ENABLE"] = "spec" });
+        Require(specOnly.Tools.Length == 13 && !specOnly.Tools.Contains("blueprint_check") && specOnly.Instructions.Contains("TEREDITOR_TOOLS_ENABLE=blueprint", StringComparison.Ordinal), "Spec alone must leave Blueprint off and say so: " + string.Join(", ", specOnly.Tools));
 
-        var config = await CheckConfig(workspace, state, [], new() { ["SHARPRAIL_TOOLS_ENABLE"] = "" });
+        var config = await CheckConfig(workspace, state, [], new() { ["TEREDITOR_TOOLS_ENABLE"] = "" });
         Require(Offered(config).Length == 6 && Offered(config).All(name => name.StartsWith("lsp_", StringComparison.Ordinal)), "check-config must list the six language tools on a cold start: " + config.ToJsonString());
-        await using var bad = Host.Start(["check-config", "--workspace", workspace], state, new() { ["SHARPRAIL_TOOLS_ENABLE"] = "specs" });
-        Require(await bad.ExitAsync(TimeSpan.FromSeconds(30)) == 2 && bad.Errors.Contains("SHARPRAIL_TOOLS_ENABLE: unknown group \"specs\"", StringComparison.Ordinal), "An unknown group must exit 2: " + bad.Errors);
+        await using var bad = Host.Start(["check-config", "--workspace", workspace], state, new() { ["TEREDITOR_TOOLS_ENABLE"] = "specs" });
+        Require(await bad.ExitAsync(TimeSpan.FromSeconds(30)) == 2 && bad.Errors.Contains("TEREDITOR_TOOLS_ENABLE: unknown group \"specs\"", StringComparison.Ordinal), "An unknown group must exit 2: " + bad.Errors);
     }
 
     /// <summary>What an agent sees when the server starts above its project: the root is stated, paths work absolute and relative, a path under the one child that has it is suggested,
@@ -284,7 +284,7 @@ internal static partial class HeadlessChecks
         Directory.CreateDirectory(demo);
         await File.WriteAllTextAsync(Path.Combine(demo, "shapes.ts"), "  messy");
         await File.WriteAllTextAsync(Path.Combine(workspace, "BLUEPRINT.md"), "# Plan\n\nControl: database = sqlite\n");
-        await using var host = Host.Start(["mcp", "--workspace", workspace], state, new() { ["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint" });
+        await using var host = Host.Start(["mcp", "--workspace", workspace], state, new() { ["TEREDITOR_TOOLS_ENABLE"] = "spec,blueprint" });
         host.Send("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}""");
         host.Send("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""");
         host.Send("""{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lsp_status","arguments":{}}}""");
@@ -338,7 +338,7 @@ internal static partial class HeadlessChecks
         {
             await using var host = Host.Start(arguments, state);
             var exit = await host.ExitAsync(TimeSpan.FromSeconds(30));
-            Require(exit == 2 && host.Lines.Count == 0 && host.Errors.Contains("sharprail-headless:", StringComparison.Ordinal), $"`{string.Join(' ', arguments)}` must exit 2 with a message on stderr only, got {exit}, stdout {host.Lines.Count} lines, stderr: {host.Errors}");
+            Require(exit == 2 && host.Lines.Count == 0 && host.Errors.Contains("tereditor-headless:", StringComparison.Ordinal), $"`{string.Join(' ', arguments)}` must exit 2 with a message on stderr only, got {exit}, stdout {host.Lines.Count} lines, stderr: {host.Errors}");
         }
         var file = Path.Combine(root, "state-is-a-file");
         await File.WriteAllTextAsync(file, "x");
@@ -385,31 +385,31 @@ internal static partial class HeadlessChecks
     private static async Task Switches(string root, string state)
     {
         var project = Path.Combine(root, "switches");
-        Directory.CreateDirectory(Path.Combine(project, ".sharprail"));
-        var file = Path.Combine(project, ".sharprail", "mcp.toml");
+        Directory.CreateDirectory(Path.Combine(project, ".tereditor"));
+        var file = Path.Combine(project, ".tereditor", "mcp.toml");
         await File.WriteAllTextAsync(file, ProjectFile);
         await File.WriteAllTextAsync(Path.Combine(project, "SPEC.md"), "---\nid: goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");
 
         // Precedence: defaults, file, arm, environment, flags.
         var plain = await CheckConfig(project, state, []);
         Require(plain["arm"] is null && !Offered(plain).Contains("blueprint_check") && Offered(plain).Contains("lsp_navigate") && plain["log"]!["enabled"]!.GetValue<bool>() == false && plain["log"]!["level"]!.GetValue<string>() == "args", "The top level of mcp.toml did not apply: " + plain.ToJsonString());
-        var nolsp = await CheckConfig(project, state, [], new() { ["SHARPRAIL_ARM"] = "nolsp" });
+        var nolsp = await CheckConfig(project, state, [], new() { ["TEREDITOR_ARM"] = "nolsp" });
         Require(Offered(nolsp).All(name => !name.StartsWith("lsp_", StringComparison.Ordinal)) && Offered(nolsp).Contains("spec_get") && Offered(nolsp).Contains("blueprint_check"),
             "An arm must replace the top-level disable list: " + nolsp.ToJsonString());
-        var byEnvironment = await CheckConfig(project, state, [], new() { ["SHARPRAIL_ARM"] = "nolsp", ["SHARPRAIL_TOOLS_DISABLE"] = "spec_get, spec_grep", ["SHARPRAIL_LOG"] = "1", ["SHARPRAIL_LOG_LEVEL"] = "meta", ["SHARPRAIL_RUNS_DIR"] = "elsewhere" });
+        var byEnvironment = await CheckConfig(project, state, [], new() { ["TEREDITOR_ARM"] = "nolsp", ["TEREDITOR_TOOLS_DISABLE"] = "spec_get, spec_grep", ["TEREDITOR_LOG"] = "1", ["TEREDITOR_LOG_LEVEL"] = "meta", ["TEREDITOR_RUNS_DIR"] = "elsewhere" });
         Require(Offered(byEnvironment).Contains("lsp_navigate") && !Offered(byEnvironment).Contains("spec_get") && byEnvironment["log"]!["enabled"]!.GetValue<bool>() && byEnvironment["log"]!["level"]!.GetValue<string>() == "meta"
             && byEnvironment["log"]!["dir"]!.GetValue<string>() == Path.Combine(project, "elsewhere"), "Environment variables must beat the arm: " + byEnvironment.ToJsonString());
-        var byFlag = await CheckConfig(project, state, ["--arm", "narrow", "--disable-tools=spec_graph"], new() { ["SHARPRAIL_ARM"] = "nolsp", ["SHARPRAIL_TOOLS_DISABLE"] = "spec_get" });
+        var byFlag = await CheckConfig(project, state, ["--arm", "narrow", "--disable-tools=spec_graph"], new() { ["TEREDITOR_ARM"] = "nolsp", ["TEREDITOR_TOOLS_DISABLE"] = "spec_get" });
         Require(byFlag["arm"]!.GetValue<string>() == "narrow" && Offered(byFlag).Contains("spec_get") && !Offered(byFlag).Contains("spec_graph") && !Offered(byFlag).Contains("lsp_diagnostics") && Offered(byFlag).Contains("lsp_navigate"),
             "Flags must beat the environment: " + byFlag.ToJsonString());
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail", "runs")), "check-config must not create the run directory.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor", "runs")), "check-config must not create the run directory.");
 
         // Invalid configuration exits 2 and names the file, line and key.
         async Task Invalid(string text, string expected, Dictionary<string, string>? environment = null, string[]? extra = null)
         {
             var bad = Path.Combine(root, "invalid");
-            Directory.CreateDirectory(Path.Combine(bad, ".sharprail"));
-            await File.WriteAllTextAsync(Path.Combine(bad, ".sharprail", "mcp.toml"), text);
+            Directory.CreateDirectory(Path.Combine(bad, ".tereditor"));
+            await File.WriteAllTextAsync(Path.Combine(bad, ".tereditor", "mcp.toml"), text);
             foreach (var command in new[] { "check-config", "mcp" })
             {
                 await using var host = Host.Start([command, "--workspace", bad, .. extra ?? []], state, environment);
@@ -417,18 +417,18 @@ internal static partial class HeadlessChecks
                 Require(exit == 2 && host.Lines.Count == 0 && host.Errors.Contains(expected, StringComparison.Ordinal), $"`{command}` with `{text.ReplaceLineEndings("|")}` must exit 2 saying `{expected}`, got {exit}: {host.Errors}");
             }
         }
-        await Invalid("version = 1\n\n[tools]\ndisabel = []\n", ".sharprail/mcp.toml:4: tools.disabel: unknown key");
-        await Invalid("version = 1\n[tools.lsp_navigate]\noperations = [\"definition\", \"teleport\"]\n", ".sharprail/mcp.toml:3: tools.lsp_navigate.operations: unknown operation \"teleport\"");
-        await Invalid("version = 1\n[tools.lsp_rename]\noperations = [\"apply\", \"teleport\"]\n", ".sharprail/mcp.toml:3: tools.lsp_rename.operations: unknown operation \"teleport\"");
-        await Invalid("version = 2\n", ".sharprail/mcp.toml:1: version:");
-        await Invalid("[tools]\n", ".sharprail/mcp.toml:1: version:");
-        await Invalid("version = 1\n[log]\nenabled = \"yes\"\n", ".sharprail/mcp.toml:3: log.enabled: must be true or false");
-        await Invalid("version = 1\n[arms.a]\nlog.level = \"loud\"\n", ".sharprail/mcp.toml:3: arms.a.log.level:");
-        await Invalid("version = 1\n[tools]\nallow = []\n", ".sharprail/mcp.toml:3: tools.allow: must not be empty");
-        await Invalid("version = 1\nnonsense\n", ".sharprail/mcp.toml:");
-        await Invalid("version = 1\n[arms.a]\n", "arm \"b\" is not defined", new() { ["SHARPRAIL_ARM"] = "b" });
-        await Invalid("version = 1\n", "SHARPRAIL_LOG: expected 0 or 1", new() { ["SHARPRAIL_LOG"] = "yes" });
-        await Invalid("version = 1\n", "SHARPRAIL_LOG_LEVEL: expected meta, args or full", new() { ["SHARPRAIL_LOG_LEVEL"] = "chatty" });
+        await Invalid("version = 1\n\n[tools]\ndisabel = []\n", ".tereditor/mcp.toml:4: tools.disabel: unknown key");
+        await Invalid("version = 1\n[tools.lsp_navigate]\noperations = [\"definition\", \"teleport\"]\n", ".tereditor/mcp.toml:3: tools.lsp_navigate.operations: unknown operation \"teleport\"");
+        await Invalid("version = 1\n[tools.lsp_rename]\noperations = [\"apply\", \"teleport\"]\n", ".tereditor/mcp.toml:3: tools.lsp_rename.operations: unknown operation \"teleport\"");
+        await Invalid("version = 2\n", ".tereditor/mcp.toml:1: version:");
+        await Invalid("[tools]\n", ".tereditor/mcp.toml:1: version:");
+        await Invalid("version = 1\n[log]\nenabled = \"yes\"\n", ".tereditor/mcp.toml:3: log.enabled: must be true or false");
+        await Invalid("version = 1\n[arms.a]\nlog.level = \"loud\"\n", ".tereditor/mcp.toml:3: arms.a.log.level:");
+        await Invalid("version = 1\n[tools]\nallow = []\n", ".tereditor/mcp.toml:3: tools.allow: must not be empty");
+        await Invalid("version = 1\nnonsense\n", ".tereditor/mcp.toml:");
+        await Invalid("version = 1\n[arms.a]\n", "arm \"b\" is not defined", new() { ["TEREDITOR_ARM"] = "b" });
+        await Invalid("version = 1\n", "TEREDITOR_LOG: expected 0 or 1", new() { ["TEREDITOR_LOG"] = "yes" });
+        await Invalid("version = 1\n", "TEREDITOR_LOG_LEVEL: expected meta, args or full", new() { ["TEREDITOR_LOG_LEVEL"] = "chatty" });
 
         // The arm without the language tools: nothing about them in the list, the instructions or a call.
         await using (var host = Host.Start(["mcp", "--workspace", project, "--arm", "nolsp"], state))
@@ -447,14 +447,14 @@ internal static partial class HeadlessChecks
             host.CloseInput();
             Require(await host.ExitAsync(TimeSpan.FromSeconds(30)) == 0, "nolsp arm did not exit 0.");
         }
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail", "runs")), "A run with logging off must not create the run directory.");
-        Require(Directory.GetFileSystemEntries(Path.Combine(project, ".sharprail")).Length == 1, "A run with logging off must leave .sharprail as it was.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor", "runs")), "A run with logging off must not create the run directory.");
+        Require(Directory.GetFileSystemEntries(Path.Combine(project, ".tereditor")).Length == 1, "A run with logging off must leave .tereditor as it was.");
 
         // The narrow arm: diagnostics gone, navigation limited, the log on at full level with a tiny size limit.
         var runs = Path.Combine(root, "runs");
         if (Directory.Exists(runs)) Directory.Delete(runs, true);
         await File.WriteAllTextAsync(file, ProjectFile + "\nlog.max_file_kb = 16\n");
-        await using (var host = Host.Start(["mcp", "--workspace", project, "--arm", "narrow"], state, new() { ["SHARPRAIL_RUNS_DIR"] = runs }))
+        await using (var host = Host.Start(["mcp", "--workspace", project, "--arm", "narrow"], state, new() { ["TEREDITOR_RUNS_DIR"] = runs }))
         {
             host.Send("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}""");
             host.Send("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""");
@@ -482,7 +482,7 @@ internal static partial class HeadlessChecks
             Require(later.Where(pair => pair.Key >= 100).All(pair => pair.Value["result"]?["isError"] is null), "A call failed while the log hit its limit.");
             host.CloseInput();
             Require(await host.ExitAsync(TimeSpan.FromSeconds(30)) == 0, "narrow arm did not exit 0.");
-            Require(host.Errors.Contains("sharprail-headless: call log ", StringComparison.Ordinal) && host.Errors.Split("reached 16 KB").Length == 2, "The log path or the single size warning is missing from stderr:\n" + host.Errors);
+            Require(host.Errors.Contains("tereditor-headless: call log ", StringComparison.Ordinal) && host.Errors.Split("reached 16 KB").Length == 2, "The log path or the single size warning is missing from stderr:\n" + host.Errors);
         }
         var logFile = Directory.GetFiles(runs, "*.jsonl").Single();
         var entries = (await File.ReadAllLinesAsync(logFile)).Select(line => (JsonObject)JsonNode.Parse(line)!).ToArray();
@@ -501,7 +501,7 @@ internal static partial class HeadlessChecks
         Require(first["tool"]!.GetValue<string>() == "lsp_navigate" && first["operation"]!.GetValue<string>() == "definition" && first["isError"]!.GetValue<bool>() && first["error"]!.GetValue<string>().Contains("not available", StringComparison.Ordinal), "The refused call is not in the log: " + first.ToJsonString());
         var spec = calls.First(call => call["tool"]!.GetValue<string>() == "spec_get");
         Require(spec["operation"] is null && spec["args"]!["workspace"] is null && spec["args"]!["id"]!.GetValue<string>() == "goal" && spec["result"]!.GetValue<string>().Length <= 51 && spec["resultChars"]!.GetValue<int>() > 0, "A spec_get line is wrong: " + spec.ToJsonString());
-        Require(!Directory.Exists(Path.Combine(project, ".sharprail", "runs")), "SHARPRAIL_RUNS_DIR was ignored.");
+        Require(!Directory.Exists(Path.Combine(project, ".tereditor", "runs")), "TEREDITOR_RUNS_DIR was ignored.");
     }
 
     /// <summary>One child process of the headless executable (or its dll under dotnet) with its three streams captured.</summary>
@@ -529,8 +529,8 @@ internal static partial class HeadlessChecks
 
         internal static Host Start(string[] arguments, string state, Dictionary<string, string>? environment = null)
         {
-            var apphost = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "sharprail-headless.exe" : "sharprail-headless");
-            var dll = Path.Combine(AppContext.BaseDirectory, "sharprail-headless.dll");
+            var apphost = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "tereditor-headless.exe" : "tereditor-headless");
+            var dll = Path.Combine(AppContext.BaseDirectory, "tereditor-headless.dll");
             Require(File.Exists(dll), "The checks output has no headless host: " + dll);
             var start = new ProcessStartInfo(File.Exists(apphost) ? apphost : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
             {
@@ -545,13 +545,13 @@ internal static partial class HeadlessChecks
             if (!File.Exists(apphost)) start.ArgumentList.Add(dll);
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
             // The checks switch language services off for themselves; the host under test must run them.
-            start.Environment.Remove("SHARPRAIL_LSP_DISABLE");
-            start.Environment.Remove("SHARPRAIL_ROOT");
-            foreach (var name in new[] { "SHARPRAIL_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING" }) start.Environment.Remove(name);
-            start.Environment["SHARPRAIL_STATE_DIR"] = state;
-            foreach (var name in start.Environment.Keys.Where(name => name is "SHARPRAIL_ARM" or "SHARPRAIL_LOG" or "SHARPRAIL_LOG_LEVEL" or "SHARPRAIL_RUNS_DIR" || name.StartsWith("SHARPRAIL_TOOLS_", StringComparison.Ordinal)).ToArray()) start.Environment.Remove(name);
+            start.Environment.Remove("TEREDITOR_LSP_DISABLE");
+            start.Environment.Remove("TEREDITOR_ROOT");
+            foreach (var name in new[] { "TEREDITOR_ACCEPT_TERMS", "INTELLIJ_REGION", "INTELLIJ_DATA_SHARING" }) start.Environment.Remove(name);
+            start.Environment["TEREDITOR_STATE_DIR"] = state;
+            foreach (var name in start.Environment.Keys.Where(name => name is "TEREDITOR_ARM" or "TEREDITOR_LOG" or "TEREDITOR_LOG_LEVEL" or "TEREDITOR_RUNS_DIR" || name.StartsWith("TEREDITOR_TOOLS_", StringComparison.Ordinal)).ToArray()) start.Environment.Remove(name);
             // Spec and Blueprint are off by default; the checks that use their tools opt in, and the cold-start check passes an empty value.
-            start.Environment["SHARPRAIL_TOOLS_ENABLE"] = "spec,blueprint";
+            start.Environment["TEREDITOR_TOOLS_ENABLE"] = "spec,blueprint";
             foreach (var (name, value) in environment ?? new Dictionary<string, string>()) start.Environment[name] = value;
             return new(Process.Start(start)!);
         }

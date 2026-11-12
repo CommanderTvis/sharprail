@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// One client's project session; <paramref name="state"/> receives workspace lifecycle changes, and
@@ -130,7 +130,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var info = ContentClassifier.Classify(bytes, relativePath);
         if (!info.IsText)
             return new(relativePath, "", RasterMedia.Contains(info.MediaType ?? "") && bytes.Length <= FileLimits.PreviewBytes ? bytes : null) { Info = info };
-        // SharpRail's generated agent instructions are shaped by section toggles only, never by editing the file.
+        // tereditor's generated agent instructions are shaped by section toggles only, never by editing the file.
         var generated = GeneratedInstructions.Owns(path);
         return new(relativePath, ContentInfo.Decode(bytes)) { Info = info, ReadOnly = dependency || generated, ReadOnlyNotice = generated ? GeneratedInstructions.Notice : null };
     }
@@ -346,7 +346,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     if (target is null || target.IsMain || target.IsLocked || target.Path == currentRoot)
                         throw new InvalidOperationException("The main, active, or locked worktree cannot be removed.");
                     if (registry.Current.Workspaces.Any(workspace => workspace.Path == target.Path && workspace.Kind == WorkspaceKinds.External))
-                        throw new InvalidOperationException("An existing worktree stays on disk; remove it from SharpRail instead.");
+                        throw new InvalidOperationException("An existing worktree stays on disk; remove it from tereditor instead.");
                     // Git deletes the checkout outside the registry gate, as a workspace removal does; only the record change is serialised.
                     await GitRepository.RunAsync(currentRoot, cancellationToken, ["worktree", "remove", .. (action.Kind == "force-remove-worktree" ? new[] { "--force" } : []), "--", target.Path]);
                     using (await registry.LockWorkspacesAsync(CancellationToken.None))

@@ -6,9 +6,9 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>The renderer a tab chose and that renderer's own view state. Choosing another renderer drops the state.</summary>
 internal sealed record TabView(string? RendererId = null, object? ViewState = null);
@@ -57,7 +57,7 @@ internal sealed class ResourcePane : Grid, IDisposable
                 Child = segments
             });
         }
-        // A file the host serves read-only for a stated reason (SharpRail's generated instructions) says so over every view.
+        // A file the host serves read-only for a stated reason (tereditor's generated instructions) says so over every view.
         if (readOnlyNotice is not null)
             Ui.Place(this, new Border
             {

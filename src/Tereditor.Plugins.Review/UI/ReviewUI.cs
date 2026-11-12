@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Review.UI;
+namespace Tereditor.Plugins.Review.UI;
 
 /// <summary>The UI half: the Review tool window, one pane that follows the workspace it is shown for.</summary>
 public sealed class ReviewUI : PluginUIModule

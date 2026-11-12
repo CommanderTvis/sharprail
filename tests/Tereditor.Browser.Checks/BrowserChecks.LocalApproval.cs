@@ -7,9 +7,9 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Browser;
+using Tereditor.UI.Browser;
 
-namespace SharpRail.Browser.Checks;
+namespace Tereditor.Browser.Checks;
 
 internal static partial class BrowserChecks
 {

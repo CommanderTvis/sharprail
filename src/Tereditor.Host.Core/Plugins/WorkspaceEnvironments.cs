@@ -2,10 +2,10 @@ using System.Collections;
 using System.Diagnostics;
 using System.Text;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>A workspace's resolved environment: the variables its shells get beyond the host's own, and what the steps reported.</summary>
 internal sealed record ResolvedEnvironment(IReadOnlyDictionary<string, string> Variables, IReadOnlyList<WorkspaceEnvironmentFact> Facts);
@@ -32,7 +32,7 @@ internal sealed class WorkspaceEnvironmentEdit : IWorkspaceEnvironmentEdit
         Log = log;
         variables = new Dictionary<string, string>(host, Names);
         // The host's session token authorizes the host process; no tool or .envrc of the workspace receives it.
-        variables.Remove("SHARPRAIL_TOKEN");
+        variables.Remove("TEREDITOR_TOKEN");
     }
 
     public string Directory { get; }
@@ -48,7 +48,7 @@ internal sealed class WorkspaceEnvironmentEdit : IWorkspaceEnvironmentEdit
 
     public void Set(string name, string? value)
     {
-        if (string.Equals(name, "SHARPRAIL_TOKEN", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(name, "TEREDITOR_TOKEN", StringComparison.OrdinalIgnoreCase)) return;
         edited.Add(name);
         Touch(name);
         if (value is null) variables.Remove(name); else variables[name] = value;

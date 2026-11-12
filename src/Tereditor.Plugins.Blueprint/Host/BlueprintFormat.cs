@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Blueprint;
+namespace Tereditor.Plugins.Blueprint;
 
 public sealed record BlueprintNote(string Control, string Message);
 public sealed record BlueprintRead(BlueprintDoc Doc, IReadOnlyList<BlueprintNote> Notes);

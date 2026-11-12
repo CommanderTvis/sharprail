@@ -8,12 +8,12 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
-/// The menu icon rule (src/SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md, "Icon slot"): in every open menu each icon lies fully inside its
+/// The menu icon rule (src/Tereditor.Plugins.UI.Kit/ActionIcons/SPEC.md, "Icon slot"): in every open menu each icon lies fully inside its
 /// slot, the slot has the shared size, the icon is centred in it, no clipping ancestor cuts it, and every row's text starts on one edge.
 /// <see cref="Audit"/> checks one open menu; the module initializer below audits every context menu that any headless check opens,
 /// so a new menu that breaks the rule fails the check that opens it.

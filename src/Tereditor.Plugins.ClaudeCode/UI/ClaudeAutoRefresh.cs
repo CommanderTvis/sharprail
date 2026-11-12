@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// When the Claude pane refreshes usage and context on its own: a minute tick asks <see cref="Tick"/>, which starts the same

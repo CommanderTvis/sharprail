@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>Where one host tool was found: <c>found</c>, <c>missing</c> or <c>rejected</c>, from <c>override</c>, <c>home</c> or <c>path</c>.</summary>
 internal sealed record ToolProbe(string State, string Path, string Source, string Problem);
@@ -34,7 +34,7 @@ internal sealed partial class LanguageServers
         return parsed.Tools;
     }
 
-    /// <summary>The host setting text for <c>[toolchains] source</c>; empty means the default. <c>SHARPRAIL_TOOLCHAINS</c> overrides it.</summary>
+    /// <summary>The host setting text for <c>[toolchains] source</c>; empty means the default. <c>TEREDITOR_TOOLCHAINS</c> overrides it.</summary>
     internal Func<string> ToolchainSetting { get; set; } = () => "";
 
     internal ToolchainSource Toolchain => Toolchains.Effective(ToolchainSetting());
@@ -127,7 +127,7 @@ internal sealed partial class LanguageServers
         var custom = CustomOptions(server.Id);
         var managed = !(spec.AllowsOverride && !string.IsNullOrWhiteSpace(custom?.Command)) && !(custom?.AllowPath == true && spec.PathCapable) && spec.Pinning != LanguageServerPinning.None;
         var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, ManagedArtifacts.Platform()));
-        var installed = File.Exists(Path.Combine(root, ".ready")) && spec.Installed(root) || File.Exists(Path.Combine(root, ".sharprail-artifact.json"));
+        var installed = File.Exists(Path.Combine(root, ".ready")) && spec.Installed(root) || File.Exists(Path.Combine(root, ".tereditor-artifact.json"));
         var tools = CurrentTools();
         return [.. spec.Dependencies.Select(dependency =>
         {

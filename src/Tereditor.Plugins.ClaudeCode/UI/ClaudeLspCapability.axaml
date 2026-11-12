@@ -1,12 +1,12 @@
 <Border xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-        x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeLspCapability" x:ClassModifier="internal"
+        xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+        x:Class="Tereditor.Plugins.ClaudeCode.UI.ClaudeLspCapability" x:ClassModifier="internal"
         Name="ClaudeLspCapability" Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
   <StackPanel Spacing="2">
-    <TextBlock Text="SharpRail Code Intelligence · MCP" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" />
+    <TextBlock Text="tereditor Code Intelligence · MCP" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock Text="lsp_navigate · lsp_diagnostics · lsp_status" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
-    <TextBlock Text="Provided by SharpRail in every session it starts."
+    <TextBlock Text="Provided by tereditor in every session it starts."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock Text="Lets agents navigate, inspect, fix missing libraries and configure or restart language servers. Subagents pass their own workspace path."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />

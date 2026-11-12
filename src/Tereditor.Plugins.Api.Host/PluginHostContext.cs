@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>
 /// The context passed to <see cref="PluginHostModule.ActivateAsync"/>: the closed set of host capabilities
@@ -266,7 +266,7 @@ public interface IPluginHostContext
     string? StateDirectory { get; }
 
     /// <summary>
-    /// Contributes one list item to the guidance on SharpRail's MCP tools that agent plugins put in the
+    /// Contributes one list item to the guidance on tereditor's MCP tools that agent plugins put in the
     /// instructions of sessions they launch (H20), for every agent. It is a <see cref="PromptContribution"/> with
     /// <see cref="PromptPlacement.ToolList"/> and a generated identifier. It is offered only while the plugin is
     /// enabled, so a disabled plugin leaves no trace in the instructions.
@@ -350,7 +350,7 @@ public interface IPluginHostContext
     /// <summary>
     /// Lists every section <see cref="PromptTexts(string, PromptPlacement, string)"/> composes for one agent in one
     /// workspace, both placements, with its stable identifier, title and current text, and whether the workspace's project
-    /// turns it off in <c>.sharprail/instructions.toml</c>. Disabled sections are still listed; sections whose plugin is
+    /// turns it off in <c>.tereditor/instructions.toml</c>. Disabled sections are still listed; sections whose plugin is
     /// off or whose condition does not hold are not. It reads the project file and must not run on a UI thread.
     /// </summary>
     /// <param name="agent">The agent plugin id.</param>
@@ -363,7 +363,7 @@ public interface IPluginHostContext
 
     /// <summary>
     /// Turns one section on or off for the workspace's project by rewriting the disable-list in
-    /// <c>.sharprail/instructions.toml</c>; identifiers it does not know are kept. New sessions get the change; running
+    /// <c>.tereditor/instructions.toml</c>; identifiers it does not know are kept. New sessions get the change; running
     /// ones keep their instructions. Every <see cref="OnInstructionSectionsChanged"/> handler hears of it.
     /// </summary>
     /// <param name="agent">The agent plugin id, for the returned listing.</param>
@@ -377,7 +377,7 @@ public interface IPluginHostContext
     ValueTask<InstructionSectionList> SetInstructionSectionAsync(string agent, string workspace, string id, bool enabled, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("This host keeps no instruction settings.");
 
-    /// <summary>Observes changes to any project's <c>.sharprail/instructions.toml</c> made through the host or found on disk; the argument is the project root.</summary>
+    /// <summary>Observes changes to any project's <c>.tereditor/instructions.toml</c> made through the host or found on disk; the argument is the project root.</summary>
     /// <param name="handler">Called on a background thread.</param>
     [PluginPermission("agent.records")]
     void OnInstructionSectionsChanged(Action<string> handler) { }

@@ -5,4 +5,4 @@ artifacts/
 .DS_Store
 .claude/worktrees/
 **/node_modules/
-src/SharpRail.Browser/wwwroot/vendor/
+src/Tereditor.Browser/wwwroot/vendor/

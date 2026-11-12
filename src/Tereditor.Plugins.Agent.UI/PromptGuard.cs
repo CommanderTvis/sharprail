@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>What the agent's prompt box shows.</summary>
 public enum PromptState

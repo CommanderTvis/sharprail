@@ -1,8 +1,8 @@
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Plugins;
+namespace Tereditor.UI.Plugins;
 
 /// <summary>
 /// The app's plugin-requested workspace watches: one per workspace on a project session of its own, shared by

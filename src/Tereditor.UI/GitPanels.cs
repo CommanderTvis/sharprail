@@ -8,10 +8,10 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Docking;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -41,7 +41,7 @@ public sealed partial class WorkbenchWindow
                 if (label == "Branch" && comparison.Length == 0)
                 {
                     comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD"; scopeCommits = null;
-                    _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, comparison));
+                    _ = ShareAsync(Tereditor.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, comparison));
                 }
                 SaveGitSelection();
                 _ = RefreshAsync();
@@ -358,10 +358,10 @@ public sealed partial class WorkbenchWindow
         var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
         button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));
         button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
-        if (CanExcludeSharprail(change))
+        if (CanExcludeTereditor(change))
         {
             button.ContextMenu.Items.Add(new Separator());
-            button.ContextMenu.Items.Add(Ui.Menu("Exclude locally (.git/info/exclude)", () => _ = ExcludeSharprailAsync(projectRequest)));
+            button.ContextMenu.Items.Add(Ui.Menu("Exclude locally (.git/info/exclude)", () => _ = ExcludeTereditorAsync(projectRequest)));
         }
         // The actions button overlays the row's right edge, so the counts end as far from it as the icon starts from the left.
         var wrapper = new Grid();

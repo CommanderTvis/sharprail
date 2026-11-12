@@ -11,7 +11,7 @@ using Avalonia.Threading;
 
 using SkiaSharp;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 /// <summary>Base paragraph direction for bidirectional text; automatic uses each line's first strong character.</summary>
 public enum ScintillaTextDirection { LeftToRight, RightToLeft, Auto }

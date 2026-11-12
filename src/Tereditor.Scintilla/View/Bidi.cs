@@ -2,7 +2,7 @@ using System.Text;
 
 using Avalonia.Media.TextFormatting.Unicode;
 
-namespace SharpRail.Scintilla.View;
+namespace Tereditor.Scintilla.View;
 
 /// <summary>A run of one embedding level, in byte offsets of the line's UTF-8 text.</summary>
 internal readonly record struct BidiRun(int Start, int End, bool RightToLeft);

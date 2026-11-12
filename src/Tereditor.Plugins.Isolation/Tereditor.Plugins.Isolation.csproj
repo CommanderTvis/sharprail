@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SharpRailIsolation>trusted-host</SharpRailIsolation>
+    <TereditorIsolation>trusted-host</TereditorIsolation>
   </PropertyGroup>
-  <Import Project="../SharpRail.Plugins.Isolation.Generator/Isolation.Generator.props" />
+  <Import Project="../Tereditor.Plugins.Isolation.Generator/Isolation.Generator.props" />
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Wire/SharpRail.Wire.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <ProjectReference Include="../Tereditor.Wire/Tereditor.Wire.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.UI.Docking.PhonePaneView"
+             xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.UI.Docking.PhonePaneView"
              Name="PhonePane" FontFamily="{x:Static rendering:Ui.InterfaceFont}">
   <UserControl.Styles>
     <Style Selector="Button.PaneChip">

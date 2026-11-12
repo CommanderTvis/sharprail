@@ -8,15 +8,15 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.TerminalsE2E;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.TerminalsE2E;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Translates the host-owned session rows of upstream e2e/terminals.spec.ts. A reload is a new window of the
 // same app over the same profile and terminal host. A second browser is a second window of the app with its
@@ -50,11 +50,11 @@ internal static class TerminalSessionsE2E
 
     private static int Count(string text, string marker) => text.Split(marker).Length - 1;
 
-    internal static Button TakeBack(SharpRail.UI.Terminal.TerminalView view) =>
+    internal static Button TakeBack(Tereditor.UI.Terminal.TerminalView view) =>
         view.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalTakeBack");
 
     // A client that finds a terminal held elsewhere watches it and is offered it; taking it is the user's gesture.
-    internal static HostTerminal TakeOver(E2eWorkspace app, SharpRail.UI.Docking.DockTab tab)
+    internal static HostTerminal TakeOver(E2eWorkspace app, Tereditor.UI.Docking.DockTab tab)
     {
         var view = View(app, tab);
         Until(() => view.IsWatching);
@@ -64,7 +64,7 @@ internal static class TerminalSessionsE2E
         return Ready(app, tab);
     }
 
-    internal static HostTerminal Watched(SharpRail.UI.Terminal.TerminalView view)
+    internal static HostTerminal Watched(Tereditor.UI.Terminal.TerminalView view)
     {
         Until(() => view.IsWatching && view.Backend is HostTerminal { Watching: true });
         return (HostTerminal)view.Backend!;
@@ -127,7 +127,7 @@ internal static class TerminalSessionsE2E
                 Require(notice.Text == "[process exited with code 137]" && terminal.Text.Contains("TR_BEFORE_DEATH", StringComparison.Ordinal) &&
                     terminals.StartedIn(workspace) == 1 && !view.IsBusyAsync().AsTask().GetAwaiter().GetResult(),
                     "A shell that died while detached must show its final output and exit, not a live or new shell.");
-                // SharpRail keeps the exited tab; a new terminal is the way back to a live shell.
+                // tereditor keeps the exited tab; a new terminal is the way back to a live shell.
                 CloseTab(app, tab);
                 Until(() => TerminalTabs(app).Length == 0);
                 app.Click(app.Find<Button>("NewTerminal_" + app.Center));

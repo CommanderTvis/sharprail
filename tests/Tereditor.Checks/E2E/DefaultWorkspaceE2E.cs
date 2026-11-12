@@ -1,12 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class DefaultWorkspaceE2E
 {

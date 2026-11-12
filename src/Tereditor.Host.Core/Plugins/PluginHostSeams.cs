@@ -1,8 +1,8 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>What the terminal service lends the plugin runtime: identity tokens, host-side writes, the process table and its hooks.</summary>
 public interface IPluginTerminalSeams

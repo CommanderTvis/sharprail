@@ -3,16 +3,16 @@ using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Scintilla;
-using SharpRail.UI.Resources;
-
 using SkiaSharp;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using Tereditor.Checks.E2E;
+using Tereditor.Scintilla;
+using Tereditor.UI.Resources;
 
-namespace SharpRail.Checks;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+
+namespace Tereditor.Checks;
 
 /// <summary>The resource-renderer registry, its panes and the format views, driven through a real headless window.</summary>
 internal static partial class ResourceChecks
@@ -47,7 +47,7 @@ internal static partial class ResourceChecks
         MarkdownAlertsE2E.Run(e2e);
         MarkdownMermaidE2E.Run(e2e);
         EditorE2E.Run(e2e);
-        // These need SHARPRAIL_TEST_GIT_SOURCE and commit with the developer's own Git identity.
+        // These need TEREDITOR_TEST_GIT_SOURCE and commit with the developer's own Git identity.
         ChangesDiffE2E.Run(e2e);
         RenderedDiffE2E.Run(e2e);
         LiveRefreshE2E.Run(e2e);
@@ -261,13 +261,13 @@ internal static partial class ResourceChecks
 
     private static string Flags(IEnumerable<bool> flags) => string.Concat(flags.Select(flag => flag ? '1' : '0'));
 
-    private static string Runs(string changed) => string.Join(" ", SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Segments([.. changed.Select(flag => flag == '1')])
+    private static string Runs(string changed) => string.Join(" ", Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Segments([.. changed.Select(flag => flag == '1')])
         .Select(segment => (segment.Hidden ? "h" : "v") + segment.Start + "+" + segment.Count));
 
-    private static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus Focused(string before, string after)
+    private static Tereditor.Plugins.UI.Kit.Markdown.DiffFocus Focused(string before, string after)
     {
-        var merged = SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff.Merge(before, after);
-        return SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Create(before, merged, SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(merged), new HashSet<string>());
+        var merged = Tereditor.Plugins.UI.Kit.Markdown.MarkdownDiff.Merge(before, after);
+        return Tereditor.Plugins.UI.Kit.Markdown.DiffFocus.Create(before, merged, Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(merged), new HashSet<string>());
     }
 
     private static void Focus()
@@ -387,7 +387,7 @@ internal static partial class ResourceChecks
             "A notebook opens as its cells.");
 
         app.Open("README.md");
-        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is not null);
+        Until(() => Shown<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is not null);
         var preview = Shown<Button>(app, "MarkdownPreviewMode")!;
         app.Click(Shown<Button>(app, "MarkdownSourceMode")!);
         var source = Await<Control>(app, "MarkdownSource");
@@ -395,13 +395,13 @@ internal static partial class ResourceChecks
         Watched(() => MarkdownSourceText(source).Contains("An edited paragraph.", StringComparison.Ordinal));
         Require(ReferenceEquals(source, Shown<Control>(app, "MarkdownSource")) && ReferenceEquals(preview, Shown<Button>(app, "MarkdownPreviewMode")), "A reload keeps the pane, its toggle and the source view.");
         app.Click(preview);
-        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } rendered && Text(rendered).Length >= 0 &&
+        Until(() => Shown<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } rendered && Text(rendered).Length >= 0 &&
             rendered.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block => block.Inlines?.Text?.Contains("An edited paragraph.", StringComparison.Ordinal) == true));
         Quiet(app);
 
         app.Open("HTML.md");
-        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } html && html.GetLogicalDescendants().OfType<Border>().Count(border => border.Classes.Contains("html-image") && border.Child is Image) == 3);
-        var page = Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview")!;
+        Until(() => Shown<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } html && html.GetLogicalDescendants().OfType<Border>().Count(border => border.Classes.Contains("html-image") && border.Child is Image) == 3);
+        var page = Shown<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview")!;
         var pictures = page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("html-image")).ToArray();
         Require(pictures[0] is { HorizontalAlignment: Avalonia.Layout.HorizontalAlignment.Center, MaxWidth: 2 } && pictures[1].HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right && pictures[2].MaxWidth == 1,
             "Raw HTML pictures load from the worktree, centred or sent to a side, at their stated width.");
@@ -463,10 +463,10 @@ internal static partial class ResourceChecks
             "A notebook diff shows the edited cell and counts the rest: " + Text(notebookDiff));
 
         ClickRow(app, "README.md", twice: true);
-        Until(() => Pane(app) is { } pane && pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any(preview => preview.Name == "RenderedDiff" && preview.IsEffectivelyVisible));
+        Until(() => Pane(app) is { } pane && pane.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any(preview => preview.Name == "RenderedDiff" && preview.IsEffectivelyVisible));
         Require(Shown<ToggleButton>(app, "DiffView_markdown")!.IsChecked == true && Shown<ToggleButton>(app, "DiffSplit") is null, "A Markdown diff opens on its rendered view, chosen from the registry.");
         app.Click(Shown<ToggleButton>(app, "DiffView_code")!);
-        Until(() => Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true && !Pane(app)!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
+        Until(() => Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true && !Pane(app)!.GetLogicalDescendants().OfType<Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
         if (OperatingSystem.IsMacOS()) Require(Pane(app)!.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible)
             && DiffText(app).Contains("An edited paragraph.", StringComparison.Ordinal), "Source replaces the rendered diff with the changed text in the pane's responsive layout.");
         File.AppendAllText(Path.Combine(root, "README.md"), "\nA third paragraph.\n");

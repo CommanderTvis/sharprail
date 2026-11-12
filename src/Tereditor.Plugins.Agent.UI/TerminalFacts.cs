@@ -6,9 +6,9 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>A session's token spending, as its agent recorded it: never estimated here.</summary>
 public sealed record TokenUsage(long Input, long Output, long CacheRead, long CacheWrite);
@@ -27,7 +27,7 @@ public sealed record TerminalTodo(string Content, TerminalTodoStatus Status, str
 public static class TerminalFacts
 {
     /// <summary>A directory, written in full as the terminal shows it, whose middle, not its identifying end, is what a long path loses.</summary>
-    public static string? CwdLabel(string? cwd) => SharpRail.Plugins.UI.Kit.PathLine.Label(cwd);
+    public static string? CwdLabel(string? cwd) => Tereditor.Plugins.UI.Kit.PathLine.Label(cwd);
 
     private static bool IsAbsolute(string path) =>
         path.StartsWith('/') || path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is '\\' or '/';

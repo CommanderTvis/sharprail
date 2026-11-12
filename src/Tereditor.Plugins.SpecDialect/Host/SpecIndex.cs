@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.SpecDialect;
+namespace Tereditor.Plugins.SpecDialect;
 
 /// <summary>A worktree's spec files. Every read checks file stamps; unchanged files reuse their parsed frontmatter.</summary>
 internal sealed class SpecIndex(string root)

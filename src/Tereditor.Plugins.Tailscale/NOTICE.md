@@ -1,6 +1,6 @@
 # Tailscale plugin
 
-Original SharpRail implementation. This plugin invokes the user's installed Tailscale CLI; it does not
+Original tereditor implementation. This plugin invokes the user's installed Tailscale CLI; it does not
 bundle Tailscale source, binaries or an SDK. The CLI remains separately installed and licensed by its distributor.
 
 `assets/tailscale.svg` is the Tailscale icon from the official media kit linked at

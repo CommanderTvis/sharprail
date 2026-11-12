@@ -1,9 +1,9 @@
 using System.Text;
 
-using SharpRail.Scintilla;
-using SharpRail.Scintilla.View;
+using Tereditor.Scintilla;
+using Tereditor.Scintilla.View;
 
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Managed-only checks (no upstream suite): UAX #9 cases for the managed replacement of SheenBidi.</summary>
 internal static class BidiChecks

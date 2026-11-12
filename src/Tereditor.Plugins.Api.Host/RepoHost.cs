@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.Host;
+namespace Tereditor.Plugins.Api.Host;
 
 /// <summary>
 /// A pull request (or merge request) of a branch in the provider-neutral model (H24). A provider maps its forge's values

@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <InternalsVisibleTo Include="SharpRail.Checks" />
-    <ProjectReference Include="../SharpRail.Plugins.Acp.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
+    <ProjectReference Include="../Tereditor.Plugins.Acp.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
     <!-- Builtin plugin assets are staged at plugins/<id>/<assets> beside the host, which serves them to the UI half. -->
     <None Include="../assets/**" Link="plugins/acp/assets/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

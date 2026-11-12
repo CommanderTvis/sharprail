@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>Binds the kit's Markdown views to a workspace's host and the window's preferences.</summary>
 public static class MarkdownContexts

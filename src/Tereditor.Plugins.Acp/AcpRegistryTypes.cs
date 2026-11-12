@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Acp;
+namespace Tereditor.Plugins.Acp;
 
 /// <summary>One agent of the public ACP registry (https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json, schema version 1.0.0).</summary>
 public sealed record AcpRegistryAgent(string Id, string Name, string Version, string Description)
@@ -13,7 +13,7 @@ public sealed record AcpRegistryAgent(string Id, string Name, string Version, st
     public IReadOnlyList<string> Kinds { get; set; } = [];
     /// <summary>Whether the agent can run on this machine: it has an npx or uvx entry, or a binary for this platform.</summary>
     public bool Installable { get; init; }
-    /// <summary>Why using this adapter is discouraged (SharpRail supports the agent directly); null for a normal entry.</summary>
+    /// <summary>Why using this adapter is discouraged (tereditor supports the agent directly); null for a normal entry.</summary>
     public string? NotRecommended { get; init; }
 }
 
@@ -34,7 +34,7 @@ public sealed record AcpRegistryParams(bool Refresh);
 public sealed record AcpInstallPlan(string AgentId, string Name, string Version, string Kind)
 {
     /// <summary>The line the confirmation shows when <see cref="NotRecommended"/> is set.</summary>
-    public const string NotRecommendedLine = "SharpRail supports this agent directly. Installing the ACP adapter is not recommended.";
+    public const string NotRecommendedLine = "tereditor supports this agent directly. Installing the ACP adapter is not recommended.";
 
     /// <summary>The trust notice shown in the install confirmation, at the top of the registry browser and in each registry agent's pane.</summary>
     public const string TrustNote = "Agents from the ACP registry are third-party programs. They run on this machine with your user's access, so only install ones you trust.";
@@ -44,14 +44,14 @@ public sealed record AcpInstallPlan(string AgentId, string Name, string Version,
 
     /// <summary>Where the code comes from: the package name or the archive URL.</summary>
     public string Source { get; set; } = "";
-    /// <summary>The command line SharpRail will run, as it would be typed.</summary>
+    /// <summary>The command line tereditor will run, as it would be typed.</summary>
     public string CommandLine { get; set; } = "";
     /// <summary>The archive's SHA-256 when the registry gives one; a binary without it is installed unverified and the plan says so.</summary>
     public string? Sha256 { get; init; }
     public string? Repository { get; init; }
     public string? License { get; init; }
     public string? Note { get; init; }
-    /// <summary>Set when SharpRail supports the agent directly; the confirmation says so, the install is still allowed.</summary>
+    /// <summary>Set when tereditor supports the agent directly; the confirmation says so, the install is still allowed.</summary>
     public string? NotRecommended { get; init; }
 }
 

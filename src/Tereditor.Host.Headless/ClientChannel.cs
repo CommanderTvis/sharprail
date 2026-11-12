@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>
 /// Requests the server sends to its MCP client: today only elicitation, which asks the user a question with Accept and Decline. Used when the client
@@ -43,7 +43,7 @@ internal sealed class ClientChannel : IConsentPrompt
     public async Task<JsonNode?> AskAsync(JsonObject request, CancellationToken token)
     {
         if (!Supported) throw new NotSupportedException("The client does not support elicitation.");
-        var id = "sharprail-" + Interlocked.Increment(ref counter);
+        var id = "tereditor-" + Interlocked.Increment(ref counter);
         var waiting = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
         pending[id] = waiting;
         try

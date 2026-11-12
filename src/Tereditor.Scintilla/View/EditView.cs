@@ -2,11 +2,11 @@
 using System.Buffers;
 using System.Text;
 
-using SharpRail.Scintilla.Core;
-
 using SkiaSharp;
 
-namespace SharpRail.Scintilla.View;
+using Tereditor.Scintilla.Core;
+
+namespace Tereditor.Scintilla.View;
 
 /// <summary>
 /// Lays out document lines (wrapping into sub-lines) and paints the editor onto an SKCanvas

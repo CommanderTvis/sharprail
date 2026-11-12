@@ -6,9 +6,9 @@ using System.Threading.Channels;
 
 using Microsoft.Win32.SafeHandles;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal sealed class ConPtySession : ITerminalProcess
 {
@@ -32,8 +32,8 @@ internal sealed class ConPtySession : ITerminalProcess
         Id = id; Pid = pid; this.console = console; this.process = process; this.job = job;
         this.input = new FileStream(input, FileAccess.Write, 4096, false);
         this.output = new FileStream(output, FileAccess.Read, 4096, false);
-        new Thread(Pump) { IsBackground = true, Name = "SharpRail ConPTY read " + pid }.Start();
-        new Thread(Wait) { IsBackground = true, Name = "SharpRail ConPTY wait " + pid }.Start();
+        new Thread(Pump) { IsBackground = true, Name = "tereditor ConPTY read " + pid }.Start();
+        new Thread(Wait) { IsBackground = true, Name = "tereditor ConPTY wait " + pid }.Start();
     }
 
     internal static ConPtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl,

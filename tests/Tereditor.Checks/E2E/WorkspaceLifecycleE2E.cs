@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class WorkspaceLifecycleE2E
 {
@@ -30,7 +30,7 @@ internal static class WorkspaceLifecycleE2E
         var cancel = confirm.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" });
         Require(cancel.IsFocused && !Named<Button>(confirm, "WorkspaceForceRemove").IsDefault, "Cancel owns focus; Delete anyway is never an implicit default.");
         app.Click(cancel);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(File.ReadAllText(dirty) == "keep until approved\n" && WorktreePaths(app).Contains(path), "Cancelling preserves dirty files and the workspace row.");
         RemoveWorkspace(app, path);
         confirm = Dialog(app);

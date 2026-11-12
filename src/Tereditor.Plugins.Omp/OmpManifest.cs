@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Omp;
+namespace Tereditor.Plugins.Omp;
 
 public static class OmpManifest
 {
@@ -13,12 +13,12 @@ public static class OmpManifest
         Category = PluginCategories.Agents,
         // Runs the omp CLI as a process on the host's operating system, which a browser tab does not have.
         UnavailableOn = [HostKind.PureWeb],
-        Description = "Runs the omp coding agent in the terminal with SharpRail's MCP tools and shows its context files.",
+        Description = "Runs the omp coding agent in the terminal with tereditor's MCP tools and shows its context files.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
-        Host = "SharpRail.Plugins.Omp.Host.dll",
-        Ui = "SharpRail.Plugins.Omp.UI.dll",
+        Host = "Tereditor.Plugins.Omp.Host.dll",
+        Ui = "Tereditor.Plugins.Omp.UI.dll",
         Assets = "assets",
         Contributes = new() { SideTools = [new("context", "omp", Icon, PluginToolSide.Right)] }
     };

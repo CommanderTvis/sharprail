@@ -1,9 +1,9 @@
 using System.Reflection;
 using System.Runtime.Loader;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// The one external plugin this runner serves. Shared assemblies (the framework and everything the runner itself ships:

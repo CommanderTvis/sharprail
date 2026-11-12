@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Net.Http.Headers;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 internal static partial class BrowserAssets
 {

@@ -1,20 +1,20 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Blueprint;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.Codex.Host;
-using SharpRail.Plugins.Processes;
-using SharpRail.Plugins.SpecDialect;
-using SharpRail.Plugins.Visualize;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Blueprint;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.Codex.Host;
+using Tereditor.Plugins.Processes;
+using Tereditor.Plugins.SpecDialect;
+using Tereditor.Plugins.Visualize;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The instructions agent plugins give sessions follow the enabled plugins and the Code Intelligence setting: a disabled
@@ -57,7 +57,7 @@ internal static class PromptChecks
         foreach (var prompt in new[] { bare.Claude, bare.Codex })
         {
             foreach (var trace in Traces) Require(!prompt.Contains(trace, StringComparison.Ordinal), $"With every optional plugin off the instructions mention \"{trace}\".");
-            Require(!prompt.Contains("Prefer available SharpRail MCP tools", StringComparison.Ordinal), "An empty tool list left its introduction behind.");
+            Require(!prompt.Contains("Prefer available tereditor MCP tools", StringComparison.Ordinal), "An empty tool list left its introduction behind.");
             Require(prompt.Contains("`set_title`", StringComparison.Ordinal) && prompt.Contains("`workspace_create`", StringComparison.Ordinal) && prompt.Contains("`lsp_navigate`", StringComparison.Ordinal),
                 "The host's own text is missing.");
         }
@@ -66,7 +66,7 @@ internal static class PromptChecks
         var texts = new Dictionary<string, string>
         {
             [SpecDialectManifest.Manifest.Id] = "If this project uses a spec graph and the `spec_*` tools are available, you MUST use them (`spec_graph`, `spec_get`, `spec_grep`) to read the affected specs before changing governed behavior, and maintain and validate (`spec_validate`) them in the same change. Projects without specs need no spec workflow; do not create specs unless asked.",
-            [BlueprintContract.Manifest.Id] = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.",
+            [BlueprintContract.Manifest.Id] = "`blueprint_check`: you MUST call it to verify tereditor's rendered view after writing or rewriting BLUEPRINT.md.",
             [VisualizeContract.Manifest.Id] = "`visualize`: Mermaid diagrams, hand-written SVG (theme colours via currentColor/var(--fg|--bg|--accent)) or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.",
         };
         foreach (var (id, text) in texts)
@@ -87,7 +87,7 @@ internal static class PromptChecks
         var all = Prompts(runtime);
         string[] expected = [texts[VisualizeContract.Manifest.Id], texts[SpecDialectManifest.Manifest.Id], texts[BlueprintContract.Manifest.Id]];
         Require(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList).SequenceEqual(expected), "The order hints did not keep the old order.");
-        Require(all.Claude.Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- " + string.Join("\n- ", expected) + "\n\nCall `set_title`", StringComparison.Ordinal),
+        Require(all.Claude.Contains("Prefer available tereditor MCP tools; disabled plugins may hide tools:\n\n- " + string.Join("\n- ", expected) + "\n\nCall `set_title`", StringComparison.Ordinal),
             "The list is not the old wording.");
         // Plugin sections (Blueprint's format path) follow the host's text, which still ends where the Code Intelligence text does.
         var afterCore = all.Claude[(all.Claude.IndexOf("\n" + CorePrompt.Text() + "\n", StringComparison.Ordinal) + CorePrompt.Text().Length + 2)..];
@@ -119,8 +119,8 @@ internal static class PromptChecks
         Require(Prompts(runtime).Claude == all.Claude, "Turning language services back on did not restore the text.");
 
         // The files are rewritten from the current set for the next terminal.
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(directory, "files"));
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", Path.Combine(directory, "files"));
         try
         {
             SystemPrompt.Write(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList), runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section));
@@ -129,12 +129,12 @@ internal static class PromptChecks
             SystemPrompt.Write(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList), runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section));
             Require(File.ReadAllText(SystemPrompt.FilePath()) == bare.Claude, "Disabling the plugins left a stale Claude file.");
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previous); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", previous); }
         Console.WriteLine("PASS prompt contributions: disabled plugins leave no trace, each adds only its own text, old wording and order kept, language services gate their guidance, files follow the current set, Code Intelligence names each project's languages");
     }
 
     /// <summary>
-    /// The project's <c>.sharprail/instructions.toml</c> disable-list: every section has a stable id and starts on, a listed id
+    /// The project's <c>.tereditor/instructions.toml</c> disable-list: every section has a stable id and starts on, a listed id
     /// leaves its section out of both agents' text, unknown ids are kept and ignored, the file round-trips and is validated,
     /// a broken file disables nothing and refuses changes, and every change is broadcast.
     /// </summary>
@@ -287,8 +287,8 @@ internal static class PromptChecks
                 "The text lists the server catalog.");
 
         // The agents' files: Claude appends a per-workspace file, Codex's launch text is composed for the workspace.
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(directory, "project-files"));
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", Path.Combine(directory, "project-files"));
         try
         {
             var file = SystemPrompt.WriteFor(csharp, runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList, csharp), runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, csharp));
@@ -296,6 +296,6 @@ internal static class PromptChecks
             var json = System.Text.Json.JsonSerializer.Deserialize<string>(CodexSystemPrompt.Json(runtime.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList, c), runtime.PromptTexts(CodexManifest.Id, PromptPlacement.Section, c)))!;
             Require(json.Contains("- `clangd` (", StringComparison.Ordinal), "Codex's launch text is not the workspace's.");
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previous); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", previous); }
     }
 }

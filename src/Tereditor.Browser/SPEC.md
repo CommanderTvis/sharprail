@@ -1,5 +1,5 @@
 ---
-id: sharprail-browser
+id: tereditor-browser
 title: Browser — the workbench as a remote host client
 type: module
 status: implemented
@@ -42,7 +42,7 @@ Tabs live under their workspace in Projects on every client. Pane geometry, dire
 open documents remain client-local. Legacy tab-mode settings have no effect. Older browser frames drop
 their bottom zone and its automatic terminal before validation; the bottom placement repair marker is retired.
 
-The standalone host serves a built bundle from `SHARPRAIL_BROWSER_ROOT` on `SHARPRAIL_PORT`, including
+The standalone host serves a built bundle from `TEREDITOR_BROWSER_ROOT` on `TEREDITOR_PORT`, including
 cross-origin isolation headers required by the threaded runtime. macOS browser platform detection accepts
 both `MacIntel` and `macOS`, so standard fields, editors and terminal shortcuts use Command consistently.
 
@@ -87,16 +87,16 @@ Brotli. It is never in the initial bundle: the host serves it under `tailscale/`
 `tailscale/manifest.json` names the build, its files and sizes. `tailscale.js` is imported only when the option
 opens. The option reads the manifest and Cache Storage, then shows "Download Tailscale (~N MB)"; nothing is
 fetched until it is pressed. The download shows progress and can be cancelled; only a complete, size-checked
-download is cached, under `sharprail-tailscale-<version>-<build>` (a new pin or bridge change gets a new cache and
+download is cached, under `tereditor-tailscale-<version>-<build>` (a new pin or bridge change gets a new cache and
 older builds' caches are deleted). Later visits start from the cache. A server without the module, a failed
 download and a node that cannot start show the reason with retry.
 
-The node's identity (machine key, prefs) is kept in IndexedDB (`sharprail-tailscale`), read into a synchronous
+The node's identity (machine key, prefs) is kept in IndexedDB (`tereditor-tailscale`), read into a synchronous
 map before start and written through in order, so a browser signs in once and rejoins as the same device
 (non-ephemeral). One tab owns the node through a Web Lock; a second tab says Tailscale is already running.
 Sign-in opens Tailscale's HTTPS login page in a new tab after an explicit click; if the browser blocks it, the
 button reopens it from a fresh click. Administrator approval and connection states show as on Android. Once
-running, the shared Tailscale picker lists online netmap peers that answer SharpRail bootstrap and runs the
+running, the shared Tailscale picker lists online netmap peers that answer tereditor bootstrap and runs the
 host-approved comparison-code pairing. Discovery, pairing HTTP and every RPC channel dial numeric tailnet
 addresses through the node (`StreamHttpHandler` and `RpcTransports.RegisterStreamTransport`, registered
 before the adapters and removed after them); names never reach system DNS and CORS does not apply, since the
@@ -125,7 +125,7 @@ runtime.
 Release Build and Publish use hybrid WASM AOT for the assemblies in `BrowserAotAssemblies`
 (`BrowserAot.targets`) and their shared generic instances; other assemblies remain interpreted.
 This is not NativeAOT. The build fails when the selected or compiled set differs from that list.
-Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
+Debug remains interpreted; TereditorBrowserAot=false explicitly opts out for diagnostics. The pinned
 SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
 uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked
 assembly against its original bytes. JSON reflection remains enabled, though the tab's own JSON (the saved
@@ -142,10 +142,10 @@ and verify both selected and compiled AOT assembly sets. SDK upgrades must retai
 | System.Private.CoreLib, System.Collections, System.Linq | Strings, spans, collections and LINQ under every other hot path. |
 | Avalonia.Base, Avalonia.Controls, Avalonia.Browser | Layout, rendering, input and the browser platform loop on every frame. |
 | Avalonia.Skia, SkiaSharp, Avalonia.HarfBuzz, HarfBuzzSharp | Drawing and text shaping wrappers called per glyph run. |
-| SharpRail.Scintilla | The managed code editor: document, layout, shaping and painting. |
-| SharpRail.UI, SharpRail.Plugins.UI.Kit | Workbench, diff, Markdown, tree and terminal glue drawing. |
+| Tereditor.Scintilla | The managed code editor: document, layout, shaping and painting. |
+| Tereditor.UI, Tereditor.Plugins.UI.Kit | Workbench, diff, Markdown, tree and terminal glue drawing. |
 | Markdig, TextMateSharp, System.Text.RegularExpressions | Markdown parsing and syntax highlighting of whole documents. |
-| SharpRail.Host.Protocol, SharpRail.Host.Client, System.Text.Json | Every host RPC message is serialized and dispatched through them. |
+| Tereditor.Host.Protocol, Tereditor.Host.Client, System.Text.Json | Every host RPC message is serialized and dispatched through them. |
 | System.Runtime.InteropServices.JavaScript | Terminal output and every other JS interop call cross it. |
 
 Everything else stays interpreted: plugins (cold, activated on demand, many), the host core, XAML
@@ -161,7 +161,7 @@ graph builtin plugin performing a typed JSON request; test-only exports must be 
 
 Release is selected by the `browser` task for build, run, publish and checks. Selective hybrid AOT, preserved IL/reflection,
 SIMD, WASM exception handling and threads stay enabled. Release runs the post-link wasm-opt pass at `-Oz`
-(`WasmOptConfigurationFlags`; `-p:SharpRailWasmOz=false` turns it off for comparisons) and sets `WasmDebugLevel=0`, which drops the
+(`WasmOptConfigurationFlags`; `-p:TereditorWasmOz=false` turns it off for comparisons) and sets `WasmDebugLevel=0`, which drops the
 browser-debugger component and the `.pdb` files from the boot config (browsers download every listed `.pdb` at start). Pages serves gzip
 only, so `dotnet.native.wasm` is the largest single transfer.
 Rejected after inspection: trimming (the preserved-assembly policy above is what keeps JSON reflection, plugin loading
@@ -177,7 +177,7 @@ This project uses the plain WASM SDK rather than the Blazor static-web-assets pi
 Release Build and Publish generate Brotli quality 11 and gzip level 9 sidecars for compressible
 runtime and vendor assets through `scripts/browser-compress.cs`. Files below 1 KiB and
 representations that would grow use identity. SHA-256 keyed compressed bytes under
-`$SHARPRAIL_CACHE_DIR/browser-compression` survive SDK bundle regeneration; complete sidecars and cache entries
+`$TEREDITOR_CACHE_DIR/browser-compression` survive SDK bundle regeneration; complete sidecars and cache entries
 are published by atomic rename. The original
 bundle remains deployable. Compression adds bundling CPU time and disk space, avoiding
 compression CPU on every request. The standalone host negotiates fresh sidecars at original

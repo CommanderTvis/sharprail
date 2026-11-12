@@ -2,13 +2,13 @@ using System.Text.RegularExpressions;
 
 using Ghostty.Avalonia;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 internal static class TerminalCommitLinks
 {
-    private const string Prefix = "sharprail-commit:";
+    private const string Prefix = "tereditor-commit:";
     private static readonly Regex Hashes = new(@"(?<![\w])[0-9a-fA-F]{4,64}(?![\w])", RegexOptions.CultureInvariant);
     private static readonly Regex Urls = new(@"[a-zA-Z][a-zA-Z0-9+.-]*://\S+", RegexOptions.CultureInvariant);
 

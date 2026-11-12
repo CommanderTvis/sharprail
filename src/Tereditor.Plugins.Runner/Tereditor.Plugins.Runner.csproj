@@ -1,21 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>SharpRail.PluginRunner</AssemblyName>
-    <RootNamespace>SharpRail.Plugins.Runner</RootNamespace>
+    <AssemblyName>Tereditor.PluginRunner</AssemblyName>
+    <RootNamespace>Tereditor.Plugins.Runner</RootNamespace>
     <!-- Avalonia's [Unstable] platform interfaces and [PrivateApi] locator, for the remote backend: Security.SPEC.md, UI halves. -->
     <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
     <NoWarn>$(NoWarn);AVA3001</NoWarn>
-    <SharpRailIsolation>runner</SharpRailIsolation>
+    <TereditorIsolation>runner</TereditorIsolation>
   </PropertyGroup>
-  <Import Project="../SharpRail.Plugins.Isolation.Generator/Isolation.Generator.props" />
+  <Import Project="../Tereditor.Plugins.Isolation.Generator/Isolation.Generator.props" />
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Isolation.UI/SharpRail.Plugins.Isolation.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Isolation/Tereditor.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Isolation.UI/Tereditor.Plugins.Isolation.UI.csproj" />
     <!-- Shared with every plugin it loads, so a plugin's types and the runner's are one: Security.SPEC.md, the runner's shared set. -->
-    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Chat/SharpRail.Plugins.Chat.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.Chat.UI/SharpRail.Plugins.Chat.UI.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.UI.Kit/Tereditor.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Chat/Tereditor.Plugins.Chat.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Chat.UI/Tereditor.Plugins.Chat.UI.csproj" />
     <PackageReference Include="Avalonia" />
     <!-- The remote platform backend renders plugin views with Skia's CPU raster and shapes text with HarfBuzz (Security.SPEC.md, UI halves). -->
     <PackageReference Include="Avalonia.HarfBuzz" />

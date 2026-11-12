@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
 
-namespace SharpRail.Plugins.Isolation;
+namespace Tereditor.Plugins.Isolation;
 
 /// <summary>Which end of the channel a peer is: the host allocates odd ids and refuses descriptors, the runner even ids.</summary>
 public enum IsolationRole { Host, Runner }
@@ -125,8 +125,8 @@ public sealed class IsolationPeer : IAsyncDisposable
     public void Start()
     {
         if (Interlocked.Exchange(ref started, 1) != 0) return;
-        new Thread(ReadLoop) { IsBackground = true, Name = "SharpRail plugin channel read" }.Start();
-        new Thread(WriteLoop) { IsBackground = true, Name = "SharpRail plugin channel write" }.Start();
+        new Thread(ReadLoop) { IsBackground = true, Name = "tereditor plugin channel read" }.Start();
+        new Thread(WriteLoop) { IsBackground = true, Name = "tereditor plugin channel write" }.Start();
         _ = Task.Run(SerialLoop);
     }
 

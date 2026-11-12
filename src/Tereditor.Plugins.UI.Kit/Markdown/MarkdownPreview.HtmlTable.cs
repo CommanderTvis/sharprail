@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 // HTML tables follow GitHub's sanitizer: table structure, align, valign, colspan, rowspan and width are read; style, class,
 // ids and every other attribute are ignored. Cell content is raw HTML unless a blank line let Markdown blocks in.

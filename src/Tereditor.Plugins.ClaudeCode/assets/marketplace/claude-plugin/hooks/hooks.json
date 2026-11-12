@@ -1,5 +1,5 @@
 {
-	"description": "SharpRail terminal status tracking, notifications and code-intelligence reminders",
+	"description": "tereditor terminal status tracking, notifications and code-intelligence reminders",
 	"hooks": {
 		"SessionStart": [
 			{

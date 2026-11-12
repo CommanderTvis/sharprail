@@ -13,13 +13,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class LanguageChecks
 {
@@ -41,8 +41,8 @@ internal static class LanguageChecks
     internal static async Task Run(string fixture)
     {
         var root = Path.Combine(fixture, "language"); Directory.CreateDirectory(root);
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE");
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         try
         {
             await IntelliJChecks.Distribution(root);
@@ -69,14 +69,14 @@ internal static class LanguageChecks
             var launcher = Path.Combine(root, "npm", "node_modules", "typescript-language-server", "lib", "cli.mjs");
             Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
             await File.WriteAllTextAsync(launcher, "");
-            Require(!SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A standalone TypeScript LSP must use managed provisioning.");
+            Require(!Tereditor.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A standalone TypeScript LSP must use managed provisioning.");
             var compiler = Path.Combine(root, "npm", "node_modules", "typescript", "lib");
             Directory.CreateDirectory(compiler);
             foreach (var file in new[] { "tsserver.js", "typescript.js", "../package.json" }) await File.WriteAllTextAsync(Path.Combine(compiler, file), "{}");
-            Require(SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A bundled TypeScript installation was not found.");
+            Require(Tereditor.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A bundled TypeScript installation was not found.");
             var link = Path.Combine(root, "typescript-language-server");
             File.CreateSymbolicLink(link, launcher);
-            Require(SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(link, root), "A symlinked launcher lost its bundled TypeScript installation.");
+            Require(Tereditor.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(link, root), "A symlinked launcher lost its bundled TypeScript installation.");
             foreach (var remote in new[] { false, true }) await Exercise(Path.Combine(root, remote ? "remote" : "local"), remote);
             var large = new LanguageResult("ready")
             {
@@ -111,7 +111,7 @@ internal static class LanguageChecks
         }
         finally
         {
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", previous);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", previous);
             try { Directory.Delete(root, true); }
             catch (IOException)
             {
@@ -149,7 +149,7 @@ internal static class LanguageChecks
         Directory.CreateDirectory(unrelatedSession);
         await File.WriteAllTextAsync(Path.Combine(unrelatedSession, "session.json"), "{}");
         await using var server = remote ? RemoteServer.Create(root, IPAddress.Loopback, 0, "language-test", stateDirectory,
-            plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }, headlessLanguageMcp: true) : null;
+            plugins: seams => seams with { Builtins = Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }, headlessLanguageMcp: true) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(stateDirectory) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         using var remoteHost = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-test");
@@ -217,7 +217,7 @@ internal static class LanguageChecks
                 throw new InvalidOperationException("Arguments without an executable were silently accepted.");
             }
             catch (ArgumentException) { }
-            catch (SharpRail.Host.Protocol.RpcException) when (remote) { }
+            catch (Tereditor.Host.Protocol.RpcException) when (remote) { }
             var persisted = (await settingsHost.GetStateAsync()).Settings.LanguageServers;
             Require(persisted.Contains(executable, StringComparison.Ordinal) && new HostStateStore(stateDirectory).Current.Settings.LanguageServers == persisted, "LSP settings did not round-trip or persist.");
             var config = """{"autoStart":true,"initializationOptions":{"fixture":"${workspaceFolder}/lib"},"settings":{"fixture":{"enabled":false,"level":0,"mode":"compact","explicitNull":null},"python":{"analysis":{"extraPaths":["${workspaceFolder}/lib"]}}}}""";
@@ -297,7 +297,7 @@ internal static class LanguageChecks
             Require(missing.Files.Any(file => file.State == "error") && missing.Files.Any(file => file.State == "skipped") && missing.Freshness == "partial", "Missing/unsupported files were reported clean.");
             try { await host.LanguageAsync(new(root, Operation: "diagnostics", Scope: "files", Paths: ["../escape.ts"])); throw new InvalidOperationException("Batch escaped its workspace."); }
             catch (UnauthorizedAccessException) { }
-            catch (SharpRail.Host.Protocol.RpcException) when (remote) { }
+            catch (Tereditor.Host.Protocol.RpcException) when (remote) { }
             Require((await host.LanguageAsync(new(root, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State == "ready",
                 "Server listing did not reflect initialization.");
             Require(initial.SemanticColoring && initial.Tokens is [{ Column: 3, EndColumn: 9, Kind: "variable", Modifiers: "static" }] && initial.Freshness == "current", "Initial semantic/diagnostic result missing.");
@@ -392,7 +392,7 @@ internal static class LanguageChecks
             Require(library.Locations[0].Path == dependency && (await host.ReadFileAsync(dependency)).ReadOnly, "Dependency navigation did not expose the exact read-only file.");
             try { await host.SaveFileAsync(new(root, dependency, "export type Library = string;", "edited")); throw new InvalidOperationException("Dependency write accepted."); }
             catch (UnauthorizedAccessException) { }
-            catch (SharpRail.Host.Protocol.RpcException) when (remote) { }
+            catch (Tereditor.Host.Protocol.RpcException) when (remote) { }
             await host.LanguageAsync(draft with { Operation = "close" });
             Require((await Ready(host, new(root, "code.ts"))).Diagnostics.Count == 0, "Closing a draft did not restore disk analysis.");
             await File.WriteAllTextAsync(Path.Combine(root, "code.ts"), "😀 broken");
@@ -406,7 +406,7 @@ internal static class LanguageChecks
             Require(parallel[0].Diagnostics.Count == 0 && parallel[1].Diagnostics.Count == 1, "Workspace diagnostics leaked across roots.");
             try { await host.LanguageAsync(new(root, "../escape.ts")); throw new InvalidOperationException("Escaped workspace accepted."); }
             catch (UnauthorizedAccessException) { }
-            catch (SharpRail.Host.Protocol.RpcException) when (remote) { }
+            catch (Tereditor.Host.Protocol.RpcException) when (remote) { }
             using (var cancellation = new CancellationTokenSource(100))
             {
                 try { await host.LanguageAsync(new(root, "code.ts", "references"), cancellation.Token); throw new InvalidOperationException("Cancellation ignored."); }
@@ -611,7 +611,7 @@ internal static class LanguageChecks
             await process.WaitForExitAsync(timeout.Token);
             Require(process.ExitCode == 0, "C# fixture restore failed: " + await error + await output);
         }
-        var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "language", "servers", "csharp");
+        var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor", "language", "servers", "csharp");
         var engine = Directory.EnumerateFiles(installed, "Microsoft.CodeAnalysis.LanguageServer.dll", SearchOption.AllDirectories).First();
         var settings = JsonSerializer.Serialize(new { csharp = new { command = dotnet, arguments = new[] { engine, "--stdio" } } });
         await using var service = new LanguageService(Path.Combine(root, ".tools", "language"), () => true, () => settings);
@@ -632,7 +632,7 @@ internal static class LanguageChecks
         Require(page.Total == file.Total && page.Locations.Count == 1, "Scopes were applied after pagination.");
         Console.WriteLine("PASS real Roslyn solution graph, unopened dependent-project references on first ready query, SDK environment and scoped pagination");
         var checkout = Directory.GetCurrentDirectory();
-        const string source = "src/SharpRail.Plugins.UI.Kit/FileDrop.cs";
+        const string source = "src/Tereditor.Plugins.UI.Kit/FileDrop.cs";
         var lines = await File.ReadAllLinesAsync(Path.Combine(checkout, source), timeout.Token);
         var declarationLine = Array.FindIndex(lines, line => line.Contains("public sealed class FileDrop", StringComparison.Ordinal));
         var projectRequest = new LanguageRequest(checkout, source, "references", Line: declarationLine, Column: lines[declarationLine].IndexOf("FileDrop", StringComparison.Ordinal));
@@ -641,9 +641,9 @@ internal static class LanguageChecks
             result = await service.ExecuteAsync(projectRequest, timeout.Token);
             if (result.State is "installing" or "initializing") await Task.Delay(100, timeout.Token);
         } while (result.State is "installing" or "initializing");
-        Require(result.State == "ready" && result.Locations.Any(item => item.Path.StartsWith("src/SharpRail.UI/", StringComparison.Ordinal)),
-            "SharpRail FileDrop references missed unopened files in the UI project: " + result.Detail + " " + string.Join(", ", result.Locations.Select(item => item.Path)));
-        Console.WriteLine($"PASS real SharpRail solution: FileDrop references span {result.Locations.Select(item => item.Path).Distinct().Count()} files without opening their editors");
+        Require(result.State == "ready" && result.Locations.Any(item => item.Path.StartsWith("src/Tereditor.UI/", StringComparison.Ordinal)),
+            "tereditor FileDrop references missed unopened files in the UI project: " + result.Detail + " " + string.Join(", ", result.Locations.Select(item => item.Path)));
+        Console.WriteLine($"PASS real tereditor solution: FileDrop references span {result.Locations.Select(item => item.Path).Distinct().Count()} files without opening their editors");
     }
 
     internal static async Task Real(string fixture)
@@ -767,42 +767,42 @@ internal static class LanguageChecks
         window.Show();
         try
         {
-            E2E.E2eWorkspace.Until(() => frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, 0) >= 40);
+            E2E.E2eWorkspace.Until(() => frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, 0) >= 40);
             Require(frame.HighlightingReady.IsCompleted, "Editor was revealed before initial syntax colors completed.");
             var text = frame.Editor.Text;
             var apply = frame.ApplySemanticTokensAsync(text, [new(1, 6, 6, "type")]);
             E2E.E2eWorkspace.Until(() => apply.IsCompleted); apply.GetAwaiter().GetResult();
-            Require(frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, 3) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "comment"), "Sparse semantic tokens erased syntax comments.");
+            Require(frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, 3) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "comment"), "Sparse semantic tokens erased syntax comments.");
             var keyword = Encoding.UTF8.GetByteCount(text.AsSpan(0, text.IndexOf("const", StringComparison.Ordinal)));
-            Require(frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, keyword) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "keyword"), "Sparse semantic tokens erased syntax keywords.");
+            Require(frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, keyword) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "keyword"), "Sparse semantic tokens erased syntax keywords.");
             var offset = text.IndexOf("target", StringComparison.Ordinal);
             var position = Encoding.UTF8.GetByteCount(text.AsSpan(0, offset));
-            Require(frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, position) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "type"), "Semantic role did not override TextMate.");
+            Require(frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, position) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "type"), "Semantic role did not override TextMate.");
             var italic = frame.ApplySemanticTokensAsync(text, [new SemanticToken(1, 6, 6, "method") { Italic = true }]);
             E2E.E2eWorkspace.Until(() => italic.IsCompleted); italic.GetAwaiter().GetResult();
             using (var capture = window.CaptureRenderedFrame())
             {
-                var style = frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, position);
-                Require(frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.StyleGetItalic, style) == 1,
+                var style = frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, position);
+                Require(frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.StyleGetItalic, style) == 1,
                     "A semantic italic token did not reach the native font style.");
             }
             var upright = frame.ApplySemanticTokensAsync(text, [new(1, 6, 6, "method")]);
             E2E.E2eWorkspace.Until(() => upright.IsCompleted); upright.GetAwaiter().GetResult();
             using (var capture = window.CaptureRenderedFrame())
             {
-                var style = frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, position);
-                Require(frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.StyleGetItalic, style) == 0,
+                var style = frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, position);
+                Require(frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.StyleGetItalic, style) == 0,
                     "Italic styling leaked into an ordinary semantic token.");
             }
             frame.Editor.SetDiagnostics([new(position, 6, 1)], Ui.Danger.Color, Ui.Warning.Color, Ui.Accent.Color);
-            Require(frame.Editor.Document.Send((SharpRail.Scintilla.ScintillaMessage)2507, 8, position) != 0 && !frame.Editor.IsModified, "Diagnostic underline is missing or modified source text.");
+            Require(frame.Editor.Document.Send((Tereditor.Scintilla.ScintillaMessage)2507, 8, position) != 0 && !frame.Editor.IsModified, "Diagnostic underline is missing or modified source text.");
             var stale = frame.ApplySemanticTokensAsync(text, [new(1, 6, 6, "comment")]);
             frame.Editor.Text = "const newest = 2;";
             E2E.E2eWorkspace.Until(() => stale.IsCompleted);
             Require(frame.Editor.Text == "const newest = 2;", "Semantic application changed document text.");
             window.Content = null; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             frame.Editor.Text = "// short"; window.Content = frame;
-            E2E.E2eWorkspace.Until(() => frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, 3) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "comment"));
+            E2E.E2eWorkspace.Until(() => frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, 3) == 40 + Array.IndexOf(TextMateHighlighter.Roles, "comment"));
             Console.WriteLine("PASS semantic editor overlay, Unicode diagnostic squiggles, stale results and detach/reattach fallback");
         }
         finally { window.Close(); frame.Editor.Dispose(); SynchronizationContext.SetSynchronizationContext(previous); }
@@ -825,22 +825,22 @@ internal static class LanguageChecks
             host.LanguageReply = request => request.Operation == "status" ? new("ready", Server: "csharp") { SemanticColoring = true }
                 : new("unavailable", "No semantic result for external source", "csharp"));
         E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
-        using var external = new SharpRail.UI.Editor.CodeDocumentView(new(Path.Combine(fixture, "CancellationToken.cs"), "public readonly struct CancellationToken {}") { ReadOnly = true },
+        using var external = new Tereditor.UI.Editor.CodeDocumentView(new(Path.Combine(fixture, "CancellationToken.cs"), "public readonly struct CancellationToken {}") { ReadOnly = true },
             root, app.Host, () => { }, _ => { }, () => { }, error => throw error);
         var sourceWindow = new Window { Width = 640, Height = 300, Content = external };
         sourceWindow.Show(app.Window);
         try
         {
-            E2E.E2eWorkspace.Until(() => external.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, 0) >= 40);
+            E2E.E2eWorkspace.Until(() => external.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, 0) >= 40);
             Require(external.Editor.IsReadOnly, "Highlighting changed external-source editability.");
         }
         finally { sourceWindow.Close(); }
         var open = app.Window.OpenDocumentAsync("Example.cs", true, line: 100, column: 1);
         E2E.E2eWorkspace.Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
-        var editor = app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single().Editor;
+        var editor = app.Window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single().Editor;
         E2E.E2eWorkspace.Until(() => editor.Selection.StartLine == 100);
-        var visible = editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.LinesOnScreen);
-        var target = editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.VisibleFromDocLine, 99);
+        var visible = editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.LinesOnScreen);
+        var target = editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.VisibleFromDocLine, 99);
         Require(Math.Abs(target - editor.FirstVisibleLine - visible / 2) <= 2, "Declaration target was not centered in the editor viewport.");
         Console.WriteLine("PASS external C# lexical fallback and centered positioned navigation");
     }
@@ -860,7 +860,7 @@ internal static class LanguageChecks
         E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
         var open = app.Window.OpenDocumentAsync("Example.ts", true);
         E2E.E2eWorkspace.Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
-        var view = app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
+        var view = app.Window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
         var menu = view.Editor.ContextMenu!;
         foreach (var state in new[] { "idle", "ready", "stopped", "disabled", "unsupported", "unavailable", "initializing" })
         {
@@ -885,7 +885,7 @@ internal static class LanguageChecks
         E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
         var open = app.Window.OpenDocumentAsync("Example.ts", true);
         E2E.E2eWorkspace.Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
-        var view = app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
+        var view = app.Window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
         view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.F12 });
         E2E.E2eWorkspace.Until(() => view.FindControl<TextBlock>("LanguageHeading")!.Text == "No declaration found" && view.FindControl<Avalonia.Controls.Primitives.Popup>("LanguagePopup")!.IsOpen);
         app.Window.UpdateLayout();
@@ -915,7 +915,7 @@ internal static class LanguageChecks
         E2E.E2eWorkspace.Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
         var frame = app.Window.GetVisualDescendants().OfType<EditorFrame>().Single();
         E2E.E2eWorkspace.Until(() => frame.Opacity == 1 && frame.HighlightingReady.IsCompleted);
-        Require(frame.DeferSyntaxColors && frame.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.GetStyleAt, 0) == 0,
+        Require(frame.DeferSyntaxColors && frame.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.GetStyleAt, 0) == 0,
             "An initializing semantic server exposed an intermediate TextMate pass.");
         Require(!app.Window.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "ShowSyntaxColors"),
             "The removed coloring escape hatch is still visible.");
@@ -947,8 +947,8 @@ internal static class LanguageChecks
         E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
         var open = app.Window.OpenLanguageDocumentAsync(new(uri, 1, 6, 1, 12, Source: "intellij"), true);
         E2E.E2eWorkspace.Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
-        E2E.E2eWorkspace.Until(() => app.Window.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor => editor.Text == source));
-        var editor = app.Window.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single(editor => editor.Text == source);
+        E2E.E2eWorkspace.Until(() => app.Window.GetVisualDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Any(editor => editor.Text == source));
+        var editor = app.Window.GetVisualDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Single(editor => editor.Text == source);
         Require(editor.IsReadOnly && requests.Count == 2 && requests[1].Offset == 12_000 && !app.Host.Reads.ContainsKey(uri),
             "Dependency opening must page source through the host and never use workspace file I/O.");
         Require(app.Tabs.Any(tab => tab.Path == uri), "Dependency tab lost URI identity.");
@@ -958,15 +958,15 @@ internal static class LanguageChecks
 
     internal static void ProviderIconsUi()
     {
-        foreach (var theme in SharpRail.UI.Rendering.Themes.All)
+        foreach (var theme in Tereditor.UI.Rendering.Themes.All)
             foreach (var other in new[] { "variable", "property", "function" })
                 Require(theme.Syntax["type"] != theme.Syntax[other], $"Theme '{theme.Id}' paints types and {other} identically.");
         using (var bitmap = SkiaSharp.SKBitmap.Decode(LanguageServers.Catalog.Single(server => server.Id == "csharp").Spec.Icon!.Data))
             Require(bitmap.GetPixel(0, 0).Alpha == 0 && bitmap.GetPixel(bitmap.Width - 1, bitmap.Height - 1).Alpha == 0,
                 "Roslyn provider artwork must have a transparent background.");
         var original = Ui.Theme;
-        SharpRail.UI.Panels.LanguageServerNameConverter.Remember(LanguageServers.Catalog.Select(server => new LanguageServerState(server.Id, "", "available", "", server.Version) { Presentation = LanguageService.Present(server) }));
-        var icons = LanguageServers.Catalog.Select(server => SharpRail.UI.Panels.LanguageServerIconConverter.Create(server.Id)).ToArray();
+        Tereditor.UI.Panels.LanguageServerNameConverter.Remember(LanguageServers.Catalog.Select(server => new LanguageServerState(server.Id, "", "available", "", server.Version) { Presentation = LanguageService.Present(server) }));
+        var icons = LanguageServers.Catalog.Select(server => Tereditor.UI.Panels.LanguageServerIconConverter.Create(server.Id)).ToArray();
         var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Margin = new Thickness(8) };
         foreach (var icon in icons) panel.Children.Add(icon);
         var window = new Window { Width = 620, Height = 64, WindowDecorations = WindowDecorations.None, Content = panel };
@@ -976,7 +976,7 @@ internal static class LanguageChecks
             Avalonia.Media.IImage? previous = null;
             foreach (var name in new[] { "dark", "light" })
             {
-                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(name));
+                Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(name));
                 window.Background = Ui.Workspace;
                 E2E.E2eWorkspace.Until(() => icons.All(icon => icon.GetVisualDescendants().OfType<Image>().SingleOrDefault()?.Source is not null));
                 var roslyn = icons.Single(icon => Equals(icon.Tag, "language:csharp"));
@@ -989,7 +989,7 @@ internal static class LanguageChecks
                 previous = image.Source;
                 CaptureLsp(window, "server-icons-" + name);
             }
-            Require(SharpRail.UI.Panels.LanguageServerIconConverter.Create("unknown-provider") is Border { OpacityMask: not null },
+            Require(Tereditor.UI.Panels.LanguageServerIconConverter.Create("unknown-provider") is Border { OpacityMask: not null },
                 "An unknown provider lost its generic vector fallback.");
         }
         finally { window.Close(); Ui.Apply(original); }
@@ -998,7 +998,7 @@ internal static class LanguageChecks
 
     internal static void CaptureLsp(Avalonia.Controls.Control window, string name)
     {
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_LSP_CAPTURE") != "1") return;
+        if (Environment.GetEnvironmentVariable("TEREDITOR_LSP_CAPTURE") != "1") return;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         using var frame = Avalonia.Controls.TopLevel.GetTopLevel(window)!.CaptureRenderedFrame();
         frame!.Save(CheckRoot.Artifact("lsp-ui", name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
@@ -1007,14 +1007,14 @@ internal static class LanguageChecks
     private static void SettingsUi(string fixture)
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "lsp-settings"), openFiles: false);
-        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new Tereditor.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         T Find<T>(string name) where T : Avalonia.Controls.Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         try
         {
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Count);
             Require(Find<ComboBox>("ProviderChoice") is not null, "Settings omitted workspace provider selection.");
-            Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("within the limits", StringComparison.Ordinal),
+            Require(Find<TextBlock>("LspLifetimeNote").Text == Tereditor.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("within the limits", StringComparison.Ordinal),
                 "Settings did not tell the user that servers run within the limits and that agents start them.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Name == "ShowAirContext"),
                 "Code Intelligence still offers an Air Context switch; the plugin is turned off in Settings › Plugins.");
@@ -1074,9 +1074,9 @@ internal static class LanguageChecks
         File.WriteAllText(Path.Combine(statePath, "language", "servers.json"), JsonSerializer.Serialize(new { typescript = new { command = executable, arguments }, python = new { command = Path.Combine(root, "missing-server"), arguments = Array.Empty<string>() } }));
         File.WriteAllText(Path.Combine(root, "code.ts"), "😀 target");
         File.WriteAllText(Path.Combine(root, "z-other.ts"), "target(); // unopened file");
-        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var disabled = Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE"); Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "0");
         var state = new HostStateStore(statePath);
-        var view = new SharpRail.UI.Editor.CodeDocumentView(new("code.ts", "😀 target"), root, new LocalProjectAdapter(new ProjectServices(root, state)),
+        var view = new Tereditor.UI.Editor.CodeDocumentView(new("code.ts", "😀 target"), root, new LocalProjectAdapter(new ProjectServices(root, state)),
             () => { }, _ => { }, () => { }, error => throw error);
         LanguageItem? navigated = null;
         view.NavigateLanguage = item => { navigated = item; return Task.CompletedTask; };
@@ -1085,7 +1085,7 @@ internal static class LanguageChecks
             Width = 800,
             Height = 400,
             Content = view,
-            RequestedThemeVariant = SharpRail.Plugins.UI.Kit.Ui.Theme.IsLight ? Avalonia.Styling.ThemeVariant.Light : Avalonia.Styling.ThemeVariant.Dark
+            RequestedThemeVariant = Tereditor.Plugins.UI.Kit.Ui.Theme.IsLight ? Avalonia.Styling.ThemeVariant.Light : Avalonia.Styling.ThemeVariant.Dark
         };
         window.Show();
         try
@@ -1096,8 +1096,8 @@ internal static class LanguageChecks
             view.Editor.ReplaceRange(view.Editor.Text.Length, 0, " // preview comment");
             E2E.E2eWorkspace.Until(() => status.Text?.Contains("1 problems", StringComparison.Ordinal) == true);
             var diagnosticByte = Encoding.UTF8.GetByteCount("😀 ");
-            var hoverPoint = new Point((double)view.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.PointXFromPosition, 0, diagnosticByte) + 2,
-                (double)view.Editor.Document.Send(SharpRail.Scintilla.ScintillaMessage.PointYFromPosition, 0, diagnosticByte) + 4);
+            var hoverPoint = new Point((double)view.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.PointXFromPosition, 0, diagnosticByte) + 2,
+                (double)view.Editor.Document.Send(Tereditor.Scintilla.ScintillaMessage.PointYFromPosition, 0, diagnosticByte) + 4);
             window.MouseMove(view.Editor.TranslatePoint(hoverPoint, window)!.Value);
             E2E.E2eWorkspace.Until(() => ToolTip.GetIsOpen(view.Editor));
             Require(ToolTip.GetTip(view.Editor) is TextBlock hover && hover.Text!.Contains("Error · fixture", StringComparison.Ordinal) && hover.Text.Contains("broken", StringComparison.Ordinal),
@@ -1128,7 +1128,7 @@ internal static class LanguageChecks
             Require(codePreview.FontFamily == Ui.CodeFont && codePreview.Inlines!.OfType<Avalonia.Controls.Documents.Run>()
                 .Any(run => run.Text!.Contains("preview comment", StringComparison.Ordinal) && run.Foreground is Avalonia.Media.SolidColorBrush color && color.Color == Ui.Theme.Syntax["comment"]),
                 "LSP result code previews must use the code font and syntax-colored runs.");
-            if (Environment.GetEnvironmentVariable("SHARPRAIL_LSP_CAPTURE") == "1")
+            if (Environment.GetEnvironmentVariable("TEREDITOR_LSP_CAPTURE") == "1")
             {
                 var results = view.FindControl<Border>("LanguageResults")!;
                 using var capture = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)Math.Ceiling(results.Bounds.Width), (int)Math.Ceiling(results.Bounds.Height)), new Vector(96, 96));
@@ -1172,13 +1172,13 @@ internal static class LanguageChecks
             Require(!popup.IsOpen, "Escape did not dismiss usages.");
             window.Width = 800;
             view.Editor.SelectRange(3, 0);
-            view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.B, KeyModifiers = SharpRail.Plugins.UI.Kit.CommandKeys.Modifier });
+            view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.B, KeyModifiers = Tereditor.Plugins.UI.Kit.CommandKeys.Modifier });
             E2E.E2eWorkspace.Until(() => navigated is not null);
             Require(navigated is { Path: "code.ts", Column: 3 }, "Go to Declaration did not reach the workbench callback.");
             Console.WriteLine("PASS code-document diagnostics, IDEA navigation shortcuts, grouped usages, filtering and narrow popup sizing");
-            using var shared = new SharpRail.UI.State.SharedState(new LocalStateAdapter(state), new(), state.Current);
+            using var shared = new Tereditor.UI.State.SharedState(new LocalStateAdapter(state), new(), state.Current);
             shared.Start();
-            var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root,
+            var pane = new Tereditor.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root,
                 item => { navigated = item; return Task.CompletedTask; }, shared);
             window.Content = pane;
             T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(pane, name)!;
@@ -1210,18 +1210,18 @@ internal static class LanguageChecks
                 serverTitle.TranslatePoint(new Avalonia.Point(0, serverTitle.Bounds.Height / 2), firstRow)!.Value.Y) < 2,
                 "Workspace settings action must align with the server header.");
             settingsAction.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            var settingsWindow = window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageSettingsWindow>().Single();
-            var configurationView = (SharpRail.UI.Panels.LanguageConfigurationView)settingsWindow.FindControl<ContentControl>("SettingsBody")!.Content!;
+            var settingsWindow = window.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageSettingsWindow>().Single();
+            var configurationView = (Tereditor.UI.Panels.LanguageConfigurationView)settingsWindow.FindControl<ContentControl>("SettingsBody")!.Content!;
             T Config<T>(string name) where T : Control => configurationView.FindControl<T>(name)!;
             E2E.E2eWorkspace.Until(() => settingsWindow.IsVisible);
             Require(firstRow.Bounds.Height <= compactHeight + 2, "Settings popup expanded the server row.");
-            E2E.E2eWorkspace.Until(() => Config<ItemsControl>("ProviderFields").ItemsSource is SharpRail.UI.Panels.LanguageOptionField[] { Length: > 0 });
+            E2E.E2eWorkspace.Until(() => Config<ItemsControl>("ProviderFields").ItemsSource is Tereditor.UI.Panels.LanguageOptionField[] { Length: > 0 });
             Require(Config<TextBlock>("ProviderSource").Text!.StartsWith("Source: npm", StringComparison.Ordinal), "Provider source label must be concise and preserve registry details.");
             Require(Config<ContentControl>("ProviderSourceIcon").Content is Control { Tag: "file-type:npm" }, "npm source must use its bundled Material icon.");
-            Require(serverTitle.Text == SharpRail.UI.Panels.LanguageServerNameConverter.Display("typescript"), "Server title must omit inline runtime status.");
+            Require(serverTitle.Text == Tereditor.UI.Panels.LanguageServerNameConverter.Display("typescript"), "Server title must omit inline runtime status.");
             var statusMark = firstRow.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon");
             Require(!string.IsNullOrWhiteSpace(Avalonia.Automation.AutomationProperties.GetName(statusMark)), "Icon-only server status must remain accessible.");
-            var fields = (SharpRail.UI.Panels.LanguageOptionField[])Config<ItemsControl>("ProviderFields").ItemsSource!;
+            var fields = (Tereditor.UI.Panels.LanguageOptionField[])Config<ItemsControl>("ProviderFields").ItemsSource!;
             var memory = fields.Single(field => field.Path == "maxTsServerMemory");
             memory.Value = "not a number";
             var beforeInvalid = state.Current.WorkspaceLanguages.GetValueOrDefault(root);
@@ -1306,7 +1306,7 @@ internal static class LanguageChecks
             window.MouseUp(startPoint, Avalonia.Input.MouseButton.Left);
             E2E.E2eWorkspace.Until(() => RowStatus(0) == "ready");
             Require(!pane.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Inspect"), "LSP pane retained Workspace Problems.");
-            Require(pane.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "LifetimeNote" && text.Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && text.IsVisible),
+            Require(pane.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "LifetimeNote" && text.Text == Tereditor.UI.Panels.LanguageNotes.Lifetime && text.IsVisible),
                 "The Code Intelligence pane does not tell the user that servers run for their workspace's lifetime and that agents start them.");
             E2E.E2eWorkspace.Until(() =>
             {
@@ -1337,7 +1337,7 @@ internal static class LanguageChecks
             var logsAction = errorRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerLogsAction");
             Require(logsAction.IsVisible, "Failed server row hid its logs action.");
             logsAction.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            var logsWindow = window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageLogsWindow>().Single();
+            var logsWindow = window.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageLogsWindow>().Single();
             E2E.E2eWorkspace.Until(() => logsWindow.FindControl<TextBox>("ServerOutput")!.Text?.Contains("startup:", StringComparison.Ordinal) == true);
             Require(logsWindow.Title == "python · LSP logs" && logsWindow.WindowDecorations == WindowDecorations.None &&
                 logsWindow.FindControl<TextBlock>("LogHeading")!.Text == logsWindow.Title,
@@ -1370,12 +1370,12 @@ internal static class LanguageChecks
             var intellijRow = (ListBoxItem)servers.ContainerFromIndex(intellijIndex)!;
             Require(intellijRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Start ▷"), "IntelliJ lacked an explicit start/review action.");
             intellijRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSettingsAction").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            var intellijWindow = window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageSettingsWindow>().Single();
+            var intellijWindow = window.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageSettingsWindow>().Single();
             T IJ<T>(string name) where T : Control => intellijWindow.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             Require(IJ<StackPanel>("ProviderOptions").IsVisible && IJ<Button>("RestartConfiguration").IsEnabled && IJ<CheckBox>("AutoStart").IsEnabled,
                 "IntelliJ configuration hid its availability or enabled execution.");
             Require(!pane.GetLogicalDescendants().OfType<ComboBox>().Any(control => control.Name == "ProviderChoice"), "Provider routing must live in Settings, not Code Intelligence.");
-            var providerView = new SharpRail.UI.Panels.LanguageProviderView(new LocalProjectAdapter(new ProjectServices(root, state)), root);
+            var providerView = new Tereditor.UI.Panels.LanguageProviderView(new LocalProjectAdapter(new ProjectServices(root, state)), root);
             var providerWindow = new Window { Content = providerView };
             providerWindow.Show(window);
             T Provider<T>(string name) where T : Control => providerView.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
@@ -1393,8 +1393,8 @@ internal static class LanguageChecks
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => IJ<Button>("SaveConfiguration").IsEnabled && state.Current.WorkspaceLanguages[root].Contains("ui-terms", StringComparison.Ordinal));
             IJ<Button>("RestartConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any());
-            var startupTerms = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
+            E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Any());
+            var startupTerms = intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => startupTerms.FindControl<CheckBox>("TermsConsent")!.IsEnabled);
             Require(Equals(startupTerms.FindControl<Button>("AcceptTerms")!.Content, "Accept and start") && !startupTerms.FindControl<Button>("AcceptTerms")!.IsEnabled,
                 "Starting IntelliJ did not visibly require unchecked EULA acknowledgement.");
@@ -1403,16 +1403,16 @@ internal static class LanguageChecks
             void ReviewTerms()
             {
                 IJ<Button>("ReviewTerms").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-                E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any());
+                E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Any());
             }
             ReviewTerms();
-            var termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
+            var termsWindow = intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<TextBox>("TermsText")!.Text?.Contains("Synthetic", StringComparison.Ordinal) == true);
             Require(termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked == false && !termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "EULA consent defaulted to accepted or enabled acceptance before acknowledgement.");
             termsWindow.Close();
             Require(!Directory.Exists(Path.Combine(statePath, "language", "agreements", "intellij")), "Cancelling terms review recorded acceptance.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<CheckBox>("TermsConsent")!.IsEnabled);
             termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked = true;
             var questionBoxes = termsWindow.FindControl<StackPanel>("TermsQuestions")!.Children.OfType<ComboBox>().ToArray();
@@ -1432,9 +1432,9 @@ internal static class LanguageChecks
             catch (Exception error) { throw new InvalidOperationException("Startup message: " + IJ<TextBlock>("ConfigurationMessage").Text, error); }
             Require(state.Current.Settings.JavaKotlinProvider == "intellij", "Setup did not persist IntelliJ provider selection.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.Result?.Accepted == true);
-            Require(Equals(termsWindow.FindControl<Button>("AcceptTerms")!.Content, "Start " + SharpRail.UI.Panels.LanguageServerNameConverter.Display("intellij")) && termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled,
+            Require(Equals(termsWindow.FindControl<Button>("AcceptTerms")!.Content, "Start " + Tereditor.UI.Panels.LanguageServerNameConverter.Display("intellij")) && termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled,
                 "Already accepted terms left no direct start action.");
             Require(termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked == true && !termsWindow.FindControl<CheckBox>("TermsConsent")!.IsEnabled,
                 "Saved acceptance must be visibly checked and read-only, not look like an unchecked blocked consent control.");
@@ -1443,12 +1443,12 @@ internal static class LanguageChecks
             Require(!termsWindow.StartRequested, "Closing accepted terms requested startup.");
             IJ<Button>("RestartConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => IJ<Button>("RestartConfiguration").IsEnabled);
-            Require(!intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ settings restart reopened consent.");
+            Require(!intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ settings restart reopened consent.");
             ServerAction(intellijIndex, "Start / Retry");
             E2E.E2eWorkspace.Until(() => pane.Idle);
-            Require(!window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ row startup reopened consent.");
+            Require(!window.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ row startup reopened consent.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<Tereditor.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.Result?.Accepted == true);
             termsWindow.FindControl<Button>("AcceptTerms")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Require(termsWindow.StartRequested && !termsWindow.IsVisible, "Existing acceptance did not support explicit start.");
@@ -1469,7 +1469,7 @@ internal static class LanguageChecks
             window.Close(); view.Dispose();
             var stop = Task.Run(async () => await state.StopLanguagesAsync());
             E2E.E2eWorkspace.Until(() => stop.IsCompleted); stop.GetAwaiter().GetResult();
-            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+            Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", disabled);
             Directory.Delete(root, true);
         }
     }

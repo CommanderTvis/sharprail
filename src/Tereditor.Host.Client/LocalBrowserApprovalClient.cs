@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>Bootstraps browser access through consent in a local embedded app.</summary>
 public static class LocalBrowserApprovalClient

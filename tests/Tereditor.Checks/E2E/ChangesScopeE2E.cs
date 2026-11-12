@@ -3,10 +3,10 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal static class ChangesScopeE2E
 {
@@ -14,7 +14,7 @@ internal static class ChangesScopeE2E
     {
         if (Source is not { } source)
         {
-            Console.WriteLine("SKIP upstream Changes scopes: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream Changes scopes: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         ScopeSelector(root, source);
@@ -29,7 +29,7 @@ internal static class ChangesScopeE2E
         SharedTarget(root, source);
     }
 
-    /// <summary>SharpRail regression: the review target lives on the host, so another client's choice reaches this window.</summary>
+    /// <summary>tereditor regression: the review target lives on the host, so another client's choice reaches this window.</summary>
     private static void SharedTarget(string root, string source)
     {
         var (app, worktree) = Open(root, "changes-shared-target", source);
@@ -53,7 +53,7 @@ internal static class ChangesScopeE2E
         Until(() => app.State!.Current.DiffBase(workspace) == "workspace-1");
 
         ChangesFixture.Git(worktree, "branch", "elsewhere", "HEAD~1");
-        app.State!.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspace, "elsewhere")]).AsTask().GetAwaiter().GetResult();
+        app.State!.ChangeAsync([Tereditor.Host.Abstractions.HostStateChange.DiffBase(workspace, "elsewhere")]).AsTask().GetAwaiter().GetResult();
         Until(() => Text(app.Find<Button>("ChangesBranch")).Contains("elsewhere", StringComparison.Ordinal));
         UntilRows(app, "README.md", "committed.txt");
         Console.WriteLine("PASS a workspace badge totals its changes; a review target chosen here is stored on the host, and one re-pointed by another client is followed");

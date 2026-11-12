@@ -1,18 +1,18 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>
-/// One section of the instructions SharpRail gives agent sessions (H20), as the instructions view lists it: the host's
+/// One section of the instructions tereditor gives agent sessions (H20), as the instructions view lists it: the host's
 /// own sections (<c>core.*</c>) and each enabled plugin's (<c>plugin.&lt;plugin id&gt;.&lt;contribution id&gt;</c>).
 /// </summary>
 public sealed class InstructionSection
 {
-    /// <summary>The stable identifier the project's <c>.sharprail/instructions.toml</c> names to turn the section off.</summary>
+    /// <summary>The stable identifier the project's <c>.tereditor/instructions.toml</c> names to turn the section off.</summary>
     public required string Id { get; init; }
 
     /// <summary><c>core</c> for the host's sections, else the contributing plugin's id.</summary>
     public required string Source { get; init; }
 
-    /// <summary>The source's display name: <c>SharpRail</c> or the plugin's label.</summary>
+    /// <summary>The source's display name: <c>tereditor</c> or the plugin's label.</summary>
     public required string SourceName { get; init; }
 
     /// <summary>A short human title.</summary>
@@ -31,7 +31,7 @@ public sealed class InstructionSection
 /// <summary>The sections an agent's sessions in one workspace get, and the project file that turns sections off.</summary>
 public sealed class InstructionSectionList
 {
-    /// <summary>The absolute path of the project's <c>.sharprail/instructions.toml</c>, which may not exist yet.</summary>
+    /// <summary>The absolute path of the project's <c>.tereditor/instructions.toml</c>, which may not exist yet.</summary>
     public string Path { get; set; } = "";
 
     /// <summary>The sections, the host's first, then each plugin's in composition order.</summary>
@@ -44,7 +44,7 @@ public sealed class InstructionSectionList
     public IReadOnlyList<string> Diagnostics { get; set; } = [];
 
     /// <summary>
-    /// Where a copy of the user's earlier hand edits to the generated instructions was kept, once SharpRail stopped
+    /// Where a copy of the user's earlier hand edits to the generated instructions was kept, once tereditor stopped
     /// using them; null when there were none.
     /// </summary>
     public string? IgnoredEditsPath { get; init; }
@@ -70,7 +70,7 @@ public sealed class InstructionSectionToggle
     public bool Enabled { get; init; }
 }
 
-/// <summary>A project's <c>.sharprail/instructions.toml</c> changed.</summary>
+/// <summary>A project's <c>.tereditor/instructions.toml</c> changed.</summary>
 public sealed class InstructionSectionsChanged
 {
     /// <summary>The project root whose file changed.</summary>

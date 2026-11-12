@@ -3,9 +3,9 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>The license block of a licensed language server (IntelliJ): the plugin's published state and its actions, run on the host off the UI thread.</summary>
 internal sealed partial class LanguageConfigurationView
@@ -56,7 +56,7 @@ internal sealed partial class LanguageConfigurationView
         var notice = Find<TextBlock>("LicenseNotice");
         notice.Text = state["notice"]?.ToString() ?? "";
         notice.IsVisible = notice.Text.Length > 0;
-        notice.Foreground = kind is "parked" or "unlicensed" ? SharpRail.Plugins.UI.Kit.Ui.Danger : SharpRail.Plugins.UI.Kit.Ui.Warning;
+        notice.Foreground = kind is "parked" or "unlicensed" ? Tereditor.Plugins.UI.Kit.Ui.Danger : Tereditor.Plugins.UI.Kit.Ui.Warning;
         var problem = Find<TextBlock>("LicenseMessage");
         problem.Text = state["environment"]?.ToString() is { Length: > 0 } variable
             ? "The license is set through " + variable + ", which overrides any license activated here."

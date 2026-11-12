@@ -7,18 +7,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.UI.Kit.Visualization;
-using SharpRail.Plugins.Visualize;
-using SharpRail.Plugins.Visualize.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.Visualize;
+using Tereditor.Plugins.Visualize.Host;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class VisualizeChecks
 {
@@ -160,7 +160,7 @@ internal static class VisualizeChecks
             var drawing = store.RunTool(w1, Diagram("graph TD;A-->B;", "Wired"));
             store.ReportRender("w1", "t1", 1, null);
             var drawn = await drawing;
-            Require(!drawn.IsError && drawn.Text.Contains("Rendered \"Wired\" in SharpRail (revision 1)", StringComparison.Ordinal) && store.Get("w1", "t1")?.Title == "Wired",
+            Require(!drawn.IsError && drawn.Text.Contains("Rendered \"Wired\" in tereditor (revision 1)", StringComparison.Ordinal) && store.Get("w1", "t1")?.Title == "Wired",
                 "The tool draws and says how to update: " + drawn.Text);
 
             // A diagram the renderer refuses is a tool error, the last good one stands, and the next attempt reuses the revision.
@@ -238,7 +238,7 @@ internal static class VisualizeChecks
             var again = await store.RunTool(chat, Comparison("B"));
             Require(store.Get("w1", "chat-1") is { Detached: true, Revision: 2 } && again.Text.Contains("(revision 2)", StringComparison.Ordinal), "A second call updates the same key.");
             var terminal = await store.RunTool(new TerminalRef("w1", "t1"), Comparison("C"));
-            Require(store.Get("w1", "t1") is { Detached: false } && terminal.Text.StartsWith("Rendered \"Comparison\" in SharpRail (revision 1)", StringComparison.Ordinal),
+            Require(store.Get("w1", "t1") is { Detached: false } && terminal.Text.StartsWith("Rendered \"Comparison\" in tereditor (revision 1)", StringComparison.Ordinal),
                 "A terminal's drawing is not detached and its answer is unchanged: " + terminal.Text);
             Require(store.ForWorkspace("w1").Visualizations.Keys.Order().SequenceEqual(["chat-1", "t1"]), "The snapshot carries both, the flag telling them apart.");
             var other = new VisualizationStore(TimeSpan.FromMilliseconds(20));
@@ -246,12 +246,12 @@ internal static class VisualizeChecks
             await other.RunTool(chat, Comparison("D"));
             Require(other.AdoptForSession("w1", "t5", "sess-4") is { Detached: false } && other.Get("w1", "t5") is { Detached: false },
                 "A tab that adopts a chat's drawing is a terminal, so the drawing is shown beside it.");
-            // A chat whose tab hosts companions gets a pane: not detached and told "SharpRail"; once the tab is gone, or for another chat, the tab fallback returns.
+            // A chat whose tab hosts companions gets a pane: not detached and told "tereditor"; once the tab is gone, or for another chat, the tab fallback returns.
             var hosted = new VisualizationStore(TimeSpan.FromMilliseconds(20));
             hosted.Connect(null, (_, _) => null, new Memory(), (_, tab) => tab == "t1");
             hosted.SetHosting("w1", "chat-1", true);
             var shown = await hosted.RunTool(chat, Comparison("E"));
-            Require(hosted.Get("w1", "chat-1") is { Detached: false } && shown.Text.StartsWith("Rendered \"Comparison\" in SharpRail (revision 1)", StringComparison.Ordinal), "A chat with an open companion-hosting tab is drawn beside it: " + shown.Text);
+            Require(hosted.Get("w1", "chat-1") is { Detached: false } && shown.Text.StartsWith("Rendered \"Comparison\" in tereditor (revision 1)", StringComparison.Ordinal), "A chat with an open companion-hosting tab is drawn beside it: " + shown.Text);
             var elsewhere = await hosted.RunTool(new TerminalRef("w1", "chat-2"), Comparison("F"));
             Require(hosted.Get("w1", "chat-2") is { Detached: true } && elsewhere.Text.Contains("a Visualization tab", StringComparison.Ordinal), "A chat that is not registered stays a tab.");
             hosted.SetHosting("w2", "chat-1", true);
@@ -558,7 +558,7 @@ internal static class VisualizeChecks
         try
         {
             var origin = $"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}";
-            var outside = Path.Combine(Path.GetTempPath(), "sharprail-svg-never-read.png");
+            var outside = Path.Combine(Path.GetTempPath(), "tereditor-svg-never-read.png");
             var refused = new (string Svg, string Expect)[]
             {
                 ("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>", "<script>"),

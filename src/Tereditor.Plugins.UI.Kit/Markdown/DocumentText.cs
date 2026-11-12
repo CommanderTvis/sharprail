@@ -7,7 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// Selectable document text that behaves like an editor's: its selection outlives focus, and links and other controls

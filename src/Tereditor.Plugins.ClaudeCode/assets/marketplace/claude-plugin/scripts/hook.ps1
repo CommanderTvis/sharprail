@@ -1,6 +1,6 @@
 # Windows counterpart of the on-*.sh hook scripts, which need bash, jq and curl. Reads the hook's JSON from
-# stdin and reports the same status payload (build-payload.sh) to SHARPRAIL_AGENT_STATUS_URL; the on-*.bat
-# files call it with the event name. Silent outside a SharpRail terminal, and never fails the agent.
+# stdin and reports the same status payload (build-payload.sh) to TEREDITOR_AGENT_STATUS_URL; the on-*.bat
+# files call it with the event name. Silent outside a tereditor terminal, and never fails the agent.
 param([Parameter(Mandatory)][ValidateSet('session_start', 'prompt_submit', 'tool_complete', 'model_switch', 'permission_request', 'stop', 'stop_failure')][string] $Event)
 $ErrorActionPreference = 'SilentlyContinue'
 $raw = [Console]::In.ReadToEnd()
@@ -28,9 +28,9 @@ function Payload([string] $name, [hashtable] $extra = @{}) {
 }
 
 function Report($body) {
-    if (!$body -or !$env:SHARPRAIL_AGENT_STATUS_URL) { return }
+    if (!$body -or !$env:TEREDITOR_AGENT_STATUS_URL) { return }
     $bytes = [Text.UTF8Encoding]::new($false).GetBytes(($body | ConvertTo-Json -Compress -Depth 8))
-    try { Invoke-RestMethod -Uri $env:SHARPRAIL_AGENT_STATUS_URL -Method Post -Body $bytes -ContentType 'application/json' -TimeoutSec 2 | Out-Null } catch { }
+    try { Invoke-RestMethod -Uri $env:TEREDITOR_AGENT_STATUS_URL -Method Post -Body $bytes -ContentType 'application/json' -TimeoutSec 2 | Out-Null } catch { }
 }
 
 function TextOf($content) {

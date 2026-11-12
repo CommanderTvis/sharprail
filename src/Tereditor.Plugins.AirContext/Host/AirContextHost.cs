@@ -2,10 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 /// <summary>
 /// The Air Context plugin's host half: the JetBrains Context CLI's consent, provisioning and per-workspace indexing and
@@ -39,7 +39,7 @@ public sealed class AirContextHost : PluginHostModule
     }
 
     /// <summary>The guidance moved verbatim from the Claude Code and Codex instructions; it exists only while the plugin is enabled.</summary>
-    internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace's project has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
+    internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace's project has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these tereditor tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
 
     /// <summary>What a session is told, once when it starts, about whether its project has Air Context on, so it need not check.</summary>
     internal const string EnabledNow = "Air Context is ENABLED for this project (as of this session's start): you MUST call `context_search` first for unfamiliar code, before grep or reading files; `context_status` is needed only to learn whether indexing or sign-in is ready.";
@@ -57,7 +57,7 @@ public sealed class AirContextHost : PluginHostModule
         var found = await find(target);
         if (found is not null && origin is not null && found.ProjectId == origin.ProjectId) return Path.TrimEndingDirectorySeparator(Path.GetFullPath(found.Path));
         var known = await list(origin?.ProjectId);
-        throw new UnauthorizedAccessException($"{target} is not a known SharpRail workspace of this project. Known workspaces: {(known.Count == 0 ? "none" : string.Join(", ", known.Select(item => item.Path)))}.");
+        throw new UnauthorizedAccessException($"{target} is not a known tereditor workspace of this project. Known workspaces: {(known.Count == 0 ? "none" : string.Join(", ", known.Select(item => item.Path)))}.");
     }
 
     private sealed class Activation(IPluginHostContext context)
@@ -95,7 +95,7 @@ public sealed class AirContextHost : PluginHostModule
                 "Semantic code discovery in this enabled workspace. Use a descriptive query when you do not know where behavior lives; follow returned file/line references with targeted reads and LSP navigation. Prefer LSP for known symbols. Indexing sends source chunks to JetBrains; only the user can enable it. If disabled, signed out or indexing, report that state and use other tools. Results may lag working-tree changes; LSP/editor buffers remain authoritative for unsaved code.",
                 (arguments, call, token) => RunToolAsync(arguments.Workspace, call, "search", arguments.Query, arguments.Path ?? "", arguments.Limit ?? 20, token)));
             context.Tool(new PluginTool<ContextStatusParams>("context_status", "context status",
-                "Read this workspace's SharpRail-managed Context state. Never enables indexing, accepts terms or signs in. Use refresh=true for vendor-reported index status.",
+                "Read this workspace's tereditor-managed Context state. Never enables indexing, accepts terms or signs in. Use refresh=true for vendor-reported index status.",
                 (arguments, call, token) => RunToolAsync(arguments.Workspace, call, arguments.Refresh == true ? "refresh" : "status", "", "", 20, token)));
             context.Tool(new PluginTool<ContextIndexParams>("context_index", "context index",
                 "Refresh semantic indexing for this already-enabled workspace. Returns immediately; poll context_status. Source chunks are sent to JetBrains. Cannot enable a workspace or accept terms.",
@@ -105,7 +105,7 @@ public sealed class AirContextHost : PluginHostModule
             {
                 switch (change)
                 {
-                    // First recognition of a SharpRail UI-launched agent starts background indexing for an enabled
+                    // First recognition of a tereditor UI-launched agent starts background indexing for an enabled
                     // workspace; model and status updates of the same launch do not repeat it.
                     case TerminalAgentChanged { Record: var record } agent:
                         var launched = record?.LaunchedByUi == true && record.Kind is "codex" or "claude";

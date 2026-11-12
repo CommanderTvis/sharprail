@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const tailscale = await import(pathToFileURL(path.join(root, 'src/SharpRail.Browser/wwwroot/tailscale.js')).href);
+const tailscale = await import(pathToFileURL(path.join(root, 'src/Tereditor.Browser/wwwroot/tailscale.js')).href);
 
 // State: synchronous reads for Go, ordered write-through, reload restores identity, sign-out wipes it.
 const persisted = new Map();
@@ -31,7 +31,7 @@ assert.equal(persisted.size, 0, 'Sign-out wipes the persisted identity.');
 assert.equal(reloaded.getState('profile'), '', 'Sign-out wipes the in-memory identity.');
 
 // Download: a fake same-origin fetch and Cache Storage.
-const manifest = { build: '1.104.1-abc', cacheName: 'sharprail-tailscale-1.104.1-abc', module: 'tailscale/m.wasm', exec: 'tailscale/wasm_exec.js', size: 6 };
+const manifest = { build: '1.104.1-abc', cacheName: 'tereditor-tailscale-1.104.1-abc', module: 'tailscale/m.wasm', exec: 'tailscale/wasm_exec.js', size: 6 };
 function fakeCaches() {
   const stores = new Map();
   return {
@@ -64,7 +64,7 @@ const progress = [];
 await tailscale.downloadInto({ fetch: fakeFetch([[1, 2], [3, 4, 5, 6]]), caches, manifest, onProgress: bytes => progress.push(bytes) });
 assert.deepEqual(progress, [2, 6], 'Progress counts decoded module bytes.');
 assert.equal(await tailscale.isCachedIn(caches, manifest), true, 'A complete download is cached under its build.');
-assert.equal(await tailscale.isCachedIn(caches, { ...manifest, build: 'next', cacheName: 'sharprail-tailscale-next' }), false, 'Another build is not served from this cache.');
+assert.equal(await tailscale.isCachedIn(caches, { ...manifest, build: 'next', cacheName: 'tereditor-tailscale-next' }), false, 'Another build is not served from this cache.');
 
 caches = fakeCaches();
 const controller = new AbortController();

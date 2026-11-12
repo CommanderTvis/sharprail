@@ -1,5 +1,5 @@
 <ContentControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.MermaidView">
+                xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.Plugins.UI.Kit.Visualization.MermaidView">
   <Grid>
     <TextBlock x:Name="Loading" Text="Rendering diagram…" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" />
     <ContentControl x:Name="Drawing" />

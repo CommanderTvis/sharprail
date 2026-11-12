@@ -5,14 +5,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
-// SharpRail's shell integration in shells the host starts: real zsh in a fixture HOME with no user startup files, locally
+// tereditor's shell integration in shells the host starts: real zsh in a fixture HOME with no user startup files, locally
 // and through a real WebSocket RPC host, with the host setting on and off.
 internal static partial class ShellIntegrationChecks
 {
@@ -23,8 +23,8 @@ internal static partial class ShellIntegrationChecks
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux()) { Console.WriteLine("SKIP shell integration: PTYs require macOS or Linux."); return; }
         var resources = ShellIntegration.DefaultResources;
-        Require(File.Exists(Path.Combine(resources, "zsh", ".zshenv")) && File.Exists(Path.Combine(resources, "bash", "sharprail.bash")),
-            "the app must ship SharpRail's zsh and bash scripts in " + resources);
+        Require(File.Exists(Path.Combine(resources, "zsh", ".zshenv")) && File.Exists(Path.Combine(resources, "bash", "tereditor.bash")),
+            "the app must ship tereditor's zsh and bash scripts in " + resources);
         Plans(resources);
         ShellModel();
         // Linux runners ship bash only; the live sessions need zsh, which CI does not install.
@@ -60,7 +60,7 @@ internal static partial class ShellIntegrationChecks
             }
             finally { await app.StopAsync(); }
         });
-        Console.WriteLine("PASS shell integration: SharpRail's scripts ship with the app; zsh marks prompts (OSC 133 A/B/C/D) and reports its directory (OSC 7) locally and remotely; the host's model gives every client the phase, each command's exit code and busy only while one runs; new terminals start in the reported directory and relative links resolve there; keeps the user's ZDOTDIR and re-marks a prompt the user's precmd rewrites; bash gets the ENV injection and fish none; Apple's /bin/bash and the setting off inject nothing");
+        Console.WriteLine("PASS shell integration: tereditor's scripts ship with the app; zsh marks prompts (OSC 133 A/B/C/D) and reports its directory (OSC 7) locally and remotely; the host's model gives every client the phase, each command's exit code and busy only while one runs; new terminals start in the reported directory and relative links resolve there; keeps the user's ZDOTDIR and re-marks a prompt the user's precmd rewrites; bash gets the ENV injection and fish none; Apple's /bin/bash and the setting off inject nothing");
     }
 
     // The injection for shells this machine may not have.
@@ -69,16 +69,16 @@ internal static partial class ShellIntegrationChecks
         var empty = new Dictionary<string, string>();
         var zsh = ShellIntegration.For("/bin/zsh", resources, new Dictionary<string, string> { ["ZDOTDIR"] = "/home/me/.config/zsh" })
             ?? throw new InvalidOperationException("Shell integration: zsh must be integrated.");
-        Require(zsh.Variables["ZDOTDIR"] == Path.Combine(resources, "zsh") && zsh.Variables["SHARPRAIL_SHELL_ZDOTDIR"] == "/home/me/.config/zsh" &&
+        Require(zsh.Variables["ZDOTDIR"] == Path.Combine(resources, "zsh") && zsh.Variables["TEREDITOR_SHELL_ZDOTDIR"] == "/home/me/.config/zsh" &&
             zsh.Arguments.Length == 0 && zsh.Variables.Count == 2,
-            "zsh must start from SharpRail's ZDOTDIR and keep the user's in SHARPRAIL_SHELL_ZDOTDIR.");
-        Require(!(ShellIntegration.For("/bin/zsh", resources, empty)?.Variables.ContainsKey("SHARPRAIL_SHELL_ZDOTDIR") ?? true), "an unset ZDOTDIR must stay unset.");
+            "zsh must start from tereditor's ZDOTDIR and keep the user's in TEREDITOR_SHELL_ZDOTDIR.");
+        Require(!(ShellIntegration.For("/bin/zsh", resources, empty)?.Variables.ContainsKey("TEREDITOR_SHELL_ZDOTDIR") ?? true), "an unset ZDOTDIR must stay unset.");
         var bash = ShellIntegration.For("/usr/local/bin/bash", resources, new Dictionary<string, string> { ["ENV"] = "/home/me/.envrc" })
             ?? throw new InvalidOperationException("Shell integration: a non-Apple bash must be integrated.");
-        Require(bash.Arguments.SequenceEqual(["--posix"]) && bash.Variables["ENV"] == Path.Combine(resources, "bash", "sharprail.bash") &&
-            bash.Variables["SHARPRAIL_SHELL_INJECT"] == "1" && bash.Variables["SHARPRAIL_SHELL_BASH_ENV"] == "/home/me/.envrc" &&
-            bash.Variables["HISTFILE"].EndsWith("/.bash_history", StringComparison.Ordinal) && bash.Variables["SHARPRAIL_SHELL_HISTFILE_UNEXPORT"] == "1",
-            "bash must start in POSIX mode reading SharpRail's script through ENV, keeping ENV and the history file.");
+        Require(bash.Arguments.SequenceEqual(["--posix"]) && bash.Variables["ENV"] == Path.Combine(resources, "bash", "tereditor.bash") &&
+            bash.Variables["TEREDITOR_SHELL_INJECT"] == "1" && bash.Variables["TEREDITOR_SHELL_BASH_ENV"] == "/home/me/.envrc" &&
+            bash.Variables["HISTFILE"].EndsWith("/.bash_history", StringComparison.Ordinal) && bash.Variables["TEREDITOR_SHELL_HISTFILE_UNEXPORT"] == "1",
+            "bash must start in POSIX mode reading tereditor's script through ENV, keeping ENV and the history file.");
         Require(!ShellIntegration.For("/usr/local/bin/bash", resources, new Dictionary<string, string> { ["HISTFILE"] = "/h" })!.Value.Variables.ContainsKey("HISTFILE"),
             "a user's HISTFILE must be left alone.");
         Require(ShellIntegration.For("/usr/bin/fish", resources, new Dictionary<string, string> { ["XDG_DATA_DIRS"] = "/opt/share" }) is null &&
@@ -132,7 +132,7 @@ internal static partial class ShellIntegrationChecks
         return fixture;
     }
 
-    // A HOME with no startup files, so only the system's and SharpRail's run, and no inherited ZDOTDIR.
+    // A HOME with no startup files, so only the system's and tereditor's run, and no inherited ZDOTDIR.
     private static async Task WithFixture(string fixture, Func<Task> body)
     {
         string[] names = ["HOME", "ZDOTDIR", "SHELL", "LOGNAME", "ENV", "HISTFILE", "TERM_PROGRAM"];
@@ -170,7 +170,7 @@ internal static partial class ShellIntegrationChecks
             await screen.WaitFor("nested%20dir\u0007", mode + " OSC 7 after cd");
             await Inherits(terminals, session.Id, workspace, mode);
             await LinksFollowCd(terminals, session, screen, workspace, mode);
-            await screen.Run("env | grep -c '^SHARPRAIL_SHELL_\\|^ZDOTDIR=' ; echo ZDOT_$?");
+            await screen.Run("env | grep -c '^TEREDITOR_SHELL_\\|^ZDOTDIR=' ; echo ZDOT_$?");
             await screen.WaitFor("ZDOT_1", mode + " ZDOTDIR restored after startup");
         }
         finally { await session.KillAsync(); await terminals.CloseAsync(session.Id); }
@@ -263,7 +263,7 @@ internal static partial class ShellIntegrationChecks
         var screen = new Output(session);
         try
         {
-            await screen.Run("echo PLAIN_$((6*7)); env | grep -c '^GHOSTTY_\\|^SHARPRAIL_SHELL_'");
+            await screen.Run("echo PLAIN_$((6*7)); env | grep -c '^GHOSTTY_\\|^TEREDITOR_SHELL_'");
             await screen.WaitFor("PLAIN_42", mode + " plain output");
             await Task.Delay(300);
             Require(!screen.Text.Contains("\u001b]133;", StringComparison.Ordinal) && !screen.Text.Contains("\u001b]7;", StringComparison.Ordinal),
@@ -273,7 +273,7 @@ internal static partial class ShellIntegrationChecks
         finally { await session.KillAsync(); await terminals.CloseAsync(session.Id); }
     }
 
-    // The user's ZDOTDIR still runs: SharpRail's .zshenv restores it before zsh reads .zshrc from it. A prompt the user's
+    // The user's ZDOTDIR still runs: tereditor's .zshenv restores it before zsh reads .zshrc from it. A prompt the user's
     // own precmd rebuilds is marked again, and an empty Enter reports no command.
     private static async Task UserStartup(ITerminalService terminals, string fixture, string workspace)
     {

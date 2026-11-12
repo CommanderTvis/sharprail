@@ -8,13 +8,13 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Scintilla;
+using Tereditor.Host.Abstractions;
+using Tereditor.Scintilla;
 
-using static SharpRail.Checks.E2E.ChangesFixture;
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.ChangesFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Upstream's live-refresh cases. WebSocket fsChanged frames become the window's coalesced watcher
@@ -26,7 +26,7 @@ internal static class LiveRefreshE2E
     {
         if (Source is not { } source)
         {
-            Console.WriteLine("SKIP upstream live refresh: set SHARPRAIL_TEST_GIT_SOURCE.");
+            Console.WriteLine("SKIP upstream live refresh: set TEREDITOR_TEST_GIT_SOURCE.");
             return;
         }
         Panels(root, source);
@@ -181,8 +181,8 @@ internal static class LiveRefreshE2E
         editor.Focus();
         app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
         app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
-        var conflict = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
+        var conflict = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
         conflict.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Until(() => !conflict.IsShown());
@@ -194,8 +194,8 @@ internal static class LiveRefreshE2E
     private static void Discard(E2eWorkspace app, string tab)
     {
         app.Window.Layout.Close(app.Center, tab);
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Until(() => app.Tabs.All(item => item.Id != tab));

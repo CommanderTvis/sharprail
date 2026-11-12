@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Processes.Host;
+namespace Tereditor.Plugins.Processes.Host;
 
 /// <summary>
 /// The host half: the process snapshot and stop methods, and the agent-facing owned-process management that this plugin owns
@@ -27,7 +27,7 @@ public sealed class ProcessesHost : PluginHostModule
         if (!OperatingSystem.IsBrowser())
         {
             context.Tool(new PluginTool<OwnedProcessReportParams>(ProcessesPlugin.ReportTool, "Report a long-running process you started",
-                "Report a long-running background process you started (a dev server, a watcher, a run_in_background command) so SharpRail stops it when this terminal closes or SharpRail quits, instead of leaving it running. Report only processes you started and want gone then; call owned_process_release if you stop it yourself. Refuses pid 1, SharpRail, any terminal's shell, a dead pid and another user's process.",
+                "Report a long-running background process you started (a dev server, a watcher, a run_in_background command) so tereditor stops it when this terminal closes or tereditor quits, instead of leaving it running. Report only processes you started and want gone then; call owned_process_release if you stop it yourself. Refuses pid 1, tereditor, any terminal's shell, a dead pid and another user's process.",
                 async (arguments, call, token) =>
                 {
                     if (call.Terminal is not { } terminal) return new PluginToolResult("This session has no terminal tab to own a process.") { IsError = true };
@@ -35,7 +35,7 @@ public sealed class ProcessesHost : PluginHostModule
                     catch (ArgumentException error) { return new PluginToolResult(error.Message) { IsError = true }; }
                 }));
             context.Tool(new PluginTool<OwnedProcessReleaseParams>(ProcessesPlugin.ReleaseTool, "Withdraw a reported process",
-                "Tell SharpRail a process you reported with owned_process_report is no longer yours to be stopped, usually because you stopped it. It does not stop the process.",
+                "Tell tereditor a process you reported with owned_process_report is no longer yours to be stopped, usually because you stopped it. It does not stop the process.",
                 (arguments, call, _) => ValueTask.FromResult(call.Terminal is not { } terminal
                     ? new PluginToolResult("This session has no terminal tab to own a process.") { IsError = true }
                     : new PluginToolResult(processes.ReleaseOwned(terminal, arguments.Pid) ? $"Released pid {arguments.Pid}." : $"This terminal had not reported pid {arguments.Pid}; nothing changed."))));
@@ -46,7 +46,7 @@ public sealed class ProcessesHost : PluginHostModule
                 Description = "Report long-running background processes with owned_process_report, release them with owned_process_release.",
                 Placement = PromptPlacement.Section,
                 Text = """
-                    Report every long-running background process you start (dev servers, watchers, `run_in_background` commands) with `owned_process_report` (its `pid`, and a short `description`), so SharpRail stops it when the terminal closes or SharpRail quits.
+                    Report every long-running background process you start (dev servers, watchers, `run_in_background` commands) with `owned_process_report` (its `pid`, and a short `description`), so tereditor stops it when the terminal closes or tereditor quits.
                     Call `owned_process_release` when you stop it yourself. Report only processes you started.
                     """
             });

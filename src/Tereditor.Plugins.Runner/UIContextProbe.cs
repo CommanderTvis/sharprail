@@ -2,12 +2,12 @@ using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Isolation;
-using SharpRail.Plugins.Isolation.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Isolation;
+using Tereditor.Plugins.Isolation.UI;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
 /// <c>probe ui-context</c>: a UI-only plugin through the generated proxy, with no Avalonia platform. Its factories

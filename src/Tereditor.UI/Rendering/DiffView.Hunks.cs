@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 // Per-hunk realization for stacked Changes review sections. Each hunk is a slot of its own; only slots near the
 // outer viewport hold editors. A slot that was never drawn has an estimated height, and a released slot keeps the

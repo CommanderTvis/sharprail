@@ -9,14 +9,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Remote;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Remote;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Upstream cases where several clients share one host. A second window of the same app stands in
@@ -221,7 +221,7 @@ internal static class MultiClientE2E
         using var reloaded = RemoteClient(proxy.Endpoint, project, profile, workspace);
         Until(() => Status(reloaded) == "Error");
         Require(ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } problem && problem == reloaded.Find<TextBlock>("WorkspaceError").Text
-            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionDot").Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover and its dot is not the healthy colour.");
+            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionDot").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover and its dot is not the healthy colour.");
         Require(!reloaded.Window.WorkspaceMounted && new ProfileStore(profile).Data.Windows[0].LastProject == workspace,
             "A failed restore read must keep the remembered workspace.");
         proxy.Allow();

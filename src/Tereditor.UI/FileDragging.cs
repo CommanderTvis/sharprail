@@ -5,16 +5,16 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
     internal sealed record WorkspaceFileDrag(Workbench Owner, string Root, string Path);
-    internal static readonly DataFormat<WorkspaceFileDrag> WorkspaceFileFormat = DataFormat.CreateInProcessFormat<WorkspaceFileDrag>("SharpRail.WorkspaceFile");
+    internal static readonly DataFormat<WorkspaceFileDrag> WorkspaceFileFormat = DataFormat.CreateInProcessFormat<WorkspaceFileDrag>("Tereditor.WorkspaceFile");
 
     internal static DataTransfer CreateWorkspaceFileData(WorkspaceFileDrag source, IStorageItem? file)
     {

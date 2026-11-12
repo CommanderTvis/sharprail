@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// Fails when a project reference or a source mention crosses the documented dependency direction.
@@ -11,12 +11,12 @@ namespace SharpRail.Checks;
 /// </summary>
 internal static class BoundaryChecks
 {
-    private const string Abstractions = "SharpRail.Host.Abstractions", Protocol = "SharpRail.Host.Protocol", Core = "SharpRail.Host.Core",
-        Client = "SharpRail.Host.Client", Headless = "SharpRail.Host.Headless", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
-        UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
-        Chat = "SharpRail.Plugins.Chat", ChatUi = "SharpRail.Plugins.Chat.UI", ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android", Browser = "SharpRail.Browser",
-        Wire = "SharpRail.Wire", Isolation = "SharpRail.Plugins.Isolation", IsolationUi = "SharpRail.Plugins.Isolation.UI",
-        IsolationGenerator = "SharpRail.Plugins.Isolation.Generator", Runner = "SharpRail.Plugins.Runner";
+    private const string Abstractions = "Tereditor.Host.Abstractions", Protocol = "Tereditor.Host.Protocol", Core = "Tereditor.Host.Core",
+        Client = "Tereditor.Host.Client", Headless = "Tereditor.Host.Headless", Remote = "Tereditor.Host.Remote", Scintilla = "Tereditor.Scintilla", Ghostty = "Ghostty.Avalonia",
+        UI = "Tereditor.UI", Checks = "Tereditor.Checks", Api = "Tereditor.Plugins.Api",
+        Chat = "Tereditor.Plugins.Chat", ChatUi = "Tereditor.Plugins.Chat.UI", ApiHost = "Tereditor.Plugins.Api.Host", ApiUi = "Tereditor.Plugins.Api.UI", Kit = "Tereditor.Plugins.UI.Kit", Android = "Tereditor.Android", Browser = "Tereditor.Browser",
+        Wire = "Tereditor.Wire", Isolation = "Tereditor.Plugins.Isolation", IsolationUi = "Tereditor.Plugins.Isolation.UI",
+        IsolationGenerator = "Tereditor.Plugins.Isolation.Generator", Runner = "Tereditor.Plugins.Runner";
 
     /// <summary>Every project and what it may reach, directly or through a reference. A new project needs its own entry.</summary>
     private static readonly Dictionary<string, string[]> Allowed = new()
@@ -25,36 +25,36 @@ internal static class BoundaryChecks
         [Wire] = [],
         [Protocol] = [Wire],
         // The host runs an external plugin's runner through the plugin channel (Security.SPEC.md).
-        [Core] = [Abstractions, Api, ApiHost, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Core] = [Abstractions, Api, ApiHost, Isolation, "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex"],
         // The remote adapter of an external plugin's UI session speaks the channel's surface protocol (Security.SPEC.md, UI halves).
         [Client] = [Abstractions, Protocol, Api, Isolation],
         // The headless host is a console program over the core: no web server, no UI.
-        [Headless] = [Abstractions, Core, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Headless] = [Abstractions, Core, Api, ApiHost, "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex"],
         // The host serves an external plugin's UI session to remote clients over the surface call.
-        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, Isolation, "SharpRail.Plugins.Tailscale"],
+        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, Isolation, "Tereditor.Plugins.Tailscale"],
         [Scintilla] = [],
         [Ghostty] = [],
         // The UI draws an external plugin's surfaces (Security.SPEC.md, UI halves) from the channel's surface protocol.
-        [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, Isolation, "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex"],
         // The Android client compiles the UI's sources and reaches what they do, except the serving half.
-        [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex"],
+        [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex"],
         [Checks] = [Abstractions, Wire, Protocol, Core, Client, Headless, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
-            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", "SharpRail.PluginFixture.Outsider.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
+            "Tereditor.Plugins.ClaudeCode", "Tereditor.Plugins.Codex", "Tereditor.Plugins.Agent.UI", "Tereditor.PluginFixture.Host", "Tereditor.PluginFixture.UI", "Tereditor.PluginFixture.Outsider.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
         [Api] = [],
         [ApiHost] = [Api],
         [ApiUi] = [Api],
         [Kit] = [Scintilla],
         // The chat contract and the chat view are shared by the plugins that offer a chat.
         [Chat] = [Api],
-        [ChatUi] = [Api, ApiUi, Kit, Chat, "SharpRail.Plugins.Agent.UI"],
-        ["SharpRail.Plugins.Agent.UI"] = [Api, Kit],
-        ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
-        ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit],
+        [ChatUi] = [Api, ApiUi, Kit, Chat, "Tereditor.Plugins.Agent.UI"],
+        ["Tereditor.Plugins.Agent.UI"] = [Api, Kit],
+        ["Tereditor.PluginFixture.Host"] = [Api, ApiHost],
+        ["Tereditor.PluginFixture.UI"] = [Api, ApiUi, Kit],
         // An external plugin with only a UI half, installed from disk by the checks, and its private dependency.
-        ["SharpRail.PluginFixture.Outsider.UI"] = [Api, ApiUi, Kit, "SharpRail.PluginFixture.Outsider.Words"],
-        ["SharpRail.PluginFixture.Outsider.Words"] = [],
-        // The plugin channel and the process that runs an external plugin (src/SharpRail.Plugins.Api/Security.SPEC.md).
+        ["Tereditor.PluginFixture.Outsider.UI"] = [Api, ApiUi, Kit, "Tereditor.PluginFixture.Outsider.Words"],
+        ["Tereditor.PluginFixture.Outsider.Words"] = [],
+        // The plugin channel and the process that runs an external plugin (src/Tereditor.Plugins.Api/Security.SPEC.md).
         [Isolation] = [Wire, Api, ApiHost],
         [IsolationUi] = [Isolation, Api, ApiUi],
         [IsolationGenerator] = [],
@@ -72,7 +72,7 @@ internal static class BoundaryChecks
     internal static string? Checkout()
     {
         for (var directory = new DirectoryInfo(Directory.GetCurrentDirectory()); directory is not null; directory = directory.Parent)
-            if (File.Exists(Path.Combine(directory.FullName, "SharpRail.slnx"))) return directory.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "Tereditor.slnx"))) return directory.FullName;
         return null;
     }
 
@@ -99,10 +99,10 @@ internal static class BoundaryChecks
         var rules = Allowed.ToDictionary();
         foreach (var plugin in new[] { "Acp", "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "BranchGraph", "Review", "Processes", "Visualize", "Codex", "Omp", "Pi", "Providers", "AirGateway", "AirContext", "Tailscale", "Epub", "CodeIntelligence", "EnvMise", "EnvDirenv", "EnvPython", "EnvJavaScript", "EnvJvm", "Env", "GitHub" })
         {
-            var contract = "SharpRail.Plugins." + plugin;
+            var contract = "Tereditor.Plugins." + plugin;
             rules[contract] = [Api];
-            rules[contract + ".Host"] = [Api, ApiHost, contract, "SharpRail.Plugins.SpecDialect"];
-            rules[contract + ".UI"] = [Api, ApiUi, Kit, Scintilla, contract, "SharpRail.Plugins.SpecDialect", "SharpRail.Plugins.Agent.UI"];
+            rules[contract + ".Host"] = [Api, ApiHost, contract, "Tereditor.Plugins.SpecDialect"];
+            rules[contract + ".UI"] = [Api, ApiUi, Kit, Scintilla, contract, "Tereditor.Plugins.SpecDialect", "Tereditor.Plugins.Agent.UI"];
             rules[Core] = [.. rules[Core], contract, contract + ".Host"];
             rules[UI] = [.. rules[UI], contract, contract + ".UI"];
             rules[Android] = [.. rules[Android], contract, contract + ".UI"];
@@ -123,7 +123,7 @@ internal static class BoundaryChecks
             }
         }
         // Language server plugins (H21) are one host-only project each, referenced by the host core only.
-        foreach (var plugin in projects.Select(project => Path.GetFileNameWithoutExtension(project)).Where(name => name.StartsWith("SharpRail.Plugins.Lsp.", StringComparison.Ordinal)))
+        foreach (var plugin in projects.Select(project => Path.GetFileNameWithoutExtension(project)).Where(name => name.StartsWith("Tereditor.Plugins.Lsp.", StringComparison.Ordinal)))
         {
             rules[plugin] = [Api, ApiHost];
             rules[Core] = [.. rules[Core], plugin];
@@ -206,8 +206,8 @@ internal static class BoundaryChecks
         string Tree(params (string Path, string Text)[] files)
         {
             var root = Path.Combine(directory, "case-" + ++count);
-            foreach (var (path, text) in files.Append(("src/SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />"))
-                .Append(("src/SharpRail.Host.Core/SharpRail.Host.Core.csproj", Project("../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj"))))
+            foreach (var (path, text) in files.Append(("src/Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />"))
+                .Append(("src/Tereditor.Host.Core/Tereditor.Host.Core.csproj", Project("../Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj"))))
             {
                 var file = Path.Combine(root, path);
                 Directory.CreateDirectory(Path.GetDirectoryName(file)!);
@@ -228,50 +228,50 @@ internal static class BoundaryChecks
             var violations = Scan(Tree(files));
             Require(violations.Count == 0, "A permitted tree was rejected: " + string.Join("; ", violations));
         }
-        const string core = "src/SharpRail.Host.Core/", ui = "src/SharpRail.UI/SharpRail.UI.csproj", client = "src/SharpRail.Host.Client/SharpRail.Host.Client.csproj",
-            remote = "src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj", bare = "<Project Sdk=\"Microsoft.NET.Sdk\" />";
+        const string core = "src/Tereditor.Host.Core/", ui = "src/Tereditor.UI/Tereditor.UI.csproj", client = "src/Tereditor.Host.Client/Tereditor.Host.Client.csproj",
+            remote = "src/Tereditor.Host.Remote/Tereditor.Host.Remote.csproj", bare = "<Project Sdk=\"Microsoft.NET.Sdk\" />";
 
-        Clean((core + "Host.cs", "using SharpRail.Host.Abstractions;\nnamespace SharpRail.Host.Core;\ninternal sealed class Host : IWorkspaceHost;\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", "SharpRail.Host.Core.csproj", (ui, bare),
-            (core + "SharpRail.Host.Core.csproj", Project("../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj", "../SharpRail.UI/SharpRail.UI.csproj")));
-        Crosses("SharpRail.Host.Abstractions -> SharpRail.UI", "SharpRail.Host.Abstractions.csproj", (ui, bare),
-            ("src/SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj", Project("../SharpRail.UI/SharpRail.UI.csproj")));
-        Crosses("SharpRail.Host.Core -> SharpRail.Host.Client", "SharpRail.Host.Core.csproj", (client, bare),
-            (core + "SharpRail.Host.Core.csproj", Project("../SharpRail.Host.Client/SharpRail.Host.Client.csproj")));
-        Crosses("SharpRail.Host.Core -> SharpRail.Host.Remote", "SharpRail.Host.Core.csproj", (remote, bare),
-            (core + "SharpRail.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Reference Include=\"Remote\"><HintPath>../SharpRail.Host.Remote/bin/SharpRail.Host.Remote.dll</HintPath></Reference></ItemGroup></Project>"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", "SharpRail.Host.Core.csproj", (ui, bare),
-            (core + "SharpRail.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Using Include=\"SharpRail.UI.State\" /></ItemGroup></Project>"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", "SharpRail.Host.Core.csproj", (ui, bare),
-            (core + "SharpRail.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Compile Include=\"../SharpRail.UI/State/ProfileStore.cs\" Link=\"ProfileStore.cs\" /></ItemGroup></Project>"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", Path.Combine("SharpRail.Host.Core", "Plain.cs"), (ui, bare), (core + "Plain.cs", "using SharpRail.UI;\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.Host.Remote", Path.Combine("SharpRail.Host.Core", "Alias.cs"), (remote, bare),
-            (core + "Alias.cs", "using Server = SharpRail.Host.Remote.RemoteServer;\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.Host.Client", Path.Combine("SharpRail.Host.Core", "Static.cs"), (client, bare),
-            (core + "Static.cs", "using static SharpRail.Host.Client.LocalHostAdapter;\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", Path.Combine("SharpRail.Host.Core", "GlobalUsings.cs"), (ui, bare),
-            (core + "GlobalUsings.cs", "global using SharpRail.UI.Docking;\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.UI", Path.Combine("Nested", "Qualified.cs"), (ui, bare),
-            (core + "Nested/Qualified.cs", "namespace SharpRail.Host.Core;\ninternal static class Qualified { static object Window() => new global::SharpRail.UI.WorkbenchWindow(); }\n"));
-        Crosses("SharpRail.Host.Core -> SharpRail.Host.Client", Path.Combine("SharpRail.Host.Core", "Forward.cs"), (client, bare),
-            (core + "Forward.cs", "[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(SharpRail.Host.Client.LocalHostAdapter))]\n"));
-        Crosses("SharpRail.Host.Client -> SharpRail.Host.Core", Path.Combine("SharpRail.Host.Client", "View.axaml"), (client, bare),
-            ("src/SharpRail.Host.Client/View.axaml", "<UserControl xmlns:core=\"clr-namespace:SharpRail.Host.Core;assembly=SharpRail.Host.Core\" />"));
+        Clean((core + "Host.cs", "using Tereditor.Host.Abstractions;\nnamespace Tereditor.Host.Core;\ninternal sealed class Host : IWorkspaceHost;\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", "Tereditor.Host.Core.csproj", (ui, bare),
+            (core + "Tereditor.Host.Core.csproj", Project("../Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj", "../Tereditor.UI/Tereditor.UI.csproj")));
+        Crosses("Tereditor.Host.Abstractions -> Tereditor.UI", "Tereditor.Host.Abstractions.csproj", (ui, bare),
+            ("src/Tereditor.Host.Abstractions/Tereditor.Host.Abstractions.csproj", Project("../Tereditor.UI/Tereditor.UI.csproj")));
+        Crosses("Tereditor.Host.Core -> Tereditor.Host.Client", "Tereditor.Host.Core.csproj", (client, bare),
+            (core + "Tereditor.Host.Core.csproj", Project("../Tereditor.Host.Client/Tereditor.Host.Client.csproj")));
+        Crosses("Tereditor.Host.Core -> Tereditor.Host.Remote", "Tereditor.Host.Core.csproj", (remote, bare),
+            (core + "Tereditor.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Reference Include=\"Remote\"><HintPath>../Tereditor.Host.Remote/bin/Tereditor.Host.Remote.dll</HintPath></Reference></ItemGroup></Project>"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", "Tereditor.Host.Core.csproj", (ui, bare),
+            (core + "Tereditor.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Using Include=\"Tereditor.UI.State\" /></ItemGroup></Project>"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", "Tereditor.Host.Core.csproj", (ui, bare),
+            (core + "Tereditor.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><Compile Include=\"../Tereditor.UI/State/ProfileStore.cs\" Link=\"ProfileStore.cs\" /></ItemGroup></Project>"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", Path.Combine("Tereditor.Host.Core", "Plain.cs"), (ui, bare), (core + "Plain.cs", "using Tereditor.UI;\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.Host.Remote", Path.Combine("Tereditor.Host.Core", "Alias.cs"), (remote, bare),
+            (core + "Alias.cs", "using Server = Tereditor.Host.Remote.RemoteServer;\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.Host.Client", Path.Combine("Tereditor.Host.Core", "Static.cs"), (client, bare),
+            (core + "Static.cs", "using static Tereditor.Host.Client.LocalHostAdapter;\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", Path.Combine("Tereditor.Host.Core", "GlobalUsings.cs"), (ui, bare),
+            (core + "GlobalUsings.cs", "global using Tereditor.UI.Docking;\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.UI", Path.Combine("Nested", "Qualified.cs"), (ui, bare),
+            (core + "Nested/Qualified.cs", "namespace Tereditor.Host.Core;\ninternal static class Qualified { static object Window() => new global::Tereditor.UI.WorkbenchWindow(); }\n"));
+        Crosses("Tereditor.Host.Core -> Tereditor.Host.Client", Path.Combine("Tereditor.Host.Core", "Forward.cs"), (client, bare),
+            (core + "Forward.cs", "[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(Tereditor.Host.Client.LocalHostAdapter))]\n"));
+        Crosses("Tereditor.Host.Client -> Tereditor.Host.Core", Path.Combine("Tereditor.Host.Client", "View.axaml"), (client, bare),
+            ("src/Tereditor.Host.Client/View.axaml", "<UserControl xmlns:core=\"clr-namespace:Tereditor.Host.Core;assembly=Tereditor.Host.Core\" />"));
         // A shared build file reaches every project, whatever conditions it carries.
-        var shared = Scan(Tree((ui, bare), ("Directory.Build.props", "<Project><ItemGroup><ProjectReference Include=\"$(MSBuildThisFileDirectory)src/SharpRail.UI/SharpRail.UI.csproj\" /></ItemGroup></Project>")));
-        Require(shared.Order(StringComparer.Ordinal).SequenceEqual(["SharpRail.Host.Abstractions -> SharpRail.UI: project item in Directory.Build.props",
-            "SharpRail.Host.Core -> SharpRail.UI: project item in Directory.Build.props"]), "A shared build file's reference must count against every project: " + string.Join("; ", shared));
-        var unruled = Scan(Tree(("src/SharpRail.Plugins/SharpRail.Plugins.csproj", bare)));
-        Require(unruled.Count == 1 && unruled[0].StartsWith("SharpRail.Plugins: no boundary rule", StringComparison.Ordinal), "A project without a rule must be rejected.");
+        var shared = Scan(Tree((ui, bare), ("Directory.Build.props", "<Project><ItemGroup><ProjectReference Include=\"$(MSBuildThisFileDirectory)src/Tereditor.UI/Tereditor.UI.csproj\" /></ItemGroup></Project>")));
+        Require(shared.Order(StringComparer.Ordinal).SequenceEqual(["Tereditor.Host.Abstractions -> Tereditor.UI: project item in Directory.Build.props",
+            "Tereditor.Host.Core -> Tereditor.UI: project item in Directory.Build.props"]), "A shared build file's reference must count against every project: " + string.Join("; ", shared));
+        var unruled = Scan(Tree(("src/Tereditor.Plugins/Tereditor.Plugins.csproj", bare)));
+        Require(unruled.Count == 1 && unruled[0].StartsWith("Tereditor.Plugins: no boundary rule", StringComparison.Ordinal), "A project without a rule must be rejected.");
 
         // Build output, comments, literals and identifiers that merely contain a project's name are not dependencies.
-        Clean((ui, bare), (core + "obj/Generated.cs", "using SharpRail.UI;\n"), (core + "bin/Release/Copy.cs", "using SharpRail.UI;\n"),
-            (core + "Prose.cs", "// using SharpRail.UI;\n/* SharpRail.UI.State */\nnamespace SharpRail.Host.Core;\ninternal static class Prose\n{\n" +
-                "    const string Plain = \"SharpRail.UI\", Escaped = \"\\\"SharpRail.UI\", Verbatim = @\"\"\"SharpRail.UI\\\";\n" +
-                "    const string Raw = \"\"\"\n        \"SharpRail.UI\"\n        \"\"\";\n    const char Quote = '\"';\n    static int MySharpRail.UIx;\n}\n"),
-            (core + "SharpRail.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><InternalsVisibleTo Include=\"SharpRail.Checks\" /></ItemGroup></Project>"),
-            ("tests/SharpRail.Checks/SharpRail.Checks.csproj", Project("../../src/SharpRail.UI/SharpRail.UI.csproj")),
-            ("tests/SharpRail.Checks/Probe.cs", "using SharpRail.UI;\nusing SharpRail.Host.Core;\n"));
+        Clean((ui, bare), (core + "obj/Generated.cs", "using Tereditor.UI;\n"), (core + "bin/Release/Copy.cs", "using Tereditor.UI;\n"),
+            (core + "Prose.cs", "// using Tereditor.UI;\n/* Tereditor.UI.State */\nnamespace Tereditor.Host.Core;\ninternal static class Prose\n{\n" +
+                "    const string Plain = \"Tereditor.UI\", Escaped = \"\\\"Tereditor.UI\", Verbatim = @\"\"\"Tereditor.UI\\\";\n" +
+                "    const string Raw = \"\"\"\n        \"Tereditor.UI\"\n        \"\"\";\n    const char Quote = '\"';\n    static int MyTereditor.UIx;\n}\n"),
+            (core + "Tereditor.Host.Core.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><InternalsVisibleTo Include=\"Tereditor.Checks\" /></ItemGroup></Project>"),
+            ("tests/Tereditor.Checks/Tereditor.Checks.csproj", Project("../../src/Tereditor.UI/Tereditor.UI.csproj")),
+            ("tests/Tereditor.Checks/Probe.cs", "using Tereditor.UI;\nusing Tereditor.Host.Core;\n"));
         Console.WriteLine($"PASS boundary fixtures: {count} trees through the repository scan");
     }
 }

@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Visualize.UI;
+namespace Tereditor.Plugins.Visualize.UI;
 
 public sealed class VisualizeUI : PluginUIModule
 {

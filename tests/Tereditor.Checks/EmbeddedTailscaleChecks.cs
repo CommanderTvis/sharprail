@@ -3,10 +3,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Plugins.Tailscale;
-using SharpRail.UI.Android;
+using Tereditor.Plugins.Tailscale;
+using Tereditor.UI.Android;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class EmbeddedTailscaleChecks
 {
@@ -90,15 +90,15 @@ internal static class EmbeddedTailscaleChecks
                 request.Append((char)one[0]);
                 Require(request.Length < 8192, "The discovery request must be bounded.");
             }
-            Require(request.ToString().StartsWith("GET /sharprail ", StringComparison.Ordinal) && !request.ToString().Contains("fixture-secret", StringComparison.Ordinal),
+            Require(request.ToString().StartsWith("GET /tereditor ", StringComparison.Ordinal) && !request.ToString().Contains("fixture-secret", StringComparison.Ordinal),
                 "Proxy credentials must not leak into the host HTTP request.");
-            const string body = "{\"name\":\"SharpRail fixture\"}";
+            const string body = "{\"name\":\"tereditor fixture\"}";
             await stream.WriteAsync(Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n{body}"), timeout.Token);
         }, timeout.Token);
         using (var client = new TailscaleClient(network))
         {
             var discovered = await client.DiscoverAsync(timeout.Token);
-            Require(discovered.Count == 1 && discovered[0] == new TailscalePeer("SharpRail fixture", "100.70.1.2"), "Discovery must probe only eligible peers and keep their numeric embedded route.");
+            Require(discovered.Count == 1 && discovered[0] == new TailscalePeer("tereditor fixture", "100.70.1.2"), "Discovery must probe only eligible peers and keep their numeric embedded route.");
         }
         await probe;
         await network.LoginAsync(timeout.Token);

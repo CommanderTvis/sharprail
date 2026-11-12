@@ -5,10 +5,10 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.GitHub.UI;
+namespace Tereditor.Plugins.GitHub.UI;
 
 /// <summary>The Review panel's pull request section (W28): the open request's chip, Open PR or Push updates, and the diverged or unpushed notice.</summary>
 internal sealed class GitHubReviewSection : StackPanel

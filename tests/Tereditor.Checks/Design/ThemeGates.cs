@@ -4,9 +4,9 @@ using System.Text.Json.Nodes;
 using Avalonia.Media;
 using Avalonia.Platform;
 
-using SharpRail.UI.Rendering;
+using Tereditor.UI.Rendering;
 
-namespace SharpRail.Checks.Design;
+namespace Tereditor.Checks.Design;
 
 /// <summary>What every bundled manifest must satisfy beyond being complete: strict parsing and legibility.</summary>
 internal static class ThemeGates
@@ -31,12 +31,12 @@ internal static class ThemeGates
     {
         foreach (var theme in Themes.All)
         {
-            if (!ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, SharpRail.UI.Rendering.Accents.DefaultId), theme) || !ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, ""), theme))
+            if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, Tereditor.UI.Rendering.Accents.DefaultId), theme) || !ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, ""), theme))
                 failures.Add($"{theme.Id}: the default accent must be the manifest itself.");
-            foreach (var accent in SharpRail.UI.Rendering.Accents.Curated.Select(choice => choice.Id).Concat(CustomAccents))
+            foreach (var accent in Tereditor.UI.Rendering.Accents.Curated.Select(choice => choice.Id).Concat(CustomAccents))
             {
-                if (accent == SharpRail.UI.Rendering.Accents.DefaultId) continue;
-                var derived = SharpRail.UI.Rendering.Accents.Apply(theme, accent);
+                if (accent == Tereditor.UI.Rendering.Accents.DefaultId) continue;
+                var derived = Tereditor.UI.Rendering.Accents.Apply(theme, accent);
                 var label = $"{theme.Id} with accent {accent}";
                 Legibility(derived, label, failures);
                 foreach (var key in Themes.ColorKeys.Except(["accent", "accentSolid", "accentHover", "onAccent"]))
@@ -46,14 +46,14 @@ internal static class ThemeGates
                 if (Contrast(derived["accentSolid"], derived["accentHover"]) < 1.1)
                     failures.Add($"{label}: the hover fill is indistinguishable from the solid fill.");
                 if (derived["accent"] == theme["accent"]) failures.Add($"{label}: the accent did not change.");
-                if (!ReferenceEquals(SharpRail.UI.Rendering.Accents.Apply(theme, accent), derived)) failures.Add($"{label}: the derivation must be cached per theme and accent.");
+                if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, accent), derived)) failures.Add($"{label}: the derivation must be cached per theme and accent.");
             }
         }
     }
 
     private static void Strictness(List<string> failures)
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Themes/dark.theme.json"));
+        using var stream = AssetLoader.Open(new Uri("avares://Tereditor.UI/Assets/Themes/dark.theme.json"));
         var source = JsonNode.Parse(stream)!;
         bool Rejected(Action<JsonNode> change)
         {
@@ -71,7 +71,7 @@ internal static class ThemeGates
         if (!Rejected(theme => theme["colors"]!["text"] = null)) failures.Add("The manifest parser accepted null for a required colour.");
         if (!Rejected(theme => theme["id"] = "Not A Slug")) failures.Add("The manifest parser accepted an id that is not a slug.");
 
-        using var schemaStream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/theme.schema.json"));
+        using var schemaStream = AssetLoader.Open(new Uri("avares://Tereditor.UI/Assets/theme.schema.json"));
         var schema = JsonNode.Parse(schemaStream)!;
         schema["$defs"]!["syntax"]!["required"]!.AsArray().RemoveAt(0);
         try

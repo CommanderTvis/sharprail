@@ -6,10 +6,10 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// The header's status area through a workspace switch with a slow branch status read: every block keeps its bounds after every
@@ -32,7 +32,7 @@ internal static class StatusSwitchChecks
             if (uncached) app.Window.ForgetBranchFacts();
             var fast = Switch(app, workspaces[0], workspaces[1]);
             Require(!fast.BusySeen && fast.Moves == 0 && fast.Changes <= (uncached ? 2 : 1), $"A fast status read must not show the busy line or move the status area ({Describe(fast)}).");
-            Console.WriteLine($"SHARPRAIL_STATUS_SWITCH fast uncached={uncached} content={fast.ContentMs:F0}ms final={fast.FinalMs:F0}ms samples={fast.Samples}");
+            Console.WriteLine($"TEREDITOR_STATUS_SWITCH fast uncached={uncached} content={fast.ContentMs:F0}ms final={fast.FinalMs:F0}ms samples={fast.Samples}");
             Switch(app, workspaces[1], workspaces[0]);
         }
 
@@ -47,9 +47,9 @@ internal static class StatusSwitchChecks
             Require(slow.ContentMs < delay.TotalMilliseconds * 0.6, $"The switch must not wait for the status ({Describe(slow)}).");
             Require(slow.FinalMs >= delay.TotalMilliseconds * 0.9, $"The status arrives only after its delay ({Describe(slow)}).");
             if (!uncached) Require(!slow.BusySeen, $"A cached status is never loading, so the busy line stays off ({Describe(slow)}).");
-            else Require(slow.BusyAtMs is { } busy && busy >= SharpRail.UI.WorkbenchWindow.StatusBusyDelay.TotalMilliseconds * 0.8 && busy < delay.TotalMilliseconds, $"The busy line must show after the threshold and before the status arrives ({Describe(slow)}).");
+            else Require(slow.BusyAtMs is { } busy && busy >= Tereditor.UI.WorkbenchWindow.StatusBusyDelay.TotalMilliseconds * 0.8 && busy < delay.TotalMilliseconds, $"The busy line must show after the threshold and before the status arrives ({Describe(slow)}).");
             Require(slow.BusyEnded, "The busy line must be gone once the status arrived.");
-            Console.WriteLine($"SHARPRAIL_STATUS_SWITCH slow uncached={uncached} content={slow.ContentMs:F0}ms busy={slow.BusyAtMs?.ToString("F0") ?? "none"}ms final={slow.FinalMs:F0}ms samples={slow.Samples}");
+            Console.WriteLine($"TEREDITOR_STATUS_SWITCH slow uncached={uncached} content={slow.ContentMs:F0}ms busy={slow.BusyAtMs?.ToString("F0") ?? "none"}ms final={slow.FinalMs:F0}ms samples={slow.Samples}");
             Switch(app, workspaces[1], workspaces[0]);
         }
         Console.WriteLine("PASS status area: stable bounds through a slow status read, busy line only past its delay");

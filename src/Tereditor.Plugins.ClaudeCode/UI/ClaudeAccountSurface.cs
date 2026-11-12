@@ -6,11 +6,11 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>With another plugin governing Claude Code launches, that source's account and credits instead; otherwise who Claude Code is signed in as, the usage windows it caches with the severity it chose, and its version.</summary>
 internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPanel

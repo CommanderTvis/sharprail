@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-using static SharpRail.Plugins.Api.Host.LanguageSettingField;
+using static Tereditor.Plugins.Api.Host.LanguageSettingField;
 
-namespace SharpRail.Plugins.Lsp.Shell;
+namespace Tereditor.Plugins.Lsp.Shell;
 
 /// <summary>The Shell (Bash LS) language server, as a builtin plugin that is enabled by default.</summary>
 public sealed class ShellPlugin() : LanguageServerPlugin(Id)
@@ -20,7 +20,7 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
         Headless = HeadlessSupport.Yes,
         DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
-        Host = "SharpRail.Plugins.Lsp.Shell.dll"
+        Host = "Tereditor.Plugins.Lsp.Shell.dll"
     };
 
     public override LanguageServerSpec Spec { get; } = new()

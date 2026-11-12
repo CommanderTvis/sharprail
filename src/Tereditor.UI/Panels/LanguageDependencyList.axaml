@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             xmlns:local="using:SharpRail.UI.Panels"
-             x:Class="SharpRail.UI.Panels.LanguageDependencyList">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             xmlns:local="using:Tereditor.UI.Panels"
+             x:Class="Tereditor.UI.Panels.LanguageDependencyList">
   <ItemsControl Name="DependencyRows">
     <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
     <ItemsControl.ItemTemplate>

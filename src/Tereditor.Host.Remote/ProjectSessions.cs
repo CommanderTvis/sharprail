@@ -1,16 +1,16 @@
 using System.Collections.Concurrent;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>
 /// Resolves each call's workspace from the root the client opened, so clients never share a
 /// current project and a reconnecting client needs no server-side session to resume.
 /// </summary>
 public sealed class ProjectSessions(string defaultRoot, HostStateStore state, Func<string, string, bool>? allowsExternalFile = null,
-    Func<string, RepoHostRoute?>? repoHosts = null, Action<SharpRail.Plugins.Api.Host.BranchStatusEvent>? branchStatusObserved = null)
+    Func<string, RepoHostRoute?>? repoHosts = null, Action<Tereditor.Plugins.Api.Host.BranchStatusEvent>? branchStatusObserved = null)
 {
 
     private readonly ConcurrentDictionary<string, ProjectServices> roots = new(StringComparer.Ordinal);

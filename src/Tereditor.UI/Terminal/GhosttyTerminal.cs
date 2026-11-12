@@ -6,7 +6,7 @@ using Avalonia.Input;
 using Ghostty.Avalonia;
 
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 // Ghostty's Metal renderer, composed as a texture; its child is the relay.
 [SupportedOSPlatform("macos")]
@@ -53,7 +53,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
         var name = launch.SessionId + "-" + Guid.NewGuid().ToString("N");
         statusPath = Path.Combine(TerminalRelay.Directory, name + ".status");
         connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath, launch.TabKey, launch.Yield, launch.Program, launch.DirectoryFrom));
-        var executable = Environment.ProcessPath ?? throw new TerminalStartException("The SharpRail executable path is unknown.");
+        var executable = Environment.ProcessPath ?? throw new TerminalStartException("The tereditor executable path is unknown.");
         var command = "'" + executable.Replace("'", "'\\''") + "' " + TerminalRelay.Argument;
         try
         {
@@ -142,8 +142,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
         if (texture is not null) texture.Colors = TerminalTheme.Colors();
     }
 
-    public ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
-        connection is null ? ValueTask.FromResult<SharpRail.Host.Abstractions.TerminalShellStatus?>(null) : connection.Terminals.ShellStatusAsync(launch.SessionId);
+    public ValueTask<Tereditor.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
+        connection is null ? ValueTask.FromResult<Tereditor.Host.Abstractions.TerminalShellStatus?>(null) : connection.Terminals.ShellStatusAsync(launch.SessionId);
 
     public ValueTask<bool> IsBusyAsync()
     {

@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Processes an agent reports with owned_process_report are stopped with their terminal, on host shutdown and by the
 // start-up sweep, never by a reused pid, and never when they are not reported or were released.

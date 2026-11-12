@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>
 /// One chat on one ACP agent: the transport, the client, the conversation it folds into and the permission requests waiting for the user.
@@ -81,7 +81,7 @@ internal sealed class AcpChatSession : IAsyncDisposable, IAcpClientHandler
             transport = await connect();
             client = new AcpClient(transport.FromAgent, transport.ToAgent, this);
             _ = WatchAsync(client, transport);
-            agent = await client.InitializeAsync("SharpRail", "0.1", lifetime.Token);
+            agent = await client.InitializeAsync("tereditor", "0.1", lifetime.Token);
             JsonObject session;
             if (resume is { Length: > 0 } && agent.LoadSession)
             {

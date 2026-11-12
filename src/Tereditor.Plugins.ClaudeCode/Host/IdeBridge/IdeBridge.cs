@@ -7,26 +7,26 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.IdeBridge;
+namespace Tereditor.Plugins.ClaudeCode.Host.IdeBridge;
 
 /// <summary>What the bridge needs from the plugin: dispatching an action to a client, the workspace folders, and process ownership.</summary>
 /// <param name="Dispatch">Pushes a host-initiated action to the workspace's client; the reply arrives through <see cref="IdeBridge.Settle"/>.</param>
 /// <param name="WorkspaceFolders">The worktrees this IDE has open.</param>
-/// <param name="WorkspaceForProcess">The workspace a connecting agent's process belongs to, or null when SharpRail did not start it.</param>
+/// <param name="WorkspaceForProcess">The workspace a connecting agent's process belongs to, or null when tereditor did not start it.</param>
 internal sealed record IdeBridgeDeps(Action<IdeActionRequest> Dispatch, Func<IReadOnlyList<string>> WorkspaceFolders, Func<int, string?> WorkspaceForProcess);
 
 /// <summary>
 /// Claude Code's IDE protocol: a loopback WebSocket MCP server advertised by a lock file. The CLI reads the editor's
 /// selection from it, takes the file references the user sends to its prompt, and asks it to open, check, save and
 /// close files; the plugin relays those requests to the client that owns the workspace and its replies back. A
-/// socket hears about a workspace, and acts in it, only once its agent says which process it is, so a CLI SharpRail
+/// socket hears about a workspace, and acts in it, only once its agent says which process it is, so a CLI tereditor
 /// did not start learns nothing.
 /// </summary>
 internal sealed class IdeBridge(IdeBridgeDeps deps)
 {
-    public const string IdeName = "SharpRail";
+    public const string IdeName = "tereditor";
 
-    /// <summary>The variable the CLI reads to skip lock-file discovery when SharpRail started its terminal.</summary>
+    /// <summary>The variable the CLI reads to skip lock-file discovery when tereditor started its terminal.</summary>
     public const string SsePortVariable = "CLAUDE_CODE_SSE_PORT";
 
     private static readonly TimeSpan ActionTimeout = TimeSpan.FromSeconds(15);
@@ -169,7 +169,7 @@ internal sealed class IdeBridge(IdeBridgeDeps deps)
 
     /// <summary>
     /// Runs one IDE tool and returns its reply's text items. It acts in the calling session's workspace; a session
-    /// SharpRail did not start has none and takes the workspace of the last selection.
+    /// tereditor did not start has none and takes the workspace of the last selection.
     /// </summary>
     public async Task<IReadOnlyList<string>> CallToolAsync(string name, JsonObject arguments, string? session = null)
     {
@@ -182,7 +182,7 @@ internal sealed class IdeBridge(IdeBridgeDeps deps)
             latest = workspaceId is null ? null : latestSelection.GetValueOrDefault(workspaceId);
         }
         Task<JsonElement?> Action(IdeActionKind kind, IdeActionParams parameters) =>
-            RequestAction(workspaceId ?? throw new InvalidOperationException("No active SharpRail workspace for this request"), kind, parameters);
+            RequestAction(workspaceId ?? throw new InvalidOperationException("No active tereditor workspace for this request"), kind, parameters);
         static string[] Json(JsonNode value) => [value.ToJsonString()];
         static string[] Raw(JsonElement? value) => [value?.GetRawText() ?? "null"];
         switch (name)
@@ -249,7 +249,7 @@ internal sealed class IdeBridge(IdeBridgeDeps deps)
                     {
                         ["protocolVersion"] = IdeMcp.ProtocolVersion,
                         ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
-                        ["serverInfo"] = new JsonObject { ["name"] = "sharprail-ide", ["version"] = "1.0.0" }
+                        ["serverInfo"] = new JsonObject { ["name"] = "tereditor-ide", ["version"] = "1.0.0" }
                     });
                 case "tools/list": return IdeMcp.Success(id, new JsonObject { ["tools"] = IdeMcp.Tools() });
                 case "ping": return IdeMcp.Success(id, new JsonObject());

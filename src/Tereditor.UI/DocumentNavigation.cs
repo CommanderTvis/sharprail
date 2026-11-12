@@ -1,6 +1,6 @@
-using SharpRail.UI.Docking;
+using Tereditor.UI.Docking;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

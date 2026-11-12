@@ -4,8 +4,8 @@ Upstream: apps/web/src/styles/TYPOGRAPHY.md (revision: [STATUS.md](../../../STAT
 
 `Rendering/Design/typography.json` is the single authored source of typography. Families, weights, sizes,
 line heights, letter spacings and the semantic text styles all live there; the C# the kit ships
-(`src/SharpRail.Plugins.UI.Kit/Generated/Typography.g.cs`) is generated from it by
-`SharpRail.Checks -- --design --write`, and `-- --design` fails while it is stale. Change the type of
+(`src/Tereditor.Plugins.UI.Kit/Generated/Typography.g.cs`) is generated from it by
+`Tereditor.Checks -- --design --write`, and `-- --design` fails while it is stale. Change the type of
 anything by editing the JSON, never the generated file.
 
 ## Primitives

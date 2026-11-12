@@ -2,7 +2,7 @@
 
 This toolkit publishes a separate Release NativeAOT app and host, as the packages ship them, launches a reproducible
 workspace with isolated state, measures startup and RAM, and writes raw observations plus an offline
-HTML report. It does not replace `artifacts/SharpRail.app` or use your normal SharpRail profile.
+HTML report. It does not replace `artifacts/tereditor.app` or use your normal tereditor profile.
 
 Run from this checkout on macOS with the local .NET SDK, Xcode command-line tools, and AC power:
 
@@ -117,4 +117,4 @@ Measured on an Apple-silicon Mac, Release, isolated profile, this checkout as th
 - Long-session emulation (a console workload with 430 MB live small objects, 60 MB live large objects and about 10 MB/s of churn, 90 s of use then idle; one run per variant, so indicative): committed heap after use, default 789 MB (384 MB fragmentation), ConserveMemory=5 657 MB, ConserveMemory=7 602 MB, non-concurrent GC 730 MB with total pause 4.4 s against 2.0 s, so it was rejected.
 - The idle compaction took 100 to 150 ms once and cut the committed heap from 758 MB to 366 MB (fragmentation 369 MB to 0); worst GC pause stayed near 113 to 152 ms.
 
-Switch back to a Debug build with `SHARPRAIL_CONFIGURATION=Debug scripts/mise run dev`. The first Release `dev` build compiles everything once (about 12 minutes on a cold tree here, native libraries only when their inputs changed); later runs rebuild incrementally in seconds.
+Switch back to a Debug build with `TEREDITOR_CONFIGURATION=Debug scripts/mise run dev`. The first Release `dev` build compiles everything once (about 12 minutes on a cold tree here, native libraries only when their inputs changed); later runs rebuild incrementally in seconds.

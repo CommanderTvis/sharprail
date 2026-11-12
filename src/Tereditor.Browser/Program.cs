@@ -4,12 +4,12 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Browser;
 
-using SharpRail.UI.Resources.Pdf;
-using SharpRail.Plugins.UI.Kit.Visualization;
-using SharpRail.UI;
-using SharpRail.UI.Browser;
+using Tereditor.UI.Resources.Pdf;
+using Tereditor.Plugins.UI.Kit.Visualization;
+using Tereditor.UI;
+using Tereditor.UI.Browser;
 
-await JSHost.ImportAsync("sharprail", "../sharprail.js");
+await JSHost.ImportAsync("tereditor", "../tereditor.js");
 await AppBuilder.Configure<App>().UseBrowser().AfterSetup(_ => BrowserWindows.Install()).SetupBrowserAppAsync(new BrowserPlatformOptions { PreferManagedThreadDispatcher = false });
 MermaidRenderer.PlatformRender = async (source, options) =>
 {

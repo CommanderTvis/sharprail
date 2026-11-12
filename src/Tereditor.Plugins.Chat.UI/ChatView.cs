@@ -8,17 +8,17 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>What the chat view reaches outside itself for: the wire client and the few workbench actions a chat triggers.</summary>
 internal sealed record ChatEnvironment(IChatClient Client, ChatAgent Agent)
 {
-    /// <summary>Opens SharpRail's own diff view for a file: of the proposed change, or of what the call already changed.</summary>
+    /// <summary>Opens tereditor's own diff view for a file: of the proposed change, or of what the call already changed.</summary>
     public Func<ChatDiffRequest, Task> OpenDiff { get; init; } = _ => Task.CompletedTask;
     public Func<string, Task> OpenFile { get; init; } = _ => Task.CompletedTask;
     /// <summary>Follows a link that passed the safe-scheme check.</summary>
@@ -35,11 +35,11 @@ internal sealed record ChatEnvironment(IChatClient Client, ChatAgent Agent)
     /// <summary>Calls back (on any thread) whenever the active editor or its selection may have changed; dispose to stop.</summary>
     public Func<Action, IDisposable> WatchSelection { get; init; } = _ => EmptyWatch.Instance;
     /// <summary>The model picker's favourites, recents and hidden models: client-local, never in a project.</summary>
-    public SharpRail.Plugins.Api.UI.IPluginPreference ModelPreference { get; init; } = new MemoryPreference();
+    public Tereditor.Plugins.Api.UI.IPluginPreference ModelPreference { get; init; } = new MemoryPreference();
     /// <summary>The composer's own choices (Enter sends, recent prompts), client-local like the model preferences.</summary>
-    public SharpRail.Plugins.Api.UI.IPluginPreference ComposerPreference { get; init; } = new MemoryPreference();
+    public Tereditor.Plugins.Api.UI.IPluginPreference ComposerPreference { get; init; } = new MemoryPreference();
     /// <summary>Each chat's own zoom, by chat id, client-local.</summary>
-    public SharpRail.Plugins.Api.UI.IPluginPreference ZoomPreference { get; init; } = new MemoryPreference();
+    public Tereditor.Plugins.Api.UI.IPluginPreference ZoomPreference { get; init; } = new MemoryPreference();
     public Action<string> SetTitle { get; init; } = _ => { };
     /// <summary>The environment chips (mise, direnv, JVM) of the chat's workspace, the same rows a terminal shows.</summary>
     public Func<IReadOnlyList<Control>> WorkspaceChips { get; init; } = () => [];
@@ -52,7 +52,7 @@ internal sealed class EmptyWatch : IDisposable
 }
 
 /// <summary>A preference held in memory, for a view that is not mounted in a workbench.</summary>
-internal sealed class MemoryPreference : SharpRail.Plugins.Api.UI.IPluginPreference
+internal sealed class MemoryPreference : Tereditor.Plugins.Api.UI.IPluginPreference
 {
     private string? value;
     public string? Get() => value;

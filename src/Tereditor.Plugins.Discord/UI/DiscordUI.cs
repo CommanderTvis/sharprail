@@ -1,9 +1,9 @@
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Discord.UI;
+namespace Tereditor.Plugins.Discord.UI;
 
 /// <summary>The UI half: the settings section, and reporting what is open so the host can decide what to publish.</summary>
 public sealed class DiscordUI : PluginUIModule

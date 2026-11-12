@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "Use before implementing a feature, a change in behavior, or a bug fix — however small — in a project that keeps a SharpRail spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs, questions, checks, or edits that change no behavior (typos, documentation or configuration only, mechanical refactors)."
+description: "Use before implementing a feature, a change in behavior, or a bug fix — however small — in a project that keeps a tereditor spec graph. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs, questions, checks, or edits that change no behavior (typos, documentation or configuration only, mechanical refactors)."
 ---
 
 # Brainstorming
@@ -13,7 +13,7 @@ description: "Use before implementing a feature, a change in behavior, or a bug 
   built, and then reflected in the durable specs — not a speculative implementation.
 - Do not implement until the design is accepted. An explicit design or acceptance criteria in the
   request count as approval of what they cover; build on them and never re-ask them.
-- It needs SharpRail's `spec_*` tools. When the session has none, say so and keep the task-spec as a
+- It needs tereditor's `spec_*` tools. When the session has none, say so and keep the task-spec as a
   plain file at the same path, with the same frontmatter.
 
 ## Doc map
@@ -31,7 +31,7 @@ description: "Use before implementing a feature, a change in behavior, or a bug 
    them rather than blending unrelated decisions into one task-spec.
 3. **Open a task-spec.** `spec_create` a `task-spec` at **`TASK-<slug>.md`** in the repository root (id,
    title, status: draft, parent: the nearest relevant module). `spec_create` paths must stay inside the project, and
-   SharpRail keeps nothing of its own there, so the file is untracked: never stage or commit it, and delete it when the
+   tereditor keeps nothing of its own there, so the file is untracked: never stage or commit it, and delete it when the
    task lands. It is the one temporary design artifact; update it as answers land.
 4. **Bug?** When the request reports something that behaves wrongly, follow `fixing-a-bug.md` now;
    it returns here at step 5 (the "bug" is really a feature) or step 8.

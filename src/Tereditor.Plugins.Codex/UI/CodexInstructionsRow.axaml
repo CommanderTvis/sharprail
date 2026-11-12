@@ -1,6 +1,6 @@
 <Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-      x:Class="SharpRail.Plugins.Codex.UI.CodexInstructionsRow" x:ClassModifier="internal"
+      xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+      x:Class="Tereditor.Plugins.Codex.UI.CodexInstructionsRow" x:ClassModifier="internal"
       Name="CodexInstructions" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="8,4">
   <ContentControl x:Name="FileIcon" Width="14" Height="14" />
   <StackPanel Grid.Column="1" Spacing="2">

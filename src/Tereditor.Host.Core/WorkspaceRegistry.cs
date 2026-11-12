@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>The workspace registry: which worktrees of a project are workspaces, and who owns them.</summary>
 public sealed partial class ProjectServices
@@ -41,7 +41,7 @@ public sealed partial class ProjectServices
             {
                 next.Add(new(NewId(), project, WorkspaceKinds.Default, project, truth.Branch, truth.Base) { InitialTerminalPending = true });
                 // A project met for the first time keeps the worktrees it already shows: those under the
-                // location SharpRail creates in are its own, any other stays the user's.
+                // location tereditor creates in are its own, any other stays the user's.
                 var represented = Represented(next);
                 foreach (var tree in linked ?? [])
                     if (tree.Branch != Detached && !represented.Contains(tree.Path))
@@ -152,13 +152,13 @@ public sealed partial class ProjectServices
             ?? throw new InvalidOperationException("The selected path is not a registered worktree of this project.");
         if (entry.Branch == Detached) throw new InvalidOperationException("Detached HEAD worktrees cannot be opened; create a branch first.");
         var baseBranch = await DefaultBaseAsync(project, cancellationToken);
-        if (registry.Current.Projects.Contains(wanted)) throw new InvalidOperationException("This worktree is already open as a SharpRail project.");
+        if (registry.Current.Projects.Contains(wanted)) throw new InvalidOperationException("This worktree is already open as a tereditor project.");
         WorkspaceRecord? attached = null;
         registry.ChangeWorkspaces(current =>
         {
             attached = current.FirstOrDefault(workspace => workspace.Path == wanted);
             if (attached is not null)
-                return attached.ProjectRoot == project ? current : throw new InvalidOperationException("This worktree is already open under another SharpRail project.");
+                return attached.ProjectRoot == project ? current : throw new InvalidOperationException("This worktree is already open under another tereditor project.");
             attached = new(NewId(), project, WorkspaceKinds.External, wanted, entry.Branch, baseBranch) { InitialTerminalPending = true };
             return current.Append(attached);
         });
@@ -183,7 +183,7 @@ public sealed partial class ProjectServices
         // The fallback below deletes a directory, so it must never see the user's repository or an attached checkout.
         if (workspace.Kind != WorkspaceKinds.Managed || workspace.Path == workspace.ProjectRoot)
             throw new InvalidOperationException(workspace.Kind == WorkspaceKinds.External
-                ? "An existing worktree stays on disk; remove it from SharpRail instead." : "The Default workspace cannot be removed.");
+                ? "An existing worktree stays on disk; remove it from tereditor instead." : "The Default workspace cannot be removed.");
         // Deleting a large checkout takes seconds, so Git does it outside the registry gate: every session's worktree sync,
         // and behind it that session's next open, would otherwise wait for the whole deletion. Only the record change is serialised.
         if (!reclaim)
@@ -208,7 +208,7 @@ public sealed partial class ProjectServices
         calling = Path.TrimEndingDirectorySeparator(Path.GetFullPath(calling));
         path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
         var known = registry.Current.Workspaces;
-        var workspace = known.FirstOrDefault(candidate => candidate.Path == path) ?? throw new ArgumentException("No SharpRail workspace is at that path.");
+        var workspace = known.FirstOrDefault(candidate => candidate.Path == path) ?? throw new ArgumentException("No tereditor workspace is at that path.");
         if (workspace.ProjectRoot != (known.FirstOrDefault(candidate => candidate.Path == calling)?.ProjectRoot ?? calling))
             throw new ArgumentException("That workspace belongs to another project.");
         if (path == calling) throw new InvalidOperationException("This terminal runs in that workspace; it can only be deleted from another one.");

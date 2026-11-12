@@ -1,8 +1,8 @@
 using System.Diagnostics;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Gives fixture repositories, and the git processes the app starts, a private global
@@ -31,7 +31,7 @@ internal sealed class IsolatedGit : IDisposable
             Environment.GetEnvironmentVariable("GIT_CONFIG_NOSYSTEM") == "1", "Checks must not read the developer's git configuration.");
         var repository = Repository(Path.Combine(Path.GetDirectoryName(global)!, "isolation-" + Guid.NewGuid().ToString("N")[..8]));
         Require(Run(repository, "config", "--get", "commit.gpgsign").Trim() == "false" &&
-            Run(repository, "log", "-1", "--format=%an %G?").Trim() == "SharpRail Checks N",
+            Run(repository, "log", "-1", "--format=%an %G?").Trim() == "tereditor Checks N",
             "A fixture commit is unsigned and made by the checks identity.");
         DeleteFixture(repository);
     }
@@ -60,7 +60,7 @@ internal sealed class IsolatedGit : IDisposable
     {
         Directory.CreateDirectory(directory);
         var config = Path.Combine(directory, "gitconfig");
-        File.WriteAllText(config, "[user]\n\tname = SharpRail Checks\n\temail = checks@sharprail.invalid\n[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n[init]\n\tdefaultBranch = main\n");
+        File.WriteAllText(config, "[user]\n\tname = tereditor Checks\n\temail = checks@tereditor.invalid\n[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n[init]\n\tdefaultBranch = main\n");
         Environment.SetEnvironmentVariable("GIT_CONFIG_GLOBAL", config);
         Environment.SetEnvironmentVariable("GIT_CONFIG_NOSYSTEM", "1");
     }

@@ -7,7 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>App-wide behaviour of every <see cref="ScrollViewer"/> behind the quiet scrollbar look in ControlStyles:
 /// the scrolling-intent class with its grace period, and directional edge curtains that fade content on clipped edges.</summary>

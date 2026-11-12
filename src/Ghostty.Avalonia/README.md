@@ -1,8 +1,8 @@
 # Ghostty.Avalonia
 
-Avalonia terminal controls with three rendering paths, independent of SharpRail.
+Avalonia terminal controls with three rendering paths, independent of tereditor.
 The project contains its managed controls, native bridges, pinned build script
-and Ghostty license. It references no SharpRail project.
+and Ghostty license. It references no tereditor project.
 
 | Control | Rendering | Process ownership |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ Windows invokes `build-windows.ps1` and produces `GhosttyAvaloniaVt.dll` from th
 same pinned VT source using Zig 0.17.1. Only `GhosttySkiaView` is supported there;
 clipboard writes use the Avalonia callback. The build needs Git, PowerShell and
 Windows' tar, and downloads its compiler and source into the machine-wide cache described below. When reusing the
-directory outside SharpRail on Windows, also copy `scripts/windows-native.ps1`
+directory outside tereditor on Windows, also copy `scripts/windows-native.ps1`
 to the matching relative location for its download and locking helpers.
 
 Linux invokes `build-linux.sh linux-x64` or `linux-arm64`, which builds the same pinned VT source with Zig 0.17.1 for `x86_64-linux-gnu.2.31` or `aarch64-linux-gnu.2.31` from
@@ -37,15 +37,15 @@ SkiaSharp 4.148.0 and HarfBuzzSharp 14.2.1.301 to the application's package vers
 
 Build on macOS with Xcode command line tools, Git, curl and LLVM's Darwin archive
 writer at `/opt/homebrew/opt/llvm/bin/llvm-ar`. The script downloads pinned Ghostty
-sources and Zig toolchains into a machine-wide cache (`$SHARPRAIL_CACHE_DIR/ghostty-avalonia`, default
-`~/.cache/sharprail`; Windows `%LOCALAPPDATA%\sharprail\cache`) that every checkout and worktree shares. Each
+sources and Zig toolchains into a machine-wide cache (`$TEREDITOR_CACHE_DIR/ghostty-avalonia`, default
+`~/.cache/tereditor`; Windows `%LOCALAPPDATA%\tereditor\cache`) that every checkout and worktree shares. Each
 finished library is kept there under `results/<key>`, the key hashing the pinned commits, Zig version, native sources
 and script, and is built beside its final name and renamed into place under one lock, so concurrent builds and
 different branches never corrupt or overwrite each other's. The script copies the result into its output directory,
 `obj/native` by default (`GhosttyNativeCache`). Libraries and Ghostty's terminfo are copied from there to the consuming
 application's output and publish directory. Ghostty's own shell-integration scripts (`share/ghostty`, partly GPL-3.0
 as derived from kitty) are not shipped: `ExternalIo.patch` starts Ghostty's children with `shell-integration = none`,
-and SharpRail's host injects its own scripts.
+and tereditor's host injects its own scripts.
 
 Every native build (macOS, Linux, Windows, Android, WASM) first restores the Zig packages hosted outside
 github.com into Zig's global cache with `scripts/zig-deps.sh` (`Restore-ZigDeps` on Windows) from a mirror archive
@@ -55,7 +55,7 @@ The native view and the VT library are built from the one Ghostty commit
 `0fa3d577a5614150ff8e2c152de5fb9d5c6d2dec` (`vt-1.0.0`, the first libghostty-vt release) with the one Zig of `mise.toml`. See `licenses/Ghostty-MIT.txt`.
 
 `build-android.sh <arm64-v8a|x86_64> [output-directory]` cross-builds the same pinned
-VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
+VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in tereditor,
 `scripts/tool android-ndk`), from macOS or Linux. It writes
 `android/<abi>/libGhosttyAvaloniaVt.so` into the output directory, 16 KB page aligned and
 depending only on bionic. Package it for its ABI, for example as an
@@ -189,7 +189,7 @@ view and requests the reclaim after five seconds (`DefaultReclaimDelay`), cancel
 
 `ExternalIo.patch` adds this backend to pinned Ghostty and exposes its existing
 locked output parser through the C ABI. It creates no subprocess, socket or RPC
-transport. SharpRail's local Metal and Skia factories both attach directly to the
+transport. tereditor's local Metal and Skia factories both attach directly to the
 app-owned host service; remote Metal retains its authenticated relay.
 
 ## Prompts
@@ -207,7 +207,7 @@ text provider are not implemented. Physical macOS IME behavior and font raster
 parity require native validation; headless input does not establish those.
 Windows and Linux build only the Skia control's library. The Android library, touch
 and soft-keyboard paths are built and covered by headless checks here, and have run in
-SharpRail's Android client on an arm64 emulator, not on a physical device.
+tereditor's Android client on an arm64 emulator, not on a physical device.
 
 The texture and Skia controls rasterize at the window's render scaling times any ancestor scale, so a
 zoomed `LayoutTransformControl` shows sharp cells rather than a resampled frame. The hosted native control
@@ -224,7 +224,7 @@ cell (`gav_vt_hyperlink`), overriding text-detected URLs on those cells. Command
 shows it as a tooltip; Command-click opens it like any other link. OSC 22 pointer shapes map to Avalonia cursors in
 both (`gav_vt_mouse_shape`; Ghostty's `mouse_shape` action through `gav_texture_mouse_shape`).
 
-In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
+In tereditor, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
 `--terminals` additionally checks local/remote host behavior and terminal docking.
 `scripts/mise run check:terminal` and `--native-terminal` cover the native Metal path.
 `--native-texture` checks a real Metal-backed Avalonia window: imported pixels,
@@ -265,7 +265,7 @@ Text blobs are cached up to 4096 entries and explicitly disposed on eviction or
 font disposal. A recorded picture retains its native drawing resources, so cache
 eviction cannot invalidate a queued frame.
 
-SharpRail's Skia adapter coalesces live output from a bounded read-ahead queue (at most
+tereditor's Skia adapter coalesces live output from a bounded read-ahead queue (at most
 128 pieces of 8 KiB). Each UI dispatch drains up to 256 KiB or approximately 2 ms, with
 redraw invalidations coalesced within that dispatch. Replay processes up to 8 KiB in
 1 KiB pieces under the same time budget. A single piece can exceed the budget. Exit

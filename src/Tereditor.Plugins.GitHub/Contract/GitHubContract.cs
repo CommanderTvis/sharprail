@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.GitHub;
+namespace Tereditor.Plugins.GitHub;
 
 public sealed record GitHubSettings;
 
@@ -26,8 +26,8 @@ public static class GitHubContract
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
         Assets = "assets",
-        Host = "SharpRail.Plugins.GitHub.Host.dll",
-        Ui = "SharpRail.Plugins.GitHub.UI.dll"
+        Host = "Tereditor.Plugins.GitHub.Host.dll",
+        Ui = "Tereditor.Plugins.GitHub.UI.dll"
     };
 }
 

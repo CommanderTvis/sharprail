@@ -10,27 +10,27 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
-using SharpRail.Plugins.ClaudeCode.UI;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
+using Tereditor.Plugins.ClaudeCode.UI;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class ClaudeCodeChecks
 {
-    private static readonly string ScratchProbe = Path.Combine(Path.GetTempPath(), "sharprail-scratch-probe");
+    private static readonly string ScratchProbe = Path.Combine(Path.GetTempPath(), "tereditor-scratch-probe");
 
     private static void Require(bool condition, string message)
     {
@@ -45,7 +45,7 @@ internal static class ClaudeCodeChecks
             foreach (var (name, path) in new Dictionary<string, string>
             {
                 ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-                ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+                ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
                 [AgentSessionOwnership.DirectoryVariable] = Path.Combine(directory, "agent-sessions"),
                 [ClaudeCodeContract.ScratchVariable] = ScratchProbe,
                 [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
@@ -55,7 +55,7 @@ internal static class ClaudeCodeChecks
                 Directory.CreateDirectory(path);
                 Environment.SetEnvironmentVariable(name, path);
             }
-            // Checks run from a terminal SharpRail started Claude in inherit its launch switch; the shells they start must not.
+            // Checks run from a terminal tereditor started Claude in inherit its launch switch; the shells they start must not.
             previous[ClaudeLaunch.AgentViewVariable] = Environment.GetEnvironmentVariable(ClaudeLaunch.AgentViewVariable);
             Environment.SetEnvironmentVariable(ClaudeLaunch.AgentViewVariable, null);
         }
@@ -112,15 +112,15 @@ internal static class ClaudeCodeChecks
         Spinner();
         ClaudeContextChecks.Ui();
         var launcherIcon = registry.LauncherList.Single(launcher => launcher.Id == "claude").CreateIcon!;
-        var firstIcon = (ContentControl)launcherIcon(14, SharpRail.Plugins.UI.Kit.Ui.Accent);
-        var secondIcon = (ContentControl)launcherIcon(20, SharpRail.Plugins.UI.Kit.Ui.TextBrush);
+        var firstIcon = (ContentControl)launcherIcon(14, Tereditor.Plugins.UI.Kit.Ui.Accent);
+        var secondIcon = (ContentControl)launcherIcon(20, Tereditor.Plugins.UI.Kit.Ui.TextBrush);
         Require(!ReferenceEquals(firstIcon, secondIcon) && firstIcon.Width == 14 && secondIcon.Width == 20,
             "Claude's launcher icon factory creates independently mountable controls at the requested size.");
-        E2eWorkspace.Until(() => firstIcon.Content is SharpRail.Plugins.UI.Kit.SvgAsset && secondIcon.Content is SharpRail.Plugins.UI.Kit.SvgAsset);
+        E2eWorkspace.Until(() => firstIcon.Content is Tereditor.Plugins.UI.Kit.SvgAsset && secondIcon.Content is Tereditor.Plugins.UI.Kit.SvgAsset);
         app.Window.Layout.NewTerminal(app.Center, "claude-keyboard-check");
-        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Any(view =>
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().Any(view =>
             view.Launch.TabKey == "claude-keyboard-check" && view.Backend?.Started.IsCompletedSuccessfully == true));
-        var terminalView = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(view => view.Launch.TabKey == "claude-keyboard-check");
+        var terminalView = app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().Single(view => view.Launch.TabKey == "claude-keyboard-check");
         var backend = (HostTerminal)terminalView.Backend!;
         E2eWorkspace.Until(() => terminalView.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeTerminalAccessory"));
         var accessory = terminalView.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeTerminalAccessory");
@@ -151,7 +151,7 @@ internal static class ClaudeCodeChecks
         Require(withImage.Contains("Explain this", StringComparison.Ordinal) && withImage.Contains("Read the attached image: /tmp/quoted image.png", StringComparison.Ordinal),
             "Claude receives image-reading instructions along with its initial prompt.");
         var line = launcher.TerminalCommand(new() { Model = "opus", SystemPrompt = "Keep paths with spaces", InitialPrompt = "Draft the design" });
-        Require(line.StartsWith("SHARPRAIL_UI_LAUNCH=claude CLAUDE_CODE_DISABLE_AGENT_VIEW=true /usr/bin/false --append-system-prompt-file", StringComparison.Ordinal) &&
+        Require(line.StartsWith("TEREDITOR_UI_LAUNCH=claude CLAUDE_CODE_DISABLE_AGENT_VIEW=true /usr/bin/false --append-system-prompt-file", StringComparison.Ordinal) &&
             line.Contains("--model opus", StringComparison.Ordinal) && line.Contains("'Draft the design'", StringComparison.Ordinal) &&
             line.Contains("--append-system-prompt 'Keep paths with spaces'", StringComparison.Ordinal), "The launcher composes flags, prompt file and quoted caller prompts once.");
         Require(launcher.Models!().Select(model => model.Id).SequenceEqual(["opus", "fable", "sonnet", "haiku"]), "The launcher offers the fork's four model aliases.");
@@ -200,9 +200,9 @@ internal static class ClaudeCodeChecks
         Require(rows[rows.IndexOf(imported) - 1].GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeContextStem"),
             "A file that imports another draws the stem its branch hangs from.");
         Console.WriteLine("PASS fork plugins/claude-code/claude-config.spec.ts: an imported instruction file is drawn as a branch of the file that pulled it in");
-        // SharpRail's own instructions are chosen section by section, never edited: ticking writes the project's disable-list.
+        // tereditor's own instructions are chosen section by section, never edited: ticking writes the project's disable-list.
         Control? Sections() => app.Window.GetLogicalDescendants().OfType<Control>().SingleOrDefault(control => control.Name == "InstructionSections");
-        Control Popup() => ((SharpRail.Plugins.Agent.UI.InstructionSectionsView)Sections()!).SectionsPanel;
+        Control Popup() => ((Tereditor.Plugins.Agent.UI.InstructionSectionsView)Sections()!).SectionsPanel;
         CheckBox? SectionBox(string id) => Popup().GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
         // They are one context entry with the PROJECT chip, not a launch-flag file row beside a separate card.
         E2eWorkspace.Until(() => Sections() is not null);
@@ -210,11 +210,11 @@ internal static class ClaudeCodeChecks
                 control.Name == "ClaudeContextLayer" && control.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("thinkrail-prompt", StringComparison.Ordinal) == true)) &&
             Sections()!.GetLogicalDescendants().OfType<Border>().Any(chip => chip.Name == "InstructionSectionsScopeChip" && Equals(chip.Tag, "project")) &&
             !Sections()!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "SHARED WITH THE TEAM"),
-            "SharpRail's instructions are a single context entry with the PROJECT chip.");
+            "tereditor's instructions are a single context entry with the PROJECT chip.");
         // The row is a button that counts its sections; the checkboxes live only in its dialog, never inline in the table.
         TextBlock SectionCount() => Sections()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "InstructionSectionsCount");
         Button SectionsRow() => Sections()!.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "InstructionSectionsToggle");
-        var view = (SharpRail.Plugins.Agent.UI.InstructionSectionsView)Sections()!;
+        var view = (Tereditor.Plugins.Agent.UI.InstructionSectionsView)Sections()!;
         E2eWorkspace.Until(() => SectionCount() is { IsEffectivelyVisible: true, Text: { } count } && count.EndsWith(" sections · Choose…", StringComparison.Ordinal));
         Require(!Sections()!.GetLogicalDescendants().OfType<CheckBox>().Any() && SectionsRow().Flyout is null && !view.IsOpen && DialogWindow.On(app.Window).Count == 0,
             "The entry is one compact row with a section count; its sections open in a dialog.");
@@ -223,12 +223,12 @@ internal static class ClaudeCodeChecks
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ClaudeSystemPromptEditPane") &&
             !Popup().GetLogicalDescendants().OfType<TextBox>().Any() &&
             Popup().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("Changes apply to new sessions.", StringComparison.Ordinal) == true) &&
-            Popup().GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains(Path.Combine(".sharprail", "instructions.toml"), StringComparison.Ordinal) == true),
-            "The dialog lists SharpRail's sections with the shared file and the restart note, and offers no way to edit text.");
+            Popup().GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains(Path.Combine(".tereditor", "instructions.toml"), StringComparison.Ordinal) == true),
+            "The dialog lists tereditor's sections with the shared file and the restart note, and offers no way to edit text.");
         // It is an in-window overlay dialog like the settings editor: no popover, a fixed title and Close, a body that scrolls in a short window.
         var sectionsDialog = DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         Require(sectionsDialog.InOverlay && sectionsDialog.Tag is "InstructionSectionsDialog" && sectionsDialog.Surface!.GetVisualAncestors().OfType<Avalonia.Controls.Primitives.Popup>().Count() == 0,
-            "SharpRail's instructions open as an overlay dialog, not a popover.");
+            "tereditor's instructions open as an overlay dialog, not a popover.");
         var normalHeight = app.Window.Height;
         app.Window.Height = 320;
         E2eWorkspace.Settle(200);
@@ -239,7 +239,7 @@ internal static class ClaudeCodeChecks
             "A long list scrolls inside a short window and the Close button stays reachable.");
         app.Window.Height = normalHeight;
         E2eWorkspace.Settle(200);
-        var instructionsFile = Path.Combine(app.Root, ".sharprail", "instructions.toml");
+        var instructionsFile = Path.Combine(app.Root, ".tereditor", "instructions.toml");
         SectionBox("core.workspaces")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.workspaces\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: false, IsEnabled: true });
@@ -265,7 +265,7 @@ internal static class ClaudeCodeChecks
         DialogWindow.On(app.Window).OfType<DialogWindow>().Single().Close();
         E2eWorkspace.Until(() => !view.IsOpen);
         File.Delete(instructionsFile);
-        Console.WriteLine("PASS instruction sections view: one PROJECT row counting its sections, a dialog of compact checkboxes with disclosed text, toggles write .sharprail/instructions.toml");
+        Console.WriteLine("PASS instruction sections view: one PROJECT row counting its sections, a dialog of compact checkboxes with disclosed text, toggles write .tereditor/instructions.toml");
         // The generated file itself opens read-only under a notice that points to the toggles, and the host refuses to save it.
         var promptPath = Path.Combine(GeneratedInstructions.StateDirectory(), ClaudeCodeContract.Id, "thinkrail-prompt-claude.md");
         E2eWorkspace.Until(() => File.Exists(promptPath));
@@ -280,7 +280,7 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => promptSave.IsCompleted);
         Require(promptSave.Exception?.InnerException is UnauthorizedAccessException && File.ReadAllText(promptPath) == promptRead.Result.Text,
             "Saving the generated instructions is refused.");
-        Console.WriteLine("PASS generated instructions open read-only with the SharpRail notice and cannot be saved");
+        Console.WriteLine("PASS generated instructions open read-only with the tereditor notice and cannot be saved");
         foreach (var tab in app.Tabs.Where(tab => tab.Path == promptPath).ToArray()) app.Window.Layout.Close(app.Center, tab.Id);
         E2eWorkspace.Settle();
         var pane = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeConfigPanel");
@@ -321,12 +321,12 @@ internal static class ClaudeCodeChecks
         switcher.IsChecked = false;
         E2eWorkspace.Until(() => !launcher.TerminalCommand(new()).Contains("--append-system-prompt-file", StringComparison.Ordinal));
         Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ClaudeSystemPromptEdit" or "ClaudeSystemPromptReset"),
-            "Settings offer no way to edit SharpRail's instructions.");
+            "Settings offer no way to edit tereditor's instructions.");
         window.Close();
         E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
         var compose = SettingValueDialog.ShowAsync(app.Window, new("ClaudeCheck", "model", JsonSerializer.SerializeToElement("sonnet"), ["model"], "Review change"));
-        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
-        var composer = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
+        E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
+        var composer = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
         var value = composer.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeCheckValueText");
         value.Text = "opus";
         app.Click(composer.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeCheckValueContinue"), freshGesture: false);
@@ -358,7 +358,7 @@ internal static class ClaudeCodeChecks
         foreach (var file in new[] { "close-tab/foo.cs", "close-tab/bar.cs", "close-tab/other/bar.cs" }) File.WriteAllText(Path.Combine(app.Root, file), "class C {}\n");
         var loader = app.Workbench.PluginLoader!;
         var entry = loader.Registry.Entry("claude-code")!;
-        var context = new SharpRail.UI.Plugins.PluginUIContext(loader, entry, new SharpRail.UI.Plugins.PluginActivation(entry));
+        var context = new Tereditor.UI.Plugins.PluginUIContext(loader, entry, new Tereditor.UI.Plugins.PluginActivation(entry));
         using var actions = new IdeActions(context);
         bool Open(string path) => context.Editors.List(app.Root).Any(editor => editor.Path == path);
         void Run(IdeActionKind kind, IdeActionParams parameters)
@@ -387,12 +387,12 @@ internal static class ClaudeCodeChecks
 
     private static void SubmittedPromptKeepsChanges(E2eWorkspace app)
     {
-        var changes = new SharpRail.UI.Docking.DockTab("changes:all:", "Changes · All changes", "changes", Scope: "all");
+        var changes = new Tereditor.UI.Docking.DockTab("changes:all:", "Changes · All changes", "changes", Scope: "all");
         app.Window.Layout.Open(changes, true, app.Center);
         E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Any(tab => tab.Id == changes.Id));
         var loader = app.Workbench.PluginLoader!;
         var entry = loader.Registry.Entry("claude-code")!;
-        var actions = new IdeActions(new SharpRail.UI.Plugins.PluginUIContext(loader, entry, new SharpRail.UI.Plugins.PluginActivation(entry)));
+        var actions = new IdeActions(new Tereditor.UI.Plugins.PluginUIContext(loader, entry, new Tereditor.UI.Plugins.PluginActivation(entry)));
         var toasts = app.Window.Toasts.Items.Count;
         var handled = actions.HandleAsync(new("submitted-prompt", app.Root, IdeActionKind.CloseAllDiffTabs, new()));
         E2eWorkspace.Until(() => handled.IsCompleted);
@@ -426,7 +426,7 @@ internal static class ClaudeCodeChecks
     /// </summary>
     private static void SuggestedSettingValues(E2eWorkspace app)
     {
-        Window Composer() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
+        Window Composer() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
         T Named<T>(string name) where T : Control => Composer().GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         (string Key, JsonElement Value)? Compose(string key, JsonElement? value, Action fill)
         {
@@ -435,7 +435,7 @@ internal static class ClaudeCodeChecks
                 Suggestions = ClaudeSettingSuggestions.For,
                 ShapeFor = ClaudeSettingSuggestions.ShapeFor
             });
-            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
+            E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
             fill();
             E2eWorkspace.Settle();
             app.Click(Named<Button>("ClaudeCheckValueContinue"), freshGesture: false);
@@ -484,8 +484,8 @@ internal static class ClaudeCodeChecks
     {
         // Choosing a scope would ask the host for a plan; this only inspects the options, so no context is needed.
         _ = ReviewDialogs.EditAsync(null!, app.Window, "check", null, new(new SettingEdit("model", JsonSerializer.SerializeToElement("opus")), "Change \"model\""));
-        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeEditDialog"));
+        E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeEditDialog"));
         E2eWorkspace.Settle();
         var options = dialog.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("ClaudeEditScope_", StringComparison.Ordinal) == true).ToArray();
         Require(options.Length == 3 && options.All(option =>
@@ -498,12 +498,12 @@ internal static class ClaudeCodeChecks
             }) && options.Any(option => option.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Local project settings")),
             "Each scope option carries its scope chip, the third is called local, and its description fits inside the option.");
         dialog.Dismiss();
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeEditDialog")));
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeEditDialog")));
         Console.WriteLine("PASS Claude edit scopes: local wording, scope chips, descriptions unclipped");
     }
 
     /// <summary>
-    /// A launched session runs as the terminal's program under the id SharpRail chose: the agent record names that id
+    /// A launched session runs as the terminal's program under the id tereditor chose: the agent record names that id
     /// before any hook reports, and when the agent exits the tab is an interactive shell in the same directory. The fake
     /// is a process named <c>claude</c> (bash under that name, so detection sees it) that logs its arguments and waits.
     /// </summary>
@@ -534,7 +534,7 @@ internal static class ClaudeCodeChecks
         var id = args[at + 1];
         E2eWorkspace.Until(() => app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == tab)?.Record.SessionId == id);
         Console.WriteLine("PASS Claude launch: the tab's agent record names the preassigned session before any hook reports");
-        var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == tab.TabKey);
+        var view = app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == tab.TabKey);
         Require(view.Launch.Program is null, "The launch program runs once; restarting the tab opens a plain shell.");
         using (var agent = System.Diagnostics.Process.GetProcessById(int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture)))
             agent.Kill(entireProcessTree: true);
@@ -557,7 +557,7 @@ internal static class ClaudeCodeChecks
 
     /// <summary>
     /// A revived Claude tab never resumes on its own: its shell starts alone and the tab offers Resume and Start fresh. Resume
-    /// launches <c>--resume</c> past a stale lock (dead pid); a session another SharpRail holds the lock of, or a running
+    /// launches <c>--resume</c> past a stale lock (dead pid); a session another tereditor holds the lock of, or a running
     /// process names, is refused as open elsewhere with only Start fresh left, which launches a new session id.
     /// </summary>
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
@@ -582,7 +582,7 @@ internal static class ClaudeCodeChecks
         var spawned = new List<int>();
         try
         {
-            (TerminalRef Tab, SharpRail.UI.Terminal.TerminalView View) Revive(string key, string id)
+            (TerminalRef Tab, Tereditor.UI.Terminal.TerminalView View) Revive(string key, string id)
             {
                 var tab = new TerminalRef(app.Root, key);
                 var transcript = Path.Combine(directory, "claude-home", "projects", "resume-offers", id + ".jsonl");
@@ -592,7 +592,7 @@ internal static class ClaudeCodeChecks
                 var opened = app.Window.OpenPluginTerminalAsync(app.Root, new() { TabKey = key });
                 E2eWorkspace.Until(() => opened.IsCompleted);
                 E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == tab && offer.SessionId == id));
-                var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == key);
+                var view = app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == key);
                 E2eWorkspace.Until(() => view.ResumeOffer is { Visible: true, Resume: true, Fresh: true });
                 Require(view.ResumeOffer.Text?.Contains("Claude session " + id[..8], StringComparison.Ordinal) == true, "The offer names the session: " + view.ResumeOffer.Text);
                 return (tab, view);
@@ -600,7 +600,7 @@ internal static class ClaudeCodeChecks
 
             // The offer row is exactly a pane header strip tall, so its bottom border and the Files pane header's share one line,
             // whatever buttons it holds (Resume and Start fresh, or Start fresh alone for a session open elsewhere).
-            void RequireAlignedWithPaneHeader(SharpRail.UI.Terminal.TerminalView view, string variant)
+            void RequireAlignedWithPaneHeader(Tereditor.UI.Terminal.TerminalView view, string variant)
             {
                 var row = view.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "TerminalResumeOffer");
                 var filesGroup = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
@@ -629,7 +629,7 @@ internal static class ClaudeCodeChecks
             Require(AgentSessionOwnership.Holder(agents.PathFor("claude", stale)) == Environment.ProcessId, "Resuming takes the session's lock over the stale one.");
             Console.WriteLine("PASS Claude revival: Resume launches --resume past a stale lock and takes the lock");
 
-            // Another SharpRail (a live process) holds the lock: the offer turns into "open elsewhere" with Start fresh only.
+            // Another tereditor (a live process) holds the lock: the offer turns into "open elsewhere" with Start fresh only.
             const string held = "7d1c2b3a-2222-4c5d-8e9f-000000000002";
             var holder = System.Diagnostics.Process.Start("/bin/sleep", ["600"])!;
             others.Add(holder);
@@ -639,12 +639,12 @@ internal static class ClaudeCodeChecks
             secondView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == second && offer.OpenElsewhere) &&
                 secondView.ResumeOffer is { Visible: true, Resume: false, Fresh: true });
-            Require(secondView.ResumeOffer.Text!.Contains("is open in another SharpRail", StringComparison.Ordinal) && Launches().Length == before,
-                "A session another SharpRail holds is not resumed: " + secondView.ResumeOffer.Text);
-            Require(!secondView.ResumeOffer.Quit && secondView.ResumeOffer.Text.Contains($"SharpRail window/instance (pid {holder.Id}), tab terminal:other", StringComparison.Ordinal),
-                "A live SharpRail owner is named and never offered a quit: " + secondView.ResumeOffer.Text);
+            Require(secondView.ResumeOffer.Text!.Contains("is open in another tereditor", StringComparison.Ordinal) && Launches().Length == before,
+                "A session another tereditor holds is not resumed: " + secondView.ResumeOffer.Text);
+            Require(!secondView.ResumeOffer.Quit && secondView.ResumeOffer.Text.Contains($"tereditor window/instance (pid {holder.Id}), tab terminal:other", StringComparison.Ordinal),
+                "A live tereditor owner is named and never offered a quit: " + secondView.ResumeOffer.Text);
             RequireAlignedWithPaneHeader(secondView, "open elsewhere");
-            Console.WriteLine("PASS Claude revival: a session locked by another live SharpRail is refused as open elsewhere");
+            Console.WriteLine("PASS Claude revival: a session locked by another live tereditor is refused as open elsewhere");
             secondView.AnswerResumeOffer(false);
             E2eWorkspace.Until(() => Launches().Length > before);
             var fresh = Launches()[before];
@@ -653,7 +653,7 @@ internal static class ClaudeCodeChecks
             E2eWorkspace.Until(() => !secondView.ResumeOffer.Visible && app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == second)?.Record.SessionId is { } next && next != held);
             Console.WriteLine("PASS Claude revival: Start fresh launches a new session id in the tab");
 
-            // A process that names the session (a Claude started by hand, or by a SharpRail without locks) also blocks it.
+            // A process that names the session (a Claude started by hand, or by a tereditor without locks) also blocks it.
             const string running = "7d1c2b3a-3333-4c5d-8e9f-000000000003";
             others.Add(System.Diagnostics.Process.Start("/bin/bash", ["-c", "sleep 600; :", "claude", "--resume", running])!);
             var (third, thirdView) = Revive("terminal:resume-offer-running", running);
@@ -661,9 +661,9 @@ internal static class ClaudeCodeChecks
             thirdView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == third && offer.OpenElsewhere) && thirdView.ResumeOffer is { Resume: false });
             Require(Launches().Length == before, "A session a running process names is not resumed.");
-            Require(!thirdView.ResumeOffer.Quit && thirdView.ResumeOffer.Text!.Contains("pid ", StringComparison.Ordinal), "A process under a live SharpRail (this check run) is named and never offered a quit: " + thirdView.ResumeOffer.Text);
+            Require(!thirdView.ResumeOffer.Quit && thirdView.ResumeOffer.Text!.Contains("pid ", StringComparison.Ordinal), "A process under a live tereditor (this check run) is named and never offered a quit: " + thirdView.ResumeOffer.Text);
             Console.WriteLine("PASS Claude revival: a session a running process names is refused as open elsewhere");
-            // A stray: nothing of a live SharpRail above it, a dead holder's lock left behind, and it ignores TERM and HUP.
+            // A stray: nothing of a live tereditor above it, a dead holder's lock left behind, and it ignores TERM and HUP.
             // Only processes this check spawned are ever signalled.
             agents.QuitGrace = TimeSpan.FromMilliseconds(400);
             (int Pid, int Child) Stray(string id)
@@ -699,12 +699,12 @@ internal static class ClaudeCodeChecks
             fourthView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => fourthView.ResumeOffer is { Visible: true, Resume: false, Quit: true });
             Require(fourthView.ResumeOffer.Text!.Contains($"is open in pid {strayPid} (", StringComparison.Ordinal) &&
-                fourthView.ResumeOffer.Text.Contains("SharpRail instance that started it is no longer running", StringComparison.Ordinal) && Launches().Length == before,
+                fourthView.ResumeOffer.Text.Contains("tereditor instance that started it is no longer running", StringComparison.Ordinal) && Launches().Length == before,
                 "A stray owner is named by pid and offered a quit: " + fourthView.ResumeOffer.Text);
             Console.WriteLine("PASS Claude revival: a stray owner is named and offers Quit that process and resume");
             Require(fourthView.QuitResumeOffer(), "The quit button is pressable.");
             Button? quitConfirm = null;
-            E2eWorkspace.Until(() => (quitConfirm = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+            E2eWorkspace.Until(() => (quitConfirm = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
                 .FirstOrDefault(button => button.Name == "QuitSessionOwnerConfirm")) is not null);
             Require(Alive(strayPid) && Alive(strayChild), "Nothing is signalled before the user confirms.");
             app.Click(quitConfirm!);
@@ -811,7 +811,7 @@ internal static class ClaudeCodeChecks
         {
             (tab, foreign, "created with workspace_create"),
             (tab, app.Root, "Default workspace"),
-            (tab, Path.Combine(directory, "nowhere"), "not a SharpRail workspace"),
+            (tab, Path.Combine(directory, "nowhere"), "not a tereditor workspace"),
             (new TerminalRef(app.Root, "plain-shell"), target, "only a Claude Code or Codex terminal")
         })
         {
@@ -896,7 +896,7 @@ internal static class ClaudeCodeChecks
             "Workspace actions follow New terminal under their workspace in Projects.");
 
         int Terminals() => app.Window.Layout.State.Groups.Sum(group => app.Window.Layout.Tabs(group.Id).Count(tab => tab.Kind == "terminal"));
-        Button? CloseConfirmation() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+        Button? CloseConfirmation() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
             .FirstOrDefault(button => button.Name == "TerminalCloseBusyConfirm");
         // The preassigned id of the last launch, taken out of the arguments the assertions below compare.
         string? launchedId = null;
@@ -960,21 +960,21 @@ internal static class ClaudeCodeChecks
         Require(Launch("continue")[^1] == "--continue" && launchedId is null, "Continue passes the per-run flag, and no preassigned id.");
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, model = "opus", effort = "high" });
         Require(Launch("continue").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--model", "opus", "--effort", "high", "--continue"]),
-            "The SharpRail defaults reach the shell for a new launch.");
+            "The tereditor defaults reach the shell for a new launch.");
         Require(Launch("model-haiku").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--effort", "high", "--model", "haiku"]),
             "A per-launch model replaces the saved model without duplicating flags.");
         // Any flags at all: typed into a dialog, they follow the prompt file like a preset's.
         var custom = Launch("custom", () =>
         {
-            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeCustomLaunch")));
-            var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeCustomLaunch"));
+            E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeCustomLaunch")));
+            var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeCustomLaunch"));
             dialog.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "ClaudeCustomArguments").Text = "--permission-mode plan --verbose";
             app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ClaudeCustomStart"), freshGesture: false);
         });
         Require(custom[^3..].SequenceEqual(["--permission-mode", "plan", "--verbose"]), "Custom arguments reach the command line: " + string.Join(" ", custom));
         // Permission modes come from the fake CLI's help, not a built-in list: "manual" is only there.
-        E2eWorkspace.Until(() => SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current.FromCli);
-        Require(SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current.Modes.SequenceEqual(["acceptEdits", "manual", "plan", "bypassPermissions"]),
+        E2eWorkspace.Until(() => Tereditor.Plugins.ClaudeCode.UI.PermissionModeSource.Current.FromCli);
+        Require(Tereditor.Plugins.ClaudeCode.UI.PermissionModeSource.Current.Modes.SequenceEqual(["acceptEdits", "manual", "plan", "bypassPermissions"]),
             "The launcher offers the modes the CLI's help lists.");
         var planned = Launch("permission-plan");
         Require(planned[^2..].SequenceEqual(["--permission-mode", "plan"]), "A per-launch mode passes --permission-mode: " + string.Join(" ", planned));
@@ -988,7 +988,7 @@ internal static class ClaudeCodeChecks
         {
             var button = (Button)Named(app.Window, "NewClaude").First(control => control.IsEffectivelyVisible);
             var bypass = button.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_permission").Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_permission-bypassPermissions");
-            Require(ReferenceEquals(bypass.Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger) && ((string)bypass.Header!).Contains("dangerous", StringComparison.Ordinal),
+            Require(ReferenceEquals(bypass.Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger) && ((string)bypass.Header!).Contains("dangerous", StringComparison.Ordinal),
                 "Bypass permissions is marked dangerous in the launcher.");
         }
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, permissionMode = "" });
@@ -1052,10 +1052,10 @@ internal static class ClaudeCodeChecks
         var permission = window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudePermissionMode");
         E2eWorkspace.Until(() => permission.Items.OfType<ComboBoxItem>().Any(item => Equals(item.Tag, "bypassPermissions")));
         var dangerous = permission.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, "bypassPermissions"));
-        Require(ReferenceEquals(dangerous.Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger), "Bypass permissions is marked dangerous in Settings.");
+        Require(ReferenceEquals(dangerous.Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "Bypass permissions is marked dangerous in Settings.");
         permission.SelectedItem = dangerous;
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("permissionMode", out var value) && value.GetString() == "bypassPermissions");
-        Require(ReferenceEquals(window.GetLogicalDescendants().OfType<TextBlock>().Single(control => control.Name == "ClaudePermissionModeNote").Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger),
+        Require(ReferenceEquals(window.GetLogicalDescendants().OfType<TextBlock>().Single(control => control.Name == "ClaudePermissionModeNote").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger),
             "Settings warns while the default skips permission checks.");
         Require(app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--permission-mode bypassPermissions", StringComparison.Ordinal),
             "The saved default applies to the generic launcher too.");
@@ -1312,7 +1312,7 @@ internal static class ClaudeCodeChecks
             "The instructions listing names the kept edits and offers the core sections, on by default.");
         var toggled = await Call(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = project, Id = "core.workspaces", Enabled = false });
         Require(toggled.Sections.Single(section => section.Id == "core.workspaces").Enabled == false &&
-            File.ReadAllText(Path.Combine(project, ".sharprail", "instructions.toml")).Contains("\"core.workspaces\"", StringComparison.Ordinal),
+            File.ReadAllText(Path.Combine(project, ".tereditor", "instructions.toml")).Contains("\"core.workspaces\"", StringComparison.Ordinal),
             "Turning a section off through the agent's contract writes the project's disable-list.");
         await Call(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = project, Id = "core.workspaces", Enabled = true });
         Require(config.Root == project && config.Context.Any(layer => layer.Path == Path.Combine(project, "CLAUDE.md")) &&
@@ -1373,10 +1373,10 @@ internal static class ClaudeCodeChecks
             terminals.RevivePrefill!(terminal)?.Text.Contains("--model opus --effort high", StringComparison.Ordinal) == true &&
             !terminals.RevivePrefill!(terminal)!.Text!.Contains("sonnet", StringComparison.Ordinal) && !terminals.RevivePrefill!(terminal)!.Text!.Contains("medium", StringComparison.Ordinal),
             "Revival restores the session's latest model and effort, including updates without a session id and sparse later reports.");
-        // The record above says manual: a revival is SharpRail's own launch whatever started the session it resumes.
+        // The record above says manual: a revival is tereditor's own launch whatever started the session it resumes.
         // The environment is not in the process table the command is rebuilt from, so revival reapplies the agent-view setting too.
-        Require(OperatingSystem.IsWindows() || terminals.RevivePrefill!(terminal)?.Text.StartsWith("SHARPRAIL_UI_LAUNCH=claude CLAUDE_CODE_DISABLE_AGENT_VIEW=true claude ", StringComparison.Ordinal) == true,
-            "A revived session is launched by SharpRail, never labelled manual, with the agent view off as the setting says: " + terminals.RevivePrefill!(terminal)?.Text);
+        Require(OperatingSystem.IsWindows() || terminals.RevivePrefill!(terminal)?.Text.StartsWith("TEREDITOR_UI_LAUNCH=claude CLAUDE_CODE_DISABLE_AGENT_VIEW=true claude ", StringComparison.Ordinal) == true,
+            "A revived session is launched by tereditor, never labelled manual, with the agent view off as the setting says: " + terminals.RevivePrefill!(terminal)?.Text);
         Require(terminals.RevivePrefill!(terminal)?.Text.Contains("--continue", StringComparison.Ordinal) == true,
             "A Claude terminal with no surviving transcript gets the fork's continue offer.");
         await SessionIdRevival(state, terminals, terminal, Report);
@@ -1413,7 +1413,7 @@ internal static class ClaudeCodeChecks
             && hooks.GetProperty("SessionStart").EnumerateArray().Any(group => group.GetProperty("hooks")[0].GetProperty("command").GetString()!.EndsWith("code-intel.sh session", StringComparison.Ordinal)),
             "The plugin does not register the code-intelligence hooks.");
         if (OperatingSystem.IsWindows()) return;
-        var state = Path.Combine(Path.GetTempPath(), "sharprail-code-intel-check-" + Environment.ProcessId);
+        var state = Path.Combine(Path.GetTempPath(), "tereditor-code-intel-check-" + Environment.ProcessId);
         try
         {
             async Task<(int Exit, string Output)> Hook(string mode, string input, bool managed = true, string? promptFile = null)
@@ -1463,13 +1463,13 @@ internal static class ClaudeCodeChecks
             Require(Context(await Hook("pretool", JsonSerializer.Serialize(new { session_id = "glob", cwd = "/work/space", tool_name = "Glob", tool_input = new { pattern = "**/*TerminalView*.cs" } })), "PreToolUse").Contains("\"operation\":\"workspaceSymbols\"", StringComparison.Ordinal), "A file glob for a type was not pointed at workspaceSymbols.");
             foreach (var (name, input) in new[] { ("docs", Grep("quiet-1", "TerminalView", glob: "*.md")), ("literal", Bash("quiet-2", "grep -rn 'error message' src")), ("status", Bash("quiet-3", "git status --short")), ("config", Bash("quiet-4", "rg -n Version Directory.Packages.props")), ("broken", "not json") })
                 Require(await Hook("pretool", input) is (0, ""), "A non-code search was nudged: " + name);
-            Require(await Hook("pretool", Grep("unmanaged", "TerminalView"), managed: false) is (0, ""), "The hook spoke outside a SharpRail session.");
+            Require(await Hook("pretool", Grep("unmanaged", "TerminalView"), managed: false) is (0, ""), "The hook spoke outside a tereditor session.");
             var answers = new List<bool>();
             for (var call = 0; call < 6; call++) answers.Add((await Hook("pretool", Grep("limited", "LanguageUsage"))).Output.Length > 0);
             Require(answers.SequenceEqual([true, false, false, false, false, true]), "The nudge is not rate-limited to the first and every fifth search: " + string.Join(",", answers));
         }
         finally { if (Directory.Exists(state)) Directory.Delete(state, true); }
-        Console.WriteLine("PASS code-intelligence hooks: session and subagent reminders, advisory rate-limited grep nudges, silent for non-code and outside SharpRail");
+        Console.WriteLine("PASS code-intelligence hooks: session and subagent reminders, advisory rate-limited grep nudges, silent for non-code and outside tereditor");
     }
 
     /// <summary>
@@ -1769,7 +1769,7 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude Code IDE: token authorization, initialization, catalogue, zero-based selection, addressed action replies and file references");
     }
 
-    private sealed class TypingTerminal : SharpRail.Plugins.Api.UI.ITerminalAccessoryApi
+    private sealed class TypingTerminal : Tereditor.Plugins.Api.UI.ITerminalAccessoryApi
     {
         public List<string> Writes { get; } = [];
         public int Focused { get; private set; }
@@ -1780,7 +1780,7 @@ internal static class ClaudeCodeChecks
         public Task<IReadOnlyList<string>> ReadScreenTailAsync(int lines) => Task.FromResult<IReadOnlyList<string>>(Screen);
         public IDisposable HoldInput() => throw new NotSupportedException();
         public void Focus() => Focused++;
-        public void SetKeyEncoding(SharpRail.Plugins.Api.UI.TerminalKeyEncoding encoding) { }
+        public void SetKeyEncoding(Tereditor.Plugins.Api.UI.TerminalKeyEncoding encoding) { }
     }
 
     private static void Transcripts(string directory)

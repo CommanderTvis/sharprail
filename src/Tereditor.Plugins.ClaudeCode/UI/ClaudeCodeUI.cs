@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Agent.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.ClaudeCode.UI.Chat;
+using Tereditor.Plugins.Agent.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.ClaudeCode.UI.Chat;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>The Claude Code configuration pane, launcher and terminal integration.</summary>
 public sealed class ClaudeCodeUI : PluginUIModule

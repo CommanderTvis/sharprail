@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// The marker line the Claude CLI puts into a prompt for an attached image: <c>[Image: source: /tmp/…/3.png]</c> (the model reads the file)

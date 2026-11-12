@@ -25,7 +25,7 @@ using AndroidColor = Android.Graphics.Color;
 using AndroidDialog = Android.App.Dialog;
 using FrameLayout = Android.Widget.FrameLayout;
 
-namespace SharpRail.UI.Android.Windowing;
+namespace Tereditor.UI.Android.Windowing;
 
 /// <summary>
 /// One Avalonia window on Android: an Avalonia view of its own, whose surface, input and text input the window

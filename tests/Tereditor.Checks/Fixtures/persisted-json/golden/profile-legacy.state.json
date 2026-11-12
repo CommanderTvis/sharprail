@@ -2,10 +2,10 @@
   "Settings": {
     "FileTypeIconsEnabled": true,
     "FileTypeIconStyle": "",
-    "Theme": "sharprail-dark",
+    "Theme": "tereditor-dark",
     "ThemeMode": "fixed",
-    "SystemLight": "sharprail-light",
-    "SystemDark": "sharprail-dark",
+    "SystemLight": "tereditor-light",
+    "SystemDark": "tereditor-dark",
     "FileLineWidth": 100,
     "FileLineWidthBounded": false,
     "MarkdownLineWidth": 80,
@@ -49,19 +49,19 @@
   ],
   "ProjectRecords": [
     {
-      "Id": "04f5e9a3-778a-4b67-be8e-0845b9982713",
+      "Id": "bac813ea-0c7f-472b-b0fb-0898eb8d5d6e",
       "Path": "$ROOT/project",
       "Slug": "project",
-      "LastOpened": 1794304130304
+      "LastOpened": 1794501474726
     },
     {
-      "Id": "6abf887e-5653-4caf-a652-e64a13d8732b",
+      "Id": "28335d5a-f6e2-4602-a349-1990b8ad9a05",
       "Path": "$ROOT/older",
       "Slug": "older",
-      "LastOpened": 1794304130304
+      "LastOpened": 1794501474726
     }
   ],
-  "SharprailExcludeDeclined": [],
+  "TereditorExcludeDeclined": [],
   "WorkspaceLanguages": {},
   "ProjectLanguageAutostart": {},
   "ProjectLanguageHidden": {},

@@ -1,18 +1,18 @@
-// User Notifications bridge for SharpRail.UI's MacNotifier. The system attributes a notification to the
+// User Notifications bridge for Tereditor.UI's MacNotifier. The system attributes a notification to the
 // running bundle, so every entry point answers "unavailable" for a process without a bundle identifier
 // (an unbundled `dotnet run`), where UNUserNotificationCenter would raise instead.
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 #import <UserNotifications/UserNotifications.h>
 
-typedef void (*SharpRailNotificationActivated)(const char *identifier);
+typedef void (*TereditorNotificationActivated)(const char *identifier);
 
-static SharpRailNotificationActivated activated;
+static TereditorNotificationActivated activated;
 
-@interface SharpRailNotificationDelegate : NSObject <UNUserNotificationCenterDelegate>
+@interface TereditorNotificationDelegate : NSObject <UNUserNotificationCenterDelegate>
 @end
 
-@implementation SharpRailNotificationDelegate
+@implementation TereditorNotificationDelegate
 // The app posts only while none of its windows is focused, yet it can still be the frontmost application
 // (every window minimised); the system would drop the banner there without this.
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -24,14 +24,14 @@ static SharpRailNotificationActivated activated;
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler {
-    SharpRailNotificationActivated callback = activated;
+    TereditorNotificationActivated callback = activated;
     if (callback && [response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier])
         callback(response.notification.request.identifier.UTF8String);
     completionHandler();
 }
 @end
 
-static SharpRailNotificationDelegate *delegate;
+static TereditorNotificationDelegate *delegate;
 
 static UNUserNotificationCenter *Center(void) {
     if (NSBundle.mainBundle.bundleIdentifier.length == 0) return nil;
@@ -44,19 +44,19 @@ static NSString *Text(const char *value) {
 }
 
 // Installs the click callback. Returns 1 when this process can post notifications, 0 otherwise.
-int sharprail_notifications_start(SharpRailNotificationActivated callback) {
+int tereditor_notifications_start(TereditorNotificationActivated callback) {
     @autoreleasepool {
         UNUserNotificationCenter *center = Center();
         if (!center) return 0;
         activated = callback;
-        if (!delegate) delegate = [SharpRailNotificationDelegate new];
+        if (!delegate) delegate = [TereditorNotificationDelegate new];
         center.delegate = delegate;
         return 1;
     }
 }
 
 // Shows the system's permission prompt if the user has not answered it yet.
-void sharprail_notifications_authorize(void) {
+void tereditor_notifications_authorize(void) {
     @autoreleasepool {
         [Center() requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
                                 completionHandler:^(BOOL granted, NSError *error) {}];
@@ -65,7 +65,7 @@ void sharprail_notifications_authorize(void) {
 
 // Posts a notification, replacing a delivered one with the same identifier. Asks for permission first
 // when it is undetermined; a denied permission drops the notification.
-void sharprail_notifications_show(const char *identifier, const char *title, const char *subtitle, const char *body) {
+void tereditor_notifications_show(const char *identifier, const char *title, const char *subtitle, const char *body) {
     @autoreleasepool {
         UNUserNotificationCenter *center = Center();
         if (!center) return;
@@ -84,13 +84,13 @@ void sharprail_notifications_show(const char *identifier, const char *title, con
 
 // A terminal bell while the app is in the background: one dock bounce, as Ghostty's bell attention feature.
 // Works without a bundle; AppKit is driven on the main thread.
-void sharprail_request_attention(void) {
+void tereditor_request_attention(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (!NSApp.isActive) [NSApp requestUserAttention:NSInformationalRequest];
     });
 }
 
 // A terminal bell's system feature: the user's alert sound.
-void sharprail_beep(void) {
+void tereditor_beep(void) {
     dispatch_async(dispatch_get_main_queue(), ^{ NSBeep(); });
 }

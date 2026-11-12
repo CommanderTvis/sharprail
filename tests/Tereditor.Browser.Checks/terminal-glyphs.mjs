@@ -9,14 +9,14 @@ import { cacheDir } from '../../scripts/cache-dir.mjs';
 // RFADMF. Runs the production bridge and the pinned runtime headless, at fractional scales and across the zoom range,
 // and needs the built browser vendor assets like restty-lifecycle.mjs.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const assetsRoot = process.env.SHARPRAIL_BROWSER_ASSETS_ROOT ?? root;
+const assetsRoot = process.env.TEREDITOR_BROWSER_ASSETS_ROOT ?? root;
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import(path.join(assetsRoot, 'src/SharpRail.Browser/node_modules/playwright/index.mjs'));
-const vendor = path.join(assetsRoot, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle/vendor');
+const { chromium } = await import(path.join(assetsRoot, 'src/Tereditor.Browser/node_modules/playwright/index.mjs'));
+const vendor = path.join(assetsRoot, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle/vendor');
 const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://localhost').pathname;
-    const file = url.startsWith('/vendor/') ? path.join(vendor, url.slice(8)) : path.join(root, 'src/SharpRail.Browser/wwwroot', url.slice(1));
+    const file = url.startsWith('/vendor/') ? path.join(vendor, url.slice(8)) : path.join(root, 'src/Tereditor.Browser/wwwroot', url.slice(1));
     if (url === '/') { response.end('<!doctype html><body style="margin:0;background:#000"></body>'); return; }
     response.setHeader('Content-Type', file.endsWith('.wasm') ? 'application/wasm' : file.endsWith('.js') ? 'text/javascript' : 'application/octet-stream');
     response.end(await fs.readFile(file));
@@ -28,8 +28,8 @@ let browser;
 const failures = [];
 try {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  browser = await chromium.launch({ channel: process.env.SHARPRAIL_BROWSER_CHANNEL ?? 'chromium', headless: true,
-    executablePath: process.env.SHARPRAIL_BROWSER_EXECUTABLE || undefined });
+  browser = await chromium.launch({ channel: process.env.TEREDITOR_BROWSER_CHANNEL ?? 'chromium', headless: true,
+    executablePath: process.env.TEREDITOR_BROWSER_EXECUTABLE || undefined });
   for (const scale of [1, 1.25, 1.5, 1.75, 2]) {
     const page = await browser.newPage({ viewport: { width: 480, height: 420 }, deviceScaleFactor: scale });
     page.on('pageerror', error => { throw error; });

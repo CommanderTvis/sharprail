@@ -2,9 +2,9 @@ using System.Text.RegularExpressions;
 
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Resources;
+namespace Tereditor.UI.Resources;
 
 /// <summary>What a renderer is chosen by: the path and the host's content metadata, never the content itself.</summary>
 internal sealed record ResourceDescriptor(string Workspace, string Path, string? Mime, bool IsText, long? ByteLength);
@@ -64,9 +64,9 @@ internal interface IResourceBody
 /// </summary>
 internal sealed class ResourceRegistry
 {
-    internal const string Code = "sharprail/code";
-    internal const string Binary = "sharprail/binary";
-    internal const string Markdown = "sharprail/markdown";
+    internal const string Code = "tereditor/code";
+    internal const string Binary = "tereditor/binary";
+    internal const string Markdown = "tereditor/markdown";
 
     private static readonly Dictionary<string, string> MimeByExtension = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -7,7 +7,7 @@ using Avalonia.Markup.Xaml;
 
 using Ghostty.Avalonia;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 internal sealed partial class TerminalKeyBar : UserControl
 {

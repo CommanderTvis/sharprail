@@ -2,11 +2,11 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>What the host remembers of a chat: which agent it talks to and the ACP session to resume.</summary>
 internal sealed record AcpChatRecord(string WorkspaceId, string ChatId)
@@ -24,8 +24,8 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
     private readonly ConcurrentDictionary<(string, string), AcpChatSession> sessions = new();
     private readonly Lock recordsGate = new();
 
-    /// <summary>Where the registry copy and installed binaries live; ~/.sharprail/acp unless a check says otherwise.</summary>
-    public string DataDirectory { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "acp");
+    /// <summary>Where the registry copy and installed binaries live; ~/.tereditor/acp unless a check says otherwise.</summary>
+    public string DataDirectory { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor", "acp");
     public AcpFetch Fetch { get; init; } = AcpRegistryCache.HttpFetch;
     public Func<string, CancellationToken, Task<byte[]>> Download { get; init; } = AcpInstaller.HttpDownload;
 

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal sealed class Child : IAsyncDisposable
 {
@@ -41,7 +41,7 @@ internal sealed class Child : IAsyncDisposable
                 {
                     log.WriteLine(line);
                     Milestone? mark = null;
-                    if (line.StartsWith("SHARPRAIL_PERF ", StringComparison.Ordinal))
+                    if (line.StartsWith("TEREDITOR_PERF ", StringComparison.Ordinal))
                     {
                         try
                         {
@@ -52,7 +52,7 @@ internal sealed class Child : IAsyncDisposable
                         }
                         catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException) { log.WriteLine("Invalid milestone: " + error.Message); }
                     }
-                    else if (line.StartsWith("SHARPRAIL_HOST_READY ", StringComparison.Ordinal)) mark = new("host-ready", Stopwatch.GetTimestamp(), Stopwatch.Frequency, "ok", null);
+                    else if (line.StartsWith("TEREDITOR_HOST_READY ", StringComparison.Ordinal)) mark = new("host-ready", Stopwatch.GetTimestamp(), Stopwatch.Frequency, "ok", null);
                     if (mark is not null)
                     {
                         if (!marks.TryGetValue(mark.MilestoneName, out var completion)) marks[mark.MilestoneName] = completion = new(TaskCreationOptions.RunContinuationsAsynchronously);

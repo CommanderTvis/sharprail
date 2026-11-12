@@ -5,17 +5,17 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Android;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Android;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class SettingsTouchChecks
 {

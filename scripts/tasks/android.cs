@@ -1,10 +1,10 @@
 #!/usr/bin/env dotnet
-// `scripts/mise run android [build|run|apk|install]` builds the Android client (src/SharpRail.Android). `run` also installs it on the connected device or
+// `scripts/mise run android [build|run|apk|install]` builds the Android client (src/Tereditor.Android). `run` also installs it on the connected device or
 // emulator and starts it; `apk` builds the signed Release package into artifacts/android; `install` puts that package on the
 // device when exactly one is connected, rebuilding it first (MSBuild skips what is unchanged).
 // Needs the Android SDK (ANDROID_HOME, default ~/Library/Android/sdk). The JDK is the pinned one that
 // `scripts/tool jdk` prints; JAVA_HOME, when set, names another JDK 17 or 21 instead.
-// With SHARPRAIL_ANDROID_KEYSTORE (a keystore file), SHARPRAIL_ANDROID_KEY_ALIAS and SHARPRAIL_ANDROID_KEY_PASSWORD
+// With TEREDITOR_ANDROID_KEYSTORE (a keystore file), TEREDITOR_ANDROID_KEY_ALIAS and TEREDITOR_ANDROID_KEY_PASSWORD
 // set, the package is signed with that key instead of the machine's debug key.
 #:include ../lib/Tasks.cs
 using static Tasks;
@@ -22,24 +22,24 @@ return Guard(() =>
     void Build(params string[] options)
     {
         List<string> signing = [];
-        if (Env("SHARPRAIL_ANDROID_KEYSTORE") is { } keystore)
+        if (Env("TEREDITOR_ANDROID_KEYSTORE") is { } keystore)
             // The passwords reach the build by name, so they appear in no command line or log.
-            signing = ["-p:AndroidKeyStore=true", $"-p:AndroidSigningKeyStore={keystore}", $"-p:AndroidSigningKeyAlias={Environment.GetEnvironmentVariable("SHARPRAIL_ANDROID_KEY_ALIAS")}",
-                "-p:AndroidSigningKeyPass=env:SHARPRAIL_ANDROID_KEY_PASSWORD", "-p:AndroidSigningStorePass=env:SHARPRAIL_ANDROID_KEY_PASSWORD"];
-        Check(Dotnet, ["build", "src/SharpRail.Android", $"-p:AndroidSdkDirectory={sdk}", $"-p:JavaSdkDirectory={java}", .. options, .. signing]);
+            signing = ["-p:AndroidKeyStore=true", $"-p:AndroidSigningKeyStore={keystore}", $"-p:AndroidSigningKeyAlias={Environment.GetEnvironmentVariable("TEREDITOR_ANDROID_KEY_ALIAS")}",
+                "-p:AndroidSigningKeyPass=env:TEREDITOR_ANDROID_KEY_PASSWORD", "-p:AndroidSigningStorePass=env:TEREDITOR_ANDROID_KEY_PASSWORD"];
+        Check(Dotnet, ["build", "src/Tereditor.Android", $"-p:AndroidSdkDirectory={sdk}", $"-p:JavaSdkDirectory={java}", .. options, .. signing]);
     }
 
     var adb = Path.Combine(sdk, "platform-tools", "adb");
-    var apk = "artifacts/android/SharpRail.apk";
+    var apk = "artifacts/android/tereditor.apk";
     void Package()
     {
         Build("-c", "Release");
         Directory.CreateDirectory("artifacts/android");
-        File.Copy("src/SharpRail.Android/bin/Release/net10.0-android/dev.thinkrail.sharprail-Signed.apk", apk, true);
+        File.Copy("src/Tereditor.Android/bin/Release/net10.0-android/dev.thinkrail.tereditor-Signed.apk", apk, true);
         Console.WriteLine(apk);
     }
 
-    var configuration = Env("SHARPRAIL_CONFIGURATION") ?? "Debug";
+    var configuration = Env("TEREDITOR_CONFIGURATION") ?? "Debug";
     switch (args.Length > 0 ? args[0] : "build")
     {
         case "build":
@@ -47,7 +47,7 @@ return Guard(() =>
             return 0;
         case "run":
             Build("-c", configuration, "-t:Install");
-            if (Capture(adb, ["shell", "monkey", "-p", "dev.thinkrail.sharprail", "-c", "android.intent.category.LAUNCHER", "1"]).Code != 0) throw new TaskFailure("adb shell monkey failed");
+            if (Capture(adb, ["shell", "monkey", "-p", "dev.thinkrail.tereditor", "-c", "android.intent.category.LAUNCHER", "1"]).Code != 0) throw new TaskFailure("adb shell monkey failed");
             return 0;
         case "apk":
             Package();

@@ -14,7 +14,7 @@
 Single runs on the same MacBook Pro (October 11, 2026), with a 48 × 93 grid and `term-bench` 0.10.15-alpha, using
 `--duration 15 --fps 120`.
 
-| Metric | SharpRail Metal texture | Ghostty |
+| Metric | tereditor Metal texture | Ghostty |
 | --- | ---: | ---: |
 | Generated FPS | 108.7 | 109.4 |
 | Average draw call | 1.91 ms | 1.22 ms |

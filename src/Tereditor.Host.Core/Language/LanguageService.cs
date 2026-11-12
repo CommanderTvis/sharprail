@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>Host-owned language processes, shared by editor windows and agents, with worktree-local document state.</summary>
 public sealed partial class LanguageService : IAsyncDisposable
@@ -70,7 +70,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         usage = new(directory);
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
         this.saveConfiguration = saveConfiguration;
-        this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1");
+        this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("TEREDITOR_LSP_DISABLE") != "1");
         processes = Path.Combine(directory, "processes");
         // Servers a crashed or killed host left behind are found by their recorded id, name and start time, off the caller's thread.
         _ = Task.Run(() => LanguageProcesses.Sweep(processes));

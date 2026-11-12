@@ -1,6 +1,6 @@
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>Transport failure classification for callers that do not consume wire contracts.</summary>
 public static class RemoteErrors

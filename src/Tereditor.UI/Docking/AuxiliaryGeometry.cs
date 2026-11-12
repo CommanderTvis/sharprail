@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Docking;
+namespace Tereditor.UI.Docking;
 
 internal sealed class AuxiliaryGeometry
 {

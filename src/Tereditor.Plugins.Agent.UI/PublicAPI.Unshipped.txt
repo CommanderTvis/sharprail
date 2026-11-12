@@ -1,97 +1,97 @@
 #nullable enable
-SharpRail.Plugins.Agent.UI.AgentAttention
-SharpRail.Plugins.Agent.UI.AgentAttentionReason
-SharpRail.Plugins.Agent.UI.AgentAttentionReason.Blocked = 0 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
-SharpRail.Plugins.Agent.UI.AgentAttentionReason.Done = 1 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
-SharpRail.Plugins.Agent.UI.AgentAttentionReason.Failed = 2 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.InstructionSectionsView() -> void
-SharpRail.Plugins.Agent.UI.ManualLaunchNotice
-SharpRail.Plugins.Agent.UI.ManualLaunchNotice.ManualLaunchNotice() -> void
-SharpRail.Plugins.Agent.UI.TerminalFacts
-SharpRail.Plugins.Agent.UI.TerminalTodo
-SharpRail.Plugins.Agent.UI.TerminalTodo.<Clone>$() -> SharpRail.Plugins.Agent.UI.TerminalTodo!
-SharpRail.Plugins.Agent.UI.TerminalTodo.ActiveForm.get -> string?
-SharpRail.Plugins.Agent.UI.TerminalTodo.ActiveForm.init -> void
-SharpRail.Plugins.Agent.UI.TerminalTodo.Content.get -> string!
-SharpRail.Plugins.Agent.UI.TerminalTodo.Content.init -> void
-SharpRail.Plugins.Agent.UI.TerminalTodo.Deconstruct(out string! Content, out SharpRail.Plugins.Agent.UI.TerminalTodoStatus Status, out string? ActiveForm) -> void
-SharpRail.Plugins.Agent.UI.TerminalTodo.Equals(SharpRail.Plugins.Agent.UI.TerminalTodo? other) -> bool
-SharpRail.Plugins.Agent.UI.TerminalTodo.Status.get -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
-SharpRail.Plugins.Agent.UI.TerminalTodo.Status.init -> void
-SharpRail.Plugins.Agent.UI.TerminalTodo.TerminalTodo(string! Content, SharpRail.Plugins.Agent.UI.TerminalTodoStatus Status, string? ActiveForm = null) -> void
-SharpRail.Plugins.Agent.UI.TerminalTodoStatus
-SharpRail.Plugins.Agent.UI.TerminalTodoStatus.Completed = 2 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
-SharpRail.Plugins.Agent.UI.TerminalTodoStatus.InProgress = 1 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
-SharpRail.Plugins.Agent.UI.TerminalTodoStatus.Pending = 0 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
-SharpRail.Plugins.Agent.UI.TokenUsage
-SharpRail.Plugins.Agent.UI.TokenUsage.<Clone>$() -> SharpRail.Plugins.Agent.UI.TokenUsage!
-SharpRail.Plugins.Agent.UI.TokenUsage.CacheRead.get -> long
-SharpRail.Plugins.Agent.UI.TokenUsage.CacheRead.init -> void
-SharpRail.Plugins.Agent.UI.TokenUsage.CacheWrite.get -> long
-SharpRail.Plugins.Agent.UI.TokenUsage.CacheWrite.init -> void
-SharpRail.Plugins.Agent.UI.TokenUsage.Deconstruct(out long Input, out long Output, out long CacheRead, out long CacheWrite) -> void
-SharpRail.Plugins.Agent.UI.TokenUsage.Equals(SharpRail.Plugins.Agent.UI.TokenUsage? other) -> bool
-SharpRail.Plugins.Agent.UI.TokenUsage.Input.get -> long
-SharpRail.Plugins.Agent.UI.TokenUsage.Input.init -> void
-SharpRail.Plugins.Agent.UI.TokenUsage.Output.get -> long
-SharpRail.Plugins.Agent.UI.TokenUsage.Output.init -> void
-SharpRail.Plugins.Agent.UI.TokenUsage.TokenUsage(long Input, long Output, long CacheRead, long CacheWrite) -> void
-override SharpRail.Plugins.Agent.UI.TerminalTodo.Equals(object? obj) -> bool
-override SharpRail.Plugins.Agent.UI.TerminalTodo.GetHashCode() -> int
-override SharpRail.Plugins.Agent.UI.TerminalTodo.ToString() -> string!
-override SharpRail.Plugins.Agent.UI.TokenUsage.Equals(object? obj) -> bool
-override SharpRail.Plugins.Agent.UI.TokenUsage.GetHashCode() -> int
-override SharpRail.Plugins.Agent.UI.TokenUsage.ToString() -> string!
-static SharpRail.Plugins.Agent.UI.AgentAttention.Body(params string?[]! details) -> string!
-static SharpRail.Plugins.Agent.UI.AgentAttention.Title(string! agent, SharpRail.Plugins.Agent.UI.AgentAttentionReason reason, string? project = null) -> string!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachButton(string! title, System.Func<System.Threading.Tasks.Task<string?>!>! pickFile, System.Action<string!>! onAttach, System.Action<System.Exception!>! onError) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.CwdLabel(string? cwd) -> string?
-static SharpRail.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! label, string! title, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.FormatTokens(long count) -> string!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.ActionFactChip(string! kind, string! label, string! title, System.Action! onClick, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.OpenerChip(string! kind, string! label, string! title, bool working, string! agent, string! product, string! command, string! what, System.Action! onClick) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Agent.UI.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.TokenUsageParts(SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.UsageChip(string! agent, SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> Avalonia.Controls.Control?
-static SharpRail.Plugins.Agent.UI.TerminalTodo.operator !=(SharpRail.Plugins.Agent.UI.TerminalTodo? left, SharpRail.Plugins.Agent.UI.TerminalTodo? right) -> bool
-static SharpRail.Plugins.Agent.UI.TerminalTodo.operator ==(SharpRail.Plugins.Agent.UI.TerminalTodo? left, SharpRail.Plugins.Agent.UI.TerminalTodo? right) -> bool
-static SharpRail.Plugins.Agent.UI.TokenUsage.operator !=(SharpRail.Plugins.Agent.UI.TokenUsage? left, SharpRail.Plugins.Agent.UI.TokenUsage? right) -> bool
-static SharpRail.Plugins.Agent.UI.TokenUsage.operator ==(SharpRail.Plugins.Agent.UI.TokenUsage? left, SharpRail.Plugins.Agent.UI.TokenUsage? right) -> bool
-SharpRail.Plugins.Agent.UI.Account
-SharpRail.Plugins.Agent.UI.AccountSeverity
-SharpRail.Plugins.Agent.UI.AccountSeverity.Critical = 2 -> SharpRail.Plugins.Agent.UI.AccountSeverity
-SharpRail.Plugins.Agent.UI.AccountSeverity.Normal = 0 -> SharpRail.Plugins.Agent.UI.AccountSeverity
-SharpRail.Plugins.Agent.UI.AccountSeverity.Warning = 1 -> SharpRail.Plugins.Agent.UI.AccountSeverity
-static SharpRail.Plugins.Agent.UI.Account.Heading(string! text) -> Avalonia.Controls.TextBlock!
-static SharpRail.Plugins.Agent.UI.Account.ReadingLabel(string! provider, System.DateTimeOffset fetchedAt) -> string!
-static SharpRail.Plugins.Agent.UI.Account.ResetLabel(System.DateTimeOffset at) -> string?
-static SharpRail.Plugins.Agent.UI.Account.Row(string! label, string! value) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.Agent.UI.Account.UsageWindow(string! id, string! label, double percent, System.DateTimeOffset? resetsAt, string! namePrefix, SharpRail.Plugins.Agent.UI.AccountSeverity severity = SharpRail.Plugins.Agent.UI.AccountSeverity.Normal) -> Avalonia.Controls.Control!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.QuoteAttachPath(string! path) -> string!
-static SharpRail.Plugins.Agent.UI.Account.CreditsLine(double remaining, double total, double topUp = 0, long? refillNextMillis = null) -> string!
-static SharpRail.Plugins.Agent.UI.Account.Governed(string! source, string? identity, string? plan, double? remaining, double? total, double topUp, long? refillNextMillis, string? problem, string! namePrefix) -> Avalonia.Controls.Control!
-SharpRail.Plugins.Agent.UI.InstructionSectionsView
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.InstructionSectionsView(string! agentName, System.Func<System.Threading.Tasks.Task<SharpRail.Plugins.Api.InstructionSectionList!>!>! load, System.Func<string!, bool, System.Threading.Tasks.Task<SharpRail.Plugins.Api.InstructionSectionList!>!>! toggle, System.Action<string!>! failed) -> void
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.Refresh() -> void
-const SharpRail.Plugins.Agent.UI.TokenAmount.NarrowWidth = 320 -> double
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.IsOpen.get -> bool
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.SectionsPanel.get -> Avalonia.Controls.Control!
-SharpRail.Plugins.Agent.UI.InstructionSectionsView.SetEntry(Avalonia.Controls.Control? size, Avalonia.Controls.Control? source) -> void
-SharpRail.Plugins.Agent.UI.TokenAmount
-SharpRail.Plugins.Agent.UI.TokenAmount.IsNarrow.get -> bool
-SharpRail.Plugins.Agent.UI.TokenAmount.Text.get -> string!
-SharpRail.Plugins.Agent.UI.TokenAmount.TokenAmount(string! amount, long tokens, Avalonia.Media.IBrush! foreground, string! suffix = "") -> void
-static SharpRail.Plugins.Agent.UI.TokenAmount.Unit(long tokens, bool abbreviated) -> string!
-SharpRail.Plugins.Agent.UI.PromptGuard
-SharpRail.Plugins.Agent.UI.PromptState
-SharpRail.Plugins.Agent.UI.PromptState.Draft = 1 -> SharpRail.Plugins.Agent.UI.PromptState
-SharpRail.Plugins.Agent.UI.PromptState.Empty = 0 -> SharpRail.Plugins.Agent.UI.PromptState
-SharpRail.Plugins.Agent.UI.PromptState.NotAtPrompt = 2 -> SharpRail.Plugins.Agent.UI.PromptState
-const SharpRail.Plugins.Agent.UI.PromptGuard.DraftNotice = "Clear the prompt first: it holds a draft." -> string!
-const SharpRail.Plugins.Agent.UI.PromptGuard.NotAtPromptNotice = "Not at the prompt." -> string!
-const SharpRail.Plugins.Agent.UI.PromptGuard.TailLines = 24 -> int
-static SharpRail.Plugins.Agent.UI.PromptGuard.Classify(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> SharpRail.Plugins.Agent.UI.PromptState
-static SharpRail.Plugins.Agent.UI.PromptGuard.MayTypeAsync(System.Func<int, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!>! readTail, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, SharpRail.Plugins.Agent.UI.PromptState>! classify, System.Func<bool>! stillCurrent, System.Action<string!>! refuse) -> System.Threading.Tasks.Task<bool>!
+Tereditor.Plugins.Agent.UI.AgentAttention
+Tereditor.Plugins.Agent.UI.AgentAttentionReason
+Tereditor.Plugins.Agent.UI.AgentAttentionReason.Blocked = 0 -> Tereditor.Plugins.Agent.UI.AgentAttentionReason
+Tereditor.Plugins.Agent.UI.AgentAttentionReason.Done = 1 -> Tereditor.Plugins.Agent.UI.AgentAttentionReason
+Tereditor.Plugins.Agent.UI.AgentAttentionReason.Failed = 2 -> Tereditor.Plugins.Agent.UI.AgentAttentionReason
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.InstructionSectionsView() -> void
+Tereditor.Plugins.Agent.UI.ManualLaunchNotice
+Tereditor.Plugins.Agent.UI.ManualLaunchNotice.ManualLaunchNotice() -> void
+Tereditor.Plugins.Agent.UI.TerminalFacts
+Tereditor.Plugins.Agent.UI.TerminalTodo
+Tereditor.Plugins.Agent.UI.TerminalTodo.<Clone>$() -> Tereditor.Plugins.Agent.UI.TerminalTodo!
+Tereditor.Plugins.Agent.UI.TerminalTodo.ActiveForm.get -> string?
+Tereditor.Plugins.Agent.UI.TerminalTodo.ActiveForm.init -> void
+Tereditor.Plugins.Agent.UI.TerminalTodo.Content.get -> string!
+Tereditor.Plugins.Agent.UI.TerminalTodo.Content.init -> void
+Tereditor.Plugins.Agent.UI.TerminalTodo.Deconstruct(out string! Content, out Tereditor.Plugins.Agent.UI.TerminalTodoStatus Status, out string? ActiveForm) -> void
+Tereditor.Plugins.Agent.UI.TerminalTodo.Equals(Tereditor.Plugins.Agent.UI.TerminalTodo? other) -> bool
+Tereditor.Plugins.Agent.UI.TerminalTodo.Status.get -> Tereditor.Plugins.Agent.UI.TerminalTodoStatus
+Tereditor.Plugins.Agent.UI.TerminalTodo.Status.init -> void
+Tereditor.Plugins.Agent.UI.TerminalTodo.TerminalTodo(string! Content, Tereditor.Plugins.Agent.UI.TerminalTodoStatus Status, string? ActiveForm = null) -> void
+Tereditor.Plugins.Agent.UI.TerminalTodoStatus
+Tereditor.Plugins.Agent.UI.TerminalTodoStatus.Completed = 2 -> Tereditor.Plugins.Agent.UI.TerminalTodoStatus
+Tereditor.Plugins.Agent.UI.TerminalTodoStatus.InProgress = 1 -> Tereditor.Plugins.Agent.UI.TerminalTodoStatus
+Tereditor.Plugins.Agent.UI.TerminalTodoStatus.Pending = 0 -> Tereditor.Plugins.Agent.UI.TerminalTodoStatus
+Tereditor.Plugins.Agent.UI.TokenUsage
+Tereditor.Plugins.Agent.UI.TokenUsage.<Clone>$() -> Tereditor.Plugins.Agent.UI.TokenUsage!
+Tereditor.Plugins.Agent.UI.TokenUsage.CacheRead.get -> long
+Tereditor.Plugins.Agent.UI.TokenUsage.CacheRead.init -> void
+Tereditor.Plugins.Agent.UI.TokenUsage.CacheWrite.get -> long
+Tereditor.Plugins.Agent.UI.TokenUsage.CacheWrite.init -> void
+Tereditor.Plugins.Agent.UI.TokenUsage.Deconstruct(out long Input, out long Output, out long CacheRead, out long CacheWrite) -> void
+Tereditor.Plugins.Agent.UI.TokenUsage.Equals(Tereditor.Plugins.Agent.UI.TokenUsage? other) -> bool
+Tereditor.Plugins.Agent.UI.TokenUsage.Input.get -> long
+Tereditor.Plugins.Agent.UI.TokenUsage.Input.init -> void
+Tereditor.Plugins.Agent.UI.TokenUsage.Output.get -> long
+Tereditor.Plugins.Agent.UI.TokenUsage.Output.init -> void
+Tereditor.Plugins.Agent.UI.TokenUsage.TokenUsage(long Input, long Output, long CacheRead, long CacheWrite) -> void
+override Tereditor.Plugins.Agent.UI.TerminalTodo.Equals(object? obj) -> bool
+override Tereditor.Plugins.Agent.UI.TerminalTodo.GetHashCode() -> int
+override Tereditor.Plugins.Agent.UI.TerminalTodo.ToString() -> string!
+override Tereditor.Plugins.Agent.UI.TokenUsage.Equals(object? obj) -> bool
+override Tereditor.Plugins.Agent.UI.TokenUsage.GetHashCode() -> int
+override Tereditor.Plugins.Agent.UI.TokenUsage.ToString() -> string!
+static Tereditor.Plugins.Agent.UI.AgentAttention.Body(params string?[]! details) -> string!
+static Tereditor.Plugins.Agent.UI.AgentAttention.Title(string! agent, Tereditor.Plugins.Agent.UI.AgentAttentionReason reason, string? project = null) -> string!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.AttachButton(string! title, System.Func<System.Threading.Tasks.Task<string?>!>! pickFile, System.Action<string!>! onAttach, System.Action<System.Exception!>! onError) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.CwdLabel(string? cwd) -> string?
+static Tereditor.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! label, string! title, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.FormatTokens(long count) -> string!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.ActionFactChip(string! kind, string! label, string! title, System.Action! onClick, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.OpenerChip(string! kind, string! label, string! title, bool working, string! agent, string! product, string! command, string! what, System.Action! onClick) -> Avalonia.Controls.Button!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Agent.UI.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.TokenUsageParts(Tereditor.Plugins.Agent.UI.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.UsageChip(string! agent, Tereditor.Plugins.Agent.UI.TokenUsage! usage) -> Avalonia.Controls.Control?
+static Tereditor.Plugins.Agent.UI.TerminalTodo.operator !=(Tereditor.Plugins.Agent.UI.TerminalTodo? left, Tereditor.Plugins.Agent.UI.TerminalTodo? right) -> bool
+static Tereditor.Plugins.Agent.UI.TerminalTodo.operator ==(Tereditor.Plugins.Agent.UI.TerminalTodo? left, Tereditor.Plugins.Agent.UI.TerminalTodo? right) -> bool
+static Tereditor.Plugins.Agent.UI.TokenUsage.operator !=(Tereditor.Plugins.Agent.UI.TokenUsage? left, Tereditor.Plugins.Agent.UI.TokenUsage? right) -> bool
+static Tereditor.Plugins.Agent.UI.TokenUsage.operator ==(Tereditor.Plugins.Agent.UI.TokenUsage? left, Tereditor.Plugins.Agent.UI.TokenUsage? right) -> bool
+Tereditor.Plugins.Agent.UI.Account
+Tereditor.Plugins.Agent.UI.AccountSeverity
+Tereditor.Plugins.Agent.UI.AccountSeverity.Critical = 2 -> Tereditor.Plugins.Agent.UI.AccountSeverity
+Tereditor.Plugins.Agent.UI.AccountSeverity.Normal = 0 -> Tereditor.Plugins.Agent.UI.AccountSeverity
+Tereditor.Plugins.Agent.UI.AccountSeverity.Warning = 1 -> Tereditor.Plugins.Agent.UI.AccountSeverity
+static Tereditor.Plugins.Agent.UI.Account.Heading(string! text) -> Avalonia.Controls.TextBlock!
+static Tereditor.Plugins.Agent.UI.Account.ReadingLabel(string! provider, System.DateTimeOffset fetchedAt) -> string!
+static Tereditor.Plugins.Agent.UI.Account.ResetLabel(System.DateTimeOffset at) -> string?
+static Tereditor.Plugins.Agent.UI.Account.Row(string! label, string! value) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.Agent.UI.Account.UsageWindow(string! id, string! label, double percent, System.DateTimeOffset? resetsAt, string! namePrefix, Tereditor.Plugins.Agent.UI.AccountSeverity severity = Tereditor.Plugins.Agent.UI.AccountSeverity.Normal) -> Avalonia.Controls.Control!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.QuoteAttachPath(string! path) -> string!
+static Tereditor.Plugins.Agent.UI.Account.CreditsLine(double remaining, double total, double topUp = 0, long? refillNextMillis = null) -> string!
+static Tereditor.Plugins.Agent.UI.Account.Governed(string! source, string? identity, string? plan, double? remaining, double? total, double topUp, long? refillNextMillis, string? problem, string! namePrefix) -> Avalonia.Controls.Control!
+Tereditor.Plugins.Agent.UI.InstructionSectionsView
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.InstructionSectionsView(string! agentName, System.Func<System.Threading.Tasks.Task<Tereditor.Plugins.Api.InstructionSectionList!>!>! load, System.Func<string!, bool, System.Threading.Tasks.Task<Tereditor.Plugins.Api.InstructionSectionList!>!>! toggle, System.Action<string!>! failed) -> void
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.Refresh() -> void
+const Tereditor.Plugins.Agent.UI.TokenAmount.NarrowWidth = 320 -> double
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.IsOpen.get -> bool
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.SectionsPanel.get -> Avalonia.Controls.Control!
+Tereditor.Plugins.Agent.UI.InstructionSectionsView.SetEntry(Avalonia.Controls.Control? size, Avalonia.Controls.Control? source) -> void
+Tereditor.Plugins.Agent.UI.TokenAmount
+Tereditor.Plugins.Agent.UI.TokenAmount.IsNarrow.get -> bool
+Tereditor.Plugins.Agent.UI.TokenAmount.Text.get -> string!
+Tereditor.Plugins.Agent.UI.TokenAmount.TokenAmount(string! amount, long tokens, Avalonia.Media.IBrush! foreground, string! suffix = "") -> void
+static Tereditor.Plugins.Agent.UI.TokenAmount.Unit(long tokens, bool abbreviated) -> string!
+Tereditor.Plugins.Agent.UI.PromptGuard
+Tereditor.Plugins.Agent.UI.PromptState
+Tereditor.Plugins.Agent.UI.PromptState.Draft = 1 -> Tereditor.Plugins.Agent.UI.PromptState
+Tereditor.Plugins.Agent.UI.PromptState.Empty = 0 -> Tereditor.Plugins.Agent.UI.PromptState
+Tereditor.Plugins.Agent.UI.PromptState.NotAtPrompt = 2 -> Tereditor.Plugins.Agent.UI.PromptState
+const Tereditor.Plugins.Agent.UI.PromptGuard.DraftNotice = "Clear the prompt first: it holds a draft." -> string!
+const Tereditor.Plugins.Agent.UI.PromptGuard.NotAtPromptNotice = "Not at the prompt." -> string!
+const Tereditor.Plugins.Agent.UI.PromptGuard.TailLines = 24 -> int
+static Tereditor.Plugins.Agent.UI.PromptGuard.Classify(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> Tereditor.Plugins.Agent.UI.PromptState
+static Tereditor.Plugins.Agent.UI.PromptGuard.MayTypeAsync(System.Func<int, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!>! readTail, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Tereditor.Plugins.Agent.UI.PromptState>! classify, System.Func<bool>! stillCurrent, System.Action<string!>! refuse) -> System.Threading.Tasks.Task<bool>!

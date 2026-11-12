@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 
-namespace SharpRail.Plugins.Tailscale;
+namespace Tereditor.Plugins.Tailscale;
 
 public static class TailscaleCli
 {

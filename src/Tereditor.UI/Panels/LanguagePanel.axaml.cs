@@ -8,11 +8,11 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-using Log = SharpRail.Host.Abstractions.CodeIntelligenceLog;
+using Log = Tereditor.Host.Abstractions.CodeIntelligenceLog;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed partial class LanguagePanel : UserControl
 {
@@ -101,10 +101,10 @@ internal sealed partial class LanguagePanel : UserControl
     internal static string Brief(string text) => text.Length <= MaxShownDetail ? text : text[..MaxShownDetail] + "…";
 
     private readonly IProjectServices host;
-    private readonly SharpRail.UI.State.SharedState? state;
+    private readonly Tereditor.UI.State.SharedState? state;
     private string workspace;
     private readonly LanguageRunningView running;
-    private readonly SharpRail.UI.Plugins.PluginSlot? slot;
+    private readonly Tereditor.UI.Plugins.PluginSlot? slot;
     private readonly Func<LanguageItem, Task> navigate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
     private CancellationTokenSource? lifetime;
@@ -132,11 +132,11 @@ internal sealed partial class LanguagePanel : UserControl
     private int quietTicks;
     private bool pollSoon;
 
-    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, SharpRail.UI.Plugins.PluginRegistry? plugins = null)
+    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, Tereditor.UI.State.SharedState? state = null, Tereditor.UI.Plugins.PluginRegistry? plugins = null)
     {
         this.host = host; this.workspace = workspace; this.navigate = navigate; this.state = state;
         AvaloniaXamlLoader.Load(this);
-        AddHandler(global::SharpRail.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent, LanguageProviderLinks.OnLinkClicked);
+        AddHandler(global::Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent, LanguageProviderLinks.OnLinkClicked);
         Name = "LspPanel";
         Log.Info("pane.created", ("workspace", workspace));
         this.FindControl<Button>("RetryRead")!.Click += (_, _) => { Log.Info("pane.retry-clicked", ("workspace", this.workspace)); ShowRetry(false); RefreshNow(); };
@@ -148,9 +148,9 @@ internal sealed partial class LanguagePanel : UserControl
         };
         LanguageDependencyList.SetHostState(this, state);
         AddHandler(LanguageDependencyList.StatusEvent, (_, e) => SetStatus(e.Text));
-        this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = workspace;
+        this.FindControl<Tereditor.Plugins.UI.Kit.PathLine>("Workspace")!.Path = workspace;
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
-        if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(slot = new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
+        if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(slot = new Tereditor.UI.Plugins.PluginSlot(plugins, Tereditor.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         this.FindControl<StackPanel>("PaneBody")!.Children.Add(running = new LanguageRunningView(host, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
         servers.ItemsSource = items;
@@ -291,7 +291,7 @@ internal sealed partial class LanguagePanel : UserControl
         added.Clear(); expanded.Clear(); exitOpen.Clear(); showHidden = false;
         hidden = state is null ? new HashSet<string>() : HiddenIn(state.Current);
         items.Clear();
-        this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = next;
+        this.FindControl<Tereditor.Plugins.UI.Kit.PathLine>("Workspace")!.Path = next;
         SetStatus("Reading language servers…");
         RefreshRows();
         slot?.Retarget(next);

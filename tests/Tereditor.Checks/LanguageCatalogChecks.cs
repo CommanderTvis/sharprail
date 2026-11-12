@@ -1,9 +1,9 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Language;
-using SharpRail.Host.Core.Plugins;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
+using Tereditor.Host.Core.Plugins;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The language server catalog is one snapshot, rebuilt only when the plugin roster changes, and queries of it allocate almost nothing.</summary>
 internal static class LanguageCatalogChecks

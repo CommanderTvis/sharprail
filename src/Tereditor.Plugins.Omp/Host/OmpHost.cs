@@ -2,13 +2,13 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Omp.Host;
+namespace Tereditor.Plugins.Omp.Host;
 
 /// <summary>
-/// The omp plugin's host half: the version probe, the SharpRail profile's MCP file, the per-launch session folders,
+/// The omp plugin's host half: the version probe, the tereditor profile's MCP file, the per-launch session folders,
 /// the context-file resolution, the process poll that writes the agent record, and the revive prefill.
 /// </summary>
 public sealed partial class OmpHost : PluginHostModule
@@ -16,15 +16,15 @@ public sealed partial class OmpHost : PluginHostModule
     public override PluginContract Contract => OmpContract.Contract;
 
     /// <summary>The variable that overrides the home directory omp's files are resolved under, for checks.</summary>
-    public const string HomeVariable = "SHARPRAIL_OMP_HOME";
+    public const string HomeVariable = "TEREDITOR_OMP_HOME";
 
     private static string HomeDirectory => Environment.GetEnvironmentVariable(HomeVariable) is { Length: > 0 } home ? home : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    /// <summary>The profile's <c>mcp.json</c>: SharpRail's server only, its URL taken from each terminal's environment.</summary>
+    /// <summary>The profile's <c>mcp.json</c>: tereditor's server only, its URL taken from each terminal's environment.</summary>
     public static string ProfileMcpPath(string home) => Path.Combine(OmpContext.UserDirectory(home, true), "mcp.json");
 
     /// <summary>
-    /// Writes the profile's MCP file atomically. The file is SharpRail's own, so it is replaced whole; omp expands
+    /// Writes the profile's MCP file atomically. The file is tereditor's own, so it is replaced whole; omp expands
     /// <c>${VAR}</c> when it loads it (https://omp.sh/docs/mcp), so one file serves every terminal's own MCP URL.
     /// </summary>
     public static void WriteProfileMcp(string home)
@@ -34,7 +34,7 @@ public sealed partial class OmpHost : PluginHostModule
         {
             ["mcpServers"] = new JsonObject
             {
-                ["sharprail"] = new JsonObject { ["type"] = "http", ["url"] = "${THINKRAIL_MCP_URL}" }
+                ["tereditor"] = new JsonObject { ["type"] = "http", ["url"] = "${THINKRAIL_MCP_URL}" }
             }
         }.ToJsonString(new() { WriteIndented = true }) + "\n";
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -93,9 +93,9 @@ public sealed partial class OmpHost : PluginHostModule
     }
 
     /// <summary>
-    /// Copies the default profile's stored credentials into SharpRail's profile: <c>omp auth export</c> piped straight
-    /// into <c>omp --profile sharprail auth import -</c> (syntax from <c>omp auth --help</c>, omp 18.12.6). The
-    /// credentials stream process to process: SharpRail never writes, logs or returns them. Error output is reduced to
+    /// Copies the default profile's stored credentials into tereditor's profile: <c>omp auth export</c> piped straight
+    /// into <c>omp --profile tereditor auth import -</c> (syntax from <c>omp auth --help</c>, omp 18.12.6). The
+    /// credentials stream process to process: tereditor never writes, logs or returns them. Error output is reduced to
     /// a short line with long tokens masked. <paramref name="home"/> overrides omp's home directory (checks only).
     /// </summary>
     internal static async Task<OmpSignInResult> ImportSignInAsync(string command, string? home, CancellationToken cancellationToken)
@@ -132,7 +132,7 @@ public sealed partial class OmpHost : PluginHostModule
             await importOutput;
             if (export.ExitCode != 0) return new(false, $"omp auth export failed (exit {export.ExitCode}){Sanitize(await exportErrors)}");
             if (import.ExitCode != 0) return new(false, $"omp auth import failed (exit {import.ExitCode}){Sanitize(await importErrors)}");
-            return new(true, $"Your omp sign-in now works in SharpRail's \"{OmpLaunch.Profile}\" profile.");
+            return new(true, $"Your omp sign-in now works in tereditor's \"{OmpLaunch.Profile}\" profile.");
         }
         catch (OperationCanceledException) { return new(false, cancellationToken.IsCancellationRequested ? "Cancelled." : "omp auth timed out."); }
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
@@ -153,7 +153,7 @@ public sealed partial class OmpHost : PluginHostModule
     /// <summary>
     /// A fresh profile shows omp's first-run setup wizard even with provider keys exported. When the profile's
     /// <c>startup.setupWizard</c> is still the default <c>true</c> and <c>setupVersion</c> is 0 (the wizard never
-    /// completed), sets it to <c>false</c> through <c>omp --profile sharprail config get|set</c>. Anything else, including
+    /// completed), sets it to <c>false</c> through <c>omp --profile tereditor config get|set</c>. Anything else, including
     /// a user who re-enabled it or finished the wizard, is left alone. One 10 s bound covers all calls; never throws.
     /// Returns a short trace line: "set", "unchanged: ..." or "failed: ...". <paramref name="home"/> overrides omp's home (checks only).
     /// </summary>
@@ -201,7 +201,7 @@ public sealed partial class OmpHost : PluginHostModule
     public override async ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
         var settings = () => context.Settings<OmpSettings>();
-        var sessions = context.StateDirectory is { } state ? Path.Combine(state, "sessions") : Path.Combine(Path.GetTempPath(), "sharprail-omp-sessions");
+        var sessions = context.StateDirectory is { } state ? Path.Combine(state, "sessions") : Path.Combine(Path.GetTempPath(), "tereditor-omp-sessions");
 
         async ValueTask<string> RootOf(string workspaceId, CancellationToken cancellationToken) =>
             (await context.WorkspaceAsync(workspaceId, cancellationToken))?.Path ?? throw new InvalidOperationException($"Unknown workspace: {workspaceId}");

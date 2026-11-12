@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.GitHub.Host;
+namespace Tereditor.Plugins.GitHub.Host;
 
 /// <summary>Provides the GitHub repo hosting provider (H24): every <c>gh</c> call of the product runs here.</summary>
 public sealed class GitHubHost : PluginHostModule

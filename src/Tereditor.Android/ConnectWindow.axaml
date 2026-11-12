@@ -1,8 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
-        x:Class="SharpRail.UI.Android.ConnectWindow"
-        Title="SharpRail"
+        xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+        x:Class="Tereditor.UI.Android.ConnectWindow"
+        Title="tereditor"
         Background="{x:Static rendering:Ui.Workspace}" Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -11,7 +11,7 @@
         <ContentControl x:Name="ConnectBrand" HorizontalAlignment="Left" />
         <TextBlock Text="Connect to a host" FontSize="24" />
         <TextBlock TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}"
-                   Text="Connect to a running SharpRail: scan its QR code, type its address, or use your tailnet." />
+                   Text="Connect to a running tereditor: scan its QR code, type its address, or use your tailnet." />
       </StackPanel>
       <StackPanel x:Name="ConnectManual" Spacing="8">
         <StackPanel Spacing="8">

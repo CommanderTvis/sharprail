@@ -1,6 +1,6 @@
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>Converts symbol-count line widths to logical pixels, like CSS <c>ch</c> units.</summary>
 public static class LineWidths

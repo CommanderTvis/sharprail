@@ -2,12 +2,12 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-using ProviderPullRequest = SharpRail.Plugins.Api.Host.PullRequest;
+using ProviderPullRequest = Tereditor.Plugins.Api.Host.PullRequest;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class ProjectServices
 {

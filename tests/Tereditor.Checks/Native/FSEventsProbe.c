@@ -100,7 +100,7 @@ static void release(FSEventStreamRef handle)
     FSEventStreamRelease(handle);
 }
 
-__attribute__((visibility("default"))) int SharpRailFSEventsSnapshot(int64_t *values, int count)
+__attribute__((visibility("default"))) int TereditorFSEventsSnapshot(int64_t *values, int count)
 {
     if (count != 7) return 0;
     pthread_mutex_lock(&gate);

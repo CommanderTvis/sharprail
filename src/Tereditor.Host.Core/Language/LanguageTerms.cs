@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>The host's record of terms a user accepted, per server and installation fingerprint (H21); the provider only reads the terms.</summary>
 internal static class LanguageTerms

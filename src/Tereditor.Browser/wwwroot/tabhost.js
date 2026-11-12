@@ -16,7 +16,7 @@ const sessions = new Map();
 
 async function load() {
   if (git) return;
-  const runtime = globalThis.sharprailRuntime;
+  const runtime = globalThis.tereditorRuntime;
   if (!runtime?.Module?.FS) throw new Error('The runtime does not expose its file system.');
   FS = runtime.Module.FS;
   disk = createDisk(FS);
@@ -87,7 +87,7 @@ export function lspOpen(server) {
   const entry = { worker, queue, waiters, closed: false };
   const deliver = value => { if (waiters.length) waiters.shift()(value); else queue.push(value); };
   worker.onmessage = event => {
-    if (event.data?.sharprail === 'usage') { entry.usage?.(event.data); entry.usage = null; return; }
+    if (event.data?.tereditor === 'usage') { entry.usage?.(event.data); entry.usage = null; return; }
     deliver(JSON.stringify(event.data));
   };
   worker.onerror = () => { entry.closed = true; for (const waiter of waiters.splice(0)) waiter(null); };
@@ -117,7 +117,7 @@ export function lspUsage(id) {
   return new Promise(resolve => {
     const timer = setTimeout(() => { entry.usage = null; resolve(null); }, 2000);
     entry.usage = data => { clearTimeout(timer); resolve(JSON.stringify({ busyMs: data.busyMs, heapBytes: data.heapBytes })); };
-    entry.worker.postMessage({ sharprail: 'usage' });
+    entry.worker.postMessage({ tereditor: 'usage' });
   });
 }
 

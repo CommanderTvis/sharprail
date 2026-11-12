@@ -133,61 +133,61 @@
           "Svg.SceneGraph": "5.2.3"
         }
       },
-      "sharprail.plugins.agent.ui": {
+      "tereditor.plugins.agent.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.api": {
+      "tereditor.plugins.api": {
         "type": "Project"
       },
-      "sharprail.plugins.api.ui": {
+      "tereditor.plugins.api.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.chat": {
+      "tereditor.plugins.chat": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.chat.ui": {
+      "tereditor.plugins.chat.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )",
-          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+          "Tereditor.Plugins.Agent.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Api.UI": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )",
+          "Tereditor.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.claudecode": {
+      "tereditor.plugins.claudecode": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api": "[1.0.0, )",
-          "SharpRail.Plugins.Chat": "[1.0.0, )"
+          "Tereditor.Plugins.Api": "[1.0.0, )",
+          "Tereditor.Plugins.Chat": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.ui.kit": {
+      "tereditor.plugins.ui.kit": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "Avalonia.Themes.Fluent": "[12.1.4, )",
           "Markdig": "[1.4.0, )",
-          "SharpRail.Scintilla": "[1.0.0, )",
+          "Tereditor.Scintilla": "[1.0.0, )",
           "SkiaSharp": "[4.148.0, )",
           "Svg.Controls.Skia.Avalonia": "[12.0.0.17, )",
           "TextMateSharp": "[2.0.4, )",
           "TextMateSharp.Grammars": "[2.0.4, )"
         }
       },
-      "sharprail.scintilla": {
+      "tereditor.scintilla": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",

@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             xmlns:editor="using:SharpRail.UI.Editor"
-             x:Class="SharpRail.UI.Editor.CodeDocumentView">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             xmlns:editor="using:Tereditor.UI.Editor"
+             x:Class="Tereditor.UI.Editor.CodeDocumentView">
   <Grid RowDefinitions="Auto,*">
     <StackPanel>
       <Border x:Name="FileDeletedOnDisk" IsVisible="False" BorderThickness="0,0,0,1" Padding="8,4">

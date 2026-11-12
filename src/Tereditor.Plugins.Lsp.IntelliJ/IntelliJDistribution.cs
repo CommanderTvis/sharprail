@@ -4,9 +4,9 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Lsp.IntelliJ;
+namespace Tereditor.Plugins.Lsp.IntelliJ;
 
 internal sealed record IntelliJBundle(string Version, string Platform, Uri Url, string Sha256);
 
@@ -120,7 +120,7 @@ internal static class IntelliJDistribution
         RecordLaunch(installation.SessionDirectory, root);
         var environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = sharing, ["INTELLIJ_REGION"] = region };
         foreach (var (name, value) in IntelliJLicenseMount.Prepare(installation.SessionDirectory)) environment[name] = value;
-        if (IntelliJLicenseMount.Current is { } mounted) Console.Error.WriteLine("sharprail: IntelliJ licence mount: " + mounted.Kind + ". " + mounted.Message);
+        if (IntelliJLicenseMount.Current is { } mounted) Console.Error.WriteLine("tereditor: IntelliJ licence mount: " + mounted.Kind + ". " + mounted.Message);
         return new(Path.Combine(root, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"),
             ["--stdio", "--system-path", installation.SessionDirectory, "--eula", actual[..16]])
         {
@@ -142,14 +142,14 @@ internal static class IntelliJDistribution
             catch (IOException) { await Task.Delay(50, token); }
         }
         await using var held = lease;
-        var marker = Path.Combine(destination, ".sharprail-artifact.json");
+        var marker = Path.Combine(destination, ".tereditor-artifact.json");
         if (File.Exists(marker))
         {
             var saved = JsonSerializer.Deserialize(await File.ReadAllTextAsync(marker, token), IntelliJDistributionJson.Default.Installed);
             if (saved is not null && saved.ArchiveSha256 == bundle.Sha256 && Validate(destination, bundle.Version) == saved.EulaSha256) return destination;
-            throw new IOException("IntelliJ installation changed; remove the SharpRail-owned installation before retrying.");
+            throw new IOException("IntelliJ installation changed; remove the tereditor-owned installation before retrying.");
         }
-        if (Directory.Exists(destination)) throw new IOException("Incomplete IntelliJ installation; remove the SharpRail-owned installation before retrying.");
+        if (Directory.Exists(destination)) throw new IOException("Incomplete IntelliJ installation; remove the tereditor-owned installation before retrying.");
         var staging = destination + ".partial-" + Guid.NewGuid().ToString("N");
         var archive = staging + ".download";
         try
@@ -169,7 +169,7 @@ internal static class IntelliJDistribution
             Directory.CreateDirectory(staging);
             await ExtractAsync(archive, staging, bundle.Url.AbsolutePath.EndsWith(".tar.gz", StringComparison.Ordinal), token);
             var terms = Validate(staging, bundle.Version);
-            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Installed(bundle.Sha256, terms), IntelliJDistributionJson.Default.Installed), token);
+            await File.WriteAllTextAsync(Path.Combine(staging, ".tereditor-artifact.json"), JsonSerializer.Serialize(new Installed(bundle.Sha256, terms), IntelliJDistributionJson.Default.Installed), token);
             token.ThrowIfCancellationRequested();
             Directory.Move(staging, destination);
             return destination;

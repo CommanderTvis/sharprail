@@ -3,7 +3,7 @@ using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>
 /// HTTP/1.1 over a dialed stream, one request per connection (<c>Connection: close</c>). It serves a userspace

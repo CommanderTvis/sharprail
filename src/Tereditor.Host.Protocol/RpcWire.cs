@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 
-namespace SharpRail.Host.Protocol;
+namespace Tereditor.Host.Protocol;
 
 public enum RpcFrameKind { Open = 1, Data, End, Complete, Cancel, Credit, Ping, Pong }
 [ProtoContract]
@@ -19,7 +19,7 @@ public sealed class RpcFrame
 public delegate void RpcSink(ReadOnlySpan<byte> bytes);
 public static class RpcWire
 {
-    public const string Subprotocol = "sharprail.rpc.v1";
+    public const string Subprotocol = "tereditor.rpc.v1";
     public const int ChunkBytes = 32 * 1024;
     public const int FrameBytes = ChunkBytes + 16 * 1024;
     public const int MessageBytes = 144 * 1024 * 1024;

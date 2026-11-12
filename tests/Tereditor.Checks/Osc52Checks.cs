@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 using Ghostty.Avalonia;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // A private AppKit pasteboard and scripted permission decisions keep these checks
 // away from the user's clipboard, while exercising the production callbacks.

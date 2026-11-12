@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices.JavaScript;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 internal static partial class BrowserInterop
 {
@@ -14,57 +14,57 @@ internal static partial class BrowserInterop
             else BrowserWindows.Instance.HandleEvent(message);
         });
     }
-    [JSImport("requestNotificationPermission", "sharprail")]
+    [JSImport("requestNotificationPermission", "tereditor")]
     internal static partial void RequestNotificationPermission();
-    [JSImport("notify", "sharprail")]
+    [JSImport("notify", "tereditor")]
     internal static partial void Notify(string id, string title, string body);
-    [JSImport("createWindow", "sharprail")]
+    [JSImport("createWindow", "tereditor")]
     internal static partial string CreateWindow();
-    [JSImport("placeWindow", "sharprail")]
+    [JSImport("placeWindow", "tereditor")]
     internal static partial void PlaceWindow(string id, double width, double height, bool dialog, bool shown);
-    [JSImport("windowWidth", "sharprail")]
+    [JSImport("windowWidth", "tereditor")]
     internal static partial double WindowWidth(string id);
-    [JSImport("windowHeight", "sharprail")]
+    [JSImport("windowHeight", "tereditor")]
     internal static partial double WindowHeight(string id);
-    [JSImport("removeWindow", "sharprail")]
+    [JSImport("removeWindow", "tereditor")]
     internal static partial void RemoveWindow(string id);
-    [JSImport("activateWindow", "sharprail")]
+    [JSImport("activateWindow", "tereditor")]
     internal static partial void ActivateWindow(string id);
-    [JSImport("enableWindow", "sharprail")]
+    [JSImport("enableWindow", "tereditor")]
     internal static partial void EnableWindow(string id, bool enabled);
-    [JSImport("cutNative", "sharprail")]
+    [JSImport("cutNative", "tereditor")]
     internal static partial void CutNative(string id, string rects);
-    [JSImport("dimNative", "sharprail")]
+    [JSImport("dimNative", "tereditor")]
     internal static partial void DimNative(string id, int red, int green, int blue, double alpha);
-    [JSImport("setTitle", "sharprail")]
+    [JSImport("setTitle", "tereditor")]
     internal static partial void SetTitle(string id, string title);
-    [JSImport("setWorkbench", "sharprail")]
+    [JSImport("setWorkbench", "tereditor")]
     internal static partial void SetWorkbench(string id, bool workbench);
-    [JSImport("load", "sharprail")]
+    [JSImport("load", "tereditor")]
     internal static partial string? Load(string key);
-    [JSImport("save", "sharprail")]
+    [JSImport("save", "tereditor")]
     internal static partial void Save(string key, string value);
-    [JSImport("renderMermaid", "sharprail")]
+    [JSImport("renderMermaid", "tereditor")]
     [return: JSMarshalAs<JSType.Promise<JSType.String>>]
     internal static partial Task<string> RenderMermaid(string source, string options);
-    [JSImport("readPdf", "sharprail")]
+    [JSImport("readPdf", "tereditor")]
     [return: JSMarshalAs<JSType.Promise<JSType.String>>]
     internal static partial Task<string> ReadPdf(string bytes);
-    [JSImport("renderPdf", "sharprail")]
+    [JSImport("renderPdf", "tereditor")]
     [return: JSMarshalAs<JSType.Promise<JSType.String>>]
     internal static partial Task<string> RenderPdf(string bytes, double scale);
-    [JSImport("isVisible", "sharprail")]
+    [JSImport("isVisible", "tereditor")]
     internal static partial bool IsVisible();
-    [JSImport("origin", "sharprail")]
+    [JSImport("origin", "tereditor")]
     internal static partial string Origin();
-    [JSImport("viewportWidth", "sharprail")]
+    [JSImport("viewportWidth", "tereditor")]
     internal static partial double ViewportWidth();
-    [JSImport("isCoarse", "sharprail")]
+    [JSImport("isCoarse", "tereditor")]
     internal static partial bool IsCoarse();
-    [JSImport("smallestScreenSide", "sharprail")]
+    [JSImport("smallestScreenSide", "tereditor")]
     internal static partial double SmallestScreenSide();
-    [JSImport("isMac", "sharprail")]
+    [JSImport("isMac", "tereditor")]
     internal static partial bool IsMac();
-    [JSImport("openLink", "sharprail")]
+    [JSImport("openLink", "tereditor")]
     internal static partial void OpenLink(string url);
 }

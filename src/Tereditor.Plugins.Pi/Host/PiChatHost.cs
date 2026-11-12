@@ -2,11 +2,11 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Chat;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Chat;
 
-namespace SharpRail.Plugins.Pi.Host;
+namespace Tereditor.Plugins.Pi.Host;
 
 /// <summary>What the host remembers of a chat so reopening its tab continues the same Pi session.</summary>
 internal sealed record PiChatRecord(string WorkspaceId, string ChatId)

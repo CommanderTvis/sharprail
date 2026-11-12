@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 internal sealed record ContextBundle(string Version, string Platform, Uri Url, string Sha256);
 

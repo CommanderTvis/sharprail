@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install the checksum-pinned Go toolchain shared by the Tailscale builds into the machine-wide cache
-# ($SHARPRAIL_CACHE_DIR/tailscale-go/go<version>-<platform>, one directory per pin so checkouts pinning different versions
+# ($TEREDITOR_CACHE_DIR/tailscale-go/go<version>-<platform>, one directory per pin so checkouts pinning different versions
 # never replace each other's) and print its GOROOT. Go's build and module caches beside it are safe for concurrent use.
 set -eu
 cd "$(dirname "$0")/.."
@@ -15,7 +15,7 @@ case "$(uname -s)-$(uname -m)" in
 esac
 . "$root/scripts/lock.sh"
 . "$root/scripts/native-cache.sh"
-cache="$(sharprail_cache_dir)/tailscale-go"
+cache="$(tereditor_cache_dir)/tailscale-go"
 goroot="$cache/go$version-$platform"
 if [ ! -x "$goroot/bin/go" ]; then
  mkdir -p "$cache"

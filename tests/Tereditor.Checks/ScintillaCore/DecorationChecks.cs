@@ -1,7 +1,7 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
-using SharpRail.Scintilla.Core;
+using Tereditor.Scintilla.Core;
 
-namespace SharpRail.Checks.ScintillaCore;
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Port of Scintilla test/unit/testDecoration.cxx.</summary>
 internal static class DecorationChecks

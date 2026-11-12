@@ -1,7 +1,7 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLifetime lifetime) : ITerminalRpc
 {

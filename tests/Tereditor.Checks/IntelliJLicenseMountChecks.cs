@@ -2,10 +2,10 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
 
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Lsp.IntelliJ;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Lsp.IntelliJ;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// A mounted offline activation download (synthetic: made-up ids and payloads in the real shape) becomes the file the server reads, written under the cache and

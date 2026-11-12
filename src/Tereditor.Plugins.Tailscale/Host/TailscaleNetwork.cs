@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace SharpRail.Plugins.Tailscale.Host;
+namespace Tereditor.Plugins.Tailscale.Host;
 
 internal sealed record TailscaleLocal(IPAddress Address, string Name);
 internal sealed record TailscaleIdentity(string Id, string Name, string User);

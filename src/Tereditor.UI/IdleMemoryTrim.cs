@@ -5,7 +5,7 @@ using System.Runtime;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Returns managed memory to the OS once after the app has sat idle: a fragmented large-object heap and Gen2 garbage

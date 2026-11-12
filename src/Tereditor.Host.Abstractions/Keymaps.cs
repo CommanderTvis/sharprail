@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>The modifiers of a <see cref="KeyChord"/>; <c>Mod</c> is the platform's command key (Command on macOS, Control elsewhere).</summary>
 [Flags]
@@ -246,7 +246,7 @@ public sealed class KeymapBindings
 
     public void Remove(string actionId) => Map.Remove(actionId);
 
-    /// <summary>The built-in IntelliJ IDEA keymap for the commands SharpRail has: its macOS keymap on macOS, the Windows/Linux default elsewhere.</summary>
+    /// <summary>The built-in IntelliJ IDEA keymap for the commands tereditor has: its macOS keymap on macOS, the Windows/Linux default elsewhere.</summary>
     public static KeymapBindings IntelliJ(KeymapPlatform platform, IEnumerable<KeymapAction>? plugins = null)
     {
         var bindings = new KeymapBindings(new JsonObject { ["version"] = Version, ["bindings"] = new JsonObject() });
@@ -260,7 +260,7 @@ public sealed class KeymapBindings
     }
 
     // Action, IntelliJ macOS keymap, IntelliJ Default for Windows/Linux. Settings is Cmd+, on macOS (also the macOS convention) and Ctrl+Alt+S
-    // elsewhere. Actions IntelliJ has no chord for keep the chord SharpRail already had; where IntelliJ's chord would collide with a terminal
+    // elsewhere. Actions IntelliJ has no chord for keep the chord tereditor already had; where IntelliJ's chord would collide with a terminal
     // (Alt+1, so the Project panel is Ctrl+1) or the desktop (Ctrl+Alt+Arrow) the existing chord stays.
     private static readonly (string Id, string[] Mac, string[] Other)[] IntelliJTable =
     [

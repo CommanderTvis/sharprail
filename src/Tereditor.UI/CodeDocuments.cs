@@ -1,12 +1,12 @@
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit.Markdown;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Editor;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit.Markdown;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Editor;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -40,7 +40,7 @@ public sealed partial class WorkbenchWindow
 
     private double FileWrapWidth => LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded);
 
-    private void ApplyEditorPreferences(SharpRail.Scintilla.ScintillaEditor editor)
+    private void ApplyEditorPreferences(Tereditor.Scintilla.ScintillaEditor editor)
     {
         editor.WrapWidth = FileWrapWidth;
         editor.TabWidth = Preferences.EditorTabWidth;

@@ -6,12 +6,12 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Rendering;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class SharedControlChecks
 {
@@ -63,7 +63,7 @@ internal static class SharedControlChecks
         var source = ScopedSetting.SourcePath("/tmp/x", _ => { });
         var action = ScopedSetting.RowAction("A", "Del", () => { });
         var danger = ScopedSetting.RowAction("B", "Remove", () => { }, danger: true);
-        var separator = new SharpRail.UI.Docking.ResizeHandle(true, _ => { }, _ => { }, () => { });
+        var separator = new Tereditor.UI.Docking.ResizeHandle(true, _ => { }, _ => { }, () => { });
         separator.Width = 9; separator.Height = 40;
         var window = new Window
         {

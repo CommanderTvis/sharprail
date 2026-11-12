@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>Document over CellBuffer: styling, line endings, word/character navigation, decorations, margin text (upstream src/Document.h/.cxx).</summary>
 /// <remarks>UTF-8 only (code page 65001). Character decoding uses <see cref="Rune"/> and word classes above ASCII
@@ -134,7 +134,7 @@ internal sealed class Document
 
     // Modification
 
-    /// <summary>SharpRail extension: whether inserted bytes take the neighbouring style (see <see cref="CellBuffer.InheritInsertionStyle"/>).</summary>
+    /// <summary>tereditor extension: whether inserted bytes take the neighbouring style (see <see cref="CellBuffer.InheritInsertionStyle"/>).</summary>
     internal bool InheritInsertionStyle
     {
         get => cb.InheritInsertionStyle;

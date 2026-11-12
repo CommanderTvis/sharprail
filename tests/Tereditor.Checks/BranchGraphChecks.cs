@@ -12,18 +12,18 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.BranchGraph;
-using SharpRail.Plugins.BranchGraph.Host;
-using SharpRail.Plugins.BranchGraph.UI;
-using SharpRail.UI.Panels;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.BranchGraph;
+using Tereditor.Plugins.BranchGraph.Host;
+using Tereditor.Plugins.BranchGraph.UI;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class BranchGraphChecks
 {
@@ -42,8 +42,8 @@ internal static class BranchGraphChecks
     {
         Parsing();
         Lanes();
-        var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
-        if (source is null) { Console.WriteLine("SKIP branch graph Git fixtures: set SHARPRAIL_TEST_GIT_SOURCE to an existing clone."); return; }
+        var source = Environment.GetEnvironmentVariable("TEREDITOR_TEST_GIT_SOURCE");
+        if (source is null) { Console.WriteLine("SKIP branch graph Git fixtures: set TEREDITOR_TEST_GIT_SOURCE to an existing clone."); return; }
         var repo = Repository(root);
         Directory.CreateDirectory(repo);
         Git(repo, "init", "-b", "main");
@@ -59,7 +59,7 @@ internal static class BranchGraphChecks
         {
             var state = server.Services.GetRequiredService<IHostStateService>();
             await state.ChangeAsync([HostStateChange.OpenProject(repo)]);
-            var runtime = server.Services.GetRequiredService<SharpRail.Host.Core.Plugins.PluginRuntime>();
+            var runtime = server.Services.GetRequiredService<Tereditor.Host.Core.Plugins.PluginRuntime>();
             var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
             using var remote = new RemotePluginAdapter(address, "graph");
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -139,7 +139,7 @@ internal static class BranchGraphChecks
             Open(app, repo);
             app.Window.Activate();
             E2eWorkspace.Until(() => ReferenceEquals(app.Workbench.ActiveWindow, app.Window) && Panel(app).Rows == 3);
-            SharpRail.UI.ChangesReviewPane? Review() => app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().SingleOrDefault(pane => pane.IsEffectivelyVisible);
+            Tereditor.UI.ChangesReviewPane? Review() => app.Window.GetLogicalDescendants().OfType<Tereditor.UI.ChangesReviewPane>().SingleOrDefault(pane => pane.IsEffectivelyVisible);
             string[] Paths() => Review()?.GetLogicalDescendants().OfType<Border>().Where(control => control.Name == "ReviewSection")
                 .Select(control => (string)control.Tag!).Order().ToArray() ?? [];
             void View(string subject)
@@ -149,11 +149,11 @@ internal static class BranchGraphChecks
             }
             app.Click(Row(Panel(app), "change two files"));
             E2eWorkspace.Until(() => Paths().SequenceEqual(["a.txt", "b.txt"]) &&
-                Review()!.GetLogicalDescendants().OfType<SharpRail.UI.Rendering.DiffView>().Count() == 2);
+                Review()!.GetLogicalDescendants().OfType<Tereditor.UI.Rendering.DiffView>().Count() == 2);
             Require(app.Tabs.Single(tab => tab.Kind == "changes") is { Scope: "commit", Preview: false } tab && tab.Comparison == changed,
                 "View changes opens a kept review pinned to the clicked commit.");
-            var text = string.Join("\n", Review()!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Select(editor => editor.Text));
-            if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+            var text = string.Join("\n", Review()!.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Select(editor => editor.Text));
+            if (Tereditor.Scintilla.ScintillaEditor.IsSupported)
                 Require(text.Contains("committed a", StringComparison.Ordinal) && text.Contains("committed b", StringComparison.Ordinal) &&
                     !text.Contains("uncommitted content", StringComparison.Ordinal), "The review shows the commit's contents, excluding working-tree edits.");
             Require(!Review()!.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "DiffKeepBlock" or "DiffRevertBlock" or "DiffRevertFile"),
@@ -249,7 +249,7 @@ internal static class BranchGraphChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
-            var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("branch-graph")!;
+            var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("branch-graph")!;
             row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
             E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id) == enabled);
             settings.Close();

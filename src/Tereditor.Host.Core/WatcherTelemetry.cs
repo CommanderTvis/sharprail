@@ -1,6 +1,6 @@
 using System.Diagnostics.Tracing;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 internal static partial class WorkspaceWatches
 {
@@ -54,7 +54,7 @@ internal static partial class WorkspaceWatches
 }
 
 /// <summary>Opt-in EventSource lifecycle tracing and process-wide managed watcher counters for dotnet-counters/dotnet-trace.</summary>
-[EventSource(Name = "SharpRail-WorkspaceWatchers")]
+[EventSource(Name = "tereditor-WorkspaceWatchers")]
 internal sealed class WatcherTelemetry : EventSource
 {
     internal static readonly WatcherTelemetry Log = new();

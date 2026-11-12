@@ -7,18 +7,18 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.UI.Kit;
 
 using Path = Avalonia.Controls.Shapes.Path;
 
-namespace SharpRail.Plugins.Agent.UI;
+namespace Tereditor.Plugins.Agent.UI;
 
 /// <summary>
-/// SharpRail's instructions as one context entry: a row with the PROJECT chip, the size the host measured and the
+/// tereditor's instructions as one context entry: a row with the PROJECT chip, the size the host measured and the
 /// appended file's path and a count of the sections, that opens a dialog of the sections an agent's sessions get, grouped by source
-/// (SharpRail, then each enabled plugin). Each section is a checkbox with its title, and a one-line summary that
-/// discloses its text. A checkbox only turns a section on or off in the project's <c>.sharprail/instructions.toml</c>;
+/// (tereditor, then each enabled plugin). Each section is a checkbox with its title, and a one-line summary that
+/// discloses its text. A checkbox only turns a section on or off in the project's <c>.tereditor/instructions.toml</c>;
 /// no text is editable here.
 /// </summary>
 public sealed partial class InstructionSectionsView : Border
@@ -64,7 +64,7 @@ public sealed partial class InstructionSectionsView : Border
         var row = this.FindControl<Button>("InstructionSectionsToggle")!;
         ((Panel)body.Parent!).Children.Remove(body);
         row.Click += (_, _) => _ = ShowDialog();
-        ToolTip.SetTip(row, "Choose which of SharpRail's sections new sessions get");
+        ToolTip.SetTip(row, "Choose which of tereditor's sections new sessions get");
         // The collapsed row counts its sections, so it reads as a list to open; the listing is read off the UI thread.
         _ = Run(load);
     }
@@ -72,7 +72,7 @@ public sealed partial class InstructionSectionsView : Border
     private async Task ShowDialog()
     {
         if (IsOpen || TopLevel.GetTopLevel(this) is not Window owner) return;
-        var window = DialogWindow.Create("SharpRail's instructions", 480);
+        var window = DialogWindow.Create("tereditor's instructions", 480);
         window.Tag = "InstructionSectionsDialog";
         var fields = window.FindControl<StackPanel>("DialogFields")!;
         fields.Children.Add(body);
@@ -170,7 +170,7 @@ public sealed partial class InstructionSectionsView : Border
                     groups.Children.Add(parts.Root);
                 }
             }
-            if (list.Sections.Count == 0) groups.Children.Add(Ui.Text("No sections: SharpRail adds no instructions here.", Ui.Muted, 12));
+            if (list.Sections.Count == 0) groups.Children.Add(Ui.Text("No sections: tereditor adds no instructions here.", Ui.Muted, 12));
         }
         latest.Clear();
         foreach (var section in list.Sections) { latest[section.Id] = section.Text; rowParts[section.Id].Update(section, writable); }

@@ -1,14 +1,14 @@
 using System.Text.Json;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class ProjectPaneChecks
 {

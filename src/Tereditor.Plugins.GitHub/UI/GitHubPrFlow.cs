@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.GitHub.UI;
+namespace Tereditor.Plugins.GitHub.UI;
 
 /// <summary>The pull request flows the Review section starts: compose and open, merge, delete the remote branch.</summary>
 internal static class GitHubPrFlow

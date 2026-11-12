@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.Host;
+namespace Tereditor.Plugins.ClaudeCode.Host;
 
 /// <summary>What a posted report means: a status (null for a report that only carries facts) and the report itself.</summary>
 internal sealed record StatusDelivery(ClaudeCodeStatus? Status, AgentStatusReport Report);

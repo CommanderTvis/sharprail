@@ -5,11 +5,11 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.ClaudeCode.UI.Chat;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.ClaudeCode.UI.Chat;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>Settings › Claude Code: the launch command, the agent-view switch and the system prompt switch.</summary>
 internal sealed partial class ClaudeCodeSettingsSection : UserControl
@@ -146,8 +146,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     {
         var dangerous = ClaudePermissionModes.IsDangerous(saved);
         permissionNote.Text = dangerous
-            ? "Every session SharpRail starts will skip all permission checks. Only use this in a sandbox with no internet access."
-            : "Passed as --permission-mode to sessions SharpRail starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run.";
+            ? "Every session tereditor starts will skip all permission checks. Only use this in a sandbox with no internet access."
+            : "Passed as --permission-mode to sessions tereditor starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run.";
         permissionNote.Foreground = dangerous ? Ui.Danger : Ui.Muted;
     }
 
@@ -307,7 +307,7 @@ internal static class ClaudeLauncherAction
         var dialog = DialogWindow.Create("Start Claude Code with arguments", 520);
         dialog.Tag = "ClaudeCustomLaunch";
         dialog.FindControl<TextBlock>("DialogExplanation")!.Text =
-            "Flags added to this run's command line, after SharpRail's own, for example --permission-mode plan or --add-dir ../other.";
+            "Flags added to this run's command line, after tereditor's own, for example --permission-mode plan or --add-dir ../other.";
         var input = new TextBox { Name = "ClaudeCustomArguments", Text = lastArguments, PlaceholderText = "--flag value …", FontFamily = Ui.CodeFont };
         dialog.FindControl<StackPanel>("DialogFields")!.Children.Add(input);
         string? chosen = null;

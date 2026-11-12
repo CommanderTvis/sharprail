@@ -6,10 +6,10 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Files' All | Changed switch (ThinkRail #779): Changed is the Changes view unchanged, All is the file tree with

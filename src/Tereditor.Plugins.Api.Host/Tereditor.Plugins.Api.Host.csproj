@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><GenerateDocumentationFile>true</GenerateDocumentationFile></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
   </ItemGroup>
 </Project>

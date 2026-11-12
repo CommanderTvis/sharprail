@@ -15,14 +15,14 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class Program
 {
@@ -30,7 +30,7 @@ internal static class Program
     {
         if (args.SequenceEqual(["--native-editor-find"])) { NativeEditorFindChecks.Run(args); return; }
         if (args.Contains("--fake-agent-launch")) { Thread.Sleep(30_000); return; }
-        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "1");
+        Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "1");
         // No check may take this machine's real Secure Event Input.
         RecordingSecureEventInput.Install();
         E2E.IsolatedGit.ForProcess();
@@ -42,18 +42,18 @@ internal static class Program
             NativeTerminalChecks.Run(args); return;
         }
         if (args.Contains("--native-terminal-links") || args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52") || args.Contains("--native-frame-pump") || args.Contains("--native-surface-memory") || args.Contains("--native-prompts")) { NativeTextureChecks.Run(args); return; }
-        if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
+        if (args.Contains("--terminal-relay")) { Environment.Exit(Tereditor.UI.Terminal.TerminalRelay.Run()); return; }
         var root = CheckRoot.Create("fixture");
-        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
+        Environment.SetEnvironmentVariable("TEREDITOR_STATE_DIR", Path.Combine(root, "host-state"));
         // Agent session locks are machine-wide; the checks keep theirs in the run's root.
-        Environment.SetEnvironmentVariable(SharpRail.Host.Core.Plugins.AgentSessionOwnership.DirectoryVariable, Path.Combine(root, "agent-sessions"));
+        Environment.SetEnvironmentVariable(Tereditor.Host.Core.Plugins.AgentSessionOwnership.DirectoryVariable, Path.Combine(root, "agent-sessions"));
         // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
         Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
         // The checks assume the top bar and the dock's left column; UnifiedChromeChecks turns the new layout on for its own windows.
-        SharpRail.UI.UnifiedChrome.Override = false;
+        Tereditor.UI.UnifiedChrome.Override = false;
         Directory.CreateDirectory(root);
         // The checks binary is the fake language server and lives in the repository, which executables are otherwise never taken from.
-        SharpRail.Host.Core.Language.LanguageExecutables.CheckExemptions.Add(SharpRail.Host.Core.Language.LanguageExecutables.Real(Environment.ProcessPath!));
+        Tereditor.Host.Core.Language.LanguageExecutables.CheckExemptions.Add(Tereditor.Host.Core.Language.LanguageExecutables.Real(Environment.ProcessPath!));
         Directory.CreateDirectory(Path.Combine(root, "src"));
         Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", CheckRoot.Parent);
         File.WriteAllText(Path.Combine(root, "hello.txt"), "hello");
@@ -729,12 +729,12 @@ internal static class Program
             E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
-        if (args.SequenceEqual(["--sharprail-exclude"]))
+        if (args.SequenceEqual(["--tereditor-exclude"]))
         {
-            SharprailExcludeChecks.Host(root).GetAwaiter().GetResult();
+            TereditorExcludeChecks.Host(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-            SharprailExcludeChecks.Ui(root);
+            TereditorExcludeChecks.Ui(root);
             return;
         }
         if (args.SequenceEqual(["--workspace-clone"]))
@@ -1392,7 +1392,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             if (args[0] == "--changes-menu")
-                E2E.ChangesScopeE2E.FailedRead(root, E2E.ChangesFixture.Source ?? throw new InvalidOperationException("Set SHARPRAIL_TEST_GIT_SOURCE."));
+                E2E.ChangesScopeE2E.FailedRead(root, E2E.ChangesFixture.Source ?? throw new InvalidOperationException("Set TEREDITOR_TEST_GIT_SOURCE."));
             else
             {
                 E2E.ChangesE2E.Run(root);
@@ -1531,7 +1531,7 @@ internal static class Program
         Gate.Case("process", () => ProcessChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-clone", () => WorkspaceCloneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("git-host", () => GitHostChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("sharprail-exclude", () => SharprailExcludeChecks.Host(root).GetAwaiter().GetResult());
+        Gate.Case("tereditor-exclude", () => TereditorExcludeChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("registry", () => WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watcher-hygiene", () => WatcherHygieneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watchers", () => WatchChecks.Run(root).GetAwaiter().GetResult());

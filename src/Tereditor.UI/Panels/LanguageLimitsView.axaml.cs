@@ -6,10 +6,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 /// <summary>
 /// Settings › Code Intelligence: the limits (idle timeout, memory budget, count caps); what is running now is shown in the Code Intelligence tool window, saved as the host setting <c>language-limits</c> and refreshed from its broadcast.

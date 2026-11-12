@@ -8,20 +8,20 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 internal sealed class E2eWorkspace : IDisposable
 {
-    internal static string MarkdownSourceText(Control source) => source is SharpRail.Scintilla.ScintillaEditor editor
+    internal static string MarkdownSourceText(Control source) => source is Tereditor.Scintilla.ScintillaEditor editor
         ? editor.Text
         : string.Join('\n', source.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(block =>
             string.Concat(block.Inlines?.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text) ?? [])));
@@ -79,8 +79,8 @@ internal sealed class E2eWorkspace : IDisposable
     /// instead of the builtin UI halves when given.
     /// </summary>
     internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null, Action<ProfileStore>? prepare = null, bool compact = false,
-        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
-        SharpRail.Plugins.Isolation.IIsolatedUIHost? isolated = null)
+        IReadOnlyList<(Tereditor.Plugins.Api.PluginManifest, Func<Tereditor.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
+        Tereditor.Plugins.Isolation.IIsolatedUIHost? isolated = null)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
@@ -88,7 +88,7 @@ internal sealed class E2eWorkspace : IDisposable
         var service = new RemoteStateAdapter(endpoint, token);
         remoteState = service;
         // A check may start a client while its relay is cut on purpose; an earlier client of that host enabled them.
-        if (plugins) try { EnableSpecPlugins(service); } catch (SharpRail.Host.Protocol.RpcException) { }
+        if (plugins) try { EnableSpecPlugins(service); } catch (Tereditor.Host.Protocol.RpcException) { }
         remotePlugins = plugins ? new RemotePluginAdapter(endpoint, token) : null;
         State = null;
         Host = new(new RemoteProjectAdapter(endpoint, token));
@@ -101,8 +101,8 @@ internal sealed class E2eWorkspace : IDisposable
             Compact = compact,
             // As the app's seam: an external plugin's UI half opens on the remote host only when a check asks for it.
             IsolatedPlugins = isolated is null ? null : async (entry, client, ended, token) =>
-                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(isolated, entry.Id, client, ended,
-                    open => new SharpRail.UI.Plugins.RemoteSurface(open, entry.Label), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token)
+                await Tereditor.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(isolated, entry.Id, client, ended,
+                    open => new Tereditor.UI.Plugins.RemoteSurface(open, entry.Label), Tereditor.UI.Plugins.RemoteSurface.ThemeJson, token)
         };
         Window = latest = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
@@ -115,11 +115,11 @@ internal sealed class E2eWorkspace : IDisposable
     /// </summary>
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, Tereditor.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
         bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null,
-        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, SharpRail.Plugins.Api.Host.PluginHostModule?)>? hostPlugins = null,
-        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
-        SharpRail.Host.Core.Plugins.Isolation.PluginIsolation? isolation = null, bool playground = false)
+        IReadOnlyList<(Tereditor.Plugins.Api.PluginManifest, Tereditor.Plugins.Api.Host.PluginHostModule?)>? hostPlugins = null,
+        IReadOnlyList<(Tereditor.Plugins.Api.PluginManifest, Func<Tereditor.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
+        Tereditor.Host.Core.Plugins.Isolation.PluginIsolation? isolation = null, bool playground = false)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -148,7 +148,7 @@ internal sealed class E2eWorkspace : IDisposable
             State = State,
             PublicBaseUrl = () => server.BaseUrl,
             Terminals = hosted?.HostService,
-            Builtins = hostPlugins ?? SharpRail.Host.Core.Plugins.BuiltinPlugins.All,
+            Builtins = hostPlugins ?? Tereditor.Host.Core.Plugins.BuiltinPlugins.All,
             Isolation = isolation
         });
         loopback.Plugins = pluginRuntime;
@@ -170,8 +170,8 @@ internal sealed class E2eWorkspace : IDisposable
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
             // As the host's seam: an external plugin's UI half opens on the in-process host only when a check asks for it.
             IsolatedPlugins = isolation is null ? null : async (entry, client, ended, token) =>
-                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended,
-                    open => new SharpRail.UI.Plugins.RemoteSurface(open, entry.Label), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token),
+                await Tereditor.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended,
+                    open => new Tereditor.UI.Plugins.RemoteSurface(open, entry.Label), Tereditor.UI.Plugins.RemoteSurface.ThemeJson, token),
             PlaygroundGuide = playground,
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
@@ -311,13 +311,13 @@ internal sealed class E2eWorkspace : IDisposable
     internal void UntilDialogsGone(string? confirmButton = null) => Until(() =>
     {
         ConfirmDialog(confirmButton);
-        return SharpRail.Plugins.UI.Kit.DialogWindow.On(Window).Count == 0 && !Find<Grid>("WorkbenchRoot").Children.OfType<Border>().Any(border => ReferenceEquals(border.Background, Ui.Overlay));
+        return Tereditor.Plugins.UI.Kit.DialogWindow.On(Window).Count == 0 && !Find<Grid>("WorkbenchRoot").Children.OfType<Border>().Any(border => ReferenceEquals(border.Background, Ui.Overlay));
     });
 
     /// <summary>Presses the named button of an open dialog, if one is showing it.</summary>
     internal void ConfirmDialog(string? confirmButton)
     {
-        if (confirmButton is not null && SharpRail.Plugins.UI.Kit.DialogWindow.On(Window).OfType<Window>().SelectMany(dialog => dialog.GetLogicalDescendants().OfType<Button>())
+        if (confirmButton is not null && Tereditor.Plugins.UI.Kit.DialogWindow.On(Window).OfType<Window>().SelectMany(dialog => dialog.GetLogicalDescendants().OfType<Button>())
                 .FirstOrDefault(button => button.Name == confirmButton && button.IsEffectivelyVisible) is { } confirm)
             Click(confirm, freshGesture: false);
     }
@@ -380,7 +380,7 @@ internal sealed class E2eWorkspace : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         var hit = input.InputHitTest(point) as Control;
         Require(hit is not null && (ReferenceEquals(hit, control) || hit.GetVisualAncestors().Contains(control)),
-            $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name} ({hit?.Bounds}, classes {hit?.Classes}, background {(hit as Border)?.Background}/{(hit as Border)?.Background == Ui.Overlay}, z {hit?.ZIndex}, row span {(hit is null ? 0 : Grid.GetRowSpan(hit))}, owned windows {string.Join("|", SharpRail.Plugins.UI.Kit.DialogWindow.On(Window).Select(owned => owned.GetType().Name + "/" + owned.Title + "/" + owned.Tag))}, in {hit?.Parent?.GetType().Name}/{(hit?.Parent as Control)?.Name}); ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
+            $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name} ({hit?.Bounds}, classes {hit?.Classes}, background {(hit as Border)?.Background}/{(hit as Border)?.Background == Ui.Overlay}, z {hit?.ZIndex}, row span {(hit is null ? 0 : Grid.GetRowSpan(hit))}, owned windows {string.Join("|", Tereditor.Plugins.UI.Kit.DialogWindow.On(Window).Select(owned => owned.GetType().Name + "/" + owned.Title + "/" + owned.Tag))}, in {hit?.Parent?.GetType().Name}/{(hit?.Parent as Control)?.Name}); ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
         if (twice)
         {
             // Avalonia counts a double click from the timestamps of the raw presses, and the first release runs the tab or row's whole open
@@ -602,8 +602,8 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     }
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => inner.ListBranchesAsync(fetchDefault, ct);
     public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken ct = default) => inner.GetDiffStatsAsync(workspacePath, ct);
-    public ValueTask<SharprailDirectoryStatus> GetSharprailDirectoryAsync(CancellationToken ct = default) => inner.GetSharprailDirectoryAsync(ct);
-    public ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken ct = default) => inner.ExcludeSharprailDirectoryAsync(ct);
+    public ValueTask<TereditorDirectoryStatus> GetTereditorDirectoryAsync(CancellationToken ct = default) => inner.GetTereditorDirectoryAsync(ct);
+    public ValueTask<TereditorDirectoryStatus> ExcludeTereditorDirectoryAsync(CancellationToken ct = default) => inner.ExcludeTereditorDirectoryAsync(ct);
     /// <summary>Rewrites the branch status' pull request, for states a fixture origin cannot produce.</summary>
     internal Func<PullRequest?, PullRequest?>? Review { get; set; }
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);

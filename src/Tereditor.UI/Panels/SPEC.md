@@ -70,11 +70,11 @@ agents merely by opening Settings. Static controls live in the compiled page tem
 - Native windows that stay: the Mermaid full-screen viewer (`DialogWindow.InWindow = false`: a resizable viewer sized from
   its window), the Language settings, logs and terms windows and the Air Context consent and logs windows (own `Window`
   classes, deliberately separate), and a dialog with no owner or an owner that cannot host one (About from the macOS menu
-  with no window). Those use the owned-window path, which in the browser is still placed by `.sharprail-dialog`.
+  with no window). Those use the owned-window path, which in the browser is still placed by `.tereditor-dialog`.
 - Escape closes as a dismissal. `Dialogs.Confirm` focuses Cancel initially; `Dialogs.Prompt` and
   `Dialogs.HostPath` focus their first field; `Dialogs.AskToSave` focuses Save.
 - `Dialogs.HostPath` is the Open project by path dialog: it says the path belongs to the computer
-  running SharpRail, shows the native picker's failure when there was one, and returns the trimmed path.
+  running tereditor, shows the native picker's failure when there was one, and returns the trimmed path.
 - `Dialogs.Notice` is the single-button surface for a failure with no recovery inside it: a 384px card
   with an alert glyph beside the heading, the reason, and one focused default action (OK). Opening a project
   the user asked for by picker, path or recent entry that the host cannot open says “Couldn't open project”
@@ -169,7 +169,7 @@ expressions, a case toggle, a glob filter and replace.
 Appearance includes a shared Accent colour choice: a row of named swatches (Green is the default) plus an optional custom `#rrggbb` field, keyboard reachable, with the selection checked. The app itself is the preview: a choice applies to open windows at once, and each theme adjusts the lightness so the accent stays legible (Themes SPEC, Accent colour). It includes a shared File type icons choice of Plain (default, single-colour), Colored, Material and None (generic glyphs). It controls the core bundled icon set independently of Settings › Plugins. Choosing None keeps the style, so returning to a style restores it; changing the choice redraws Files, tabs and Changes in place.
 
 A modal two-pane card laid out as upstream ThinkRail's: a section rail under uppercase muted group headers, INTERFACE (Appearance, Highlighting, Editor, Layout, Keymap, Terminal) then SYSTEM (Projects, Workspaces, Code Intelligence, Notifications, Host, GitHub, Plugins, About, then each
-active plugin's own sections in registration order), with the selected section tinted. No AGENT group: SharpRail has no such pages and a scrolling
+active plugin's own sections in registration order), with the selected section tinted. No AGENT group: tereditor has no such pages and a scrolling
 content pane. Page section headings share one `settings-heading` style: small, muted and uppercase (the text is uppercased wherever the class is applied, plugin pages included), under a short muted intro line. A row with a single control or status (a switch, a status line) is a `settings-row` border: name and description on the left, the control on the right, one 1 px hairline below; Appearance, Terminal, Notifications, GitHub, Highlighting, Editor, Layout, Host (bind address, port, token, approved browsers) and the Code Intelligence limits use it; its choice lists sit in one row each. About keeps its own fields, shared with the About window. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left.
 Settings is not a window: it is content in the workbench window's `OverlayHost` (`OverlayHost.axaml` / `.axaml.cs`), a
@@ -234,7 +234,7 @@ could not save this change: …” inline and re-renders from host state.
   size (Off, 16 KB, 64 KB, 256 KB, 1 MB) is shared state: a click sends the change and the selection moves
   when the broadcast arrives.
 - Appearance, on Linux only, adds "Window decorations": Automatic (recommended), Integrated header or System title bar over the host's
-  shared `window-decorations`, following the broadcast. An active `SHARPRAIL_WINDOW_DECORATIONS` environment override is named under the
+  shared `window-decorations`, following the broadcast. An active `TEREDITOR_WINDOW_DECORATIONS` environment override is named under the
   choices, since it wins. Open windows switch at once; the copy tells a user whose window manager keeps the old frame to open a new window.
 - Notifications is the fork's `NotificationsSettings`: one "Enable notifications" switch over the host's
   shared `notifications` setting (default on), following the broadcast rather than the click. Turning it
@@ -243,7 +243,7 @@ could not save this change: …” inline and re-renders from host state.
   have no counterpart.
 - GitHub (“Local GitHub”) runs `gh auth status` with prompts disabled and a 10-second timeout and reports
   Connected with the account line, or Not connected with the reason (not installed, not signed in, no
-  response), with Refresh. SharpRail stores no credentials.
+  response), with Refresh. tereditor stores no credentials.
 
 - Plugins (`PluginsSettings.cs`) lists every roster row of the host this window is connected to: icon, label, the
   version of an external plugin, origin, status, description, a contribution summary, the reason of a failed or
@@ -350,6 +350,6 @@ missing carries a small red marker in the left list. The page re-reads the catal
 
 Every host call of the pane is bounded (20 s to read or stop, 120 s to start): a call that never answers or throws leaves the status line with the reason and a Retry button, and the request slot is released, so a later refresh is never swallowed by a dead one. A workspace switch makes the retained panes inert while it runs and the Code Intelligence pane is made clickable and scrollable again when the switch settles or fails; it was previously restored by nobody, which left the pane frozen after any switch. `--lsp-narrow` asserts the timeout, the throwing call, the bounded log and the lag watchdog.
 
-The Code Intelligence lifecycle log is `~/.sharprail/logs/code-intelligence.log` (about 2 MB, then moved to `.1`, one copy kept), written by a background thread so no caller waits for the disk; it holds names, ids and durations, never file contents. One line per event, `UTC-timestamp LEVEL tid=<thread> evt=<name> key=value ...`; operations log `<name>.begin` and `<name>.end` sharing an `id=` with `outcome=` and `durationMs=` (`pane.refresh` and `pane.rpc` in the pane, `host.language`, `host.server-start`, `host.initialize`, `host.project-graph`, `host.server-stop`, `host.server-exit`, `host.slot-wait`, `host.inventory-scan` in the host), `pane.state` names who changed the pane's enabled or hit-test state, `pane.layout` its size, viewport, extent and the ancestor that blocks input (`blockedBy`), `still-waiting` repeats every 5 s for any operation pending longer, and `ui-lag` is a WARN when the UI thread ran a no-op more than 250 ms late. To read a freeze: grep `ui-lag` (UI thread stalled), then `still-waiting` and `.begin` lines without a matching `.end` for the same `id` (a call that never completed), then the last `pane.layout` `hitTest`, `enabled` and `blockedBy` fields.
+The Code Intelligence lifecycle log is `~/.tereditor/logs/code-intelligence.log` (about 2 MB, then moved to `.1`, one copy kept), written by a background thread so no caller waits for the disk; it holds names, ids and durations, never file contents. One line per event, `UTC-timestamp LEVEL tid=<thread> evt=<name> key=value ...`; operations log `<name>.begin` and `<name>.end` sharing an `id=` with `outcome=` and `durationMs=` (`pane.refresh` and `pane.rpc` in the pane, `host.language`, `host.server-start`, `host.initialize`, `host.project-graph`, `host.server-stop`, `host.server-exit`, `host.slot-wait`, `host.inventory-scan` in the host), `pane.state` names who changed the pane's enabled or hit-test state, `pane.layout` its size, viewport, extent and the ancestor that blocks input (`blockedBy`), `still-waiting` repeats every 5 s for any operation pending longer, and `ui-lag` is a WARN when the UI thread ran a no-op more than 250 ms late. To read a freeze: grep `ui-lag` (UI thread stalled), then `still-waiting` and `.begin` lines without a matching `.end` for the same `id` (a call that never completed), then the last `pane.layout` `hitTest`, `enabled` and `blockedBy` fields.
 
 The pane re-reads the host every 3 s while a server is installing or initializing, after an action of its own, or until the first inventory arrives, and every 30 s otherwise (host broadcasts cover settings changes). The host reuses its file census and tool probes for 30 s. A row is replaced only when its content changed (presentation and dependency lists compare by content, since every reply builds new ones), so a poll never rebuilds unchanged rows under a click or drag; `--lsp-narrow` asserts it.

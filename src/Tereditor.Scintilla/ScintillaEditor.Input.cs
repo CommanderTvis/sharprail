@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.Input.GestureRecognizers;
 using Avalonia.Input.Platform;
 
-namespace SharpRail.Scintilla;
+namespace Tereditor.Scintilla;
 
 public sealed partial class ScintillaEditor
 {

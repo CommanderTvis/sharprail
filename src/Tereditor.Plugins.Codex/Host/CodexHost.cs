@@ -2,10 +2,10 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Codex.Host;
+namespace Tereditor.Plugins.Codex.Host;
 
 /// <summary>
 /// The Codex plugin's host half: configuration methods, the hook status route and its pushes, the process poll that
@@ -23,9 +23,9 @@ public sealed class CodexHost : PluginHostModule
 
     private static string TabIndex(TerminalRef terminal) => terminal.WorkspaceId + "\n" + terminal.TabKey;
 
-    // A launch line that tells Codex it runs in SharpRail, for a record whose session turned out to have that prompt.
+    // A launch line that tells Codex it runs in tereditor, for a record whose session turned out to have that prompt.
     private static string WithPrompt(string command) =>
-        CodexLaunch.HasSharpRailPrompt(command) ? command : CodexLaunch.Line(command, new(false, false) { AppendSystemPrompt = true });
+        CodexLaunch.HasTereditorPrompt(command) ? command : CodexLaunch.Line(command, new(false, false) { AppendSystemPrompt = true });
 
     // A Codex that another agent started (Claude Code, say) inherits the tab's status URL; the tab stays that agent's.
     private static bool StartedByAnotherAgent(IPluginHostContext context, TerminalRef terminal)
@@ -89,7 +89,7 @@ public sealed class CodexHost : PluginHostModule
         CodexConfigSnapshot SnapshotOf(string worktree, string workspaceId, string? tabKey)
         {
             var record = tabKey is null ? null : context.AgentRecord(new(workspaceId, tabKey));
-            IReadOnlyList<string> promptFiles = record is { Kind: CodexManifest.Id } && CodexLaunch.HasSharpRailPrompt(record.Command) ? [CodexSystemPrompt.FilePath()] : [];
+            IReadOnlyList<string> promptFiles = record is { Kind: CodexManifest.Id } && CodexLaunch.HasTereditorPrompt(record.Command) ? [CodexSystemPrompt.FilePath()] : [];
             return CodexConfig.Resolve(worktree, ScopeOf(worktree, workspaceId, tabKey), promptFiles);
         }
 
@@ -142,7 +142,7 @@ public sealed class CodexHost : PluginHostModule
             catch (JsonException) { body = null; }
             if (CodexStatusReports.Parse(body) is not { } report || StartedByAnotherAgent(context, owner)) return Text(200, "ignored");
 
-            // Only launches with SharpRail's instructions tag their status URL; the record keeps that in its command.
+            // Only launches with tereditor's instructions tag their status URL; the record keeps that in its command.
             var appended = request.Query.Contains("thinkrail_prompt=1", StringComparison.Ordinal);
             CodexRolloutFacts? facts = null;
             if (report.TranscriptPath is { } transcript)
@@ -156,7 +156,7 @@ public sealed class CodexHost : PluginHostModule
                 var sessionId = report.SessionId ?? existing?.SessionId;
                 var command = existing?.Command ?? CommandOf(context);
                 if (appended) command = WithPrompt(command);
-                else if (existing?.SessionId != sessionId && CodexLaunch.HasSharpRailPrompt(command)) command = CommandOf(context);
+                else if (existing?.SessionId != sessionId && CodexLaunch.HasTereditorPrompt(command)) command = CommandOf(context);
                 var sameSession = existing?.SessionId == sessionId;
                 var next = new TerminalAgentRecord(CodexManifest.Id, command)
                 {
@@ -223,8 +223,8 @@ public sealed class CodexHost : PluginHostModule
                 var existing = context.AgentRecord(terminal) is { Kind: CodexManifest.Id } codex ? codex : null;
                 var launchedByUi = ProcessSnapshot.CaptureUiLaunch(pid);
                 var command = launchedByUi == false ? CommandOf(context) : existing?.Command ?? CommandOf(context);
-                // Before any hook reports, the process's own arguments show whether it received SharpRail's instructions.
-                if (ProcessSnapshot.CaptureCommand(pid)?.Contains("developer_instructions=\"# You are running inside SharpRail", StringComparison.Ordinal) == true)
+                // Before any hook reports, the process's own arguments show whether it received tereditor's instructions.
+                if (ProcessSnapshot.CaptureCommand(pid)?.Contains("developer_instructions=\"# You are running inside tereditor", StringComparison.Ordinal) == true)
                     command = WithPrompt(command);
                 context.SetAgentRecord(terminal, new(CodexManifest.Id, command)
                 {

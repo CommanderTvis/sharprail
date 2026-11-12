@@ -7,7 +7,7 @@ using Avalonia.Input;
 
 using Ghostty.Avalonia;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // Prompt features of the Metal texture renderer (Ghostty 1.2.3) in a real Metal window, fed the OSC 133 marks Ghostty's
 // zsh integration writes; the host checks run the real shell.

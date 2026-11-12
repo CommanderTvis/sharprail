@@ -3,10 +3,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // Stands in for the host's plugin runtime where the app's loader needs what the real host never produces: roster
 // rows for builtin UI halves the host does not ship (one speaking another wire version, one whose activation throws)

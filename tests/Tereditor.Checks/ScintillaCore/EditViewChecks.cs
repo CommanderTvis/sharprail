@@ -1,10 +1,10 @@
-using SharpRail.Scintilla;
-using SharpRail.Scintilla.Core;
-using SharpRail.Scintilla.View;
-
 using SkiaSharp;
 
-namespace SharpRail.Checks.ScintillaCore;
+using Tereditor.Scintilla;
+using Tereditor.Scintilla.Core;
+using Tereditor.Scintilla.View;
+
+namespace Tereditor.Checks.ScintillaCore;
 
 /// <summary>Managed-only checks (no upstream suite): line layout, wrapping, hit testing and a paint smoke test.</summary>
 internal static class EditViewChecks
@@ -92,7 +92,7 @@ internal static class EditViewChecks
         view.Invalidate();
         document.SetIndicatorCurrent(0);
         document.DecorationFillRange(0, 1, 5);
-        var selection = new SharpRail.Scintilla.Core.Selection();
+        var selection = new Tereditor.Scintilla.Core.Selection();
         selection.SetMain(document.LineStart(1) + 4, document.LineStart(1));
         var display = new ContractionState();
         display.InsertLines(0, document.LinesTotal - 1);

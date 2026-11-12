@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 [SupportedOSPlatform("windows")]
 internal static partial class WindowsTrash
@@ -15,7 +15,7 @@ internal static partial class WindowsTrash
             try { Recycle(path); completed.SetResult(); }
             catch (Exception error) { completed.SetException(new IOException("The file could not be moved to the Recycle Bin.", error)); }
         })
-        { IsBackground = true, Name = "SharpRail Recycle Bin" };
+        { IsBackground = true, Name = "tereditor Recycle Bin" };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         completed.Task.GetAwaiter().GetResult();

@@ -70,10 +70,10 @@ function Invoke-Zig([string] $Zig, [string] $RuntimeIdentifier, [string] $Out, [
     throw $message
 }
 
-# The machine-wide build cache every checkout shares: SHARPRAIL_CACHE_DIR from mise.toml, else the same default.
-function Get-SharpRailCacheDir {
-    if ($env:SHARPRAIL_CACHE_DIR) { return $env:SHARPRAIL_CACHE_DIR }
-    return Join-Path $env:LOCALAPPDATA 'sharprail\cache'
+# The machine-wide build cache every checkout shares: TEREDITOR_CACHE_DIR from mise.toml, else the same default.
+function Get-TereditorCacheDir {
+    if ($env:TEREDITOR_CACHE_DIR) { return $env:TEREDITOR_CACHE_DIR }
+    return Join-Path $env:LOCALAPPDATA 'tereditor\cache'
 }
 
 function Enter-NativeBuild([string] $Cache) {

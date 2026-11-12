@@ -6,10 +6,10 @@ using Tomlyn;
 using Tomlyn.Parsing;
 using Tomlyn.Syntax;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
-/// The project's portable language-server choices, <c>.sharprail/language.toml</c> under the project root
+/// The project's portable language-server choices, <c>.tereditor/language.toml</c> under the project root
 /// (<see cref="Version"/> 1). Only the portable options are read from it; host-specific ones stay in host state.
 /// Reading never throws: a malformed file or entry becomes a diagnostic and the affected entries are ignored.
 /// </summary>
@@ -38,7 +38,7 @@ internal static class ProjectLanguageFile
         }.ToJsonString();
     }
 
-    internal static string PathOf(string root) => System.IO.Path.Combine(root, ".sharprail", "language.toml");
+    internal static string PathOf(string root) => System.IO.Path.Combine(root, ".tereditor", "language.toml");
 
     internal static Snapshot Read(string root)
     {
@@ -49,7 +49,7 @@ internal static class ProjectLanguageFile
             if (!info.Exists) return Snapshot.Empty(path);
             var stamp = info.Length + "-" + info.LastWriteTimeUtc.Ticks;
             var newer = Directory.GetFiles(System.IO.Path.GetDirectoryName(path)!, "language_v*.toml").Select(System.IO.Path.GetFileName).Order().ToArray();
-            var note = newer.Length > 0 ? $"{string.Join(", ", newer)} was written by a newer SharpRail; this version reads and writes only language.toml." : null;
+            var note = newer.Length > 0 ? $"{string.Join(", ", newer)} was written by a newer tereditor; this version reads and writes only language.toml." : null;
             var snapshot = ReadCurrent(path, stamp);
             return note is null ? snapshot : snapshot with { Diagnostics = snapshot.Diagnostics.Append(note).ToArray() };
         }
@@ -78,7 +78,7 @@ internal static class ProjectLanguageFile
         if (ProjectToml.VersionOf(document) is not { } versionNumber || versionNumber is < 0 or > int.MaxValue) return Failed(path, stamp, $"{path} needs version = {Version} and is ignored.");
         var number = (int)versionNumber;
         if (number != Version)
-            return Failed(path, stamp, $"{path} uses version {number}; this SharpRail reads version {Version} and ignores the file.");
+            return Failed(path, stamp, $"{path} uses version {number}; this tereditor reads version {Version} and ignores the file.");
         var diagnostics = new List<string>();
         var servers = new Dictionary<string, JsonObject>();
         if (document["servers"] is { } entries and not JsonObject) diagnostics.Add("\"servers\" must be an object; it is ignored.");
@@ -222,7 +222,7 @@ internal static class ProjectLanguageFile
         try { before = ProjectToml.Parse(text); }
         catch (TomlException error) { throw new InvalidOperationException($"{path} is not valid TOML; fix or remove it before saving here: {error.Message}"); }
         if (ProjectToml.VersionOf(before) != Version)
-            throw new InvalidOperationException($"{path} needs version = {Version}; this SharpRail writes version {Version}.");
+            throw new InvalidOperationException($"{path} needs version = {Version}; this tereditor writes version {Version}.");
         var document = SyntaxParser.Parse(text);
         if (document.HasErrors) throw new InvalidOperationException($"{path} is not valid TOML; fix or remove it before saving here.");
 

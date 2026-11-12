@@ -8,15 +8,15 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class MarkdownSelectionBenchmark
 {
     internal static void Run()
     {
-        var fixture = Environment.GetEnvironmentVariable("SHARPRAIL_BENCH_MARKDOWN");
+        var fixture = Environment.GetEnvironmentVariable("TEREDITOR_BENCH_MARKDOWN");
         var source = fixture is not null ? File.ReadAllText(fixture) : string.Join("\n\n", Enumerable.Range(0, 1900)
             .Select(index => $"Paragraph {index}: " + string.Concat(Enumerable.Repeat("Some **formatted text** to select while dragging through a large Markdown preview. ", 123))));
         var context = new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);

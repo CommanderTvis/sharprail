@@ -2,7 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>Source-generated JSON metadata for the values the Claude Code panes show as JSON text.</summary>
 [JsonSerializable(typeof(JsonElement))]

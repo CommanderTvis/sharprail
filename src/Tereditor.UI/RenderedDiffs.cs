@@ -1,13 +1,13 @@
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.Resources;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.Resources;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {

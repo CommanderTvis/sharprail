@@ -1,6 +1,6 @@
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 /// <summary>A renderer that tells when the shell printed something, so a hidden tab can show it has news.</summary>
 internal interface ITerminalOutput

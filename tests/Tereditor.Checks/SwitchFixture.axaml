@@ -1,4 +1,4 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Checks.SwitchFixture" x:ClassModifier="internal">
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.Checks.SwitchFixture" x:ClassModifier="internal">
   <kit:Switch x:Name="FeatureSwitch" Label="Enable feature" IsChecked="False" CheckedChange="Changed" />
 </StackPanel>

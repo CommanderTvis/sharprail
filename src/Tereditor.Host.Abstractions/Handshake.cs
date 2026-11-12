@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>
 /// The wire-compatibility counter of this build. It rises whenever a host operation or message changes
@@ -49,8 +49,8 @@ public static class HostProtocol
     /// </summary>
     public const int AirContextPlugin = 8;
 
-    /// <summary>Excluding a project's <c>.sharprail</c> directory locally, and remembering that a project declined to.</summary>
-    public const int SharprailExclude = 9;
+    /// <summary>Excluding a project's <c>.tereditor</c> directory locally, and remembering that a project declined to.</summary>
+    public const int TereditorExclude = 9;
 
     /// <summary>The core file-type icon setting, shared independently of the plugin roster.</summary>
     public const int FileTypeIcons = 7;

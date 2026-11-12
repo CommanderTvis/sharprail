@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hook script for Claude Code Stop event.
-# Marks the terminal's status badge done and asks SharpRail to raise a
+# Marks the terminal's status badge done and asks tereditor to raise a
 # desktop notification: Claude finished its turn.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

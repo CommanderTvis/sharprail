@@ -10,11 +10,11 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.Terminal;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.Terminal;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 // GPU canvas surface; shared-texture composition is not implemented yet.
 internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITerminalResumeHint

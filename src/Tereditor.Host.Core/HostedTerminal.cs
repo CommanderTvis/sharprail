@@ -2,9 +2,9 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 // A shell and its recent output, independent of the clients that view it. At most one attachment holds the
 // shell: it drives it and decides its grid, and a new attachment from another client takes it over. Any number

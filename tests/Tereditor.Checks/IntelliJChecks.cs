@@ -6,12 +6,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.Lsp.IntelliJ;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.Lsp.IntelliJ;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class IntelliJChecks
 {
@@ -115,7 +115,7 @@ internal static class IntelliJChecks
                 throw new InvalidOperationException("Dependency source accepted a replacement buffer.");
             }
             catch (ArgumentException) { }
-            catch (SharpRail.Host.Protocol.RpcException) { }
+            catch (Tereditor.Host.Protocol.RpcException) { }
         }
         Require((await host.LanguageAsync(new(workspace, "unsupported:/Library", "source", Server: "intellij"))).State == "unavailable", "Unsupported source scheme was reported readable.");
         Require((await host.LanguageAsync(new(workspace, "jar:file:///not-returned.jar!/Secret.class", "source", Server: "intellij"))).State == "unavailable", "Arbitrary dependency URI reached the server.");
@@ -361,7 +361,7 @@ internal static class IntelliJChecks
     {
         try { await IntelliJDistribution.InstallAsync(root, bundle, http, default); throw new InvalidOperationException("Invalid IntelliJ archive installed."); }
         catch (IOException) { }
-        Require(!Directory.Exists(root) || !Directory.EnumerateFiles(root, ".sharprail-artifact.json", SearchOption.AllDirectories).Any(), "Failed install published a completion marker.");
+        Require(!Directory.Exists(root) || !Directory.EnumerateFiles(root, ".tereditor-artifact.json", SearchOption.AllDirectories).Any(), "Failed install published a completion marker.");
     }
 
     private static Dictionary<string, string> Files() => new()

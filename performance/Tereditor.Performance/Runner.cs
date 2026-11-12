@@ -4,13 +4,13 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal sealed partial class Runner(string root, string dotnet)
 {
     public string BuildDirectory => Path.Combine(root, "artifacts/performance/build");
-    private string Ui => Path.Combine(BuildDirectory, "SharpRail.app/Contents/MacOS/SharpRail.UI");
-    private string Host => Path.Combine(BuildDirectory, "host/SharpRail.Host.Remote");
+    private string Ui => Path.Combine(BuildDirectory, "tereditor.app/Contents/MacOS/Tereditor.UI");
+    private string Host => Path.Combine(BuildDirectory, "host/Tereditor.Host.Remote");
     private string Probe => Path.Combine(root, "artifacts/performance/probe");
     private static string Hash(string path) { using var file = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(file)); }
     private static Dictionary<string, string> Hashes(string directory) => Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
@@ -18,7 +18,7 @@ internal sealed partial class Runner(string root, string dotnet)
 
     public async Task Publish()
     {
-        foreach (var name in new[] { "SharpRail.UI", "SharpRail.Host.Remote" })
+        foreach (var name in new[] { "Tereditor.UI", "Tereditor.Host.Remote" })
             foreach (var process in Process.GetProcessesByName(name))
             {
                 using (process)
@@ -28,18 +28,18 @@ internal sealed partial class Runner(string root, string dotnet)
         if (Directory.Exists(BuildDirectory)) Directory.Delete(BuildDirectory, true);
         Directory.CreateDirectory(BuildDirectory);
         var rid = "osx-" + (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? "arm64" : "x64");
-        foreach (var (project, output) in new[] { ("src/SharpRail.UI", "SharpRail.app/Contents/MacOS"), ("src/SharpRail.Host.Remote", "host") })
+        foreach (var (project, output) in new[] { ("src/Tereditor.UI", "tereditor.app/Contents/MacOS"), ("src/Tereditor.Host.Remote", "host") })
         {
             Console.WriteLine("Publishing " + project);
             var outputText = await Commands.Run(dotnet, ["publish", project, "-c", "Release", "-r", rid, "-o", Path.Combine(BuildDirectory, output)], root);
             File.WriteAllText(Path.Combine(BuildDirectory, Path.GetFileName(project) + ".publish.log"), outputText);
         }
-        File.WriteAllText(Path.Combine(BuildDirectory, "SharpRail.app/Contents/Info.plist"), """
+        File.WriteAllText(Path.Combine(BuildDirectory, "tereditor.app/Contents/Info.plist"), """
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0"><dict><key>CFBundleExecutable</key><string>SharpRail.UI</string><key>CFBundleIdentifier</key><string>dev.sharprail.performance</string><key>CFBundleName</key><string>SharpRail Performance</string><key>CFBundlePackageType</key><string>APPL</string><key>NSHighResolutionCapable</key><true/></dict></plist>
+            <plist version="1.0"><dict><key>CFBundleExecutable</key><string>Tereditor.UI</string><key>CFBundleIdentifier</key><string>dev.tereditor.performance</string><key>CFBundleName</key><string>tereditor Performance</string><key>CFBundlePackageType</key><string>APPL</string><key>NSHighResolutionCapable</key><true/></dict></plist>
             """);
-        var resources = Path.Combine(BuildDirectory, "SharpRail.app/Contents/Resources");
+        var resources = Path.Combine(BuildDirectory, "tereditor.app/Contents/Resources");
         Directory.CreateDirectory(resources);
         foreach (var name in new[] { "plugins", "terminfo" })
         {
@@ -48,7 +48,7 @@ internal sealed partial class Runner(string root, string dotnet)
             Directory.Move(source, Path.Combine(resources, name));
             if (name == "plugins") Directory.CreateSymbolicLink(source, "../Resources/plugins");
         }
-        await Commands.Run("codesign", ["--force", "--deep", "--sign", "-", Path.Combine(BuildDirectory, "SharpRail.app")]);
+        await Commands.Run("codesign", ["--force", "--deep", "--sign", "-", Path.Combine(BuildDirectory, "tereditor.app")]);
         RequireNativeAot();
         var artifact = new Artifact(await Commands.Run("git", ["rev-parse", "HEAD"], root), await Commands.Run("git", ["status", "--porcelain=v1"], root),
             rid, await Commands.Run(dotnet, ["--version"], root), DateTimeOffset.UtcNow.ToString("O"), Hashes(BuildDirectory), PublishedRuntime);
@@ -158,12 +158,12 @@ internal sealed partial class Runner(string root, string dotnet)
         Directory.CreateDirectory(profile);
         var env = new Dictionary<string, string>
         {
-            ["SHARPRAIL_ROOT"] = fixture,
-            ["SHARPRAIL_PROFILE"] = Path.Combine(profile, "profile"),
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(profile, "host"),
-            ["SHARPRAIL_REMOTE"] = "",
-            ["SHARPRAIL_PERFORMANCE"] = "1",
-            ["SHARPRAIL_TOKEN"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)),
+            ["TEREDITOR_ROOT"] = fixture,
+            ["TEREDITOR_PROFILE"] = Path.Combine(profile, "profile"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(profile, "host"),
+            ["TEREDITOR_REMOTE"] = "",
+            ["TEREDITOR_PERFORMANCE"] = "1",
+            ["TEREDITOR_TOKEN"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)),
             ["DOTNET_DiagnosticPorts"] = "",
             ["DOTNET_DefaultDiagnosticPortSuspend"] = "0"
         };
@@ -190,12 +190,12 @@ internal sealed partial class Runner(string root, string dotnet)
                 listener.Start();
                 var port = ((IPEndPoint)listener.LocalEndpoint).Port;
                 listener.Stop();
-                env["SHARPRAIL_PORT"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                env["SHARPRAIL_BIND"] = "127.0.0.1";
+                env["TEREDITOR_PORT"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                env["TEREDITOR_BIND"] = "127.0.0.1";
                 host = new Child(Host, [], fixture, env, Path.Combine(output, name + ".host.log"), Probe);
                 hostPid = host.Process.Id;
                 await host.Wait("host-ready", timeout.Token);
-                env["SHARPRAIL_REMOTE"] = "http://127.0.0.1:" + port;
+                env["TEREDITOR_REMOTE"] = "http://127.0.0.1:" + port;
             }
             ui = new Child(Ui, [], fixture, env, Path.Combine(output, name + ".ui.log"), Probe);
             uiPid = ui.Process.Id;

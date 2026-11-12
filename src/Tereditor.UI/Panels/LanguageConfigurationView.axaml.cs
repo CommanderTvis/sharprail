@@ -4,9 +4,9 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 internal sealed partial class LanguageConfigurationView : UserControl
 {

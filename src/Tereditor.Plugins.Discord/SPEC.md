@@ -17,7 +17,7 @@ Upstream: packages/plugin-discord/SPEC.md @ eb382d75e (CommanderTvis fork)
 
 Speaks Discord's local IPC protocol to publish what project and file the user has open on their Discord
 profile, and answers `plugin.discord.status` truthfully about what it did and why. In the fork it moved out
-of the server's `discord` module (a fork of https://github.com/Azn9/JetBrains-Discord-Integration); SharpRail
+of the server's `discord` module (a fork of https://github.com/Azn9/JetBrains-Discord-Integration); tereditor
 never had it in core, so this plugin is its first home here.
 
 It ships `EnabledByDefault = false`: Rich Presence is the one feature where "on by default" would publish
@@ -30,12 +30,12 @@ already gates activation, and with it the disposer that closes the IPC socket.
 
 | Project | Holds |
 | --- | --- |
-| `Contract/SharpRail.Plugins.Discord` | `DiscordPlugin.Manifest`, `DiscordContract` (the two methods and the status channel), the wire records, `DiscordSettings` and the snowflake rule (`DiscordValues`) |
-| `Host/SharpRail.Plugins.Discord.Host` | `DiscordHost` (the `PluginHostModule`), `DiscordIpc` (the IPC client), `PresenceDecision` (the publish/redact decision and the status mapping), `DiscordRuntime` (the connection lifecycle) |
-| `UI/SharpRail.Plugins.Discord.UI` | `DiscordUI` (the `PluginUIModule`: the settings section and presence reporting), `DiscordSettingsView` (compiled XAML) |
+| `Contract/Tereditor.Plugins.Discord` | `DiscordPlugin.Manifest`, `DiscordContract` (the two methods and the status channel), the wire records, `DiscordSettings` and the snowflake rule (`DiscordValues`) |
+| `Host/Tereditor.Plugins.Discord.Host` | `DiscordHost` (the `PluginHostModule`), `DiscordIpc` (the IPC client), `PresenceDecision` (the publish/redact decision and the status mapping), `DiscordRuntime` (the connection lifecycle) |
+| `UI/Tereditor.Plugins.Discord.UI` | `DiscordUI` (the `PluginUIModule`: the settings section and presence reporting), `DiscordSettingsView` (compiled XAML) |
 
-The host half references only the contract and `SharpRail.Plugins.Api.Host`; the UI half only the contract,
-`SharpRail.Plugins.Api.UI`, the kit and Avalonia. `Host.Core/Plugins/BuiltinPlugins.cs` and
+The host half references only the contract and `Tereditor.Plugins.Api.Host`; the UI half only the contract,
+`Tereditor.Plugins.Api.UI`, the kit and Avalonia. `Host.Core/Plugins/BuiltinPlugins.cs` and
 `UI/Plugins/BuiltinPlugins.cs` list it.
 
 ## What the fork moved, and how it maps
@@ -76,7 +76,7 @@ The host half references only the contract and `SharpRail.Plugins.Api.Host`; the
 - Socket discovery cannot depend on the shell's environment. On macOS Discord's socket lives under the per-user
   temp directory, which a process normally learns from `$TMPDIR`, but an app launched from Finder has no login
   shell's environment, so the search asks the OS (`getconf DARWIN_USER_TEMP_DIR`, cached) after the variables
-  and before the `/tmp` fallback. `SHARPRAIL_DISCORD_IPC_DIR` (the fork's `THINKRAIL_DISCORD_IPC_DIR`)
+  and before the `/tmp` fallback. `TEREDITOR_DISCORD_IPC_DIR` (the fork's `THINKRAIL_DISCORD_IPC_DIR`)
   overrides the whole search: the isolation seam for the checks, which must not find the developer's real
   Discord, and an escape hatch for an unusual setup.
 - A withheld file name publishes no line at all, rather than a false one: `Details` is null and
@@ -96,11 +96,11 @@ The host half references only the contract and `SharpRail.Plugins.Api.Host`; the
   registered Discord application ahead of time, which is per-user setup this plugin has no UI for.
 - No background reconnect loop. Socket closure clears the connection; publishing or reading status retries
   subject to the five-second failure floor.
-- No Windows named-pipe transport; SharpRail's hosts run on macOS and Linux.
+- No Windows named-pipe transport; tereditor's hosts run on macOS and Linux.
 
 ## Checks
 
-`tests/SharpRail.Checks/DiscordChecks.cs`, run by the full suite, `-- --plugins` and `-- --discord`:
+`tests/Tereditor.Checks/DiscordChecks.cs`, run by the full suite, `-- --plugins` and `-- --discord`:
 
 - the fork's `presence.test.ts`: every decision (publish, blocked clear, no-project clear, silent by empty and by
   non-snowflake id, file-name redaction, a withheld name indistinguishable from no file, the anchor holding

@@ -5,10 +5,10 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.Plugins.UI.Kit.Visualization;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.UI.Terminal;
+namespace Tereditor.UI.Terminal;
 
 // A terminal tab's body: attaches to its host session, explains start failures with an in-place retry, shows a
 // terminal another client holds live and read-only with an offer to take it over, or back, and says when the
@@ -299,7 +299,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Whether this terminal's agent can take attachments now; set by the workbench's file-drop wiring.</summary>
     internal Func<bool>? AcceptsAttachments { get; set; }
     /// <summary>Uploads external bytes to the host and inserts their paths into the agent's prompt; false if nothing was attached.</summary>
-    internal Func<IReadOnlyList<SharpRail.Host.Abstractions.FileTransferEntry>, Task<bool>>? AttachEntries { get; set; }
+    internal Func<IReadOnlyList<Tereditor.Host.Abstractions.FileTransferEntry>, Task<bool>>? AttachEntries { get; set; }
     internal bool FileDropActive
     {
         set => this.FindControl<Border>("FileDropHighlight")!.IsVisible = value;
@@ -483,7 +483,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     public bool IsDetached => detachedNotice.IsVisible && !IsWatching;
 
     /// <summary>What the host read from the shell's integration; null without a running backend or a report.</summary>
-    public async ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
+    public async ValueTask<Tereditor.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
         Backend is { } backend && !IsFailed && backend.Started.IsCompletedSuccessfully ? await backend.ShellStatusAsync() : null;
 
     public async ValueTask<bool> IsBusyAsync() =>

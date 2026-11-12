@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.EnvJavaScript;
+namespace Tereditor.Plugins.EnvJavaScript;
 
 public sealed record EnvJavaScriptSettings;
 
@@ -23,7 +23,7 @@ public static class EnvJavaScriptContract
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
-        Host = "SharpRail.Plugins.EnvJavaScript.Host.dll"
+        Host = "Tereditor.Plugins.EnvJavaScript.Host.dll"
     };
 }
 

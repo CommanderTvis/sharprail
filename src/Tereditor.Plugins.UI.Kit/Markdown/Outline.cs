@@ -3,7 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>The heading column a Markdown document and a rendered Markdown diff show beside the preview.</summary>
 public static class Outline

@@ -6,25 +6,25 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.AirGateway;
-using SharpRail.Plugins.AirGateway.Host;
-using SharpRail.Plugins.AirGateway.UI;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.Codex.Host;
-using SharpRail.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.AirGateway;
+using Tereditor.Plugins.AirGateway.Host;
+using Tereditor.Plugins.AirGateway.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.Codex.Host;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Air Gateway builtin plugin against a fake `central`, ported from the fork's e2e/fixtures/bin/central: the
 // fork's version/status/login/access/proxy surface, with `add`/`remove` for the claude-code and codex agents in
@@ -288,19 +288,19 @@ internal static partial class AirGatewayChecks
     {
         using var fixture = new Fixture(directory);
         var central = new AirSettings { Source = AirSources.Central };
-        var claudeShape = SharpRail.Plugins.ClaudeCode.UI.ClaudeLaunch.SessionCommand("claude", "'it'\\''s \"q\" $(touch injected)'", disableAgentView: false, appendSystemPrompt: false,
+        var claudeShape = Tereditor.Plugins.ClaudeCode.UI.ClaudeLaunch.SessionCommand("claude", "'it'\\''s \"q\" $(touch injected)'", disableAgentView: false, appendSystemPrompt: false,
             contributions: [AirLaunch.Contribution(central, "claude", fixture.Central)!]);
-        var codexShape = SharpRail.Plugins.Codex.CodexLaunch.Line("codex", new(false, false) { InitialPrompt = "it's \"q\" $(touch injected)", Contributions = [AirLaunch.Contribution(central, "codex", fixture.Central)!] });
-        Require(claudeShape.StartsWith("SHARPRAIL_UI_LAUNCH=claude " + fixture.Central + " run claude-code -- ", StringComparison.Ordinal), "Claude's line keeps SharpRail's marker outermost: " + claudeShape);
+        var codexShape = Tereditor.Plugins.Codex.CodexLaunch.Line("codex", new(false, false) { InitialPrompt = "it's \"q\" $(touch injected)", Contributions = [AirLaunch.Contribution(central, "codex", fixture.Central)!] });
+        Require(claudeShape.StartsWith("TEREDITOR_UI_LAUNCH=claude " + fixture.Central + " run claude-code -- ", StringComparison.Ordinal), "Claude's line keeps tereditor's marker outermost: " + claudeShape);
         Require(codexShape == fixture.Central + " run codex -- 'it'\\''s \"q\" $(touch injected)'", "Codex's line: " + codexShape);
-        var direct = SharpRail.Plugins.ClaudeCode.UI.ClaudeLaunch.SessionCommand("claude", "x", false, false, contributions: []);
-        Require(direct == "SHARPRAIL_UI_LAUNCH=claude claude --plugin-dir \"$" + SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable + "\" --add-dir \"$" + SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.ScratchVariable + "\" x", "Direct leaves Claude's line as before: " + direct);
+        var direct = Tereditor.Plugins.ClaudeCode.UI.ClaudeLaunch.SessionCommand("claude", "x", false, false, contributions: []);
+        Require(direct == "TEREDITOR_UI_LAUNCH=claude claude --plugin-dir \"$" + Tereditor.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable + "\" --add-dir \"$" + Tereditor.Plugins.ClaudeCode.ClaudeCodeContract.ScratchVariable + "\" x", "Direct leaves Claude's line as before: " + direct);
         foreach (var line in new[] { claudeShape, codexShape })
         {
             var start = new System.Diagnostics.ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = directory };
             start.ArgumentList.Add("-c"); start.ArgumentList.Add(line);
             start.Environment["HOME"] = fixture.Home;
-            start.Environment[SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable] = "/plug in";
+            start.Environment[Tereditor.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable] = "/plug in";
             using var process = System.Diagnostics.Process.Start(start)!;
             await process.WaitForExitAsync();
             Require(process.ExitCode == 0, "The shell runs the governed line: " + await process.StandardError.ReadToEndAsync());
@@ -312,7 +312,7 @@ internal static partial class AirGatewayChecks
         Require(!File.Exists(Path.Combine(directory, "injected")), "Quoting stopped a command substitution in the prompt.");
 
         // Resume and flags keep their shape under the wrapper.
-        Require(SharpRail.Plugins.Codex.Host.CodexResume.Command("codex --model x", "abc", false, false, null, contributions: [AirLaunch.Contribution(central, "codex", "/c")!]) is { } revived && revived.StartsWith("/c run codex -- --model x resume ", StringComparison.Ordinal),
+        Require(Tereditor.Plugins.Codex.Host.CodexResume.Command("codex --model x", "abc", false, false, null, contributions: [AirLaunch.Contribution(central, "codex", "/c")!]) is { } revived && revived.StartsWith("/c run codex -- --model x resume ", StringComparison.Ordinal),
             "A revived Codex terminal is governed too.");
     }
 
@@ -501,7 +501,7 @@ internal static partial class AirGatewayChecks
         using var fixture = new Fixture(directory);
         var variables = new Dictionary<string, string>
         {
-            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state"),
             ["CODEX_HOME"] = Path.Combine(directory, "codex-home"),
             ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home")
         };
@@ -551,7 +551,7 @@ internal static partial class AirGatewayChecks
                 Require(account is { Source: "Central", Identity: "E2E_CENTRAL_CHILD_SENTINEL_email", Plan: "E2E_CENTRAL_CHILD_SENTINEL_plan", Remaining: 16.27, Total: 20, RefillNext: 1800000000000, Problem: null }, "A governed panel carries Central's identity and credits: " + account);
             Require(governed.Codex is { LoggedIn: false, Usage.Count: 0 } && !File.Exists(vendorLog), "The vendor accounts are not read while Central governs: " + (File.Exists(vendorLog) ? File.ReadAllText(vendorLog) : ""));
             var codexSeen = governed.Codex!.Governed!;
-            Require(SharpRail.Plugins.Agent.UI.Account.CreditsLine(codexSeen.Remaining!.Value, codexSeen.Total!.Value, codexSeen.TopUp, codexSeen.RefillNext) ==
+            Require(Tereditor.Plugins.Agent.UI.Account.CreditsLine(codexSeen.Remaining!.Value, codexSeen.Total!.Value, codexSeen.TopUp, codexSeen.RefillNext) ==
                 AirSettingsView.CreditsLine(new(new("supported", "connected", "running", ""), AirSources.Central, [], Credits: new(16.27, 20, 0, 1800000000000))), "The credits line matches the Air settings wording.");
 
             // One agent switched off: only the other is governed (Codex's switch is read at its contribution, not by starting Codex).
@@ -623,10 +623,10 @@ internal static partial class AirGatewayChecks
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
         // The governed account section the agent panels share: credits and identity, or one actionable message.
-        var shown = SharpRail.Plugins.Agent.UI.Account.Governed("Central", "me@example.test", "JB Alumni", 16.27, 20, 5.5, 1800000000000, null, "Codex");
+        var shown = Tereditor.Plugins.Agent.UI.Account.Governed("Central", "me@example.test", "JB Alumni", 16.27, 20, 5.5, 1800000000000, null, "Codex");
         Require(shown.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "CodexGovernedCredits" && text.Text!.StartsWith("16.27 of 20.00 credits remaining", StringComparison.Ordinal) && text.Text.Contains("plus 5.50 top-up", StringComparison.Ordinal)) &&
             !shown.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "CodexGovernedProblem"), "A governed account shows its credits line.");
-        var failed = SharpRail.Plugins.Agent.UI.Account.Governed("Central", null, null, null, null, 0, null, "Not signed in to Central.", "Claude");
+        var failed = Tereditor.Plugins.Agent.UI.Account.Governed("Central", null, null, null, null, 0, null, "Not signed in to Central.", "Claude");
         Require(failed.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ClaudeGovernedProblem" && text.Text == "Not signed in to Central.") &&
             !failed.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ClaudeGovernedCredits"), "A governed account that cannot be read shows only the message.");
         var profile = new ProfileStore(Path.Combine(directory, "profile"));
@@ -750,7 +750,7 @@ internal static partial class AirGatewayChecks
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         using var fixture = new Fixture(directory);
         var saved = new Dictionary<string, string?>();
-        foreach (var (name, value) in new Dictionary<string, string> { ["PATH"] = Path.GetDirectoryName(fixture.Central) + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH"), ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state") })
+        foreach (var (name, value) in new Dictionary<string, string> { ["PATH"] = Path.GetDirectoryName(fixture.Central) + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH"), ["TEREDITOR_STATE_DIR"] = Path.Combine(directory, "state") })
         {
             saved[name] = Environment.GetEnvironmentVariable(name);
             Environment.SetEnvironmentVariable(name, value);
@@ -769,8 +769,8 @@ internal static partial class AirGatewayChecks
             Settings("air-gateway", new { enabled = true, source = AirSources.Central });
             E2eWorkspace.Until(() => registry.Active.Contains("air-gateway") && Command("claude").Contains(fixture.Central, StringComparison.Ordinal));
             var claude = Command("claude"); var codex = Command("codex");
-            Require(claude.Contains(fixture.Central + " run claude-code -- ", StringComparison.Ordinal) && claude.StartsWith("SHARPRAIL_UI_LAUNCH=claude ", StringComparison.Ordinal) &&
-                codex.Contains("SHARPRAIL_UI_LAUNCH=codex " + fixture.Central + " run codex -- ", StringComparison.Ordinal), "Both agents' launchers run through `central run`: " + claude + " / " + codex);
+            Require(claude.Contains(fixture.Central + " run claude-code -- ", StringComparison.Ordinal) && claude.StartsWith("TEREDITOR_UI_LAUNCH=claude ", StringComparison.Ordinal) &&
+                codex.Contains("TEREDITOR_UI_LAUNCH=codex " + fixture.Central + " run codex -- ", StringComparison.Ordinal), "Both agents' launchers run through `central run`: " + claude + " / " + codex);
             Settings("air-gateway", new { enabled = true, source = AirSources.Central, codex = false });
             E2eWorkspace.Until(() => !Command("codex").Contains("central", StringComparison.Ordinal));
             Require(Command("claude").Contains("central", StringComparison.Ordinal), "The Codex toggle leaves Claude governed.");
@@ -837,13 +837,13 @@ internal static partial class AirGatewayChecks
                 Tip().Contains("Updated 2026-", StringComparison.Ordinal) && Tip().Contains("Settings › Air Gateway", StringComparison.Ordinal) && !Tip().Contains("Top-up", StringComparison.Ordinal),
                 "One governed agent shows the credits, with the refill and read time in the tooltip: " + Tip());
             var label = Item()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "AirCreditsHeaderText");
-            Require(ReferenceEquals(label.Foreground, SharpRail.Plugins.UI.Kit.Ui.Muted), "Plenty of credits are muted.");
+            Require(ReferenceEquals(label.Foreground, Tereditor.Plugins.UI.Kit.Ui.Muted), "Plenty of credits are muted.");
 
             var before = Probes();
             fake.Replies["status"] = Status("connected", AirSources.Central, new(1.5, 20, 0.25, 1800000000000, 1790000000000));
             Settings(new { enabled = true, source = AirSources.Central, claudeCode = true, codex = true });
             E2eWorkspace.Until(() => Text() == "1.50 / 20.00 credits");
-            Require(Probes() > before && ReferenceEquals(label.Foreground, SharpRail.Plugins.UI.Kit.Ui.Warning) && Tip().Contains("Claude Code and Codex", StringComparison.Ordinal) && Tip().Contains("Top-up: 0.25", StringComparison.Ordinal),
+            Require(Probes() > before && ReferenceEquals(label.Foreground, Tereditor.Plugins.UI.Kit.Ui.Warning) && Tip().Contains("Claude Code and Codex", StringComparison.Ordinal) && Tip().Contains("Top-up: 0.25", StringComparison.Ordinal),
                 "A toggle change reads at once; under a tenth left turns the warning colour and the tooltip names the top-up.");
 
             fake.Replies["status"] = Status("signed-out", AirSources.Central);

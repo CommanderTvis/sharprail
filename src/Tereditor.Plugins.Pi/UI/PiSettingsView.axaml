@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Pi.UI.PiSettingsView" x:ClassModifier="internal"
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Pi.UI.PiSettingsView" x:ClassModifier="internal"
             Name="SettingsPi" Spacing="16">
   <StackPanel.Styles>
     <Style Selector="TextBlock">

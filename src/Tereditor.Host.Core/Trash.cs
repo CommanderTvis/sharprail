@@ -1,14 +1,14 @@
 using System.Globalization;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The only way the host removes a user's file: a move into the operating system's trash, never a delete.
-/// <c>SHARPRAIL_TRASH_DIR</c> overrides the destination, which lets a headless host (or a check) choose one.
+/// <c>TEREDITOR_TRASH_DIR</c> overrides the destination, which lets a headless host (or a check) choose one.
 /// </summary>
 internal static class Trash
 {
-    internal const string OverrideVariable = "SHARPRAIL_TRASH_DIR";
+    internal const string OverrideVariable = "TEREDITOR_TRASH_DIR";
 
     /// <summary>Moves one file, named <paramref name="name"/> in the trash, and returns where it went; a failure leaves the file where it was.</summary>
     internal static string Move(string path, string name)

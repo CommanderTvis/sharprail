@@ -1,8 +1,8 @@
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.UI.Notifications;
+namespace Tereditor.UI.Notifications;
 
 /// <summary>
 /// Turns plugins' attention requests into desktop notifications. Requests collect for one window of time and flush
@@ -66,7 +66,7 @@ internal sealed class AttentionNotifications
         notifier.Show(batch.Length == 1
             // A program's notification names its terminal: the tab's title and its workspace.
             ? new(id, latest.Title, tabs.TryGetValue(latest, out var tab) ? tab + " — " + workbench.State.Label(latest.WorkspaceId) : workbench.State.Label(latest.WorkspaceId), latest.Body)
-            : new(id, "SharpRail", null, $"{batch.Length} terminals need your attention"));
+            : new(id, "tereditor", null, $"{batch.Length} terminals need your attention"));
     }
 
     private bool Fresh(AttentionNotification notification)

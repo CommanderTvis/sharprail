@@ -1,12 +1,12 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Chat;
-using SharpRail.Plugins.Chat.UI;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host.Chat;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Chat;
+using Tereditor.Plugins.Chat.UI;
+using Tereditor.Plugins.ClaudeCode;
+using Tereditor.Plugins.ClaudeCode.Host.Chat;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// The official extension's chat semantics, as stream-json frames folded by the host: every row of the extension's
@@ -173,20 +173,20 @@ internal static class ClaudeChatSemanticsChecks
         // The same frames through the live path and through a transcript file must give the same items.
         var live = new ChatFolder();
         foreach (var frame in frames) live.Apply(Frame(frame));
-        var directory = Path.Combine(Path.GetTempPath(), "sharprail-chat-semantics-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), "tereditor-chat-semantics-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
         {
             var path = Path.Combine(directory, "session.jsonl");
             File.WriteAllLines(path, frames.Select(frame => JsonSerializer.Serialize(frame)));
             var replayed = new ChatFolder();
-            Require(SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(replayed, path, null, CancellationToken.None).Found, "The transcript is found.");
+            Require(Tereditor.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(replayed, path, null, CancellationToken.None).Found, "The transcript is found.");
             Require(Json(live.Items) == Json(replayed.Items), "Live frames and the replayed transcript fold to identical items.");
         }
         finally { Directory.Delete(directory, true); }
 
         // A transcript a terminal session wrote carries bookkeeping lines of its own; none of them is a row, and none stops the replay.
-        var terminalDirectory = Path.Combine(Path.GetTempPath(), "sharprail-chat-terminal-" + Guid.NewGuid().ToString("N"));
+        var terminalDirectory = Path.Combine(Path.GetTempPath(), "tereditor-chat-terminal-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(terminalDirectory);
         try
         {
@@ -205,7 +205,7 @@ internal static class ClaudeChatSemanticsChecks
                 """{"type":"last-prompt","lastPrompt":"typed in a terminal"}"""
             ]);
             var fromTerminal = new ChatFolder();
-            SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(fromTerminal, path, null, CancellationToken.None);
+            Tereditor.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(fromTerminal, path, null, CancellationToken.None);
             Require(fromTerminal.Items.Select(item => item.GetType()).SequenceEqual([typeof(ChatUserItem), typeof(ChatAssistantItem)]),
                 "A terminal session's transcript replays as its prompts and answers, whatever bookkeeping lines sit between them.");
         }

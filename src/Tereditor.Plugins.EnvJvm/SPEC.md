@@ -19,7 +19,7 @@ workspace environment pipeline (Plugin API H23), a dependent of `Env`: it points
 builtin and **enabled by default**, independent of the other providers, `dependsOn` `Env` (off with it), has no UI half and no setting
 (Settings › Plugins is the off switch), and runs nothing when the workspace chooses nothing.
 
-Two projects, `Contract` (`SharpRail.Plugins.EnvJvm`) and `Host` (`SharpRail.Plugins.EnvJvm.Host`). The pipeline is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md), [Env](../SharpRail.Plugins.Env/SPEC.md).
+Two projects, `Contract` (`Tereditor.Plugins.EnvJvm`) and `Host` (`Tereditor.Plugins.EnvJvm.Host`). The pipeline is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../Tereditor.Host.Core/Plugins.SPEC.md), [Env](../Tereditor.Plugins.Env/SPEC.md).
 
 ## Behaviour
 

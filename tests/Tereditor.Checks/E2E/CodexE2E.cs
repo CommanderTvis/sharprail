@@ -16,21 +16,21 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.Codex;
-using SharpRail.Plugins.Codex.Host;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Panels;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.Codex;
+using Tereditor.Plugins.Codex.Host;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 // The fork's e2e/plugins/codex specs against the in-process host with real PTY terminals, the real Codex plugin halves,
 // headless input, a fixture codex executable and Codex's real IDE-context IPC frames. The subscription notice spec is
-// not translated: it invites the user to Pi, which SharpRail excludes.
+// not translated: it invites the user to Pi, which tereditor excludes.
 internal static class CodexE2E
 {
     private static void Require(bool condition, string message) => E2eWorkspace.Require(condition, "Codex E2E: " + message);
@@ -138,7 +138,7 @@ internal static class CodexE2E
             if (enable) Enable(true);
         }
 
-        public SharpRail.UI.Plugins.PluginLoader Loader => App.Workbench.PluginLoader;
+        public Tereditor.UI.Plugins.PluginLoader Loader => App.Workbench.PluginLoader;
 
         public void Enable(bool on)
         {
@@ -302,8 +302,8 @@ internal static class CodexE2E
 
     private static DialogWindow Dialog(E2eWorkspace app)
     {
-        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(window => Equals(window.Tag, "CodexValueDialog")));
-        return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(window => Equals(window.Tag, "CodexValueDialog"));
+        E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(window => Equals(window.Tag, "CodexValueDialog")));
+        return Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(window => Equals(window.Tag, "CodexValueDialog"));
     }
 
     private static Control SettingRow(Control panel, string key)
@@ -335,7 +335,7 @@ internal static class CodexE2E
             Require(One<ToggleButton>(dialog, "CodexValueSwitch_true").IsChecked == !from, "the other option is selected");
             codex.App.Click(One<Button>(dialog, "CodexValueContinue"), freshGesture: false);
             E2eWorkspace.Until(() => File.ReadAllText(path).Contains($"hooks = {(!from).ToString().ToLowerInvariant()}", StringComparison.Ordinal));
-            E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
+            E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
         }
         Toggle(true);
         E2eWorkspace.Until(() => SettingRow(panel, "features.hooks").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "false"));
@@ -345,12 +345,12 @@ internal static class CodexE2E
         var text = Dialog(codex.App);
         Require(One<TextBox>(text, "CodexValueText").Text == "config-link-fixture", "a text value");
         text.Close();
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
         codex.App.Click(One<Button>(SettingRow(panel, "approval_policy"), "CodexSettingChange"));
         var choice = Dialog(codex.App);
         Require(Has(choice, "CodexValueChoice_on-request") && Has(choice, "CodexValueChoice_never"), "an enum key picks from its choices");
         choice.Close();
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
 
         // The source link opens the external file in an editor tab; only the plugin's exact files are readable.
         codex.App.Click(One<Button>(SettingRow(panel, "model"), "CodexOpenSource"));
@@ -361,7 +361,7 @@ internal static class CodexE2E
         {
             try { Task.Run(async () => await codex.App.Host.ReadFileAsync(file)).GetAwaiter().GetResult(); return false; }
             catch (UnauthorizedAccessException) { return true; }
-            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.FailedPrecondition && error.Status.Detail == "The path is outside this workspace.") { return true; }
+            catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode == Tereditor.Host.Protocol.StatusCode.FailedPrecondition && error.Status.Detail == "The path is outside this workspace.") { return true; }
         }
         File.WriteAllText(Path.Combine(codex.Home, "auth.json"), "{}");
         Require(Refused(Path.Combine(codex.Home, "auth.json")), "an unrelated file in CODEX_HOME stays outside");
@@ -387,16 +387,16 @@ internal static class CodexE2E
         Require(Equals(ToolTip.GetTip(source), agents) && Texts(source) == ScopedSetting.AbbreviateHomePath(agents), "the source path, full in its tooltip");
         var size = One<TextBlock>(row, "CodexInstructionsSize").Text;
         Require(Texts(One<Control>(panel, "CodexContextTotal")).Contains(size!, StringComparison.Ordinal), "the summed context");
-        // SharpRail's instructions are chosen section by section for the project, never edited.
-        var sections = (SharpRail.Plugins.Agent.UI.InstructionSectionsView)One<Control>(panel, "InstructionSections");
+        // tereditor's instructions are chosen section by section for the project, never edited.
+        var sections = (Tereditor.Plugins.Agent.UI.InstructionSectionsView)One<Control>(panel, "InstructionSections");
         CheckBox? SectionBox(string id) => sections.SectionsPanel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
         Require(One<Border>(panel, "InstructionSectionsScopeChip").Tag as string == "project" && !panel.GetLogicalDescendants().OfType<CheckBox>().Any(box => box.Name == "InstructionSectionCheckbox"),
-            "SharpRail's instructions are one compact entry with the PROJECT chip, its sections in a dialog");
+            "tereditor's instructions are one compact entry with the PROJECT chip, its sections in a dialog");
         codex.App.Click(One<Button>(panel, "InstructionSectionsToggle"));
         E2eWorkspace.Until(() => sections.IsOpen && SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true, IsEffectivelyVisible: true });
         Require(!Has(panel, "CodexSystemPromptEditPane") && !sections.SectionsPanel.GetLogicalDescendants().OfType<TextBox>().Any(),
             "the instructions dialog offers no way to edit text");
-        var instructionsFile = Path.Combine(codex.App.Window.WorkspaceRoot, ".sharprail", "instructions.toml");
+        var instructionsFile = Path.Combine(codex.App.Window.WorkspaceRoot, ".tereditor", "instructions.toml");
         SectionBox("core.push-and-signing")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.push-and-signing\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: false, IsEnabled: true });
@@ -437,7 +437,7 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => Has(panel, "CodexInstallHooks"));
         Control Hooks() => All<Control>(panel, "CodexCapability").Single(row => Equals(row.Tag, "hooks"));
         Control Server() => All<Control>(panel, "CodexCapability").Single(row => Equals(row.Tag, "mcp"));
-        Require(Texts(Hooks()).Contains("Inert outside a SharpRail terminal", StringComparison.Ordinal), "uninstalled hooks explain their terminal ownership");
+        Require(Texts(Hooks()).Contains("Inert outside a tereditor terminal", StringComparison.Ordinal), "uninstalled hooks explain their terminal ownership");
         Require(Texts(Server()).Contains("reader", StringComparison.Ordinal) && Texts(Server()).Contains("fixture-reader", StringComparison.Ordinal) &&
             One<Border>(Server(), "ScopeChip").Tag as string == "user", "configured MCP capability has its target and scope");
         Require(Equals(ToolTip.GetTip(One<Button>(Server(), "SourcePath")), config), "the capability's source path has the full tooltip");
@@ -466,7 +466,7 @@ internal static class CodexE2E
 
     private static void DiffIdeContext(string root)
     {
-        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
+        if (!Tereditor.Scintilla.ScintillaEditor.IsSupported) return;
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, "notes.txt"), "plain-text-fixture\n");
         File.WriteAllText(Path.Combine(root, "README.md"), "# Diff context\n\nold context\n");
@@ -489,11 +489,11 @@ internal static class CodexE2E
             });
         }
         File.WriteAllText(Path.Combine(root, "notes.txt"), "selected diff context\n");
-        var sourceTab = new SharpRail.UI.Docking.DockTab("diff-context-source", "Diff", "diff", "notes.txt", Scope: "uncommitted");
+        var sourceTab = new Tereditor.UI.Docking.DockTab("diff-context-source", "Diff", "diff", "notes.txt", Scope: "uncommitted");
         app.Window.Layout.Open(sourceTab, true, app.Center);
-        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>()
             .Any(editor => editor.IsEffectivelyVisible && editor.Text.Contains("selected diff context", StringComparison.Ordinal)));
-        var source = app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+        var source = app.Window.GetLogicalDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>()
             .First(editor => editor.IsEffectivelyVisible && editor.Text.Contains("selected diff context", StringComparison.Ordinal));
         source.Focus();
         source.SelectRange(source.Text.IndexOf("selected diff context", StringComparison.Ordinal), "selected diff context".Length);
@@ -509,7 +509,7 @@ internal static class CodexE2E
             "closing the diff drops retained IDE context through its owner lifecycle");
 
         File.WriteAllText(Path.Combine(root, "README.md"), "# Diff context\n\nupdated context\n");
-        var renderedTab = new SharpRail.UI.Docking.DockTab("diff-context-rendered", "Diff", "diff", "README.md", Scope: "uncommitted");
+        var renderedTab = new Tereditor.UI.Docking.DockTab("diff-context-rendered", "Diff", "diff", "README.md", Scope: "uncommitted");
         app.Window.Layout.Open(renderedTab, true, app.Center);
         E2eWorkspace.Until(() => Has(app.Window, "RenderedDiff"));
         var preview = One<MarkdownPreview>(app.Window, "RenderedDiff");
@@ -613,7 +613,7 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => IdeResult(codex.Home, workspace) == "success");
     }
 
-    // codex-launcher.spec.ts: SharpRail's added instructions have a setting and an inspectable launch source.
+    // codex-launcher.spec.ts: tereditor's added instructions have a setting and an inspectable launch source.
     private static void LaunchInstructions(string root)
     {
         using var codex = new Codex(root, enable: false);
@@ -637,7 +637,7 @@ internal static class CodexE2E
         Require(args[2] == "--add-dir" && Directory.Exists(args[3]) && args[3].Contains(Path.DirectorySeparatorChar + "scratch" + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
             !args[3].StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal), "the scratch grant: " + args[3]);
         File.WriteAllText(Path.Combine(args[3], "probe.md"), "x");
-        Require(!Directory.Exists(Path.Combine(root, ".sharprail")), "SharpRail created nothing in the project's .sharprail.");
+        Require(!Directory.Exists(Path.Combine(root, ".tereditor")), "tereditor created nothing in the project's .tereditor.");
         Require(content.Contains("`workspace_create`", StringComparison.Ordinal) && content.Contains("`description`", StringComparison.Ordinal),
             "The launch instructions direct workspace creation through the tool with a visible description.");
         Require(content.Contains("`set_title`", StringComparison.Ordinal) && content.Contains("`title`", StringComparison.Ordinal) && !content.Contains("workspace_name", StringComparison.Ordinal),
@@ -646,7 +646,7 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => Has(panel, "CodexLaunchSource"));
         Require(Equals(ToolTip.GetTip(One<Button>(panel, "CodexLaunchSource")), CodexSystemPrompt.FilePath()) &&
             !All<Control>(panel, "CodexInstructions").Any(row => Texts(row).Contains("thinkrail-prompt-codex.md", StringComparison.Ordinal)),
-            "the launch file is SharpRail's instructions entry, not a separate file row");
+            "the launch file is tereditor's instructions entry, not a separate file row");
         var app = codex.App;
         var terminal = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal");
         app.Window.Layout.Open(new("file:notes.txt", "notes.txt", "file", "notes.txt"), true, app.Center);
@@ -671,15 +671,15 @@ internal static class CodexE2E
         if (args.Length > 0 && args[0] == "--no-daemon") args = args[1..];
         string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check", "lsp_navigate", "lsp_diagnostics", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "context_search", "context_status", "context_index"];
         var count = 2 + tools.Length * 2;
-        Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.sharprail.url=", StringComparison.Ordinal),
+        Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.tereditor.url=", StringComparison.Ordinal),
             "launcher MCP URL: " + string.Join(" | ", args));
         for (var index = 0; index < tools.Length; index++)
-            Require(args[2 + index * 2] == "-c" && args[3 + index * 2] == $"mcp_servers.sharprail.tools.{tools[index]}.approval_mode=\"approve\"",
+            Require(args[2 + index * 2] == "-c" && args[3 + index * 2] == $"mcp_servers.tereditor.tools.{tools[index]}.approval_mode=\"approve\"",
                 "launcher always allows " + tools[index]);
         return args[count..];
     }
 
-    // codex-launcher.spec.ts. SharpRail's Start work dialog takes neither a prompt nor a model, so its case is the
+    // codex-launcher.spec.ts. tereditor's Start work dialog takes neither a prompt nor a model, so its case is the
     // registered launcher's command, read from the registry.
     private static void Launcher(string root)
     {
@@ -743,8 +743,8 @@ internal static class CodexE2E
         Window CustomArguments()
         {
             Menu("custom");
-            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "CodexCustomLaunch")));
-            return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "CodexCustomLaunch"));
+            E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "CodexCustomLaunch")));
+            return Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "CodexCustomLaunch"));
         }
         const string customArguments = "--model custom-model --add-dir '../other project'";
         Launch(() =>
@@ -820,10 +820,10 @@ internal static class CodexE2E
             value.GetString() == "sandbox-danger-full-access");
         Require((picker.SelectedItem as ComboBoxItem)?.Content as string == "Sandbox: danger-full-access", "the picker shows the saved mode");
         Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "CodexSystemPromptEdit" or "CodexSystemPromptReset"),
-            "settings offer no way to edit SharpRail's instructions");
+            "settings offer no way to edit tereditor's instructions");
         app.Window.OpenSettingsViews.Single().Close();
         E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Launch(() => app.Click(One<Button>(app.Window, "NewCodex")), "-s", "danger-full-access");
         Launch(() => Menu("sandbox-read-only"), "-s", "read-only");
         codex.Settings(new { ideContext = false, permissionMode = "default" });
@@ -882,7 +882,7 @@ internal static class CodexE2E
             "one click types /model once and the chip keeps the reported model and effort");
     }
 
-    // codex-status.spec.ts. SharpRail does not adopt terminal titles, so the title half of the action-required case,
+    // codex-status.spec.ts. tereditor does not adopt terminal titles, so the title half of the action-required case,
     // and the remount half of the IDE chip case (a terminal's body survives tab switches), have no counterpart.
     private static void Status(string root)
     {

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Blueprint.Host;
+namespace Tereditor.Plugins.Blueprint.Host;
 
 internal sealed record PersistedBlueprint(BlueprintSource Source, BlueprintAgentId AgentId,
     BlueprintAuthor? Author = null, bool Closed = false);

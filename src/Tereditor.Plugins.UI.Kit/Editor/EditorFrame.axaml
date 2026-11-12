@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.UI.Kit.Editor.EditorFrame">
+             xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+             x:Class="Tereditor.Plugins.UI.Kit.Editor.EditorFrame">
   <!-- Dock separators take 3.5px of each neighbouring pane for their hit area; keep the
        auto-hiding scrollbars clear of it so the pointer can reach them at the pane edge. -->
   <UserControl.Styles>

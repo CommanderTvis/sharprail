@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
+namespace Tereditor.Plugins.ClaudeCode.Host.Chat;
 
 /// <summary>What survives an app restart about a chat: enough to respawn it under its session with the choices it had.</summary>
 internal sealed record ChatRecord(string WorkspaceId, string ChatId)
@@ -337,7 +337,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         var id = ChatFolder.Str(message, "request_id");
         if (id is null || !message.TryGetProperty("request", out var request)) return (null, null);
-        if (ChatFolder.Str(request, "subtype") != "can_use_tool") return (id, "Not supported by SharpRail's chat.");
+        if (ChatFolder.Str(request, "subtype") != "can_use_tool") return (id, "Not supported by tereditor's chat.");
         var tool = ChatFolder.Str(request, "tool_name") ?? "tool";
         var input = request.TryGetProperty("input", out var raw) ? raw.Clone() : ClaudeJson.EmptyObject();
         if (tool == "AskUserQuestion")

@@ -1,6 +1,6 @@
 using Avalonia.Collections;
 
-namespace SharpRail.Plugins.Chat.UI;
+namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
 /// Consecutive routine steps (reads, searches, thinking) folded into one row, as upstream's activity group: not a wire item, so it

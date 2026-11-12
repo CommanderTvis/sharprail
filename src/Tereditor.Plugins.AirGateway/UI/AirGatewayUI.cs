@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.AirGateway.UI;
+namespace Tereditor.Plugins.AirGateway.UI;
 
 /// <summary>The UI half: Settings › Air Gateway, the `central run` contribution to Claude Code and Codex launches, Central's Pi wire for omp, and the remaining credits in the header while Central governs an agent.</summary>
 public sealed class AirGatewayUI : PluginUIModule

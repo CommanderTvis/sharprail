@@ -1,6 +1,6 @@
 <StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-            x:Class="SharpRail.Plugins.Codex.UI.CodexSettingsView" x:ClassModifier="internal"
+            xmlns:kit="using:Tereditor.Plugins.UI.Kit"
+            x:Class="Tereditor.Plugins.Codex.UI.CodexSettingsView" x:ClassModifier="internal"
             Name="SettingsCodex" Spacing="16">
   <StackPanel.Styles>
     <Style Selector="TextBlock">
@@ -36,12 +36,12 @@
   <StackPanel Spacing="4">
     <TextBlock Text="Default effort" />
     <ComboBox x:Name="CodexDefaultEffort" HorizontalAlignment="Stretch" AutomationProperties.Name="Codex default effort" />
-    <TextBlock Classes="detail" Text="Applies to new SharpRail launches. Revived sessions restore their last used model and effort. Per-launch choices take precedence." />
+    <TextBlock Classes="detail" Text="Applies to new tereditor launches. Revived sessions restore their last used model and effort. Per-launch choices take precedence." />
   </StackPanel>
-  <CheckBox x:Name="CodexAppendSystemPrompt" AutomationProperties.Name="Tell Codex it is running in SharpRail">
+  <CheckBox x:Name="CodexAppendSystemPrompt" AutomationProperties.Name="Tell Codex it is running in tereditor">
     <StackPanel Spacing="2">
-      <TextBlock Text="Tell Codex it is running in SharpRail" />
-      <TextBlock Classes="detail" Text="Sessions SharpRail starts add instructions about the workspace, SharpRail's tools, and how to create worktrees the app lists. The Context pane shows the added file. Applies to new launches and resume commands in POSIX shells." />
+      <TextBlock Text="Tell Codex it is running in tereditor" />
+      <TextBlock Classes="detail" Text="Sessions tereditor starts add instructions about the workspace, tereditor's tools, and how to create worktrees the app lists. The Context pane shows the added file. Applies to new launches and resume commands in POSIX shells." />
     </StackPanel>
   </CheckBox>
   <TextBlock Classes="detail" Margin="28,-10,0,0" Text="Choose which sections it includes for a project in the Codex pane's Context tab; the text itself is not editable." />
@@ -51,16 +51,16 @@
       <TextBlock Classes="detail" Text="Runs /ide on when the Codex Launcher starts a session." />
     </StackPanel>
   </CheckBox>
-  <CheckBox x:Name="CodexMcpToggle" AutomationProperties.Name="Give sessions SharpRail's tools">
+  <CheckBox x:Name="CodexMcpToggle" AutomationProperties.Name="Give sessions tereditor's tools">
     <StackPanel Spacing="2">
-      <TextBlock Text="Give sessions SharpRail's tools" />
-      <TextBlock Classes="detail" Text="Adds SharpRail's MCP server to every Codex session the launcher starts." />
+      <TextBlock Text="Give sessions tereditor's tools" />
+      <TextBlock Classes="detail" Text="Adds tereditor's MCP server to every Codex session the launcher starts." />
     </StackPanel>
   </CheckBox>
   <CheckBox x:Name="CodexSharedDaemonToggle" AutomationProperties.Name="Use the shared Codex daemon">
     <StackPanel Spacing="2">
       <TextBlock Text="Use the shared Codex daemon" />
-      <TextBlock Classes="detail" Text="Attaches new sessions to the Codex daemon that is already running (codex --remote unix://) instead of each starting an embedded server. SharpRail never starts the daemon: if it is missing, stopped or a different version, the session starts standalone. Off launches codex --no-daemon." />
+      <TextBlock Classes="detail" Text="Attaches new sessions to the Codex daemon that is already running (codex --remote unix://) instead of each starting an embedded server. tereditor never starts the daemon: if it is missing, stopped or a different version, the session starts standalone. Off launches codex --no-daemon." />
     </StackPanel>
   </CheckBox>
 </StackPanel>

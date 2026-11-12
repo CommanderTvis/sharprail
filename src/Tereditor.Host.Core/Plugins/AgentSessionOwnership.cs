@@ -2,29 +2,29 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
 /// Who has an agent session open on this machine, so one session is never resumed by two processes. Two signals count:
-/// a live process whose command line names the session id (a Claude, Codex or omp started by any SharpRail, or by hand),
-/// and a lock file per session in a machine-wide directory every SharpRail process of the user shares, whatever its
-/// state directory (<c>SHARPRAIL_STATE_DIR</c> separates profiles and dev builds, which still share the agents' homes).
+/// a live process whose command line names the session id (a Claude, Codex or omp started by any tereditor, or by hand),
+/// and a lock file per session in a machine-wide directory every tereditor process of the user shares, whatever its
+/// state directory (<c>TEREDITOR_STATE_DIR</c> separates profiles and dev builds, which still share the agents' homes).
 /// A lock names the host process that holds it (pid and start time); one whose process is gone is stale and ignored.
 /// Every member does file or process I/O: call it off the UI thread.
 /// </summary>
 public sealed partial class AgentSessionOwnership(string? directory = null)
 {
     /// <summary>Overrides the lock directory, for checks and for users whose local data directory is unsuitable.</summary>
-    public const string DirectoryVariable = "SHARPRAIL_AGENT_SESSIONS_DIR";
+    public const string DirectoryVariable = "TEREDITOR_AGENT_SESSIONS_DIR";
 
     private readonly Lock gate = new();
     private readonly Dictionary<TerminalRef, string> held = [];
 
-    /// <summary>The lock directory: the override, else <c>SharpRail/agent-sessions</c> under the user's local application data.</summary>
+    /// <summary>The lock directory: the override, else <c>tereditor/agent-sessions</c> under the user's local application data.</summary>
     public string Directory { get; } = directory ?? (Environment.GetEnvironmentVariable(DirectoryVariable) is { Length: > 0 } configured ? configured
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create), "SharpRail", "agent-sessions"));
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create), "tereditor", "agent-sessions"));
 
     /// <summary>The lock file for one agent's session.</summary>
     public string PathFor(string agent, string sessionId) => Path.Combine(Directory, $"{Safe(agent)}-{Safe(sessionId)}.lock");
@@ -50,9 +50,9 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
         var chain = Ancestry(parents, running.Pid);
         var instances = LiveHolders();
         instances.Add(Environment.ProcessId);
-        var viaInstance = chain.FirstOrDefault(pid => instances.Contains(pid) || byPid.TryGetValue(pid, out var row) && IsSharpRail(row.Arguments));
+        var viaInstance = chain.FirstOrDefault(pid => instances.Contains(pid) || byPid.TryGetValue(pid, out var row) && IsTereditor(row.Arguments));
         if (viaInstance != 0) return new(SessionOwnerKind.Instance, running.Pid, Started(running), running.Tty, Command(running), LockTab(path), false);
-        // No live SharpRail above it: left behind when its instance stopped if a dead holder's lock remains, or the topmost
+        // No live tereditor above it: left behind when its instance stopped if a dead holder's lock remains, or the topmost
         // ancestor is a shell that was orphaned to init with a terminal.
         var top = byPid.GetValueOrDefault(chain[^1]);
         var orphanedShell = top is not null && top.Ppid <= 1 && top.Tty is not ("" or "?" or "??") && IsShell(top.Arguments);
@@ -230,9 +230,9 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
         return pids;
     }
 
-    // A SharpRail host or UI process: its executable (or the dll it runs under dotnet) is named SharpRail*.
-    private static bool IsSharpRail(string arguments) =>
-        arguments.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Take(2).Any(word => Path.GetFileName(word).StartsWith("SharpRail", StringComparison.OrdinalIgnoreCase));
+    // A tereditor host or UI process: its executable (or the dll it runs under dotnet) is named tereditor*.
+    private static bool IsTereditor(string arguments) =>
+        arguments.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Take(2).Any(word => Path.GetFileName(word).StartsWith("tereditor", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsShell(string arguments) =>
         Path.GetFileName(arguments.Split((char[]?)null, 2)[0]).TrimStart('-') is "sh" or "bash" or "zsh" or "fish" or "dash" or "ksh" or "nu" or "pwsh";
@@ -273,14 +273,14 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
     }
 }
 
-/// <summary>How the process holding an agent session relates to SharpRail.</summary>
+/// <summary>How the process holding an agent session relates to tereditor.</summary>
 public enum SessionOwnerKind
 {
-    /// <summary>A live SharpRail instance holds the session (its lock, or an ancestor of the process).</summary>
+    /// <summary>A live tereditor instance holds the session (its lock, or an ancestor of the process).</summary>
     Instance,
-    /// <summary>Left running by a SharpRail instance that is no longer running.</summary>
+    /// <summary>Left running by a tereditor instance that is no longer running.</summary>
     Stray,
-    /// <summary>A process with no SharpRail link, such as an agent started by hand.</summary>
+    /// <summary>A process with no tereditor link, such as an agent started by hand.</summary>
     Foreign
 }
 
@@ -294,9 +294,9 @@ public sealed record SessionOwner(SessionOwnerKind Kind, int Pid, string Started
         var process = $"pid {Pid}" + (detail.Length > 0 ? $" ({detail})" : "");
         return Kind switch
         {
-            SessionOwnerKind.Instance => $"is open in another SharpRail window/instance (pid {Pid})" + (Tab.Length > 0 ? $", tab {Tab}" : "") + ".",
-            SessionOwnerKind.Stray => $"is open in {process}. The SharpRail instance that started it is no longer running.",
-            _ => $"is open in {process}, which SharpRail did not start."
+            SessionOwnerKind.Instance => $"is open in another tereditor window/instance (pid {Pid})" + (Tab.Length > 0 ? $", tab {Tab}" : "") + ".",
+            SessionOwnerKind.Stray => $"is open in {process}. The tereditor instance that started it is no longer running.",
+            _ => $"is open in {process}, which tereditor did not start."
         };
     }
 

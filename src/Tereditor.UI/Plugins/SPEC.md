@@ -18,7 +18,7 @@ Upstream: apps/web/src/plugins/registry/SPEC.md @ 4737df6d (CommanderTvis fork)
 
 Owns the edge between two parts. The registry is the state a plugin's UI half fills in and the workbench,
 panels and Settings read back from; the loader is the composition root that turns the host's roster into
-activated (or dormant) UI halves. See [the plugin API](../../SharpRail.Plugins.Api/SPEC.md) for the W1–W21
+activated (or dormant) UI halves. See [the plugin API](../../Tereditor.Plugins.Api/SPEC.md) for the W1–W21
 capability contract this implements. The runtime is app-owned: one per `Workbench`, created from
 `Workbench.Plugins` (the host's `IPluginService`), shared by every window. Window-scoped capabilities (the
 active workspace and editor, opening, revealing, notifying) act on the app's active window.
@@ -134,7 +134,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
   breaks or the host ends shows why. On a remote
   host the session is the client adapter's (`RemoteIsolatedUIHost`), which keeps it across a dropped connection. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
-  isolated from SharpRail's processes. Activation runs on the UI thread.
+  isolated from tereditor's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while
   `Activate` runs (closed in a `finally`, so a throwing activation still closes it), and every registration
   member checks it first and throws otherwise. This is what makes `RemovePlugin(id)` a complete cleanup: a
@@ -260,7 +260,7 @@ Both walks are pure functions over the roster, and the checks call them directly
 
 ## Checks
 
-`tests/SharpRail.Checks/PluginUiChecks.cs`: the registry's removal and ordering rules on a fake roster; the two
+`tests/Tereditor.Checks/PluginUiChecks.cs`: the registry's removal and ordering rules on a fake roster; the two
 dependency walks; the loader against builtin modules on a stand-in host (`E2E/FakePluginHost.cs`), which alone can
 list builtin UI halves with another wire version or a throwing activation and push off-scope channel values;
 activation outside `Activate` refused. The fixture plugin, composed as a check-only builtin on both sides, then
@@ -321,20 +321,20 @@ drawing controls are compiled XAML; no app dependency is introduced into the plu
 - Editor selections from the Scintilla editor: the control exposes no selection event yet. The Markdown preview and
   `ReportSelection` report selections; a preview selection's lines are counted within the selected text.
 
-The bundled file-type icon set is [core UI functionality](../../SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md), not a builtin plugin. External file-icon slots still override it; plugin asset icons retain their fallback glyph until a valid SVG is available.
+The bundled file-type icon set is [core UI functionality](../../Tereditor.Plugins.UI.Kit/FileIcons/SPEC.md), not a builtin plugin. External file-icon slots still override it; plugin asset icons retain their fallback glyph until a valid SVG is available.
 
 ## Builtins disabled by default
 
 Builtin plugins whose manifest sets `EnabledByDefault = false` (Claude Code, Codex, Discord, Air Gateway, Air
-Context, Tailscale, [Specs](../../SharpRail.Plugins.SpecDialect/SPEC.md), [Blueprint](../../SharpRail.Plugins.Blueprint/SPEC.md)
-and the [EPUB Reader](../../SharpRail.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
+Context, Tailscale, [Specs](../../Tereditor.Plugins.SpecDialect/SPEC.md), [Blueprint](../../Tereditor.Plugins.Blueprint/SPEC.md)
+and the [EPUB Reader](../../Tereditor.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
 contribute nothing until enabled there. The EPUB Reader is the builtin file viewer for `.epub`: while it is
 disabled no viewer claims the extension and the open path is unchanged. Enabling Blueprint while Specs is off
 asks to turn Specs on with it (the dependency prompt above).
 
 ## Tailscale before connection
 
-The builtin [Tailscale plugin](../../SharpRail.Plugins.Tailscale/SPEC.md) contributes approval Settings
+The builtin [Tailscale plugin](../../Tereditor.Plugins.Tailscale/SPEC.md) contributes approval Settings
 through ordinary activation, and exposes a client-local picker for discovery and bootstrap before any
 host projection exists. Desktop and Android composition mount that picker directly; discovery never
 uses an unconnected host's RPC. Other plugin activation remains roster-driven.

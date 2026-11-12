@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SharpRail.Plugins.Visualize.Host;
+namespace Tereditor.Plugins.Visualize.Host;
 
 /// <summary>
 /// The Markdown source of each shown Markdown drawing, kept as a real file in a private directory under the host's
@@ -28,10 +28,10 @@ internal sealed class VisualizationSourceFiles
 
     private void Remember() => remember([.. written.Values.Select(entry => entry.Path).Order(StringComparer.Ordinal)]);
 
-    /// <summary>The host state directory's drawings folder, by the host's rule: <c>SHARPRAIL_STATE_DIR</c>, else <c>~/.sharprail</c>.</summary>
+    /// <summary>The host state directory's drawings folder, by the host's rule: <c>TEREDITOR_STATE_DIR</c>, else <c>~/.tereditor</c>.</summary>
     internal static string DefaultDirectory() => Path.Combine(
-        Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR") is { Length: > 0 } configured ? configured
-            : Path.Combine(Environment.GetEnvironmentVariable("HOME") is { Length: > 0 } home ? home : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail"),
+        Environment.GetEnvironmentVariable("TEREDITOR_STATE_DIR") is { Length: > 0 } configured ? configured
+            : Path.Combine(Environment.GetEnvironmentVariable("HOME") is { Length: > 0 } home ? home : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor"),
         "visualize");
 
     internal static string Digest(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));

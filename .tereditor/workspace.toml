@@ -1,5 +1,5 @@
 # Ignored paths cloned from the Default workspace into new workspaces.
-# Schema: src/SharpRail.Host.Core/Workspaces.SPEC.md
+# Schema: src/Tereditor.Host.Core/Workspaces.SPEC.md
 version = 1
 
 [clone]

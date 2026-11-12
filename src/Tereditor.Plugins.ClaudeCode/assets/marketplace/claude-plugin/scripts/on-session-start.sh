@@ -1,13 +1,13 @@
 #!/bin/bash
 # Hook script for Claude Code SessionStart event (startup|resume).
-# Marks the session idle in SharpRail's terminal status badge.
+# Marks the session idle in tereditor's terminal status badge.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if ! command -v jq &>/dev/null; then
 	cat <<'EOF'
 {
-  "systemMessage": "SharpRail notifications require jq. Install it with your system package manager (e.g. brew install jq, apt install jq)."
+  "systemMessage": "tereditor notifications require jq. Install it with your system package manager (e.g. brew install jq, apt install jq)."
 }
 EOF
 	exit 0

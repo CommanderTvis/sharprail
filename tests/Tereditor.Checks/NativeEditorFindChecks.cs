@@ -6,13 +6,13 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
-using SharpRail.UI.Editor;
+using Tereditor.UI.Editor;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class NativeEditorFindChecks
 {
-    private const string Title = "SharpRail native editor find check";
+    private const string Title = "tereditor native editor find check";
     internal static void Run(string[] args)
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
@@ -25,13 +25,13 @@ internal static class NativeEditorFindChecks
         public override void Initialize()
         {
             Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
-            Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(""));
+            Ui.Apply(Tereditor.UI.Rendering.Themes.Resolve(""));
         }
         public override void OnFrameworkInitializationCompleted()
         {
             var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
             var window = new Window { Title = Title, Width = 1000, Height = 650 };
-            NativeMenu.SetMenu(window, SharpRail.UI.ApplicationMenu.Build(window, null!));
+            NativeMenu.SetMenu(window, Tereditor.UI.ApplicationMenu.Build(window, null!));
             desktop.MainWindow = window;
             Dispatcher.UIThread.Post(async () =>
             {
@@ -49,7 +49,7 @@ internal static class NativeEditorFindChecks
                         // inspection whenever it ran before the check finished.
                         var root = CheckRoot.Create("editor-find");
                         using var code = new CodeDocumentView(new("find.txt", "🚆 **Needle** first\nneedle second"), root,
-                            new SharpRail.Host.Client.LocalProjectAdapter(new SharpRail.Host.Core.ProjectServices(root)), () => { }, _ => { }, () => { }, error => throw error, !markdown);
+                            new Tereditor.Host.Client.LocalProjectAdapter(new Tereditor.Host.Core.ProjectServices(root)), () => { }, _ => { }, () => { }, error => throw error, !markdown);
                         Control body = code;
                         if (markdown)
                         {

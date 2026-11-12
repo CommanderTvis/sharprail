@@ -1,4 +1,4 @@
-namespace SharpRail.UI.State;
+namespace Tereditor.UI.State;
 
 public enum ToastVariant { Info, Success, Error }
 

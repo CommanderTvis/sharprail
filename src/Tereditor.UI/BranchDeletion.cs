@@ -1,9 +1,9 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>What deleting a local branch needs to say before it runs: a refusal, or the confirmation and the tip to restore.</summary>
 internal sealed record BranchDeletePlan(string? Refusal, string Title, string Text, string ConfirmLabel, string Sha)

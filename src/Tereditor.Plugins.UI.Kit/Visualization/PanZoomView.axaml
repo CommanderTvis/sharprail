@@ -1,5 +1,5 @@
 <Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:visualization="using:SharpRail.Plugins.UI.Kit.Visualization" x:Class="SharpRail.Plugins.UI.Kit.Visualization.PanZoomView" x:ClassModifier="internal" ClipToBounds="True">
+      xmlns:kit="using:Tereditor.Plugins.UI.Kit" xmlns:visualization="using:Tereditor.Plugins.UI.Kit.Visualization" x:Class="Tereditor.Plugins.UI.Kit.Visualization.PanZoomView" x:ClassModifier="internal" ClipToBounds="True">
   <ScrollViewer x:Name="MermaidPanZoom" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Cursor="SizeAll" Background="Transparent" Focusable="True">
     <Panel x:Name="DiagramSurface" HorizontalAlignment="Left" VerticalAlignment="Top">
       <Image x:Name="DiagramImage" Stretch="Fill" />

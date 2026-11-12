@@ -1,8 +1,8 @@
 name: Pages
 
 # Deploys the browser client's Playground (the host-less mode, where the tab is its own host) to
-# https://commandertvis.github.io/sharprail/. Dispatched by hand only (`gh workflow run pages.yml`).
-# Pages cannot set response headers, so a service worker (src/SharpRail.Browser/pages) supplies the COOP/COEP
+# https://commandertvis.github.io/tereditor/. Dispatched by hand only (`gh workflow run pages.yml`).
+# Pages cannot set response headers, so a service worker (src/Tereditor.Browser/pages) supplies the COOP/COEP
 # headers multithreaded WebAssembly needs.
 on:
   workflow_dispatch:
@@ -33,16 +33,16 @@ jobs:
         with:
           path: |
             ~/.local/share/mise
-            ~/.cache/sharprail
+            ~/.cache/tereditor
           key: tools-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.browser.toml', 'mise.browser.lock') }}
       - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Publish browser" sh scripts/mise run package:browser
-      - name: Prepare the site for /sharprail/
+      - name: Prepare the site for /tereditor/
         run: |
           site=artifacts/browser
           # Pages compresses on its own and does not honour the pre-compressed sidecars.
           find "$site" -type f \( -name '*.br' -o -name '*.gz' \) -delete
           touch "$site/.nojekyll"
-          cp src/SharpRail.Browser/pages/coi-sw.js src/SharpRail.Browser/pages/coi.js src/SharpRail.Browser/pages/404.html "$site/"
+          cp src/Tereditor.Browser/pages/coi-sw.js src/Tereditor.Browser/pages/coi.js src/Tereditor.Browser/pages/404.html "$site/"
           # Every URL in the client is relative, so the base path needs no rewrite; only the worker loads first.
           sed -i 's|<body>|<body><script src="coi.js"></script>|' "$site/index.html"
           grep -q 'coi.js' "$site/index.html"

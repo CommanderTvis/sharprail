@@ -1,19 +1,19 @@
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Language;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Plugins;
+namespace Tereditor.Host.Core.Plugins;
 
 /// <summary>
 /// The host's own text for the instructions agent plugins give sessions (H20): what belongs to a core feature rather
 /// than to a plugin, each gated on that feature. It comes ahead of every plugin's contributions; each piece has an identifier
-/// (<c>core.&lt;id&gt;</c>) a project can turn off in <c>.sharprail/instructions.toml</c>.
+/// (<c>core.&lt;id&gt;</c>) a project can turn off in <c>.tereditor/instructions.toml</c>.
 /// </summary>
 internal static class CorePrompt
 {
     /// <summary>
     /// The host's sections that every agent gets, in order, by identifier (<c>core.</c> plus it): what used to be each
-    /// agent plugin's fixed text, so a project can turn each off in <c>.sharprail/instructions.toml</c>.
+    /// agent plugin's fixed text, so a project can turn each off in <c>.tereditor/instructions.toml</c>.
     /// </summary>
     internal static readonly IReadOnlyList<(string Id, string Title, string Description, string Text)> Fixed =
     [
@@ -30,7 +30,7 @@ internal static class CorePrompt
             Create another workspace only when the task needs additional isolation or parallel work; then you MUST use `workspace_create` (Git worktree).
             Supply a concise `description` explaining the task: the user sees it as the workspace label in Projects.
             Supply `branch` when a specific new branch is needed and `baseBranch` for the requested base; otherwise the base is the calling terminal's workspace HEAD.
-            Work in the returned `path`; the tool does not switch your terminal. NEVER use `git worktree add`; use this tool so the workspace is placed and described in SharpRail.
+            Work in the returned `path`; the tool does not switch your terminal. NEVER use `git worktree add`; use this tool so the workspace is placed and described in tereditor.
             """),
         ("workspace-emigrate", "Workspace emigration", "Move this terminal into a workspace you created only on the user's instruction, with workspace_emigrate.", """
             `workspace_emigrate` moves this terminal tab into a workspace this same terminal created (through workspace_create) and relaunches you there, resumed with this conversation.
@@ -38,8 +38,8 @@ internal static class CorePrompt
             The user approves each move; after an approved call, end your turn at once without further tool calls. It moves only your own tab, never another terminal.
             """),
         ("parallel-tasks", "Parallel tasks", "Suggest a subagent and workspace per unrelated task.", """
-            When the user gives you several unrelated tasks or bug reports, suggest parallelizing them with a subagent and a separate SharpRail workspace per independent task, even if this session did not start as an orchestrator.
-            Explain that this keeps each task's context focused and lets the user follow and review the work separately in SharpRail. Make the suggestion before processing the backlog sequentially; delegate only when authorized and subagent tools are available.
+            When the user gives you several unrelated tasks or bug reports, suggest parallelizing them with a subagent and a separate tereditor workspace per independent task, even if this session did not start as an orchestrator.
+            Explain that this keeps each task's context focused and lets the user follow and review the work separately in tereditor. Make the suggestion before processing the backlog sequentially; delegate only when authorized and subagent tools are available.
             """),
         ("workspace-cleanup", "Workspace cleanup", "Remove workspaces you created with workspace_delete once their work is kept.", """
             Reduce clutter by removing workspaces you created once their work is preserved and they are no longer needed.
@@ -49,15 +49,15 @@ internal static class CorePrompt
         ("push-and-signing", "Pushing and signing", "Never push unasked or bypass commit signing.", """
             NEVER push unless the user asks. NEVER bypass or disable commit signing: if signing or the SSH agent does not respond, the user is away; stop and report instead of working around it.
             """),
-        ("warm-workspaces", "Warm workspaces", "Keep .sharprail/workspace.toml listing dependency and cache directories.", """
-            New workspaces can start warm: `.sharprail/workspace.toml` in the project root (committed, yours to edit) lists git-ignored paths cloned from the Default workspace into workspaces created afterwards.
+        ("warm-workspaces", "Warm workspaces", "Keep .tereditor/workspace.toml listing dependency and cache directories.", """
+            New workspaces can start warm: `.tereditor/workspace.toml` in the project root (committed, yours to edit) lists git-ignored paths cloned from the Default workspace into workspaces created afterwards.
             Schema (TOML): `version = 1`, then `[clone]` with `include = ["node_modules", ".venv", "**/target"]` and optional `exclude = ["**/target/tmp"]`. Patterns are root-relative: `*`/`?` stay inside a segment, `**` spans segments, a name without `/` matches at any depth.
             Only ignored, untracked paths are cloned, and without the file nothing is. You MUST add an entry when you introduce a dependency directory or build cache worth sharing; the edit does not affect existing workspaces.
             """),
     ];
 
     /// <summary>
-    /// The Code Intelligence guidance: the <c>lsp_*</c> rules, stated once, and <c>.sharprail/language.toml</c>.
+    /// The Code Intelligence guidance: the <c>lsp_*</c> rules, stated once, and <c>.tereditor/language.toml</c>.
     /// <c>{{project}}</c> becomes the workspace's servers and examples. It is left out while language services are disabled.
     /// </summary>
     internal const string LanguageServices = """
@@ -74,9 +74,9 @@ internal static class CorePrompt
         {{project}}
         Name the symbol, no position needed; `Type/Member` narrows a shared name and an ambiguous result lists candidates. Explicit `line`/`column` are zero-based. `scope: "dependencies"` then `operation: "source"` reads library code. `incomingCalls`/`outgoingCalls` walk callers and callees; `lsp_diagnostics` takes globs and `minSeverity`; `lsp_rename` with `path` and `newPath` moves a file and fixes imports; `lsp_status` `capabilities` shows what a server supports.
 
-        Subagents do NOT receive this text. When you brief one for code work, the brief MUST contain its absolute workspace path, that it passes it to every SharpRail tool, the rules above with the server ids its task needs, and that its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls it made; reject a report with none. Give each independent task its own workspace with its servers: `workspace_create({description, languageServers: {{ids}}})`.
+        Subagents do NOT receive this text. When you brief one for code work, the brief MUST contain its absolute workspace path, that it passes it to every tereditor tool, the rules above with the server ids its task needs, and that its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls it made; reject a report with none. Give each independent task its own workspace with its servers: `workspace_create({description, languageServers: {{ids}}})`.
 
-        Team-wide server options live in `.sharprail/language.toml` (`version = 1`, one `[servers.<id>]` table: `autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`, `initializationOptions`, `settings`); edit it directly, keep comments and unknown keys, never put host paths or secrets in it. `lsp_status` `configure` changes only this host's override.
+        Team-wide server options live in `.tereditor/language.toml` (`version = 1`, one `[servers.<id>]` table: `autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`, `initializationOptions`, `settings`); edit it directly, keep comments and unknown keys, never put host paths or secrets in it. `lsp_status` `configure` changes only this host's override.
         """;
 
     private const string Placeholder = "<absolute path>";

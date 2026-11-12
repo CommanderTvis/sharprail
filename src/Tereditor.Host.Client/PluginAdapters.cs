@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Protocol;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Protocol;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Host.Client;
+namespace Tereditor.Host.Client;
 
 /// <summary>The app's own host's plugin runtime, called directly: params, results and payloads stay objects.</summary>
 public sealed class LocalPluginAdapter(IPluginService host) : IPluginService

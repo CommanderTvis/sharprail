@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The fixture plugin's host half: a check-only builtin the checks compose, never shipped in the app. -->
   <ItemGroup>
-    <ProjectReference Include="../../src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <ProjectReference Include="../../src/Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
     <Content Include="assets/**" Link="plugins/fixture/assets/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Blueprint.Host;
+namespace Tereditor.Plugins.Blueprint.Host;
 
 internal static class BlueprintPrompts
 {
@@ -44,7 +44,7 @@ internal static class BlueprintPrompts
         
         After you write the file, and after every rewrite of it, call `blueprint_check`. It reads `BLUEPRINT.md` back the way the panel renders it and names anything the parser had to decide for you — a kind word it did not know, an id it invented or renamed, an option with no reason after it. Fix what it reports before you answer.
         
-        The person can also change it outside the conversation, for example from SharpRail's Blueprint panel: flipping a control or rewriting a passage edits `BLUEPRINT.md` directly, and you may be told what changed. Whenever the file changes under you, re-read it and bring the rest of the document back into line with it — some changes drag half the spec with them and some touch nothing, and that judgement is yours. Keep what the person set exactly as they set it.
+        The person can also change it outside the conversation, for example from tereditor's Blueprint panel: flipping a control or rewriting a passage edits `BLUEPRINT.md` directly, and you may be told what changed. Whenever the file changes under you, re-read it and bring the rest of the document back into line with it — some changes drag half the spec with them and some touch nothing, and that judgement is yours. Keep what the person set exactly as they set it.
         """;
 
     public const string Appendix = Session + "\n\n" + Format;

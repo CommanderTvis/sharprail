@@ -13,19 +13,19 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Discord;
-using SharpRail.Plugins.Discord.Host;
-using SharpRail.UI;
-using SharpRail.UI.Panels;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Discord;
+using Tereditor.Plugins.Discord.Host;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The Discord builtin plugin: the fork's presence and lifecycle tests against the host half, and its e2e
 // (enable from Settings › Plugins, the application id's validation and persistence, a blocked project kept)
@@ -53,9 +53,9 @@ internal static class DiscordChecks
 
     private static async Task IpcFramesAsync()
     {
-        var saved = Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR");
+        var saved = Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR");
         var directory = Directory.CreateTempSubdirectory("srd-").FullName;
-        Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", directory);
+        Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", directory);
         using var discord = new FakeDiscord(Path.Combine(directory, "discord-ipc-0"));
         using var client = new DiscordIpc();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -77,7 +77,7 @@ internal static class DiscordChecks
         finally
         {
             client.Close();
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", saved);
             Directory.Delete(directory, true);
         }
         Console.WriteLine("PASS Discord IPC: isolated candidates, fragmented ping/pong, server errors and socket closure");
@@ -87,8 +87,8 @@ internal static class DiscordChecks
     {
         Directory.CreateDirectory(directory);
         var socketDirectory = Directory.CreateTempSubdirectory("srd-").FullName;
-        var saved = Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", socketDirectory);
+        var saved = Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", socketDirectory);
         using var discord = new FakeDiscord(Path.Combine(socketDirectory, "discord-ipc-0"));
         await using var server = RemoteServer.Create(directory, IPAddress.Loopback, 0, "discord", Path.Combine(directory, "state"));
         try
@@ -132,7 +132,7 @@ internal static class DiscordChecks
         finally
         {
             await server.StopAsync();
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", saved);
             Directory.Delete(socketDirectory, true);
         }
         Console.WriteLine("PASS Discord transport: disabled lifecycle, SVG asset, presence, status push and redaction over WebSocket RPC");
@@ -140,9 +140,9 @@ internal static class DiscordChecks
 
     private static async Task StopDuringHandshakeAsync()
     {
-        var saved = Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR");
+        var saved = Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR");
         var directory = Directory.CreateTempSubdirectory("srd-").FullName;
-        Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", directory);
+        Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", directory);
         using var discord = new FakeDiscord(Path.Combine(directory, "discord-ipc-0"), holdHandshake: true);
         var reports = 0;
         var runtime = new DiscordRuntime(() => Ready, _ => Interlocked.Increment(ref reports));
@@ -160,7 +160,7 @@ internal static class DiscordChecks
         finally
         {
             runtime.Stop();
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", saved);
             Directory.Delete(directory, true);
         }
     }
@@ -204,17 +204,17 @@ internal static class DiscordChecks
 
     private static async Task LifecycleAsync()
     {
-        var saved = Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR");
+        var saved = Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR");
         var empty = Directory.CreateTempSubdirectory("srd-").FullName;
         var socketDirectory = Directory.CreateTempSubdirectory("srd-").FullName;
-        Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", empty);
+        Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", empty);
         var runtime = new DiscordRuntime(() => Ready, _ => { });
         try
         {
             runtime.ApplySettingsChange();
             Require((await runtime.GetStatusAsync()).State == DiscordConnectionState.Unavailable, "A failed first attempt reports unavailable.");
             using var discord = new FakeDiscord(Path.Combine(socketDirectory, "discord-ipc-0"));
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", socketDirectory);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", socketDirectory);
             // Still within the retry floor: the socket exists now, but nothing looks again until the floor clears.
             Require((await runtime.GetStatusAsync()).State == DiscordConnectionState.Unavailable, "A socket appearing within the retry floor is not noticed.");
             runtime.ApplySettingsChange();
@@ -229,7 +229,7 @@ internal static class DiscordChecks
         finally
         {
             runtime.Stop();
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", saved);
             Directory.Delete(empty, true);
             Directory.Delete(socketDirectory, true);
         }
@@ -261,7 +261,7 @@ internal static class DiscordChecks
     private static void Close(WorkbenchWindow window, SettingsView settings)
     {
         settings.Close();
-        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any());
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Any());
     }
 
     // Types into the field and moves focus away, which is when the section saves it.
@@ -287,9 +287,9 @@ internal static class DiscordChecks
 
     private static void RunUiScenario(string root, bool remote)
     {
-        var saved = Environment.GetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR");
+        var saved = Environment.GetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR");
         var socketDirectory = Directory.CreateTempSubdirectory("srd-").FullName;
-        Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", socketDirectory);
+        Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", socketDirectory);
         using var discord = new FakeDiscord(Path.Combine(socketDirectory, "discord-ipc-0"));
         var mode = remote ? "remote" : "local";
         var workspace = Path.Combine(root, "discord-ui-" + mode, "workspace");
@@ -315,7 +315,7 @@ internal static class DiscordChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var plugins = window.OpenSettingsViews.Single();
-            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = true;
+            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = true;
             E2eWorkspace.Until(() => loader.Registry.Active.Contains("discord"));
             Close(window, plugins);
 
@@ -374,7 +374,7 @@ internal static class DiscordChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             plugins = window.OpenSettingsViews.Single();
-            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = false;
+            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = false;
             E2eWorkspace.Until(() => !loader.Registry.Active.Contains("discord"));
             Require(!Has(plugins, "Settings_plugin_discord_discord"), "Disable removes the Discord settings contribution.");
             Close(window, plugins);
@@ -382,7 +382,7 @@ internal static class DiscordChecks
         finally
         {
             if (server is not null) Task.Run(async () => { await server.StopAsync(); await server.DisposeAsync(); }).GetAwaiter().GetResult();
-            Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
+            Environment.SetEnvironmentVariable("TEREDITOR_DISCORD_IPC_DIR", saved);
             Directory.Delete(socketDirectory, true);
         }
         Console.WriteLine($"PASS {mode} Discord UI: enable, file presence/redaction, application id and blocked projects kept, disable");

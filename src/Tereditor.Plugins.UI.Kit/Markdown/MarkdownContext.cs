@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>
 /// What a rendered Markdown document reaches outside the kit for: workspace images, the spec a

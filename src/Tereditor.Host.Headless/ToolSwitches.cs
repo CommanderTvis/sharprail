@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.Host.Headless;
+namespace Tereditor.Host.Headless;
 
 /// <summary>
 /// The one decorator over the tool table. It drops the tools the configuration switches off, so <c>tools/list</c> omits them and a
@@ -78,12 +78,12 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
     internal static string Instructions(IReadOnlyList<McpServer.McpTool> offered, string languages = "", string terms = "", IReadOnlyList<string>? enabled = null, string root = "")
     {
         var names = offered.Select(tool => tool.Name).ToHashSet();
-        if (names.Count == 0) return "SharpRail with every tool switched off for this run.";
+        if (names.Count == 0) return "tereditor with every tool switched off for this run.";
         List<string> areas = [];
         if (names.Any(name => name.StartsWith("lsp_", StringComparison.Ordinal))) areas.Add("language");
         if (names.Any(name => name.StartsWith("spec_", StringComparison.Ordinal))) areas.Add("spec");
         if (names.Contains("blueprint_check")) areas.Add("Blueprint");
-        var text = $"SharpRail's {(areas.Count < 2 ? string.Concat(areas) : string.Join(", ", areas[..^1]) + " and " + areas[^1])} tools for the one workspace this server runs in" + (root.Length > 0 ? $" (workspace root: {root})" : "") + ". Paths are relative to its root or absolute inside it. The optional workspace argument is ignored.";
+        var text = $"tereditor's {(areas.Count < 2 ? string.Concat(areas) : string.Join(", ", areas[..^1]) + " and " + areas[^1])} tools for the one workspace this server runs in" + (root.Length > 0 ? $" (workspace root: {root})" : "") + ". Paths are relative to its root or absolute inside it. The optional workspace argument is ignored.";
         var navigate = names.Contains("lsp_navigate");
         var diagnostics = names.Contains("lsp_diagnostics");
         if (navigate) text += " Use lsp_navigate instead of grep to find symbols, implementations and references" + (diagnostics ? ", and lsp_diagnostics to check edited files." : ".");
@@ -94,7 +94,7 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
             text += $" Language servers here: {languages}. Each downloads on first use, so a call may answer initializing: wait and call again, never treat it as no results. Other file types have no server: use grep and Read.";
         if ((navigate || diagnostics) && terms.Length > 0 && names.Contains("accept_terms")) text += " " + terms;
         if (enabled is not null && new[] { "spec", "blueprint" }.Where(group => !enabled.Contains(group)).ToArray() is { Length: > 0 } off)
-            text += $" The {string.Join(" and ", off)} tools are off by default: start the server with SHARPRAIL_TOOLS_ENABLE={string.Join(",", off)} to offer them.";
+            text += $" The {string.Join(" and ", off)} tools are off by default: start the server with TEREDITOR_TOOLS_ENABLE={string.Join(",", off)} to offer them.";
         return text;
     }
 }

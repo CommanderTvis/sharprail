@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 public static class FileLimits
 {
@@ -153,10 +153,10 @@ public record FileAction(string Kind, string Path, string To = "")
 }
 
 /// <summary>
-/// Where a workspace's <c>.sharprail</c> directory stands against Git. <see cref="Written"/> is set only by the call that
+/// Where a workspace's <c>.tereditor</c> directory stands against Git. <see cref="Written"/> is set only by the call that
 /// appended the entry; <see cref="Detail"/> says why an exclusion changed nothing, empty otherwise.
 /// </summary>
-public sealed record SharprailDirectoryStatus(bool Exists, bool Tracked, bool Ignored, bool Written = false, string Detail = "")
+public sealed record TereditorDirectoryStatus(bool Exists, bool Tracked, bool Ignored, bool Written = false, string Detail = "")
 {
     /// <summary>Whether the directory shows as untracked noise that a local exclusion would remove.</summary>
     public bool CanExclude => Exists && !Tracked && !Ignored;
@@ -205,16 +205,16 @@ public partial interface IProjectServices
     /// <summary>The change totals of one of this project's workspaces, or null from a host that cannot tell.</summary>
     ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => ValueTask.FromResult<DiffStats?>(null);
     /// <summary>
-    /// Whether the workspace root holds a <c>.sharprail</c> directory, and whether Git tracks or already ignores it.
+    /// Whether the workspace root holds a <c>.tereditor</c> directory, and whether Git tracks or already ignores it.
     /// A host that predates the operation reports it absent.
     /// </summary>
-    ValueTask<SharprailDirectoryStatus> GetSharprailDirectoryAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(new SharprailDirectoryStatus(false, false, false));
+    ValueTask<TereditorDirectoryStatus> GetTereditorDirectoryAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(new TereditorDirectoryStatus(false, false, false));
     /// <summary>
-    /// Appends <c>/.sharprail/</c> to the repository's shared <c>info/exclude</c> (the common Git directory, so every
+    /// Appends <c>/.tereditor/</c> to the repository's shared <c>info/exclude</c> (the common Git directory, so every
     /// workspace of the project is covered). Idempotent; changes nothing when the directory is tracked or already ignored.
     /// </summary>
-    ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken cancellationToken = default)
-        => ValueTask.FromException<SharprailDirectoryStatus>(new NotSupportedException("This host cannot exclude the .sharprail directory."));
+    ValueTask<TereditorDirectoryStatus> ExcludeTereditorDirectoryAsync(CancellationToken cancellationToken = default)
+        => ValueTask.FromException<TereditorDirectoryStatus>(new NotSupportedException("This host cannot exclude the .tereditor directory."));
     ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default);
     /// <summary>The branch's remote facts and review; null for a detached HEAD or a host that predates the operation.</summary>
     ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default) => ValueTask.FromResult<BranchStatus?>(null);

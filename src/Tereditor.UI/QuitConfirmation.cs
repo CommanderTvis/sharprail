@@ -1,4 +1,4 @@
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public enum QuitHint { Hidden, Armed, Release, Quitting }
 

@@ -7,9 +7,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.UI.Panels;
+using Tereditor.UI.Panels;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 // On a phone-sized screen the workbench is one page at a time, chosen from a bar at the bottom: Projects, the
 // current terminal or editor, the other tools, and Settings. The side pages are the frame's left and right

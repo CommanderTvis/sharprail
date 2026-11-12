@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>
 /// The frontmatter dialect specs use: a block between a first line of <c>---</c> and the next, holding top-level

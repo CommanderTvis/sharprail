@@ -5,15 +5,15 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
+using Tereditor.Checks.E2E;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The window without a top bar: the fixed Projects rail with its header, the right bar's footer and the layout migration.</summary>
 internal static class UnifiedChromeChecks

@@ -1,7 +1,7 @@
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// Which language servers the host this UI talks to can run. A host that cannot run some of them (a browser tab) refuses

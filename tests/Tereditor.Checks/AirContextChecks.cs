@@ -14,28 +14,28 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Remote;
-using SharpRail.Plugins.AirContext;
-using SharpRail.Plugins.AirContext.Host;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Remote;
+using Tereditor.Plugins.AirContext;
+using Tereditor.Plugins.AirContext.Host;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static partial class AirContextChecks
 {
     internal static async Task Run(string root)
     {
         var storage = Path.Combine(root, "context-provisioning");
-        var bytes = "SharpRail fake Context executable; never run"u8.ToArray();
-        var bundle = new ContextBundle("fixture", "fixture", new("https://download.jetbrains.com/sharprail-fixture"),
+        var bytes = "tereditor fake Context executable; never run"u8.ToArray();
+        var bundle = new ContextBundle("fixture", "fixture", new("https://download.jetbrains.com/tereditor-fixture"),
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
         // The artifact identity a stored consent names hashes these bytes; a serializer change must not re-ask every user.
         Require(ContextConsent.Identity(bundle) == Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
-            "{\"Version\":\"fixture\",\"Platform\":\"fixture\",\"Url\":\"https://download.jetbrains.com/sharprail-fixture\",\"Sha256\":\"" + bundle.Sha256 + "\"}"))),
+            "{\"Version\":\"fixture\",\"Platform\":\"fixture\",\"Url\":\"https://download.jetbrains.com/tereditor-fixture\",\"Sha256\":\"" + bundle.Sha256 + "\"}"))),
             "The Context artifact identity no longer hashes the bytes earlier consents recorded.");
         using var handler = new Handler(async token => { await Task.Delay(50, token); return bytes; });
         using var http = new HttpClient(handler);
@@ -146,8 +146,8 @@ internal static partial class AirContextChecks
             {
                 var state = new HostStateStore(stateDirectory);
                 var runtime = new PluginRuntime(worktrees is null
-                    ? new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(SharpRail.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new SharpRail.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())] }
-                    : new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(SharpRail.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new SharpRail.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())], Worktrees = worktrees });
+                    ? new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(Tereditor.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new Tereditor.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())] }
+                    : new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(Tereditor.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new Tereditor.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())], Worktrees = worktrees });
                 await runtime.Start();
                 rig = new(stateDirectory, runtime, state, new LocalPluginAdapter(runtime), null, null, null);
             }
@@ -250,16 +250,16 @@ internal static partial class AirContextChecks
         void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         E2E.E2eWorkspace.Until(() => owner.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextSetup"));
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-        var canceled = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var canceled = app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Single();
         E2E.E2eWorkspace.Until(() => Find<CheckBox>(canceled, "ConsentCheck").IsEnabled);
         Require(Find<CheckBox>(canceled, "ConsentCheck").IsChecked == false && !Find<Button>(canceled, "ConsentDownload").IsEnabled && handler.Requests == 0,
             "Context consent default was accepted or downloaded.");
         Click(Find<Button>(canceled, "ConsentClose"));
         Require(handler.Requests == 0, "Closing consent downloaded the CLI.");
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-        var dialog = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var dialog = app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Single();
         try
         {
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(dialog, "ConsentCheck").IsEnabled);
@@ -286,8 +286,8 @@ internal static partial class AirContextChecks
             Click(Find<Button>(dialog, "ConsentClose"));
             E2E.E2eWorkspace.Until(() => Find<Button>(owner, "ContextSetup").IsEnabled);
             Click(Find<Button>(owner, "ContextSetup"));
-            E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-            var reopened = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+            E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Any());
+            var reopened = app.Window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.ConsentWindow>().Single();
             E2E.E2eWorkspace.Until(() => Equals(Find<Button>(reopened, "ConsentClose").Content, "Done"));
             Require(!Find<Button>(reopened, "ConsentDownload").IsVisible && handler.Requests == 1, "Reopening offered or repeated an unnecessary download.");
             reopened.Dismiss();
@@ -300,7 +300,7 @@ internal static partial class AirContextChecks
             Switch(false);
             E2E.E2eWorkspace.Until(() => !HasAir(owner) && !HasAir(app.Window, "AirContextPane") && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled"));
             Require(app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "A side tool appeared.");
-            Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0, "A disabled plugin left a window open.");
+            Require(Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0, "A disabled plugin left a window open.");
             Switch(true);
             E2E.E2eWorkspace.Until(() => HasAir(owner) && HasAir(app.Window, "AirContextPane"));
         }
@@ -328,9 +328,9 @@ internal static partial class AirContextChecks
     }
 
     /// <summary>Settings › Code Intelligence, where the account section lives.</summary>
-    private static SharpRail.UI.Panels.SettingsView OpenSettings(E2E.E2eWorkspace app)
+    private static Tereditor.UI.Panels.SettingsView OpenSettings(E2E.E2eWorkspace app)
     {
-        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new Tereditor.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         return settings;
     }

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <InternalsVisibleTo Include="SharpRail.Host.Protocol" />
-    <InternalsVisibleTo Include="SharpRail.Plugins.Isolation" />
+    <InternalsVisibleTo Include="Tereditor.Host.Protocol" />
+    <InternalsVisibleTo Include="Tereditor.Plugins.Isolation" />
   </ItemGroup>
 </Project>

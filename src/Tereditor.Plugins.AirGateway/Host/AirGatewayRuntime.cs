@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.AirGateway.Host;
+namespace Tereditor.Plugins.AirGateway.Host;
 
 /// <summary>
 /// The plugin's behaviour apart from the host context: detecting Central and the actions the user triggers on it

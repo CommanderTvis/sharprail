@@ -1,10 +1,10 @@
 // Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 using System.Text;
 
-namespace SharpRail.Scintilla.Core;
+namespace Tereditor.Scintilla.Core;
 
 /// <summary>Per-line margin text and style (upstream src/PerLine.cxx LineAnnotation), used for margin text.</summary>
-/// <remarks>Per-character styles (SetStyles) are not used by SharpRail and are not ported.</remarks>
+/// <remarks>Per-character styles (SetStyles) are not used by tereditor and are not ported.</remarks>
 internal sealed class LineAnnotation
 {
     private sealed class Entry

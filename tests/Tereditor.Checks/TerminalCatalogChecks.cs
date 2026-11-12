@@ -2,13 +2,13 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 // The host's terminal catalog: which tabs exist is shared, persisted and broadcast, separately from shells.
 internal static partial class TerminalHostChecks
@@ -27,7 +27,7 @@ internal static partial class TerminalHostChecks
                 await Membership(catalog, terminals, workspace, "remote");
                 using var rejected = new RemoteTerminalCatalogAdapter(Address(app), "wrong-token");
                 try { await rejected.ReserveAsync(workspace, new("denied", "Denied")); throw new InvalidOperationException("The remote catalog accepted a bad token."); }
-                catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
+                catch (Tereditor.Host.Protocol.RpcException error) when (error.StatusCode == Tereditor.Host.Protocol.StatusCode.Unauthenticated) { }
             }
             finally { await app.StopAsync(); }
         }

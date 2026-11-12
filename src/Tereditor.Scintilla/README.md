@@ -1,7 +1,7 @@
-# SharpRail.Scintilla
+# Tereditor.Scintilla
 
 An Avalonia text editor control whose document and editing model are a managed C# port of the parts of
-Scintilla 5.6.7 that SharpRail uses, drawn with SkiaSharp. Text is shaped with HarfBuzz and ordered with a
+Scintilla 5.6.7 that tereditor uses, drawn with SkiaSharp. Text is shaped with HarfBuzz and ordered with a
 managed Unicode Bidirectional Algorithm (UAX #9), so emoji sequences, combining marks, ligatures, complex
 scripts and mixed right-to-left text lay out, hit-test and edit correctly. It depends only on Avalonia,
 Avalonia.Skia, SkiaSharp and HarfBuzzSharp, ships no native library and runs wherever those do (desktop,
@@ -22,7 +22,7 @@ editor.SelectionChanged += (_, _) => { /* editor.Selection: one-based lines and 
 `StyleText` accepts one palette index per UTF-8 document byte and an opaque colour
 palette, allowing an editor-independent tokenizer to style text without editing it.
 Its style IDs start at 40, separate from whole-line styles and Scintilla defaults.
-While text styles are applied, inserted bytes take the neighbouring style (SharpRail extension to `CellBuffer`) instead of style 0, so typing never flashes default-coloured text before the tokenizer restyles; `ClearTextStyles` turns this off and restores the default style in one document operation. The UI kit
+While text styles are applied, inserted bytes take the neighbouring style (tereditor extension to `CellBuffer`) instead of style 0, so typing never flashes default-coloured text before the tokenizer restyles; `ClearTextStyles` turns this off and restores the default style in one document operation. The UI kit
 supplies background TextMate highlighting for file and diff frames.
 
 `LineStyles` is a palette of whole-line styles (a foreground and an optional
@@ -89,7 +89,7 @@ selections keep Scintilla's behaviour.
 `dotnet build` is enough on every platform; there is no native build step.
 
 The ported upstream unit tests (`test/unit`) and the bidi, shaping, view and editor-model checks run with
-`dotnet run --project tests/SharpRail.Checks -c Release -- --scintilla-core`.
+`dotnet run --project tests/Tereditor.Checks -c Release -- --scintilla-core`.
 
 ### Touch and soft keyboards
 

@@ -12,7 +12,7 @@ Upstream: e2e/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 
-The system gate for SharpRail's host/UI integration: boot real hosts (direct local
+The system gate for tereditor's host/UI integration: boot real hosts (direct local
 and Kestrel WebSocket RPC remote), seed real Git and profile fixtures, drive the Avalonia
 workbench through real headless pointer and keyboard input, and leave nothing
 machine-global behind. `STATUS.md` (E2E porting inventory) is the inventory of which upstream scenarios are
@@ -72,7 +72,7 @@ drawn frame, 120 scroll steps of 300 px and allocations of both phases.
 These synthetic results are not native presentation latency or whole-app RAM savings;
 timing requires attention to concurrent workloads. Blank or non-scrolling surfaces fail.
 
-`SharpRail.Checks` is an executable, not a test framework project. The argument-free
+`Tereditor.Checks` is an executable, not a test framework project. The argument-free
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
@@ -85,7 +85,7 @@ active and inactive row heights, including duplicate-name folder subtitles and c
 `--agent-launches` covers POSIX process origin, command-scoped UI markers with additions disabled,
 replacement processes between polls, and persistent manual-launch notices in both provider UIs.
 UI launches and unknown origins show no manual notice; hook updates and local/remote state retain origin.
-Claude Code and Codex launch checks cover separate SharpRail model/effort defaults, per-launch
+Claude Code and Codex launch checks cover separate tereditor model/effort defaults, per-launch
 precedence and settings persistence. Host checks cover latest session choices, sparse status reports,
 new-session resets and revival with those choices; plugin host parity includes persisted effort.
 `--native-terminal` and `--native-texture` drive real macOS windows; the latter
@@ -125,7 +125,7 @@ lists a workspace's terminals under its row on the Projects page before opening 
 page when one is chosen and has them all in the centre and its strip after, and a view whose renderer cannot watch, or whose host predates watching, falls back as specified.
 `-- --shared-terminals` runs this file alone. The upstream translations whose second client
 enters a workspace now press Take over first, and "a terminal opened in one browser never creates placement in
-another" is replaced by the passive-arrival check, since SharpRail shares every catalogued terminal.
+another" is replaced by the passive-arrival check, since tereditor shares every catalogued terminal.
 `--notifications` (`AwayNotificationChecks.cs`) enables the real Claude Code and Codex UI halves, injects
 status pushes on their channels and records what would reach the system: which transitions notify, the
 focused-app, continuation-Stop, interrupted-run, answered-attention, closed-tab and setting-off silences,
@@ -167,7 +167,7 @@ downward wheel events at the bottom preserve texture availability and rendered
 pixels; upward scrolling changes the viewport and downward scrolling restores it.
 `--terminal-relay` lets the checks binary act as the relay child that tabs launch.
 
-`--design` is the design-system gate described in `src/SharpRail.UI/Rendering/COLOR.md`: it reads the UI
+`--design` is the design-system gate described in `src/Tereditor.UI/Rendering/COLOR.md`: it reads the UI
 project's sources from the checkout around the executable (and reports a skip when there is none), then
 runs the theme translations. `--design --write` only regenerates the committed output of `Rendering/Design`.
 
@@ -190,7 +190,7 @@ no listing pass and is identical in every process of one build.
   the owner merges the lanes' results into one verdict, rejecting a case reported by two lanes. The
   argument-free run stays one serial process: unlike upstream it does not default to lanes, because a
   focused repair is the common local run and the machine is often shared.
-- `SHARPRAIL_CHECKS_JOB_SHARD=k/N` gives a CI machine slice `k` of `N`; its lanes subdivide that slice into
+- `TEREDITOR_CHECKS_JOB_SHARD=k/N` gives a CI machine slice `k` of `N`; its lanes subdivide that slice into
   global shards `(k-1)·L+i` of `N·L`, so the union of all jobs is exactly the gate. The runner owns
   `--shard`: an explicit `--shard` beside the variable or beside `--lanes` is rejected. CI splits the full
   gate across three jobs this way. A run with arguments of its own ignores the variable: the children a check
@@ -199,7 +199,7 @@ no listing pass and is identical in every process of one build.
   its shard, in `.bench/checks-last-run.txt`; lanes merge their records. `--last-failed` is a serial run of
   exactly those cases. A repair that fails again narrows the record to what is still owed, a passing one
   clears it, and a record whose case no longer sits at its ordinal is refused in favour of the whole gate.
-- `SHARPRAIL_CHECKS_KEEP_GOING=1` makes the gate continue after a failed case (CI sets it). A case that throws is
+- `TEREDITOR_CHECKS_KEEP_GOING=1` makes the gate continue after a failed case (CI sets it). A case that throws is
   recorded with its message, location, duration and the tail of its own output; the working directory and
   environment are restored before the next case. The run then prints the failures and the slowest cases, writes
   them to the step summary with one `::error` per case, records each failed case alone (`!ordinal shard name`) so
@@ -215,7 +215,7 @@ no listing pass and is identical in every process of one build.
 Every run except the relay child holds one idle-sleep assertion on macOS before fixtures are created:
 `/usr/bin/caffeinate -i -w <runner pid>`, so the display may still sleep and an abrupt exit releases it. A
 run that cannot establish it fails at once; other platforms are a no-op. A lane carries its owner's pid in
-`SHARPRAIL_CHECKS_OWNER` and reuses that assertion rather than holding another.
+`TEREDITOR_CHECKS_OWNER` and reuses that assertion rather than holding another.
 
 The same owner is the only signal manager. On SIGINT or SIGTERM it snapshots every descendant, forwards the
 signal once to each descendant process group other than its own and individually to the processes that
@@ -246,17 +246,17 @@ executable runs outside a checkout.
 
 ## Packaged gate
 
-`scripts/mise run check:packaged` runs the gate against the package: on macOS `artifacts/SharpRail.app`, on Linux
+`scripts/mise run check:packaged` runs the gate against the package: on macOS `artifacts/tereditor.app`, on Linux
 the AppImage's payload, and on Windows the zip's `client` and `host` payloads. The app and the remote host ship as
 NativeAOT binaries, so no product assembly ships and the checks stay a JIT program of their own.
 
 On macOS and Linux it stages a copy of the payload under `.bench`, adds from the published checks only the files the
 payload does not ship (a shipped file is never replaced), and starts the checks from there with
-`SHARPRAIL_PACKAGED_APP`. Under that variable the `packaged-app` case requires the payload to be NativeAOT and each
+`TEREDITOR_PACKAGED_APP`. Under that variable the `packaged-app` case requires the payload to be NativeAOT and each
 shipped file to sit byte-identical beside the running checks, so the in-process checks load the shipped native
 libraries. A changed or missing file, a managed assembly, a runtimeconfig or deps file, or a runtime library fails.
 
-`SHARPRAIL_PACKAGED_CLIENT` and `SHARPRAIL_PACKAGED_HOST` name the shipped payloads and `SHARPRAIL_PACKAGED_CHECKS`
+`TEREDITOR_PACKAGED_CLIENT` and `TEREDITOR_PACKAGED_HOST` name the shipped payloads and `TEREDITOR_PACKAGED_CHECKS`
 the checks' own publish. `PackagedBinaries` (in `--linux`, `--windows`, `--packaged` and the `packaged-binaries`
 case) requires each payload to be NativeAOT, on macOS and Linux with `System.GC.ConserveMemory` compiled in, and on
 Linux with no ELF file needing a glibc newer than 2.31. It requires each payload to carry what the checks' publish
@@ -290,13 +290,13 @@ when a review section contains several buttons with the same name. Double-clicki
 waits for the individual file tab so resource checks cannot inspect the intermediate review section.
 
 Every run creates its fixtures, screenshots and scratch files through `CheckRoot`, one
-`sharprail-checks-<pid>-<id>` directory under the OS temporary directory (never the checkout;
-`SHARPRAIL_CHECKS_ROOT` picks another parent, `SHARPRAIL_CHECKS_KEEP=1` keeps it). The root is deleted
+`tereditor-checks-<pid>-<id>` directory under the OS temporary directory (never the checkout;
+`TEREDITOR_CHECKS_ROOT` picks another parent, `TEREDITOR_CHECKS_KEEP=1` keeps it). The root is deleted
 when the process ends, on success, failure and interrupt; a failed gate keeps it until the next
 successful run, and the next run deletes the roots of dead processes older than an hour.
 `GIT_CEILING_DIRECTORIES` is the temporary parent. `-- --check-root` proves the lifecycle.
 Each E2E case gets its own repository root and its own profile directory; no path
-may fall back to `~/.sharprail` or the developer's real profile or host state.
+may fall back to `~/.tereditor` or the developer's real profile or host state.
 `E2E/IsolatedGit.cs` gives fixture repositories, and every Git process the app
 starts, a private global configuration with a throwaway identity and signing off,
 restoring the environment afterwards; seeded authorship never depends on the
@@ -315,13 +315,13 @@ Commands print split markers so an echoed command line never satisfies an output
 assertion. Held or failing host starts stand in for delayed or failed attaches.
 
 Git-history fixtures that need a real upstream clone read it from
-`SHARPRAIL_TEST_GIT_SOURCE` via a shallow, no-checkout, sparse clone. Without it
+`TEREDITOR_TEST_GIT_SOURCE` via a shallow, no-checkout, sparse clone. Without it
 those cases print `SKIP` and the rest of the gate still runs; a skip is visible, not
 a pass.
 
 ## Boundary
 
-The checks own the scenarios under `tests/SharpRail.Checks` and `E2E/`, their
+The checks own the scenarios under `tests/Tereditor.Checks` and `E2E/`, their
 fixtures, and the isolation rules above. `E2E/E2eWorkspace.cs` is the one shared
 place for input, window, fixture and `NewWindow()` helpers; `E2E/IsolatedGit.cs` is
 the one place fixture repositories are created and Git is shelled out to.
@@ -344,9 +344,9 @@ assertions are not synchronization. The shared E2E wait is a 30-second liveness 
 assertion: workspace flows start a dozen Git processes, which a loaded machine or parallel lanes stretch
 well past ten seconds. Wait bounds in the headless checks read `Awake.Now`, a clock that stands still
 while the machine sleeps, so a suspended run does not resume with every wait already expired. Before handoff, every app-affecting change runs
-the full argument-free gate, with `SHARPRAIL_TEST_GIT_SOURCE` set when Git or
+the full argument-free gate, with `TEREDITOR_TEST_GIT_SOURCE` set when Git or
 layout history is affected, and formatting verification. Translated upstream
-coverage stays recorded in `STATUS.md`, separate from SharpRail-only regression checks.
+coverage stays recorded in `STATUS.md`, separate from tereditor-only regression checks.
 Skia terminal checks render real pixels and encode real headless input, verify
 a host PTY surviving a view restart, and exercise Settings choice persistence.
 Incremental rendering must match a full repaint after erasure, cursor movement
@@ -417,7 +417,7 @@ cards only, table, JSON and notebook diffs, a Markdown diff's rendered and sourc
 kept across a refresh, collapsed unchanged runs with kept list numbers and an expansion surviving a
 refresh, an oversized Markdown diff falling back to source, and an LFS pointer diff.
 `-- --documents` also runs the upstream translations that open file and diff bodies (preview tabs,
-Markdown links, alerts and Mermaid, the editor, and with `SHARPRAIL_TEST_GIT_SOURCE` the Changes diff,
+Markdown links, alerts and Mermaid, the editor, and with `TEREDITOR_TEST_GIT_SOURCE` the Changes diff,
 rendered diff and live refresh suites).
 
 ## Continuous Changes review checks
@@ -477,7 +477,7 @@ a nested scope across threads, restoration on leaving each, and expiry of a lowe
 ## Process checks
 
 `ProcessChecks.cs` (`-- --process`, also in the default run) drives the host's bounded child runner with
-real `sh` and `git` children; [Terminals.SPEC.md](../../src/SharpRail.Host.Core/Terminals.SPEC.md) lists
+real `sh` and `git` children; [Terminals.SPEC.md](../../src/Tereditor.Host.Core/Terminals.SPEC.md) lists
 the cases.
 
 ## Git host checks
@@ -492,8 +492,8 @@ target through create, re-point, restore, an unresolvable ref, a refused range a
 without a target, against one, with working edits, equal to the snapshot's sums and refused outside the
 project; and a prefetch that reports a move once, nudges the watcher of the workspace measured against the
 ref, stays silent when nothing changed and refuses a local branch or a range. The mode then
-runs `ChangesScopeE2E` headless, whose SharpRail-only last case requires the rail badge to total the listed changes, stores a picked target
-on the host and follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
+runs `ChangesScopeE2E` headless, whose tereditor-only last case requires the rail badge to total the listed changes, stores a picked target
+on the host and follows one re-pointed by another client; it needs `TEREDITOR_TEST_GIT_SOURCE`.
 
 ## Host state store checks
 
@@ -543,8 +543,8 @@ Retry succeeds.
 
 ## Change actions
 
-`ChangeActionChecks.cs` (`-- --change-actions`, also in the default run) is SharpRail-only coverage on an
-isolated repository with `SHARPRAIL_TRASH_DIR` pointed into the fixture. It checks the toast queue as a
+`ChangeActionChecks.cs` (`-- --change-actions`, also in the default run) is tereditor-only coverage on an
+isolated repository with `TEREDITOR_TRASH_DIR` pointed into the fixture. It checks the toast queue as a
 model (coalescing, the cap evicting only actionless toasts, default and own lifetimes) and as cards (order,
 width, expiry without rebuilding the others, action, dismissal), then reverts through the diff tab: one of
 two change blocks with its spans, Undo, a file moved by `E2eHost.BeforeRevert` after the tab drew it (nothing
@@ -580,7 +580,7 @@ growth, zoom reset and Escape are in the same case; theme checks cover re-render
 `AndroidClientChecks` compiles the client's `HostEndpoint.cs` into the checks, since the Android project builds
 only with the Android workload: address parsing (default port, written ports including the scheme's own,
 HTTPS, IPv6, rejected input) and the remembered endpoint (absent, saved, damaged, forgotten). `-- --android`
-runs it. The boundary scan gives `SharpRail.Android` the UI's dependencies without `SharpRail.Host.Remote`.
+runs it. The boundary scan gives `Tereditor.Android` the UI's dependencies without `Tereditor.Host.Remote`.
 Windowing, the connect screen and everything on a device are not asserted.
 
 ## Quit and close commands
@@ -665,15 +665,15 @@ pruning, the lazy-download state machine over a fake store (check without downlo
 failure and retry, cached revisit, missing module), peer resolution and login-URL filtering, and discovery, pairing and
 authenticated WebSocket RPC carried over dialed streams (the browser's tailnet route) against the real listeners,
 including that a failed registered dial never falls back to ordinary sockets. `scripts/mise run browser check` adds
-`tests/SharpRail.Browser.Checks/tailscale.mjs`: the IndexedDB-backed node state through a fake backend (ordered
+`tests/Tereditor.Browser.Checks/tailscale.mjs`: the IndexedDB-backed node state through a fake backend (ordered
 write-through, reload, sign-out wipe) and the Cache Storage download with fake fetch (progress, cancel, truncation,
 versioning).
 
 `--headscale` is an opt-in slow mode (budget 170 seconds) and is never a gate case. It needs
 `sh scripts/build-headscale-test.sh`, which provisions under `.tools/headscale-test` the checksum-pinned
 Headscale release binary (a native macOS/Linux release, so no container or VM is involved), the
-`tsforward` userspace node (`src/SharpRail.Android/Tailscale.Native/cmd/tsforward`) and the desktop build of the
-embedded Tailscale library. Without them it prints a SKIP line and succeeds; `SHARPRAIL_REQUIRE_HEADSCALE=1`
+`tsforward` userspace node (`src/Tereditor.Android/Tailscale.Native/cmd/tsforward`) and the desktop build of the
+embedded Tailscale library. Without them it prints a SKIP line and succeeds; `TEREDITOR_REQUIRE_HEADSCALE=1`
 turns that into a failure. The check starts Headscale on random loopback ports from a generated config
 (sqlite, own noise key, private prefixes, magic DNS off, no relay: nodes on one machine connect directly,
 so it needs no external network), creates one user and pre-auth key per node, and joins two distinct nodes: the
@@ -704,7 +704,7 @@ It also runs with `--drawn-rendering` and the default gate.
 long first lines, horizontal scrolling and exact clipboard content. It also runs with
 `--drawn-rendering` and the default gate.
 `--rendering-bench markdown-selection` measures 120 pointer updates with a source-line observer
-and headless Skia frame capture. `SHARPRAIL_BENCH_MARKDOWN` selects a source file; otherwise it
+and headless Skia frame capture. `TEREDITOR_BENCH_MARKDOWN` selects a source file; otherwise it
 uses a large generated document. It reports input/frame median and p95 plus allocated bytes,
 not native presentation latency.
 Start work checks cover custom terminal commands, preserved command/prompt/image drafts, removable
@@ -764,7 +764,7 @@ expose `paths`/`scope` and accept file-list requests.
 
 LSP checks cover disabled-server startup, persisted launcher overrides over both transports,
 Settings-category save and cross-client refresh, and unselected rows displaying wrapping errors.
-Optional `SHARPRAIL_LSP_CAPTURE=1` captures the pane and Settings page for visual inspection.
+Optional `TEREDITOR_LSP_CAPTURE=1` captures the pane and Settings page for visual inspection.
 
 LSP checks also cover the settings navigation rail, global disable persistence and remote parity,
 process termination and dirty-draft restoration, compact row disclosure by pointer/keyboard, and
@@ -803,7 +803,7 @@ directories, nested Go/Rust setup, Metals import settings and Roslyn restore/rea
 Local and WebSocket fixtures verify file/dependency scopes, paging totals and explicit unsupported
 module scope. Optional real-server modes exercise unopened TypeScript alias imports, Python imports,
 clangd compilation-database references and include-path restart. The Roslyn mode covers an unopened
-dependent project and references across the actual SharpRail solution. These checks do not establish
+dependent project and references across the actual tereditor solution. These checks do not establish
 live compatibility or complete indexing for every catalog provider.
 
 IntelliJ provisioning uses synthetic ZIP/tar artifacts and fake HTTP responses only: checksum failure,
@@ -827,7 +827,7 @@ The language fixtures additionally check authenticated terminal-free MCP discove
 provider-version schemas over local/WebSocket adapters, typed setting edits and
 invalid-value save refusal, SDKMAN project JDK precedence, IntelliJ projects array
 normalization/importer JDK fields, and PowerShell session-file isolation from host
-metadata. The networked real-project matrix in `tests/SharpRail.Language.Integration`
+metadata. The networked real-project matrix in `tests/Tereditor.Language.Integration`
 is explicitly separate and must never be registered through `Gate.Case`.
 
 `--context` (also the inexpensive context-consent gate case) exercises only fake executable bytes, fake HTTP and a local Node stdio

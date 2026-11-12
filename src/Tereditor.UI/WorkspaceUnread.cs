@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 /// <summary>
 /// The unread model (ThinkRail #770, STATUS A18): a workspace whose agent finished, failed or waits for input while the

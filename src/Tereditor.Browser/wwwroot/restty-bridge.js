@@ -1,9 +1,9 @@
 // DOM surface. Host lifetime and transport stay in the managed adapter.
-import { terminalEvent } from './sharprail.js';
+import { terminalEvent } from './tereditor.js';
 const states = new WeakMap();
 export function create() {
   const element = document.createElement('div');
-  element.className = 'sharprail-restty';
+  element.className = 'tereditor-restty';
   element.style.cssText = 'position:relative;width:100%;height:100%;overflow:hidden';
   return element;
 }

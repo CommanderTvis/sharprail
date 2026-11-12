@@ -9,17 +9,17 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
-using SharpRail.UI.State;
-using SharpRail.UI.Terminal;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Rendering;
+using Tereditor.UI.State;
+using Tereditor.UI.Terminal;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The window shell's own checks: the header's location bar and application-level behaviour.</summary>
 internal static class ShellChecks
@@ -53,7 +53,7 @@ internal static class ShellChecks
             WorkspaceFixture.Text(WorkspaceFixture.Named<StackPanel>(single, "WsProjectPicker")).Contains("sample-project", StringComparison.Ordinal),
             "With one open project the dialog names it and offers no picker.");
         WorkspaceFixture.Press(single, Key.Escape);
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
 
         var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
         WorkspaceFixture.Git(second, "branch", "only-in-second");
@@ -82,7 +82,7 @@ internal static class ShellChecks
         Settle(200);
         if (!dialog.IsShown()) throw new InvalidOperationException("Escape in the branch list must return to the dialog, not dismiss it.");
         app.Click(WorkspaceFixture.Named<Button>(dialog, "WsCreate"));
-        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome && app.Window.ProjectRoot == second);
+        Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome && app.Window.ProjectRoot == second);
         var created = app.Window.WorkspaceRoot;
         Require(created != second && WorkspaceFixture.Git(second, "worktree", "list").Contains(created, StringComparison.Ordinal) &&
             !WorkspaceFixture.Git(first, "worktree", "list").Contains(created, StringComparison.Ordinal),
@@ -135,7 +135,7 @@ internal static class ShellChecks
         using var app = new E2eWorkspace(directory);
         File.WriteAllText(Path.Combine(app.Root, "INERT.md"), "# Inert links\n\nSee [outside the tree](../../outside.md), [broken encoding](docs/%zz.md) and [the spec](SPEC.md).\n");
         _ = app.Window.RefreshAsync();
-        Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "INERT.md" }));
+        Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is Tereditor.Host.Abstractions.ProjectFile { Path: "INERT.md" }));
         app.Open("INERT.md", true);
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         var blocks = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().ToArray();
@@ -324,18 +324,18 @@ internal static class ShellChecks
             "Edit: " + string.Join(", ", Headers(edit)));
         // The only way to Ghostty's toggle_secure_input; checks run against a counting fake, never the real call.
         Pick(edit, "Secure Keyboard Entry");
-        Require(SharpRail.UI.Terminal.SecureInput.Shared.Manual && Entry(edit, "Secure Keyboard Entry").IsChecked, "The Edit menu toggles secure keyboard entry on and checks it.");
+        Require(Tereditor.UI.Terminal.SecureInput.Shared.Manual && Entry(edit, "Secure Keyboard Entry").IsChecked, "The Edit menu toggles secure keyboard entry on and checks it.");
         Pick(edit, "Secure Keyboard Entry");
-        Require(!SharpRail.UI.Terminal.SecureInput.Shared.Manual && !SharpRail.UI.Terminal.SecureInput.Shared.Enabled, "Picking it again turns it off.");
+        Require(!Tereditor.UI.Terminal.SecureInput.Shared.Manual && !Tereditor.UI.Terminal.SecureInput.Shared.Enabled, "Picking it again turns it off.");
         Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
         Require(Headers(windows).SequenceEqual(["Minimize", "Zoom", "-", "Host Settings…", "Connect to a Tailscale Host…", "-", "Bring All to Front"]), "Window: " + string.Join(", ", Headers(windows)));
         Require(Headers(help).SequenceEqual(["Report an Issue…"]), "Help: " + string.Join(", ", Headers(help)));
         // Help: About's Report an issue path (`--about` clicks the link through the same launch).
         var launched = new List<(TopLevel Top, Uri Uri)>();
-        var launch = SharpRail.UI.Panels.LanguageProviderLinks.Launch;
-        SharpRail.UI.Panels.LanguageProviderLinks.Launch = (top, uri) => { launched.Add((top, uri)); return Task.CompletedTask; };
+        var launch = Tereditor.UI.Panels.LanguageProviderLinks.Launch;
+        Tereditor.UI.Panels.LanguageProviderLinks.Launch = (top, uri) => { launched.Add((top, uri)); return Task.CompletedTask; };
         try { Pick(help, "Report an Issue…"); }
-        finally { SharpRail.UI.Panels.LanguageProviderLinks.Launch = launch; }
+        finally { Tereditor.UI.Panels.LanguageProviderLinks.Launch = launch; }
         Require(launched.Count == 1 && launched[0].Top == window && launched[0].Uri.AbsoluteUri == AboutInfo.NewIssue, "Report an Issue… must take About's Report an issue path.");
 
         // Every chord is the one the window already answers to.
@@ -360,14 +360,14 @@ internal static class ShellChecks
         foreach (var (header, title) in new[] { ("Clone Repository…", "Clone repository"), ("Create Project…", "Create project") })
         {
             Pick(file, header);
-            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
-            var dialog = (Window)SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[0];
+            Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
+            var dialog = (Window)Tereditor.Plugins.UI.Kit.DialogWindow.On(window)[0];
             Require(dialog.Title == title, $"{header} opens the {title} dialog, opened {dialog.Title}.");
-            dialog.Dismiss(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
+            dialog.Dismiss(); Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
         }
         Pick(file, "New Workspace");
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
-        SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[0].Dismiss(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
+        Tereditor.Plugins.UI.Kit.DialogWindow.On(window)[0].Dismiss(); Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
 
         // View: the zoom chords' own steps.
         Pick(view, "Actual Size");
@@ -385,16 +385,16 @@ internal static class ShellChecks
         var settings = window.OpenSettingsViews.Single();
         Require(settings.Section == "Host", "Host Settings opens Settings › Host, opened " + settings.Section);
         var launches = 0;
-        var launcher = SharpRail.UI.Panels.SettingsView.ConnectTailscale;
-        SharpRail.UI.Panels.SettingsView.ConnectTailscale = _ => launches++;
+        var launcher = Tereditor.UI.Panels.SettingsView.ConnectTailscale;
+        Tereditor.UI.Panels.SettingsView.ConnectTailscale = _ => launches++;
         try
         {
             settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "HostTailscaleConnect").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            settings.Close(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
+            settings.Close(); Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
             Pick(windows, "Connect to a Tailscale Host…");
             Require(launches == 2, "The Tailscale item starts the same client as Settings › Host's button.");
         }
-        finally { SharpRail.UI.Panels.SettingsView.ConnectTailscale = launcher; }
+        finally { Tereditor.UI.Panels.SettingsView.ConnectTailscale = launcher; }
 
         // Edit: Find arrives as its chord; the language items follow the focused editor's running server.
         var chords = new List<(Key Key, KeyModifiers Modifiers)>();
@@ -406,7 +406,7 @@ internal static class ShellChecks
         Require(language.All(header => !Entry(edit, header).IsEnabled), "Language items are disabled without a focused editor.");
         var open = window.OpenDocumentAsync("Example.ts", true);
         Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
-        var code = window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
+        var code = window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
         code.Editor.Focus(); Settle();
         Require(language.All(header => !Entry(edit, header).IsEnabled), "Language items stay disabled while the file has no running server.");
         serverState = "ready";
@@ -577,19 +577,19 @@ internal static class ShellChecks
         Require(ReferenceEquals(received, service.Failure), "Disposal cancellation does not replace the reported failure.");
     }
 
-    private sealed class FailingSubscription : SharpRail.Host.Abstractions.IHostStateService
+    private sealed class FailingSubscription : Tereditor.Host.Abstractions.IHostStateService
     {
         public Exception Failure { get; } = new IOException("WebSocket host subscription disconnected");
-        public ValueTask<SharpRail.Host.Abstractions.HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public ValueTask<SharpRail.Host.Abstractions.HostState> GetStateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public ValueTask<SharpRail.Host.Abstractions.HostState> ChangeAsync(IReadOnlyList<SharpRail.Host.Abstractions.HostStateChange> changes, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public async IAsyncEnumerable<SharpRail.Host.Abstractions.HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public ValueTask<Tereditor.Host.Abstractions.HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<Tereditor.Host.Abstractions.HostState> GetStateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<Tereditor.Host.Abstractions.HostState> ChangeAsync(IReadOnlyList<Tereditor.Host.Abstractions.HostStateChange> changes, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public async IAsyncEnumerable<Tereditor.Host.Abstractions.HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
             if (!cancellationToken.IsCancellationRequested) throw Failure;
             yield break;
         }
-        public IAsyncEnumerable<SharpRail.Host.Abstractions.LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public IAsyncEnumerable<Tereditor.Host.Abstractions.LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private static void ConnectionErrors(string directory)
@@ -604,8 +604,8 @@ internal static class ShellChecks
         Require(menu is not null, "The status exposes its error menu.");
         var details = menu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Error details…"));
         details.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
-        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single();
+        Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        var dialog = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single();
         Require(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Host replied: permission denied for notes.txt"),
             "The details display the actual failure without inventing a connectivity cause.");
         dialog.Dismiss();

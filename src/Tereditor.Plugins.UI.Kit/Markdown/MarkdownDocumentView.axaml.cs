@@ -7,9 +7,9 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.UI.Kit.Editor;
-using SharpRail.Scintilla;
-namespace SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Editor;
+using Tereditor.Scintilla;
+namespace Tereditor.Plugins.UI.Kit.Markdown;
 
 /// <summary>A Markdown file with Preview, Source and Split views, an outline column and find.</summary>
 public sealed partial class MarkdownDocumentView : UserControl, IDisposable

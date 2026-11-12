@@ -7,19 +7,19 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Host.Core.Plugins.Isolation;
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Isolation.UI;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Host.Core.Plugins.Isolation;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Isolation.UI;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// <c>--plugin-isolated-ui</c>: an external plugin with only a UI half, installed from disk (the outsider fixture), runs
-/// in its own runner process behind the isolation seam (src/SharpRail.Plugins.Api/Security.SPEC.md). The host refuses it
+/// in its own runner process behind the isolation seam (src/Tereditor.Plugins.Api/Security.SPEC.md). The host refuses it
 /// without the seam, a runner or the sandbox the seam asks for; with them it starts one process, the app records what
 /// the plugin registered, the plugin's settings round-trip through that process, no plugin assembly loads into this
 /// process, disabling ends the process, a crash fails the plugin and retry starts a new one.
@@ -142,8 +142,8 @@ internal static class PluginIsolatedUIChecks
             Require(Settings(app)!["greeting"]?.GetValue<string>() == Greeting, "The outsider read its asset through its private dependency and wrote it to its own settings.");
             E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "GestureToastMessage" && text.Text == Greeting + ". Activations: 1."));
             window.Layout.RestoreTool("plugin:" + Id + ":board");
-            E2eWorkspace.Until(() => window.GetVisualDescendants().OfType<SharpRail.UI.Plugins.RemoteSurface>().Any(surface => surface.Frames > 0));
-            Require(!AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name!.StartsWith("SharpRail.PluginFixture.Outsider", StringComparison.Ordinal)) &&
+            E2eWorkspace.Until(() => window.GetVisualDescendants().OfType<Tereditor.UI.Plugins.RemoteSurface>().Any(surface => surface.Frames > 0));
+            Require(!AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name!.StartsWith("Tereditor.PluginFixture.Outsider", StringComparison.Ordinal)) &&
                 !AssemblyLoadContext.All.Any(context => context.Name?.StartsWith("plugin:", StringComparison.Ordinal) == true),
                 "No plugin assembly or load context is in the host's or the app's process.");
 
@@ -190,10 +190,10 @@ internal static class PluginIsolatedUIChecks
 
     private static void Replay()
     {
-        var settings = new SharpRail.Plugins.Isolation.IsoPayload().Value(new JsonObject { ["clicks"] = 1 }).Finish();
+        var settings = new Tereditor.Plugins.Isolation.IsoPayload().Value(new JsonObject { ["clicks"] = 1 }).Finish();
         var host = new ReplayHost([new(PluginUIContextMembers.PluginUIContext_UpdateSettingsAsync, settings)]);
         var module = RemotePluginUIModule.OpenAsync(host, Id, "client", () => { }, _ => throw new NotSupportedException(), () => "").GetAwaiter().GetResult();
-        var context = System.Reflection.DispatchProxy.Create<SharpRail.Plugins.Api.UI.IPluginUIContext, Waiting>();
+        var context = System.Reflection.DispatchProxy.Create<Tereditor.Plugins.Api.UI.IPluginUIContext, Waiting>();
         var clock = Stopwatch.StartNew();
         try
         {
@@ -213,21 +213,21 @@ internal static class PluginIsolatedUIChecks
     }
 
     /// <summary>A host whose plugin's activation lists what it is given.</summary>
-    private sealed class ReplayHost(IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> registrations) : SharpRail.Plugins.Isolation.IIsolatedUIHost
+    private sealed class ReplayHost(IReadOnlyList<Tereditor.Plugins.Isolation.UIRegistration> registrations) : Tereditor.Plugins.Isolation.IIsolatedUIHost
     {
-        public ValueTask<SharpRail.Plugins.Isolation.IIsolatedUISession> OpenAsync(string pluginId, string clientKey, CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult<SharpRail.Plugins.Isolation.IIsolatedUISession>(new Session(registrations));
+        public ValueTask<Tereditor.Plugins.Isolation.IIsolatedUISession> OpenAsync(string pluginId, string clientKey, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult<Tereditor.Plugins.Isolation.IIsolatedUISession>(new Session(registrations));
 
-        private sealed class Session(IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> registrations) : SharpRail.Plugins.Isolation.IIsolatedUISession
+        private sealed class Session(IReadOnlyList<Tereditor.Plugins.Isolation.UIRegistration> registrations) : Tereditor.Plugins.Isolation.IIsolatedUISession
         {
-            private readonly System.Threading.Channels.Channel<SharpRail.Plugins.Isolation.IsoUICall> calls = System.Threading.Channels.Channel.CreateUnbounded<SharpRail.Plugins.Isolation.IsoUICall>();
+            private readonly System.Threading.Channels.Channel<Tereditor.Plugins.Isolation.IsoUICall> calls = System.Threading.Channels.Channel.CreateUnbounded<Tereditor.Plugins.Isolation.IsoUICall>();
             public string ApiTableHash => PluginChannelChecks.TableHash;
-            public IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> Registrations => registrations;
-            public System.Threading.Channels.ChannelReader<SharpRail.Plugins.Isolation.IsoUICall> Calls => calls.Reader;
+            public IReadOnlyList<Tereditor.Plugins.Isolation.UIRegistration> Registrations => registrations;
+            public System.Threading.Channels.ChannelReader<Tereditor.Plugins.Isolation.IsoUICall> Calls => calls.Reader;
             public ValueTask<string> CallAsync(int member, long handle, string payload, CancellationToken cancellationToken = default) => throw new NotSupportedException();
             public void OneWay(int member, long handle, string payload) => throw new NotSupportedException();
             public ValueTask MirrorAsync(int member, string arguments, string json, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
-            public SharpRail.Plugins.Isolation.IPluginSurfaceService Surfaces => throw new NotSupportedException();
+            public Tereditor.Plugins.Isolation.IPluginSurfaceService Surfaces => throw new NotSupportedException();
             public ValueTask DisposeAsync()
             {
                 calls.Writer.TryComplete();

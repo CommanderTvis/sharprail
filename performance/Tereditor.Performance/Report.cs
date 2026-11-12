@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace SharpRail.Performance;
+namespace Tereditor.Performance;
 
 internal static class Report
 {
@@ -14,11 +14,11 @@ internal static class Report
         if (baseline is not null) Data.Compatible(result, baseline);
         var html = new StringBuilder("""
             <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>SharpRail startup and initial RAM</title><style>
+            <title>tereditor startup and initial RAM</title><style>
             :root{color-scheme:light dark;--bg:#fff;--fg:#202024;--muted:#666674;--line:#dddde4}
             @media(prefers-color-scheme:dark){:root{--bg:#17171b;--fg:#eeeef2;--muted:#aaaab6;--line:#393941}}
             body{background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;margin:24px auto;padding:0 20px;max-width:1200px}h1{font-size:24px}h2{font-size:19px;margin-top:30px}p{max-width:1000px}small,.muted{color:var(--muted)}svg{width:100%;height:auto}svg text{fill:var(--fg);font-size:13px}svg .axis{stroke:var(--line)}svg .error{stroke:var(--fg);stroke-width:2}table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}a{color:inherit}.failure{color:#cc3650}
-            </style><h1>SharpRail startup and initial RAM</h1>
+            </style><h1>tereditor startup and initial RAM</h1>
             """);
         html.Append($"<p>{E(result.Machine.Cpu)} · {E(result.Machine.Model)} · macOS {E(result.Machine.Os)} · {E(result.Machine.Architecture)}. {result.Repetitions} fresh launches per mode after {result.Warmups} excluded warm-ups. Fresh profiles, warmed filesystem, AC power required.</p>");
         html.Append($"<p>RAM is macOS physical footprint at <strong>{N(result.MemoryDelayMs / 1000.0)} seconds after initial workspace readiness</strong>, not five seconds after launch. RSS appears separately. Values show mean ± one sample standard deviation; outliers are retained.</p>");
@@ -91,7 +91,7 @@ internal static class Report
         html.Append("""
             <h2>Attribution boundaries and controlled baselines</h2>
             <p>The phase table measures elapsed boundary intervals. The OS/.NET loader envelope includes process/group-launch overhead, OS dynamic loading, CLR startup, entry-point preparation and the first timestamp hook; it is not pure VM overhead. The Skia callback measures platform registration/initialization only: Skia library loading, font setup, GPU contexts and drawing can also occur in other phases. Pure CLR cost and total Skia/GPU cost are not isolated.</p>
-            <p>For a controlled comparison, use a minimal .NET executable (runtime entry floor), an empty Avalonia window (framework/windowing floor), an empty window with a small Skia drawing (incremental rendering work), and full SharpRail. These experiments have not been run. They need matching SDK/runtime, publishing settings, machine and harness; differences are marginal costs rather than additive components. The console baseline has no window, so only shared runtime/entry boundaries can be compared.</p>
+            <p>For a controlled comparison, use a minimal .NET executable (runtime entry floor), an empty Avalonia window (framework/windowing floor), an empty window with a small Skia drawing (incremental rendering work), and full tereditor. These experiments have not been run. They need matching SDK/runtime, publishing settings, machine and harness; differences are marginal costs rather than additive components. The console baseline has no window, so only shared runtime/entry boundaries can be compared.</p>
             <p>The longer diagnostic trace includes waiting threads; its stack weights are not a first-window CPU breakdown. Startup-window filtering and runtime events help managed attribution. Native stacks alongside EventPipe are needed to investigate Skia, Metal and AppKit within an expensive phase. Process RAM totals likewise do not separate CLR, Skia, application allocations or physical GPU residency.</p>
             """);
         html.Append("<h2>Samples and process accounting</h2><table><tr><th>Mode/run</th><th>Status</th><th>Actual RAM delay</th><th>Milestones (ms)</th><th>Physical footprint / RSS by PID (MiB)</th></tr>");
@@ -158,7 +158,7 @@ internal static class Report
                 html.Append($"<tr><td>{E(label)}</td><td>{N(stats.Mean)} ± {(stats.SampleStandardDeviation is { } sd ? N(sd) : "unavailable")}</td><td>{stats.Count}</td></tr>");
             }
             html.Append("</table>");
-            html.Append("<h4>What to investigate next</h4><p>Profile window construction around native Window creation, compiled XAML loading, docking construction and appearance/plugin wiring. Check which work can safely wait until the first window is visible. Separately investigate window showing and the first layout/render path; WindowServer polling adds observation latency, so this interval is not all application work. Compare an empty Avalonia window before attributing that cost to SharpRail.</p><table><tr><th>Showing boundary</th><th>Mean ± SD (ms)</th><th>n</th></tr>");
+            html.Append("<h4>What to investigate next</h4><p>Profile window construction around native Window creation, compiled XAML loading, docking construction and appearance/plugin wiring. Check which work can safely wait until the first window is visible. Separately investigate window showing and the first layout/render path; WindowServer polling adds observation latency, so this interval is not all application work. Compare an empty Avalonia window before attributing that cost to tereditor.</p><table><tr><th>Showing boundary</th><th>Mean ± SD (ms)</th><th>n</th></tr>");
             foreach (var (label, from, to) in new[] { ("Construction complete → Opened event", "window-create-end", "window-opened"), ("Opened event → WindowServer observation", "window-opened", "first-window") })
             {
                 var values = Data.IntervalValues(result, mode, from, to);

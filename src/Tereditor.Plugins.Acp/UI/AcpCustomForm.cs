@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>The outcome of checking the Add custom agent form: the entry to add, or what is wrong with the form.</summary>
 internal sealed record AcpCustomFormResult(AcpAgentEntry? Entry, IReadOnlyList<string> Errors);

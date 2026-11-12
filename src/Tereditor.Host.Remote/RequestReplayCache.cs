@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>
 /// Runs each (client, request id) once and answers a replay of it with the first run's outcome, so a

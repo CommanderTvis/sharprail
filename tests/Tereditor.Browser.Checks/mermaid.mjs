@@ -10,7 +10,7 @@ import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
-const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
+const { chromium } = await import('../../src/Tereditor.Browser/node_modules/playwright/index.mjs');
 const scratch = path.join(root, '.bench/browser-mermaid/checks');
 const fixture = path.join(scratch, 'fixture');
 const token = randomUUID();
@@ -33,9 +33,9 @@ try {
   const server = net.createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const port = server.address().port; await new Promise(resolve => server.close(resolve));
   const address = `http://127.0.0.1:${port}`;
-  host = spawn(process.env.DOTNET ?? 'dotnet', [path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll')], {
-    cwd: fixture, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'),
-      SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(port), SHARPRAIL_BROWSER_ROOT: path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle') }
+  host = spawn(process.env.DOTNET ?? 'dotnet', [path.join(root, 'src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll')], {
+    cwd: fixture, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, TEREDITOR_ROOT: fixture, TEREDITOR_STATE_DIR: path.join(scratch, 'state'),
+      TEREDITOR_TOKEN: token, TEREDITOR_PORT: String(port), TEREDITOR_BROWSER_ROOT: path.join(root, 'src/Tereditor.Browser/bin/Release/net10.0-browser/AppBundle') }
   });
   let hostErrors = ''; host.stderr.on('data', bytes => { hostErrors += bytes; });
   await until(async () => { try { return (await fetch(address)).ok; } catch { if (host.exitCode !== null) throw new Error(hostErrors); return false; } }, Boolean, 'Host did not start');
@@ -45,8 +45,8 @@ try {
   page.on('console', message => { if (message.type() === 'error') console.error(message.text()); });
   page.on('requestfailed', request => console.error('Request failed: ' + request.url() + ' ' + request.failure()?.errorText));
   await page.addInitScript(({ address, token, fixture }) => {
-    sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
-    if (localStorage.getItem('sharprail:profile')) return;
+    sessionStorage.setItem('tereditor:endpoint', JSON.stringify({ Address: address, Token: token }));
+    if (localStorage.getItem('tereditor:profile')) return;
     const tab = { Id: 'file:diagram.md', Title: 'diagram.md', Kind: 'file', Path: 'diagram.md' };
     const layout = {
       Center: { GroupId: 'center' }, Groups: [
@@ -56,11 +56,11 @@ try {
       ], ActiveWorkspace: fixture,
       Workspaces: { [fixture]: { Documents: { center: [tab] }, Selected: { center: tab.Id }, FocusedCenter: 'center' } }
     };
-    localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
+    localStorage.setItem('tereditor:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
   }, { address, token, fixture });
   async function exportsReady() {
     await page.waitForFunction(() => globalThis.getDotnetRuntime?.(0)?.getAssemblyExports, {}, { timeout: 90000 });
-    await page.evaluate(async () => { globalThis.check = (await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll')).SharpRail.Browser.Checks.BrowserChecks; });
+    await page.evaluate(async () => { globalThis.check = (await getDotnetRuntime(0).getAssemblyExports('Tereditor.UI.dll')).Tereditor.Browser.Checks.BrowserChecks; });
   }
   const state = () => page.evaluate(async () => JSON.parse(await check.MermaidState()));
   async function rendered(description, diff = false) {

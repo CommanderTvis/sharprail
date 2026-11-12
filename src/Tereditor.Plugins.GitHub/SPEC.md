@@ -13,14 +13,14 @@ tags: [plugins, git]
 ## Responsibility
 
 `GitHub` (`github`, enabled by default, category Version Control, no dependencies, wire version 1) is
-the first provider of the generic repo hosting surface ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28),
+the first provider of the generic repo hosting surface ([Plugins](../Tereditor.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28),
 Plugin API H24 and W28). It owns everything that is GitHub and not git:
 
 - Recognition: a remote URL belongs to it when its host is `github.com` (https, ssh and scp forms; enterprise hosts are
   not recognized).
 - The `gh` CLI, the only way it talks to GitHub: `gh auth status`, `gh pr list/create/edit/ready/merge/reopen`,
   `gh repo view` for the allowed merge methods (cached per remote for ten minutes). No tokens are read or stored.
-  `SHARPRAIL_GH_OFFLINE=1` makes every lookup and mutation report unavailable.
+  `TEREDITOR_GH_OFFLINE=1` makes every lookup and mutation report unavailable.
 - The mapping from GitHub's values to the provider-neutral `PullRequest` (below), including GitHub's merge state and
   status-check rollup.
 - Its UI: the pull request section of the
@@ -34,7 +34,7 @@ It does not run `git`: pushes, fetches, ahead/behind and the remote branch stay 
 Stays: `origin` and remote-URL reading, `GetBranchStatusAsync` git facts (has origin, published, ahead, behind, ahead of
 base, on base, HEAD), push (never forced, `confirmBase`), delete-remote-branch (leased `git push origin --delete`),
 the Remote segment and its Publish/Push/Sync step, the Open-review guards and push step, the draft proposal (branch
-name and commit subjects), request budgets, the lookup cache and routing ([Git](../SharpRail.Host.Core/Git.SPEC.md)).
+name and commit subjects), request budgets, the lookup cache and routing ([Git](../Tereditor.Host.Core/Git.SPEC.md)).
 
 Moves here: every `gh` call (`PullRequests.cs`, `GitHubAuthentication.cs`, the `gh` parts of `BranchStatus.cs`),
 `ReviewDetails` and merge-method discovery, the GitHub Settings page, `BranchShip.cs`' pull request half,

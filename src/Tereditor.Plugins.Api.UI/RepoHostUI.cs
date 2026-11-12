@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace SharpRail.Plugins.Api.UI;
+namespace Tereditor.Plugins.Api.UI;
 
 /// <summary>
 /// The branch's pull request in the provider-neutral model (W28): the open one first, else the newest in any state. <c>State</c> is

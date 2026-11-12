@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api.UI;
+namespace Tereditor.Plugins.Api.UI;
 
 /// <summary>The logger handed to a UI half as <see cref="IPluginUIContext.Log"/>, one level per method.</summary>
 [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]

@@ -5,10 +5,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>The host's view of one provider's server (H21): the spec a plugin registered, with the shapes the host code reads.</summary>
 internal sealed record LanguageServer(LanguageServerSpec Spec)
@@ -195,7 +195,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         if (spec.Pinning == LanguageServerPinning.None || custom?.AllowPath == true && spec.PathCapable)
         {
             if (custom?.AllowPath != true)
-                throw new IOException($"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the {server.Id} SDK and allow PATH for this server in Settings > Code Intelligence, then Retry.");
+                throw new IOException($"{server.Id} needs an installation: tereditor has no managed installation for it. Install the {server.Id} SDK and allow PATH for this server in Settings > Code Intelligence, then Retry.");
             var rejected = new List<string>();
             var installed = LanguageExecutables.FindOnPath(server.Executable, workspace, rejected);
             if (installed is not null && !spec.AcceptsPathExecutable(installed, workspace)) installed = null;

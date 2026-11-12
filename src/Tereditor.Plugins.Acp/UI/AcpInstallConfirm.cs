@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>The install confirmation: shown over the window like every other confirmation, so it appears where the user clicked Install, never somewhere down the list.</summary>
 internal static class AcpInstallConfirm

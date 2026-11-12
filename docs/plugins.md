@@ -10,10 +10,10 @@ Plugins without restarting the app, where they are grouped by the categories bel
 | Plugin | Default | What it does |
 | --- | --- | --- |
 | Claude Code | Off | Runs Claude Code in the terminal with an IDE bridge, live status and a pane for its context, settings, capabilities and account. |
-| Codex | Off | Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools. |
-| omp | Off | Very early support. Runs [omp](https://omp.sh) in the terminal with SharpRail's MCP tools and shows its context files. |
-| Processes | On | Shows language servers, agents and the agents they spawned as a tree with CPU and memory, and stops the processes agents report as theirs when their terminal closes or SharpRail quits. |
-| Code Intelligence | On | The language features: Settings > Code Intelligence, the Language tool window, and hover, go to definition, usages and diagnostics in the editor. The language server plugins and Air Context require it, so switching it off turns them off too, and switching it on again brings back the ones that were on. Agents and headless SharpRail keep their language tools. |
+| Codex | Off | Runs OpenAI Codex in the terminal with live status and tereditor's MCP tools. |
+| omp | Off | Very early support. Runs [omp](https://omp.sh) in the terminal with tereditor's MCP tools and shows its context files. |
+| Processes | On | Shows language servers, agents and the agents they spawned as a tree with CPU and memory, and stops the processes agents report as theirs when their terminal closes or tereditor quits. |
+| Code Intelligence | On | The language features: Settings > Code Intelligence, the Language tool window, and hover, go to definition, usages and diagnostics in the editor. The language server plugins and Air Context require it, so switching it off turns them off too, and switching it on again brings back the ones that were on. Agents and headless tereditor keep their language tools. |
 | Air Context | Off | Semantic code search through [JetBrains Air Context](https://www.jetbrains.com/air/context/). Indexing is cloud processing that you enable per project. |
 | Air Gateway | Off | Starts Claude Code, Codex and omp through [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) with the Central CLI, or leaves them on their own accounts. |
 
@@ -97,9 +97,9 @@ Gateway settings pages.
 
 ## External plugins
 
-- SharpRail finds plugins under `<stateDir>/plugins/<id>/` and in any extra plugin paths you add.
+- tereditor finds plugins under `<stateDir>/plugins/<id>/` and in any extra plugin paths you add.
 - It lists them in Settings › Plugins, but it does not run them yet. Turning one on shows "External plugins are not supported in this version."
-- External plugins will run again once they can run apart from SharpRail's own processes. Until then, the host and the app load no code at
+- External plugins will run again once they can run apart from tereditor's own processes. Until then, the host and the app load no code at
   run time, so both can be built as NativeAOT.
 
-The [Plugin API contract](../src/SharpRail.Plugins.Api/SPEC.md) documents the extension points and installation format.
+The [Plugin API contract](../src/Tereditor.Plugins.Api/SPEC.md) documents the extension points and installation format.

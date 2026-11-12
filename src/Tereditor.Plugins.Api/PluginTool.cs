@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Api;
+namespace Tereditor.Plugins.Api;
 
 /// <summary>Identifies one terminal tab: the workspace it belongs to and its tab key within that workspace.</summary>
 /// <param name="WorkspaceId">The workspace's id, its worktree root path.</param>
@@ -24,7 +24,7 @@ public sealed record PluginToolResult(string Text)
 
 /// <summary>
 /// One tool, registered by a host half and served on the per-terminal MCP surface: an agent running in a
-/// SharpRail terminal lists and calls it through the terminal's MCP token. Declare tools as
+/// tereditor terminal lists and calls it through the terminal's MCP token. Declare tools as
 /// <see cref="PluginTool{TParams}"/>; the runtime derives the MCP input schema from the source-generated metadata
 /// of <see cref="ParametersType"/>, which the plugin's context must name (a property's
 /// <see cref="System.ComponentModel.DescriptionAttribute"/> becomes its description), and validates arguments by

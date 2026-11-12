@@ -3,10 +3,10 @@ using System.Diagnostics;
 using Avalonia.Headless;
 using Avalonia.Threading;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Times a click on a workspace row until the target workspace is mounted, laid out and a frame
@@ -18,7 +18,7 @@ internal static class SwitchLatencyChecks
 
     internal static void Run(string root)
     {
-        var budget = double.TryParse(Environment.GetEnvironmentVariable("SHARPRAIL_SWITCH_BUDGET_MS"), out var value) ? value : 100;
+        var budget = double.TryParse(Environment.GetEnvironmentVariable("TEREDITOR_SWITCH_BUDGET_MS"), out var value) ? value : 100;
         using var app = OpenFixtureProject(Path.Combine(root, "switch-latency"));
         var workspaces = new[] { CreateWorkspaceViaDialog(app), CreateWorkspaceViaDialog(app) };
         foreach (var path in workspaces)
@@ -36,7 +36,7 @@ internal static class SwitchLatencyChecks
         }
         times.Sort();
         double median = times[times.Count / 2], p90 = times[(int)(times.Count * 0.9) - 1], max = times[^1];
-        Console.WriteLine($"SHARPRAIL_SWITCH_MS median={median:F1} p90={p90:F1} max={max:F1} budget={budget:F0} samples={times.Count}");
+        Console.WriteLine($"TEREDITOR_SWITCH_MS median={median:F1} p90={p90:F1} max={max:F1} budget={budget:F0} samples={times.Count}");
         Require(p90 < budget, $"Workspace switches must complete within {budget:F0} ms at p90 (median {median:F1}, p90 {p90:F1}, max {max:F1}).");
         Console.WriteLine($"PASS workspace switch latency: p90 {p90:F1} ms < {budget:F0} ms");
     }

@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The PHP (Intelephense) language server plugin: its manifest and host half. -->
   <ItemGroup>
-    <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <ProjectReference Include="../Tereditor.Plugins.Api.Host/Tereditor.Plugins.Api.Host.csproj" />
     <EmbeddedResource Include="Locks/**" LogicalName="Locks/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Icon.png" LogicalName="Icon.png" />
     <None Include="Icon.png" Link="plugins/lsp-php/assets/Icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="Tereditor.Checks" />
   </ItemGroup>
 </Project>

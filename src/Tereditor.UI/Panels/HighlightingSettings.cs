@@ -3,15 +3,15 @@ using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit.Editor;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Plugins.UI.Kit.Editor;
 
-namespace SharpRail.UI.Panels;
+namespace Tereditor.UI.Panels;
 
 public sealed partial class SettingsView
 {
-    internal const string HighlightingPrompt = "Use the builtin add-highlighting skill to help me add custom syntax highlighting in SharpRail. Ask which language or file format and filename patterns I want, then prepare a TextMate JSON grammar for Settings > Highlighting.";
+    internal const string HighlightingPrompt = "Use the builtin add-highlighting skill to help me add custom syntax highlighting in tereditor. Ask which language or file format and filename patterns I want, then prepare a TextMate JSON grammar for Settings > Highlighting.";
 
     private Control HighlightingSettings()
     {
@@ -104,7 +104,7 @@ public sealed partial class SettingsView
     {
         return Task.Run(async () =>
         {
-            var json = JsonSerializer.Serialize(definitions, SharpRail.Plugins.UI.Kit.KitJson.Default.CustomGrammarArray);
+            var json = JsonSerializer.Serialize(definitions, Tereditor.Plugins.UI.Kit.KitJson.Default.CustomGrammarArray);
             if (json.Length > 2 * 1024 * 1024) throw new ArgumentException("Custom highlighting exceeds the 2 Mi character limit. Remove a grammar first.");
             await state.ChangeAsync(HostStateChange.Setting("custom-highlighting", json));
         }, lifetime.Token);

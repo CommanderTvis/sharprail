@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.Acp.UI;
+namespace Tereditor.Plugins.Acp.UI;
 
 /// <summary>The Agent Client Protocol logomark (see NOTICE), the same drawing as <c>assets/acp.svg</c>, held here because a host without a plugin directory has no asset file to read.</summary>
 internal static class AcpGlyph

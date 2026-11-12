@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI;
+namespace Tereditor.Plugins.ClaudeCode.UI;
 
 /// <summary>An edit composed by a dialog, with the title its review dialog wears.</summary>
 internal sealed record PendingEdit(ClaudeEdit Edit, string Title);

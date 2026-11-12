@@ -19,7 +19,7 @@
 -    rooted_or_relative_path_branch ++
 -    "|" ++
 -    bare_relative_path_branch;
-+// SharpRail: file paths are resolved by the host (file-links.zig), so only scheme URLs are matched here.
++// tereditor: file paths are resolved by the host (file-links.zig), so only scheme URLs are matched here.
 +pub const regex = scheme_url_branch;
  
  test "url regex" {

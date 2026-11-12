@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.UI.Panels.WorkspacePromptFields">
+             x:Class="Tereditor.UI.Panels.WorkspacePromptFields">
   <StackPanel Spacing="8">
     <TextBlock x:Name="WsCommandLabel" Text="Terminal command" IsVisible="False" />
     <TextBox x:Name="WsCommand" AutomationProperties.Name="Starting command"

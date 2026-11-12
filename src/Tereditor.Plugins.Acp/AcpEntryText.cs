@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Acp;
+namespace Tereditor.Plugins.Acp;
 
 /// <summary>How the settings page writes and reads an agent's arguments and environment as plain text.</summary>
 public static class AcpEntryText

@@ -1,4 +1,4 @@
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 /// <summary>One finished Git command: its exit code, undecoded standard output and the error text.</summary>
 public sealed record GitBackendResult(int ExitCode, byte[] Output, string Error);

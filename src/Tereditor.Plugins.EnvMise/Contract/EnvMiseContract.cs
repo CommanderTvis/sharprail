@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.EnvMise;
+namespace Tereditor.Plugins.EnvMise;
 
 public sealed record EnvMiseSettings;
 
@@ -23,7 +23,7 @@ public static class EnvMiseContract
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
-        Host = "SharpRail.Plugins.EnvMise.Host.dll"
+        Host = "Tereditor.Plugins.EnvMise.Host.dll"
     };
 }
 

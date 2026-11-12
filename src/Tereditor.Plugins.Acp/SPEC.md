@@ -8,13 +8,13 @@ parent: group-plugins-agents
 
 # ACP builtin (Early support)
 
-Early support for the Agent Client Protocol (https://agentclientprotocol.com): SharpRail is the client, an ACP agent is a child process
-speaking JSON-RPC over stdio, and the conversation is shown in the shared chat view (`src/SharpRail.Plugins.Chat/SPEC.md`, "Serving another
+Early support for the Agent Client Protocol (https://agentclientprotocol.com): tereditor is the client, an ACP agent is a child process
+speaking JSON-RPC over stdio, and the conversation is shown in the shared chat view (`src/Tereditor.Plugins.Chat/SPEC.md`, "Serving another
 agent protocol"). Disabled by default; the manifest declares `Support = early`, its label is "ACP" and
 `UnavailableOn = [pureWeb]`, because an agent is a child process of the host and a browser tab has none. The Android and browser clients reach
 a host's ACP chats through the chat contract like any other client.
 
-The agent is untrusted code. It is never sandboxed by SharpRail; the rules below limit what the client methods give it.
+The agent is untrusted code. It is never sandboxed by tereditor; the rules below limit what the client methods give it.
 
 ## Protocol (stable version 1)
 
@@ -53,20 +53,20 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   (`{version, agents[], extensions[]}`; each agent has `id`, `name`, `version`, `description`, optional `repository`, `website`, `authors`,
   `license`, `license_url`, `icon` and `preview`, and a `distribution` with any of `npx` and `uvx` (`{package, args?, env?}`) and `binary` (per
   `darwin|linux|windows`-`aarch64|x86_64` target: `{archive, cmd, args?, env?, sha256?}`). The per-agent schema is `agent.schema.json` of the
-  registry repository. `tests/SharpRail.Checks/Fixtures/acp-registry.json` is a trimmed real copy.
-- Cache (`AcpRegistryCache`) under `~/.sharprail/acp/registry`: a copy younger than the registry's 5 minute `max-age` is not refetched; a stale
+  registry repository. `tests/Tereditor.Checks/Fixtures/acp-registry.json` is a trimmed real copy.
+- Cache (`AcpRegistryCache`) under `~/.tereditor/acp/registry`: a copy younger than the registry's 5 minute `max-age` is not refetched; a stale
   one is revalidated with `If-None-Match` and `If-Modified-Since` (a 304 keeps it); offline, or when the answer is not a registry, the saved copy
   is shown with a note; only with no copy at all a built-in two-agent seed stands in, and says so. Files are written beside and moved into place.
 - Install (`AcpInstaller`): the settings page asks for a plan first (source, exact command line, SHA-256, license, repository) and shows it;
   `Install` needs `Confirmed` and the agent, distribution kind and version of that plan, or it refuses (the registry may have moved on), so every
   agent and every version needs its own confirmation. npx entries run with the host's pinned Bun (`bun x <package>`, downloaded and checked on first use, so no Node or npx is needed; `npx` only when Bun cannot be provided), uvx entries `uvx <package>`, both pinned by the
   registry. A binary is downloaded over https only, checked against the registry's SHA-256 (a mismatch discards it; a missing checksum is
-  said so in the plan), unpacked with the platform's `tar` into `~/.sharprail/acp/agents/<id>/<version>/` and its command must stay inside
+  said so in the plan), unpacked with the platform's `tar` into `~/.tereditor/acp/agents/<id>/<version>/` and its command must stay inside
   that directory. The registry's `preview` channel is ignored.
-- Entries for agents SharpRail supports directly (a small id list in `AcpRegistry`: Claude and Pi adapters) get a Not recommended tag with the
+- Entries for agents tereditor supports directly (a small id list in `AcpRegistry`: Claude and Pi adapters) get a Not recommended tag with the
   reason, sort after the others, and say so in the install confirmation. They stay installable. Manually added agents are never flagged.
 - Icons: the registry gives each agent an `icon`, an https url of a 16x16 monochrome SVG on the registry's own host that uses `currentColor`.
-  `AcpIconCache` (the host half, under `~/.sharprail/acp/registry/icons`, one `.svg` and one `.json` of validators per agent id) fetches only
+  `AcpIconCache` (the host half, under `~/.tereditor/acp/registry/icons`, one `.svg` and one `.json` of validators per agent id) fetches only
   urls that are https, on the registry's host and default port, with no credentials, with no redirect followed, a 10 second timeout and a 64 KB
   cap, and revalidates with the ETag like the registry (a copy younger than 12 hours is not refetched). `AcpIconRules` refuses a document that is
   not well-formed SVG XML, declares a doctype, contains `script`, `foreignObject`, `image`, animation or embedding elements, an event handler, an
@@ -87,7 +87,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   it the launcher's default, the executable override with a Use default arguments switch and the arguments one per line (a registry agent), or
   its command and arguments (a custom agent), environment, working directory, the command line that will run, Update to or Reinstall, and
   Remove. Fields save when they lose focus. Update and Reinstall keep the user's overrides, working directory and environment. Remove asks in
-  the overlay and deletes a registry install's files under `~/.sharprail/acp/agents/<id>` (nothing outside it). There is no "use the program on
+  the overlay and deletes a registry install's files under `~/.tereditor/acp/agents/<id>` (nothing outside it). There is no "use the program on
   PATH" choice: a registry binary has no name to look up, and uvx agents already run through the PATH.
 - Add custom agent: a popup in the overlay with name, command, arguments, environment and working directory. It refuses an empty name or command,
   a name already in the list, an environment line that is not NAME=value, and a relative working directory; Add selects the new agent.
@@ -104,7 +104,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   ignored (the settings say so), so adding it back restores it. Right-click lists every agent in order with the default marked, and ACP settings;
   on a touch screen a tap opens that menu. This is the split of the Claude Code launcher.
 - Custom agents: command, arguments, environment and working directory typed in the settings page; adding one is the confirmation.
-- Credentials: SharpRail never shows a field for them. An agent that needs sign-in fails the session with a notice naming its
+- Credentials: tereditor never shows a field for them. An agent that needs sign-in fails the session with a notice naming its
   `authMethods`; the user signs in with the agent's own tool.
 
 ## Not yet supported
@@ -127,7 +127,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
 ## Checks
 
 `--acp`: the manifest and Early support label; framing, version negotiation, session new, prompt streaming, cancel, load and crash against the
-in-process fake agent (`tests/SharpRail.Checks/AcpFakeAgent.cs`); the folded transcript; permission answers and cancellation; fs and terminal
+in-process fake agent (`tests/Tereditor.Checks/AcpFakeAgent.cs`); the folded transcript; permission answers and cancellation; fs and terminal
 methods and their confinement (including a symbolic link and `..`); registry parsing against the fixture, the cache, offline fallback and
 seed; registry icons (url rules, unsafe SVGs, size cap, cache and offline, the generic glyph); the row model and search; the install confirmation facts; the agent list model, detail model and tags, the add popup's validation, checksum and trust checks, the launcher's default, removed default, turned-off agents and menu; install confirmation, version mismatch, checksum failure and unpacking; the settings page's text forms. Checks never launch a real agent
 or download from the registry.

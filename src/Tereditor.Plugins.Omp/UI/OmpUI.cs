@@ -4,10 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.UI;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.Omp.UI;
+namespace Tereditor.Plugins.Omp.UI;
 
 /// <summary>
 /// The omp plugin's UI half: Settings › omp, the side tool, the agent launcher and its start action, and the tab

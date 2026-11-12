@@ -3,9 +3,9 @@ using System.Text.Json;
 
 using Avalonia.Threading;
 
-using SharpRail.Host.Core;
+using Tereditor.Host.Core;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>The tab host's disk and Git, which live in <c>tabhost.js</c> beside the runtime's file system.</summary>
 internal sealed partial class TabGit : IGitBackend

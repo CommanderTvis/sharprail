@@ -4,12 +4,12 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.Tailscale;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Host.Core.Plugins;
+using Tereditor.Plugins.Tailscale;
 
-namespace SharpRail.Host.Remote;
+namespace Tereditor.Host.Remote;
 
 /// <summary>A runtime-switchable WebSocket RPC listener over a caller-owned embedded host.</summary>
 public sealed class HostListener(string root, HostStateStore state, ITerminalService? terminals, PluginRuntime plugins) : IAsyncDisposable

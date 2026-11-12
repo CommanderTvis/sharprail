@@ -38,7 +38,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 
 - POSIX shell selection: an existing `SHELL` wins, else `/bin/zsh` on macOS, else `/bin/sh`. It starts as a
   login shell (`-l`) in the workspace root, matching Terminal.app; the PTY supplies interactivity. The
-  environment is the host's minus `SHARPRAIL_TOKEN` and any `SHARPRAIL_*_STATUS_URL`/`THINKRAIL_*_STATUS_URL` (an outer SharpRail's per-terminal identity, which would make an inner agent report to the outer tab; plugins add their own after), with 256-colour/truecolour `TERM` and a UTF-8 locale
+  environment is the host's minus `TEREDITOR_TOKEN` and any `TEREDITOR_*_STATUS_URL`/`THINKRAIL_*_STATUS_URL` (an outer tereditor's per-terminal identity, which would make an inner agent report to the outer tab; plugins add their own after), with 256-colour/truecolour `TERM` and a UTF-8 locale
   when none is set. `USER` and `LOGNAME` are stamped from the uid: the PTY registers no utmpx record, so a
   login shell without `LOGNAME` would ask `getlogin()`, which reads whatever stale record the reused device
   carries and can name another user.
@@ -90,7 +90,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   clear, as sudo, ssh and gpg leave it while reading a secret. A shell at its line editor runs non-canonical,
   so it never reads as one. `IsPasswordInputAsync` answers it on demand (the client polls a focused terminal),
   false for an unknown, exited or Windows session; a remote host serves it as a unary RPC and an older host
-  reads as false. The client turns it into secure keyboard entry ([Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#secure-keyboard-entry)).
+  reads as false. The client turns it into secure keyboard entry ([Terminal/SPEC.md](../Tereditor.UI/Terminal/SPEC.md#secure-keyboard-entry)).
 - Attach and resize refuse a grid outside 1–32,767 columns and rows (`TerminalGrid.Require`) before
   session lookup or PTY work, so a refused attach leaves no session. The remote adapter applies the same
   check before sending, which keeps the exception identical on both paths; the server ignores an
@@ -98,18 +98,18 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   so upstream's runtime string-input check has no equivalent here.
 - A shell that cannot start reports fixed guidance chosen by where the shell came from: `SHELL`
   ("Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart
-  SharpRail, then retry.") or the host's own choice ("Couldn’t start the configured shell. Check the host’s
+  tereditor, then retry.") or the host's own choice ("Couldn’t start the configured shell. Check the host’s
   shell installation, then retry."). The native error, the executable path and the value of `SHELL` stay
   on the host as the inner exception. Because macOS execs the shell from a trampoline, the host checks that
   the shell is an executable file before spawning; otherwise an unusable shell would read as one that
   exited. A missing workspace folder keeps its own message.
 - Shell integration (host setting `ShellIntegrationEnabled`, Settings › Terminal, on by default, read when a POSIX shell
-  starts) loads SharpRail's own scripts (`src/SharpRail.Host.Core/shell-integration`, written for SharpRail, shipped to
+  starts) loads tereditor's own scripts (`src/Tereditor.Host.Core/shell-integration`, written for tereditor, shipped to
   the app's `shell-integration/` by the Host.Core build on every platform): zsh through `ZDOTDIR` naming the script's
-  directory (a user's value kept in `SHARPRAIL_SHELL_ZDOTDIR`; its `.zshenv` restores or unsets `ZDOTDIR`, then sources
+  directory (a user's value kept in `TEREDITOR_SHELL_ZDOTDIR`; its `.zshenv` restores or unsets `ZDOTDIR`, then sources
   the user's `.zshenv`, so zsh reads the rest of the user's files as usual), bash with `--posix` before the login option
-  and `ENV` naming `sharprail.bash` (`SHARPRAIL_SHELL_INJECT`, `SHARPRAIL_SHELL_BASH_ENV`, and `HISTFILE` with
-  `SHARPRAIL_SHELL_HISTFILE_UNEXPORT` when unset; the script leaves POSIX mode, restores them and sources
+  and `ENV` naming `tereditor.bash` (`TEREDITOR_SHELL_INJECT`, `TEREDITOR_SHELL_BASH_ENV`, and `HISTFILE` with
+  `TEREDITOR_SHELL_HISTFILE_UNEXPORT` when unset; the script leaves POSIX mode, restores them and sources
   `/etc/profile` and the first of `~/.bash_profile`, `~/.bash_login`, `~/.profile` for a login shell, else
   `/etc/bash.bashrc` and `~/.bashrc`). Interactive shells only: OSC 133 `A` and `B` wrap `PS1` as non-printing text
   and are re-applied at every prompt after the user's own hooks (prompt themes rebuild it), `C` before a command runs
@@ -118,7 +118,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   `file://<host><percent-encoded cwd>` at startup and on every directory change. Sourcing a script twice is a no-op. fish
   (4 and later marks its own prompts) and elvish get nothing; Apple's /bin/bash 3.2 ignores `ENV` in POSIX mode and is
   left alone. In bash a command that is only a subshell, such as `(exit 3)`, runs no DEBUG trap and so is not marked.
-  A host without the scripts injects nothing. Inherited `GHOSTTY_*` and `SHARPRAIL_SHELL_*` variables are always
+  A host without the scripts injects nothing. Inherited `GHOSTTY_*` and `TEREDITOR_SHELL_*` variables are always
   removed, so with the setting off a shell gets none. `--shell-integration` checks real zsh in a fixture HOME locally and
   remotely, the setting off, a user ZDOTDIR whose `.zshrc` sets its own `precmd` and `PROMPT`, Apple bash and the bash
   and fish plans; a bash 4 or later was not available to run the bash script live under injection (it was run under
@@ -189,18 +189,18 @@ including draining output while closing the pseudoconsole.
   lock; the plugin runtime resolves the workspace environment there (see `Plugins.SPEC.md`) and the synchronous
   `EnvironmentContributor` only reads the result.
 - Shell environment hooks (`ShellEnvironmentHooks.cs`): when the resolved environment carries a script for the shell being started
-  (`SHARPRAIL_SHELL_INIT_<SHELL>`, from mise's and direnv's steps), zsh is pointed at shim start-up files through
+  (`TEREDITOR_SHELL_INIT_<SHELL>`, from mise's and direnv's steps), zsh is pointed at shim start-up files through
   `ZDOTDIR` that source the user's own `.zshenv`, `.zprofile` and `.zshrc` and then run the script (giving `ZDOTDIR` back,
   unset when the user had none), and fish gets a vendor snippet through `XDG_DATA_DIRS` that runs it before the user's
   `config.fish`. No dotfile is edited and the shell is started as before. Other shells get the resolved variables at start
   only. The shim files live under the state directory's `shell-integration` and are rewritten when stale.
 - Both apply to one zsh: the hooks run first and the shell-integration injection last, so its `.zshenv` keeps the hooks'
-  shim `ZDOTDIR` in `SHARPRAIL_SHELL_ZDOTDIR`, restores it and sources the shim's `.zshenv`; zsh then reads the shim's
-  `.zprofile` and `.zshrc`, which run the user's files and the plugins' script. Inherited `SHARPRAIL_SHELL_*` variables are
-  dropped before plugin contributions are added, so the hooks' `SHARPRAIL_SHELL_INIT_*` and `SHARPRAIL_SHELL_INTEGRATION`
+  shim `ZDOTDIR` in `TEREDITOR_SHELL_ZDOTDIR`, restores it and sources the shim's `.zshenv`; zsh then reads the shim's
+  `.zprofile` and `.zshrc`, which run the user's files and the plugins' script. Inherited `TEREDITOR_SHELL_*` variables are
+  dropped before plugin contributions are added, so the hooks' `TEREDITOR_SHELL_INIT_*` and `TEREDITOR_SHELL_INTEGRATION`
   survive.
 - When a shell starts for a known tab, `EnvironmentContributor` adds variables after core's own (never
-  `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill` (or a program, below), and `Lifecycle`
+  `TEREDITOR_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill` (or a program, below), and `Lifecycle`
   hears `TerminalSpawned` with the shell's pid and later `TerminalExited`. Closing a session calls
   `SessionClosed` with its id and, when known, its tab.
 - `Write` types into a tab's shell host-side, ignoring attachment; `List` is the process table of known tabs
@@ -209,7 +209,7 @@ including draining output while closing the pseudoconsole.
 
 ## Owned processes
 
-- The registry is switched on by the Processes plugin (`OwnedProcesses.SetEnabled`, via H27; [its SPEC](../SharpRail.Plugins.Processes/SPEC.md)) and is off
+- The registry is switched on by the Processes plugin (`OwnedProcesses.SetEnabled`, via H27; [its SPEC](../Tereditor.Plugins.Processes/SPEC.md)) and is off
   without it: nothing can be reported and tab close, quit and the stale sweep stop nothing. Switching it off forgets the records without stopping the processes.
 - An agent reports a long-running process it started with the `owned_process_report` MCP tool (a Processes plugin tool) and
   withdraws it with `owned_process_release`. `PtyTerminalService.Owned` (`OwnedProcesses`) is the registry, keyed by the
@@ -226,7 +226,7 @@ including draining output while closing the pseudoconsole.
 - Records persist to `owned-processes-<host pid>.json` beside the terminal recordings (memory only without a recordings
   directory), with the host's own start time. At start a sweep reads every such file whose host is no longer running
   (pid and start time must not match a live process), stops each record that still matches its process, and deletes the
-  file; files of a live host are left alone, so two SharpRail instances do not touch each other's processes.
+  file; files of a live host are left alone, so two tereditor instances do not touch each other's processes.
 - `HostState.OwnedProcesses` (terminal, pid, description; never persisted in `state.json`; protocol 16) lets every
   client show them. The windows toast a new report, and the quit confirmation counts them: quitting or closing the last
   window asks when any exist, even with no agent mid-turn, and says how many will be stopped.
@@ -236,7 +236,7 @@ including draining output while closing the pseudoconsole.
 
 ## Memory guard
 
-SharpRail's own out-of-memory killer for the programs started in its terminals. The operating system gave the user none (macOS
+tereditor's own out-of-memory killer for the programs started in its terminals. The operating system gave the user none (macOS
 has no OOM killer at all), and a runaway compiler or test run can take the machine down before anything reacts. The guard lives in
 the host, so a headless host and a remote host protect their terminals exactly as the desktop host does; clients only show the result.
 
@@ -261,7 +261,7 @@ Escalation, never silent. Each terminal is in one of four states.
 2. Warned. From 80% of the limit the terminal gets a warning naming it and its largest process ("Terminal in app uses 7.9 GB of 8 GB:
    node"), once per crossing: the warning clears only below 70%, so a program hovering near the line does not repeat itself.
 3. Terminating. Above the limit the guard sends a stop request (SIGTERM; on Windows a close request) to the single largest process
-   below the shell and shows "SharpRail stopped node (4242) at 9.2 GB: terminal memory limit 8 GB". The process has the grace period.
+   below the shell and shows "tereditor stopped node (4242) at 9.2 GB: terminal memory limit 8 GB". The process has the grace period.
    If it is gone and the terminal is under the limit, the terminal is Ok again.
 4. Killing. After the grace period a process still running is killed (SIGKILL, on Windows terminated). On the next sample, if the terminal
    is still over its limit, everything below the shell except protected programs is killed, children first, and the terminal says so.
@@ -358,7 +358,7 @@ What the guard cannot do, honestly.
   heard of records the client's tabs, keeping an empty list when it brings none; a known
   workspace only gains tabs it lacks and never that key again, so closing the initial terminal is final
   for every client. A workspace whose terminals were all closed stays known and empty. This replaces
-  upstream's pending marker on the workspace record, which SharpRail's path-keyed workspaces do not have,
+  upstream's pending marker on the workspace record, which tereditor's path-keyed workspaces do not have,
   and lets a client that predates the catalog bring its existing tabs.
 - Every change returns the complete snapshot it produced, and `WatchAsync` yields the current one and then
   each later one, keeping only the latest for a slow watcher.

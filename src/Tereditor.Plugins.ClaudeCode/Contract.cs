@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.ClaudeCode;
+namespace Tereditor.Plugins.ClaudeCode;
 
 // The Claude Code, IDE-bridge and agent-status domain, as records the wire contract below names.
 
@@ -339,13 +339,13 @@ public sealed record ClaudeCodeSettings
     public string Effort { get; set; } = "";
     public bool DisableAgentView { get; set; } = true;
     public bool AppendSystemPrompt { get; set; } = true;
-    /// <summary>The <c>--permission-mode</c> SharpRail launches with; empty adds no flag, so Claude's own default applies.</summary>
+    /// <summary>The <c>--permission-mode</c> tereditor launches with; empty adds no flag, so Claude's own default applies.</summary>
     public string PermissionMode { get; set; } = "";
-    /// <summary>The <c>--advisor</c> model SharpRail launches with; empty adds no flag, so Claude's own <c>advisorModel</c> applies.</summary>
+    /// <summary>The <c>--advisor</c> model tereditor launches with; empty adds no flag, so Claude's own <c>advisorModel</c> applies.</summary>
     public string Advisor { get; set; } = "";
-    /// <summary>Adds <c>--chrome</c> to every SharpRail launch; off adds nothing, so the CLI's own Chrome setting applies.</summary>
+    /// <summary>Adds <c>--chrome</c> to every tereditor launch; off adds nothing, so the CLI's own Chrome setting applies.</summary>
     public bool Chrome { get; init; }
-    /// <summary>How a SharpRail launch is presented: the CLI's terminal UI, or the chat view driven over stream-json.</summary>
+    /// <summary>How a tereditor launch is presented: the CLI's terminal UI, or the chat view driven over stream-json.</summary>
     public ClaudeCodeMode Mode { get; init; }
 }
 
@@ -361,7 +361,7 @@ public sealed record AccountParams
 
 public sealed record NoParams;
 
-/// <summary>The appended system prompt file on the host, and where earlier hand edits SharpRail no longer uses were kept (null when none).</summary>
+/// <summary>The appended system prompt file on the host, and where earlier hand edits tereditor no longer uses were kept (null when none).</summary>
 public sealed record SystemPromptFile(string Path, string? IgnoredEdits);
 
 public sealed record PluginUninstallPlanParams(string WorkspaceId, string Name, ClaudeWritableScope Scope);
@@ -405,7 +405,7 @@ public sealed record CommandOutput(string Output);
 
 public sealed record McpListResult(IReadOnlyList<ClaudeCapability> Capabilities);
 
-/// <summary>How a SharpRail launch of Claude Code is presented: the CLI's terminal UI, or the chat view over stream-json.</summary>
+/// <summary>How a tereditor launch of Claude Code is presented: the CLI's terminal UI, or the chat view over stream-json.</summary>
 public enum ClaudeCodeMode { Terminal, Chat }
 
 /// <summary>The plugin's wire contract: its methods under <c>plugin.claude-code.*</c> and its two channels.</summary>
@@ -414,25 +414,25 @@ public static class ClaudeCodeContract
     public const string Id = "claude-code";
 
     /// <summary>Names the host's system prompt file in every terminal; the launch line refers to it.</summary>
-    public const string PromptFileVariable = "SHARPRAIL_CLAUDE_PROMPT_FILE";
+    public const string PromptFileVariable = "TEREDITOR_CLAUDE_PROMPT_FILE";
 
     /// <summary>The bundled Claude plugin directory on the terminal host.</summary>
-    public const string PluginDirectoryVariable = "SHARPRAIL_CLAUDE_PLUGIN_DIR";
+    public const string PluginDirectoryVariable = "TEREDITOR_CLAUDE_PLUGIN_DIR";
 
-    /// <summary>Names the folder SharpRail creates this project's worktrees in, in every terminal.</summary>
-    public const string WorktreesVariable = "SHARPRAIL_WORKTREES_DIR";
+    /// <summary>Names the folder tereditor creates this project's worktrees in, in every terminal.</summary>
+    public const string WorktreesVariable = "TEREDITOR_WORKTREES_DIR";
     /// <summary>The workspace's host-owned scratch directory, outside the project, set in every terminal and granted to the session with <c>--add-dir</c>.</summary>
-    public const string ScratchVariable = "SHARPRAIL_SCRATCH_DIR";
+    public const string ScratchVariable = "TEREDITOR_SCRATCH_DIR";
 
     /// <summary>Where the hook plugin posts its reports: this plugin's status route, with the terminal's token.</summary>
-    public const string StatusUrlVariable = "SHARPRAIL_AGENT_STATUS_URL";
+    public const string StatusUrlVariable = "TEREDITOR_AGENT_STATUS_URL";
 
     public static readonly PluginMethod<WorkspaceParams, ClaudeConfigSnapshot> ConfigGet = new("configGet");
     public static readonly PluginMethod<AccountParams, ClaudeAccount> Account = new("account");
     public static readonly PluginMethod<NoParams, SystemPromptFile> SystemPromptGet = new("systemPromptGet");
     /// <summary>The instruction sections this agent's sessions in a workspace get, with the project's on/off choice for each.</summary>
     public static readonly PluginMethod<InstructionSectionQuery, InstructionSectionList> InstructionsList = new("instructionsList");
-    /// <summary>Turns one section on or off in the project's <c>.sharprail/instructions.toml</c>.</summary>
+    /// <summary>Turns one section on or off in the project's <c>.tereditor/instructions.toml</c>.</summary>
     public static readonly PluginMethod<InstructionSectionToggle, InstructionSectionList> InstructionsSet = new("instructionsSet");
     public static readonly PluginMethod<PluginUninstallPlanParams, CommandPlan> PluginUninstallPlan = new("pluginUninstallPlan");
     public static readonly PluginMethod<PluginUninstallParams, CommandOutput> PluginUninstall = new("pluginUninstall");
@@ -460,7 +460,7 @@ public static class ClaudeCodeContract
     public static readonly PluginChannel<IdeActionRequest> IdeAction = PluginChannel<IdeActionRequest>.Event("ideAction");
     public static readonly PluginChannel<ContextUsageChanged> ContextUsage = PluginChannel<ContextUsageChanged>.Event("contextUsage");
     public static readonly PluginChannel<AccountUsageChanged> AccountUsage = PluginChannel<AccountUsageChanged>.Event("accountUsage");
-    /// <summary>A project's <c>.sharprail/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
+    /// <summary>A project's <c>.tereditor/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
     public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 3,

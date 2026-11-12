@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit.Markdown;
+using Tereditor.Plugins.UI.Kit.Markdown;
 
-namespace SharpRail.Plugins.UI.Kit.Visualization;
+namespace Tereditor.Plugins.UI.Kit.Visualization;
 
 /// <summary>Renders a visualize tool's diagram, SVG, Markdown or comparison arguments and reports the renderer's verdict.</summary>
 public static class VisualizationCard

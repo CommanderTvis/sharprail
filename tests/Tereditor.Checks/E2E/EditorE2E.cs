@@ -7,16 +7,16 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 
-using SharpRail.Scintilla;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
+using Tereditor.Scintilla;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Rendering;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
-using static SharpRail.Checks.E2E.WorkspaceFixture;
+using static Tereditor.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.WorkspaceFixture;
 
-using ThemeCatalog = SharpRail.UI.Rendering.Themes;
+using ThemeCatalog = Tereditor.UI.Rendering.Themes;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>
 /// Upstream editor.spec.ts, plus the Monaco cases of theme.spec.ts and line-width-settings.spec.ts
@@ -129,14 +129,14 @@ internal static class EditorE2E
 
         // Like the reference's Monaco editor, a selection is reported to plugins (an agent's IDE integration among
         // them) with one-based lines and columns; collapsing it reports presence only.
-        var reported = new List<SharpRail.Plugins.Api.UI.EditorSelectionEvent>();
-        using var events = app.Workbench.PluginLoader!.Editors.On(change => { if (change is SharpRail.Plugins.Api.UI.EditorSelectionEvent selected) reported.Add(selected); });
+        var reported = new List<Tereditor.Plugins.Api.UI.EditorSelectionEvent>();
+        using var events = app.Workbench.PluginLoader!.Editors.On(change => { if (change is Tereditor.Plugins.Api.UI.EditorSelectionEvent selected) reported.Add(selected); });
         editor.Focus();
         Press(editor, Avalonia.Input.Key.Home);
         Press(editor, Avalonia.Input.Key.End, Avalonia.Input.RawInputModifiers.Shift);
         Until(() => reported.LastOrDefault()?.Selection is not null);
         var selection = reported.Last();
-        Require(selection.Editor.Path == "notes.txt" && selection.Selection == new SharpRail.Plugins.Api.UI.EditorSelection(1, 1, 1, 19, "plain-text-fixture"),
+        Require(selection.Editor.Path == "notes.txt" && selection.Selection == new Tereditor.Plugins.Api.UI.EditorSelection(1, 1, 1, 19, "plain-text-fixture"),
             $"Selecting a line reports it with one-based positions, got {selection.Selection}.");
         Press(editor, Avalonia.Input.Key.Home);
         Until(() => reported.Last().Selection is null);

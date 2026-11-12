@@ -2,9 +2,9 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 
-using SharpRail.UI.Resources;
+using Tereditor.UI.Resources;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
@@ -81,8 +81,8 @@ public sealed partial class WorkbenchWindow
     private void ClearDocumentContent(bool preserveDocuments = false)
     {
         foreach (var key in documentContent.Keys.ToArray())
-            if (!preserveDocuments || documentContent[key] is not (Terminal.TerminalView or SharpRail.UI.Resources.ResourcePane)) DropDocumentContent(key);
-            else if (documentContent[key] is SharpRail.UI.Resources.ResourcePane pane)
+            if (!preserveDocuments || documentContent[key] is not (Terminal.TerminalView or Tereditor.UI.Resources.ResourcePane)) DropDocumentContent(key);
+            else if (documentContent[key] is Tereditor.UI.Resources.ResourcePane pane)
             {
                 if (pane.Find<MarkdownPreviewBody>() is { } markdown)
                     markdown.Refresh(Rendering.MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()));

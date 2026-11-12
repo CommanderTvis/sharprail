@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
+namespace Tereditor.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>
 /// Claude's own <c>plugin</c> and <c>plugin marketplace</c> subcommands, composed as the exact argv the dialog shows

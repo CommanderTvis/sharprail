@@ -24,11 +24,11 @@ project: local adapters call Core directly, with no serialization.
   `IPluginRpc` (`PluginsContract.cs`), `ITerminalRpc` (`TerminalContract.cs`) and `ITerminalCatalogRpc`
   (`TerminalCatalogContract.cs`), their `[ProtoContract]` request/reply
   classes, and the metadata keys a call carries.
-- Domain records belong in `SharpRail.Host.Abstractions`; DTOs here are their
+- Domain records belong in `Tereditor.Host.Abstractions`; DTOs here are their
   serialized projection. Client and Remote adapters map between the two, and both
   directions must stay consistent with the public abstraction. A DTO is never
   exposed to the UI.
-- Allowed deps: the .NET WebSocket/channel APIs and `SharpRail.Wire` (the protobuf primitives, shared with the plugin
+- Allowed deps: the .NET WebSocket/channel APIs and `Tereditor.Wire` (the protobuf primitives, shared with the plugin
   channel). No serializer package: the payload codec is generated (see Payload codec).
 - Forbidden: any reference to Core, Remote, Client, the UI or Avalonia. Contracts
   describe host behavior and compatibility, never the launcher or deployment
@@ -88,7 +88,7 @@ project: local adapters call Core directly, with no serialization.
   `InvalidParams` is `InvalidArgument` and `Failed` is `Unknown`, the message riding
   the status detail.
 - Plugin surfaces (protocol 19, `HostProtocol.IsolatedSurfaces`): `SurfaceAsync` is one bidirectional call per client
-  and external plugin, carrying the client's session with the plugin's process ([Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md),
+  and external plugin, carrying the client's session with the plugin's process ([Security.SPEC.md](../Tereditor.Plugins.Api/Security.SPEC.md),
   UI halves). The first up message opens (plugin id, client key) or resumes (session token, last message received);
   the first down message answers with the token, the member tables' hash and the registrations, or with the last
   message the host received. Later up messages answer the plugin's calls, call and mirror into the plugin, and open,
@@ -119,7 +119,7 @@ project: local adapters call Core directly, with no serialization.
   host-state snapshot with a monotonic revision, so a replayed, duplicated or
   post-reconnect frame is idempotent and a client rehydrates whatever it missed.
 - Remote calls carry the workspace, not a session. Project calls send the
-  workspace root the client last opened in the binary `x-sharprail-root-bin`
+  workspace root the client last opened in the binary `x-tereditor-root-bin`
   header (`ProjectHeaders.Root`, UTF-8 so non-ASCII paths survive), so clients
   never share a current project and a reconnecting client needs no server
   session to resume.
@@ -139,18 +139,18 @@ project: local adapters call Core directly, with no serialization.
   also the undo token; an undo's receipt is itself undoable once, so redo needs no third operation.
   Receipts are host memory only (per workspace at most 20 and 64 MiB of held bytes, oldest evicted,
   newest always kept), because Git and the OS trash already back recovery.
-- A refused change is a `FailedPrecondition` status carrying the failure in the `x-sharprail-change-code`
+- A refused change is a `FailedPrecondition` status carrying the failure in the `x-tereditor-change-code`
   trailer (`StaleView`, `ScopeImmutable`, `RangeInvalid`, `ReceiptUnknown`, `UnsupportedChange`); the
   client proxy rethrows it as the same `ChangeException` the embedded host throws.
 - A named failure is a `FailedPrecondition` status carrying its `HostErrorCode` in the
-  `x-sharprail-error-code` trailer (`HostHeaders.ErrorCode`: `UnknownCommit`, `NotGit`, `AlreadyOpen`) on
+  `x-tereditor-error-code` trailer (`HostHeaders.ErrorCode`: `UnknownCommit`, `NotGit`, `AlreadyOpen`) on
   the project and state services; the client proxies rethrow it as the `HostException` the embedded host
   throws. An older client ignores the trailer and shows the detail text. Upstream's other codes have no
   counterpart here: a rejected push is `PrResult.Action == "authFailed"`, and the rest are chat failures.
 - Mutations are replayable (`ReplayContract.cs`, protocol version 3 as `HostProtocol.RequestReplay`). The
-  client sends its identity (`x-sharprail-client`, one per client process), a request id that stays the
-  same across replays (`x-sharprail-request`) and its complete set of unresolved ids
-  (`x-sharprail-resume`) with every replayable call (`ReplayHeaders.IsReplayable`). WebSocket RPC has no
+  client sends its identity (`x-tereditor-client`, one per client process), a request id that stays the
+  same across replays (`x-tereditor-request`) and its complete set of unresolved ids
+  (`x-tereditor-resume`) with every replayable call (`ReplayHeaders.IsReplayable`). WebSocket RPC has no
   per-connection frame to carry upstream's `ack` and `resume` messages, so one header does both jobs: an
   id missing from it has had its reply read, and restating the whole set on each call repairs anything a
   lost call failed to say. An older host ignores the headers, so a client replays only against a host
@@ -201,7 +201,7 @@ carry the bytes and return the same host path, never a client-local file path.
 
 ## WebSocket protocol
 
-Every remote client uses `/rpc` with the required `sharprail.rpc.v1` WebSocket subprotocol.
+Every remote client uses `/rpc` with the required `tereditor.rpc.v1` WebSocket subprotocol.
 Binary protobuf envelopes carry call ids, method names, request metadata, remaining deadline budgets,
 payload chunks, half-close, final status/error metadata, cancellation, receive credits and heartbeats.
 `scripts/generate-rpc.cs` generates typed clients and a closed host dispatch table from the interfaces;
@@ -225,8 +225,8 @@ protocol; the old HTTP/2 gRPC wire format is not accepted.
 
 Messages are protobuf, encoded and decoded by `RpcCodec.Generated.cs`: one write and one read method per
 `[ProtoContract]` class, emitted by `scripts/generate-rpc.cs` and registered once per message type, with
-the hand-written wire primitives in `src/SharpRail.Wire/ProtoWire.cs`. Those primitives moved there unchanged so the
-plugin channel (`SharpRail.Plugins.Isolation`) encodes its frames the same way; they stay internal, visible only to
+the hand-written wire primitives in `src/Tereditor.Wire/ProtoWire.cs`. Those primitives moved there unchanged so the
+plugin channel (`Tereditor.Plugins.Isolation`) encodes its frames the same way; they stay internal, visible only to
 this project and the isolation project, and `--rpc-codec` passing against the golden records proves the move kept
 every byte. It replaced protobuf-net 2.4.8, whose runtime type
 model compiles serializers with dynamic code and reflection (Reflection.Emit, `MakeGenericType`,
@@ -243,8 +243,8 @@ and weighs requests and replies this way, because a replayed upload may approach
 and holding a second copy of it would bypass the connection's byte budget.
 
 The encoding is byte-compatible with protobuf-net 2.4.8, because a remote host and the app ship
-independently. The protocol version and the `sharprail.rpc.v1` subprotocol stayed the same. The
-`[ProtoContract]` and `[ProtoMember]` attributes are now SharpRail's own (in `SharpRail.Wire`) and remain the schema. These
+independently. The protocol version and the `tereditor.rpc.v1` subprotocol stayed the same. The
+`[ProtoContract]` and `[ProtoMember]` attributes are now tereditor's own (in `Tereditor.Wire`) and remain the schema. These
 are the rules the generator follows; all of them were observed from protobuf-net:
 
 - Fields are written in ascending field number, whatever the declaration order. Integers, booleans
@@ -265,7 +265,7 @@ are the rules the generator follows; all of them were observed from protobuf-net
   truncated field, a varint too large for its member, a boolean other than 0 or 1, a mismatched wire
   type for a string, bytes, message or list, field number 0, or an unbalanced group.
 
-The `--rpc-codec` check holds the proof (`tests/SharpRail.Checks/Fixtures/rpc-codec/golden.jsonl`). The
+The `--rpc-codec` check holds the proof (`tests/Tereditor.Checks/Fixtures/rpc-codec/golden.jsonl`). The
 golden records were captured from protobuf-net 2.4.8 before it was removed, for every contract type: the
 default instance, every member set, zeros and empties, and negatives with nulls. Each record also has
 size-boundary and edge samples and hand-built decode-only inputs. A record holds the sample as JSON,

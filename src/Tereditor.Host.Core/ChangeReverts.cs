@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 
-using SharpRail.Host.Abstractions;
+using Tereditor.Host.Abstractions;
 
-namespace SharpRail.Host.Core;
+namespace Tereditor.Host.Core;
 
 public sealed partial class ProjectServices
 {
@@ -184,7 +184,7 @@ public sealed partial class ProjectServices
     {
         var directory = Path.GetDirectoryName(full)!;
         Directory.CreateDirectory(directory);
-        var temporary = Path.Combine(directory, $".sharprail-revert-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        var temporary = Path.Combine(directory, $".tereditor-revert-{Environment.ProcessId}-{Guid.NewGuid():N}");
         try
         {
             File.WriteAllBytes(temporary, state.Bytes!);
@@ -200,15 +200,15 @@ public sealed partial class ProjectServices
     /// </summary>
     private static string TrashFile(string full)
     {
-        var claimed = Path.Combine(Path.GetDirectoryName(full)!, ".sharprail-revert-" + ReceiptId());
+        var claimed = Path.Combine(Path.GetDirectoryName(full)!, ".tereditor-revert-" + ReceiptId());
         File.Move(full, claimed);
-        try { global::SharpRail.Host.Core.Trash.Move(claimed, Path.GetFileName(full)); }
+        try { global::Tereditor.Host.Core.Trash.Move(claimed, Path.GetFileName(full)); }
         catch
         {
             try { File.Move(claimed, full); }
             catch (Exception)
             {
-                var recovery = Path.Combine(Path.GetDirectoryName(full)!, ".sharprail-recovery-" + ReceiptId());
+                var recovery = Path.Combine(Path.GetDirectoryName(full)!, ".tereditor-recovery-" + ReceiptId());
                 File.Move(claimed, recovery);
                 throw new IOException($"The system trash refused {Path.GetFileName(full)}. The claimed file was preserved at {recovery}.");
             }

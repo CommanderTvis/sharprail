@@ -14,20 +14,20 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Plugins.Isolation;
-using SharpRail.Plugins.Isolation;
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Plugins;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI;
+using Tereditor.UI.Panels;
+using Tereditor.UI.Plugins;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>
 /// <c>--plugin-surface</c>: an external plugin's views rendered in its process and shown as pixels in the app
-/// (src/SharpRail.Plugins.Api/Security.SPEC.md, UI halves). The tile codec and the host's relay on their own, then the
+/// (src/Tereditor.Plugins.Api/Security.SPEC.md, UI halves). The tile codec and the host's relay on their own, then the
 /// outsider fixture in a headless workbench: its side tool, settings section and file viewer show exactly what the
 /// plugin's process renders, a click and a key press on its button change its settings and the view, typed text
 /// reaches its note, Tab leaves the surface, a wheel scrolls its list with a move, a theme change re-renders it, its
@@ -342,7 +342,7 @@ internal static class PluginSurfaceChecks
             Console.WriteLine($"PASS plugin surface scroll: a wheel over the list sends a move, the moved frame carried {board.MovedFrameTiles} tiles ({board.MovedFrameBytes} bytes) for a list of {list[2]:0}x{list[3]:0}, and the pixels still equal the plugin's render");
 
             // A theme change re-renders the plugin's view under the new kit tokens.
-            var other = SharpRail.UI.Rendering.Themes.All.First(theme => theme.IsLight != original.IsLight);
+            var other = Tereditor.UI.Rendering.Themes.All.First(theme => theme.IsLight != original.IsLight);
             before = shown.Pixels;
             Ui.Apply(other);
             shown = Settle(board, "the side tool after a theme change", changedFrom: before);

@@ -15,7 +15,7 @@ return Guard(() =>
     var arch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x86_64";
     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
     Check("clang", ["-dynamiclib", "-arch", arch, "-mmacosx-version-min=13.0", $"-Wl,-force_load,{library}", "-Wl,-exported_symbol,_merman_*",
-        "-framework", "CoreFoundation", "-install_name", "@rpath/libSharpRailMermaid.dylib", "-o", output + ".partial"], Root);
+        "-framework", "CoreFoundation", "-install_name", "@rpath/libTereditorMermaid.dylib", "-o", output + ".partial"], Root);
     File.Move(output + ".partial", output, true);
     return 0;
 });

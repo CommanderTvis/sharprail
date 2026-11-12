@@ -10,12 +10,12 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.Api.UI;
-using SharpRail.Scintilla;
-using SharpRail.UI.Resources;
+using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.Api.UI;
+using Tereditor.Scintilla;
+using Tereditor.UI.Resources;
 
-namespace SharpRail.UI.Rendering;
+namespace Tereditor.UI.Rendering;
 
 /// <summary>One view of a diff tab. The source diff is drawn by the pane itself and has no <paramref name="Render"/>.</summary>
 internal sealed record DiffChoice(string Id, string Label, Func<CancellationToken, Task<Control?>>? Render)

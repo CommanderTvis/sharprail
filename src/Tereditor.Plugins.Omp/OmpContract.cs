@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.Omp;
+namespace Tereditor.Plugins.Omp;
 
 /// <summary>Where a context file applies: the omp user (or profile) directory, a directory above the launch directory, or the launch directory.</summary>
 public enum OmpContextScope
@@ -12,7 +12,7 @@ public enum OmpContextScope
     Project
 }
 
-/// <summary>The context files SharpRail offers to create when missing.</summary>
+/// <summary>The context files tereditor offers to create when missing.</summary>
 public enum OmpContextTarget
 {
     /// <summary><c>&lt;workspace&gt;/AGENTS.md</c>.</summary>
@@ -29,7 +29,7 @@ public sealed record OmpStatus(bool Installed, string Command)
 {
     public string? Version { get; init; }
     public string? Detail { get; init; }
-    /// <summary>The SharpRail profile's MCP file, when launches use the profile.</summary>
+    /// <summary>The tereditor profile's MCP file, when launches use the profile.</summary>
     public string? ProfileMcpPath { get; init; }
 }
 
@@ -51,7 +51,7 @@ public sealed record OmpContextFile(string Label, string Path, OmpContextScope S
 public sealed record OmpContextOffer(OmpContextTarget Target, string Label, string RelativePath);
 
 /// <summary>The context files omp would read for a launch in <paramref name="Root"/>, most general first, with the offers for missing ones.</summary>
-/// <param name="UserDirectory">The agent directory user-level files come from: the SharpRail profile's when launches use it.</param>
+/// <param name="UserDirectory">The agent directory user-level files come from: the tereditor profile's when launches use it.</param>
 public sealed record OmpContextSnapshot(string Root, string UserDirectory, IReadOnlyList<OmpContextFile> Files, IReadOnlyList<OmpContextOffer> Offers);
 
 public sealed record OmpNoParams;
@@ -60,7 +60,7 @@ public sealed record OmpWorkspaceParams(string WorkspaceId);
 
 public sealed record OmpCreateParams(string WorkspaceId, OmpContextTarget Target);
 
-/// <summary>The outcome of copying the default omp profile's sign-in into SharpRail's profile; the message carries no credentials.</summary>
+/// <summary>The outcome of copying the default omp profile's sign-in into tereditor's profile; the message carries no credentials.</summary>
 public sealed record OmpSignInResult(bool Success, string Message);
 
 public sealed record OmpSettings
@@ -73,9 +73,9 @@ public sealed record OmpSettings
     public string ApprovalMode { get; set; } = "";
     /// <summary><c>--advisor</c>.</summary>
     public bool Advisor { get; init; }
-    /// <summary>Launch with SharpRail's profile, whose MCP file names SharpRail's server.</summary>
+    /// <summary>Launch with tereditor's profile, whose MCP file names tereditor's server.</summary>
     public bool Mcp { get; set; } = true;
-    /// <summary>Keep omp's own language servers; off passes <c>--no-lsp</c> so sessions use SharpRail's.</summary>
+    /// <summary>Keep omp's own language servers; off passes <c>--no-lsp</c> so sessions use tereditor's.</summary>
     public bool OwnCodeIntelligence { get; init; }
 }
 
@@ -86,7 +86,7 @@ public static class OmpContract
     public static readonly PluginMethod<OmpNoParams, OmpStatus> Status = new("status");
     public static readonly PluginMethod<OmpWorkspaceParams, OmpContextSnapshot> Context = new("context");
     public static readonly PluginMethod<OmpCreateParams, OmpContextSnapshot> CreateContextFile = new("createContextFile");
-    /// <summary>Pipes <c>omp auth export</c> (default profile) into <c>omp --profile sharprail auth import -</c> on the host.</summary>
+    /// <summary>Pipes <c>omp auth export</c> (default profile) into <c>omp --profile tereditor auth import -</c> on the host.</summary>
     public static readonly PluginMethod<OmpNoParams, OmpSignInResult> ImportSignIn = new("importSignIn");
 
     public static readonly PluginContract Contract = PluginContract.Create<OmpSettings>(OmpManifest.Id, WireVersion,

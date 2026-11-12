@@ -1,6 +1,6 @@
-using SharpRail.Plugins.Api;
+using Tereditor.Plugins.Api;
 
-namespace SharpRail.Plugins.AirContext.Host;
+namespace Tereditor.Plugins.AirContext.Host;
 
 /// <summary>
 /// Moves what Air Context kept in the host before it became a plugin into the plugin's own state: the CLI storage

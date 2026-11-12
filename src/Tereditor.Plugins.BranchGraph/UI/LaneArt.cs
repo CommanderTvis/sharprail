@@ -3,9 +3,9 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-using SharpRail.Plugins.UI.Kit;
+using Tereditor.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.BranchGraph.UI;
+namespace Tereditor.Plugins.BranchGraph.UI;
 
 /// <summary>
 /// One row's lane art. It is drawn at the width the whole read can need, so a row never has to be redrawn to widen,

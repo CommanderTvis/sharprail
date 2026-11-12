@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization.Metadata;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Acp.Host;
+namespace Tereditor.Plugins.Acp.Host;
 
 /// <summary>The ACP plugin's host half: the agent list and the chat sessions over ACP agents' stdio.</summary>
 public sealed class AcpHost : PluginHostModule

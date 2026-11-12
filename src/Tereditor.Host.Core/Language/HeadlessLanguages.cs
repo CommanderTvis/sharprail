@@ -1,10 +1,10 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core.Language;
+namespace Tereditor.Host.Core.Language;
 
 /// <summary>
-/// Which language servers headless SharpRail serves. The manifests decide: a server declares <c>Headless = Yes</c> only when its installation and launch
+/// Which language servers headless tereditor serves. The manifests decide: a server declares <c>Headless = Yes</c> only when its installation and launch
 /// need nothing the machine must already have (every runtime is a pinned managed download, or the server is a self-contained archive); one that needs
 /// a toolchain without a pinned download (a JDK, Go, Rust, Ruby, R, PowerShell, Swift, Dart, Coursier) declares <c>No</c> until that runtime is pinned.
 /// <see cref="Refusal"/> re-derives that from the pins, so a check can fail when a manifest and the pins disagree, and it is what would leave a declared server
@@ -38,7 +38,7 @@ internal static class HeadlessLanguages
 
     /// <summary>
     /// Plugins that are headless-capable but part of the roster only when the environment asks for them, with the server ids that ask for them in
-    /// <c>SHARPRAIL_PREFETCH</c> or <c>SHARPRAIL_ACCEPT_TERMS</c>. Without that the server does not exist in a headless host: no language, no tool, no text, no download.
+    /// <c>TEREDITOR_PREFETCH</c> or <c>TEREDITOR_ACCEPT_TERMS</c>. Without that the server does not exist in a headless host: no language, no tool, no text, no download.
     /// </summary>
     private static readonly Dictionary<string, string> OptInServers = new(StringComparer.Ordinal) { ["lsp-intellij"] = "intellij" };
 
@@ -46,7 +46,7 @@ internal static class HeadlessLanguages
     internal static IReadOnlySet<string> OptedIn(Func<string, string?> environment)
     {
         var named = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in new[] { "SHARPRAIL_PREFETCH", "SHARPRAIL_ACCEPT_TERMS" })
+        foreach (var name in new[] { "TEREDITOR_PREFETCH", "TEREDITOR_ACCEPT_TERMS" })
             foreach (var entry in (environment(name) ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                 named.Add(entry.Contains(':') ? entry[..entry.IndexOf(':')] : entry);
         return OptInServers.Where(pair => named.Contains(pair.Value)).Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);

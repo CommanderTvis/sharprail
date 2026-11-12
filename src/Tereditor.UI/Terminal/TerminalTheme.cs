@@ -2,11 +2,11 @@ using Avalonia.Platform;
 
 using Ghostty.Avalonia;
 
-using SharpRail.UI.Rendering;
-
 using SkiaSharp;
 
-namespace SharpRail.UI.Terminal;
+using Tereditor.UI.Rendering;
+
+namespace Tereditor.UI.Terminal;
 
 /// <summary>The workbench's terminal colours and font.</summary>
 internal static class TerminalTheme
@@ -28,7 +28,7 @@ internal static class TerminalTheme
     // JetBrains Mono, Ghostty's own default, from the app's bundled fonts; shared for the app's lifetime.
     internal static readonly Lazy<SKTypeface> Typeface = new(() =>
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        using var stream = AssetLoader.Open(new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
         return SKTypeface.FromStream(stream);
     });
 }

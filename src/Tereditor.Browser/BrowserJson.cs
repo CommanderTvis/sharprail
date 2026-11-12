@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using SharpRail.UI.Resources.Pdf;
+using Tereditor.UI.Resources.Pdf;
 
-namespace SharpRail.UI.Browser;
+namespace Tereditor.UI.Browser;
 
 /// <summary>
 /// Source-generated JSON metadata, with the serializer's default options, for what the tab hands to and takes from its

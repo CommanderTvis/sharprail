@@ -4,7 +4,7 @@ using System.Text;
 
 using Microsoft.CodeAnalysis;
 
-namespace SharpRail.Plugins.Isolation.Generator;
+namespace Tereditor.Plugins.Isolation.Generator;
 
 /// <summary>Writes the generated sources for one member table.</summary>
 internal sealed partial class Emitter
@@ -40,7 +40,7 @@ internal sealed partial class Emitter
             text.AppendLine($"    public const int {member.Name} = unchecked((int)0x{member.Id:x8});");
         text.AppendLine();
         text.AppendLine("    /// <summary>Every member, sorted by documentation-comment id.</summary>");
-        text.AppendLine("    public static global::System.Collections.Generic.IReadOnlyList<global::SharpRail.Plugins.Isolation.IsolationMember> Table { get; } =");
+        text.AppendLine("    public static global::System.Collections.Generic.IReadOnlyList<global::Tereditor.Plugins.Isolation.IsolationMember> Table { get; } =");
         text.AppendLine("    [");
         foreach (var member in table.Members)
             text.AppendLine($"        new({member.Name}, {Literal(member.DocId)}, {Literal(member.Permission)}, {Literal(member.Condition)}, {(member.Ambient ? "true" : "false")}, {Literal(member.Crossing ?? "")}, {(member.Pending ? "true" : "false")}),");

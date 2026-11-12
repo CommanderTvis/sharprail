@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.Blueprint;
+namespace Tereditor.Plugins.Blueprint;
 
 /// <summary>Applies reader edits and carries locked choices through an author's rewrite.</summary>
 public static class BlueprintReconcile

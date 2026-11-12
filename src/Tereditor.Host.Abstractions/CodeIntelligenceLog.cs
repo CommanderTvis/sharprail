@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Channels;
 
-namespace SharpRail.Host.Abstractions;
+namespace Tereditor.Host.Abstractions;
 
 /// <summary>
-/// The Code Intelligence lifecycle log: one line per event, <c>key=value</c>, at <c>~/.sharprail/logs/code-intelligence.log</c>
+/// The Code Intelligence lifecycle log: one line per event, <c>key=value</c>, at <c>~/.tereditor/logs/code-intelligence.log</c>
 /// (about 2 MB, one rotated copy <c>.1</c>). Callers only enqueue; a background thread writes, so no caller (above all the UI thread)
 /// waits for the disk. Lines carry names, ids, durations and exception types, never file contents or secrets.
 /// </summary>
@@ -25,7 +25,7 @@ public static class CodeIntelligenceLog
     /// <summary>The log file; tests point it at a temporary file before the first line is written.</summary>
     public static string Path
     {
-        get => path ??= System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "logs", "code-intelligence.log");
+        get => path ??= System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tereditor", "logs", "code-intelligence.log");
         set { lock (Gate) path = value; }
     }
 

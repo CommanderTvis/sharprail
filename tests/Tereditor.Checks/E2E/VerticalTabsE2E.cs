@@ -5,13 +5,13 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
+using Tereditor.Plugins.UI.Kit;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks.E2E;
+namespace Tereditor.Checks.E2E;
 
 /// <summary>Fork layout.spec.ts: vertical centre tabs, tab panes, and the column living in Projects.</summary>
 internal static class VerticalTabsE2E
@@ -81,8 +81,8 @@ internal static class VerticalTabsE2E
                     app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, workspace))
                         .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, terminal.Id));
                 app.ContextAction(button, "Rename");
-                Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Rename terminal"));
-                return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Rename terminal");
+                Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Rename terminal"));
+                return Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Rename terminal");
             }
             var dialog = Rename();
             var input = dialog.GetLogicalDescendants().OfType<TextBox>().Single();

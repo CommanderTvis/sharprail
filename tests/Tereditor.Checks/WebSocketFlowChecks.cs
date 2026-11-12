@@ -8,10 +8,10 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using SharpRail.Host.Client;
-using SharpRail.Host.Protocol;
+using Tereditor.Host.Client;
+using Tereditor.Host.Protocol;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 internal static class WebSocketFlowChecks
 {

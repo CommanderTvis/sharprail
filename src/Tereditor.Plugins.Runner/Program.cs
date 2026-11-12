@@ -1,9 +1,9 @@
-using SharpRail.Plugins.Isolation;
+using Tereditor.Plugins.Isolation;
 
-namespace SharpRail.Plugins.Runner;
+namespace Tereditor.Plugins.Runner;
 
 /// <summary>
-/// The plugin runner: <c>SharpRail.PluginRunner plugin|probe echo|avalonia-private|ui-context [--channel &lt;handle&gt;]</c>. The host starts it
+/// The plugin runner: <c>Tereditor.PluginRunner plugin|probe echo|avalonia-private|ui-context [--channel &lt;handle&gt;]</c>. The host starts it
 /// with its channel at descriptor 3 (Unix) or the handle <c>--channel</c> names (Windows); it exits when the channel ends.
 /// </summary>
 internal static class Program
@@ -28,7 +28,7 @@ internal static class Program
             case ["probe", RunnerProbe.UIContextMode]:
                 return UIContextProbe.RunAsync(channel).GetAwaiter().GetResult();
             default:
-                Console.Error.WriteLine("Usage: SharpRail.PluginRunner plugin|probe echo|avalonia-private|ui-context");
+                Console.Error.WriteLine("Usage: Tereditor.PluginRunner plugin|probe echo|avalonia-private|ui-context");
                 return 2;
         }
     }

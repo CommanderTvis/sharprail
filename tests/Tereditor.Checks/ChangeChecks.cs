@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>Host-owned revert and undo: pure line arithmetic, then the same scenarios through the embedded host and a real WebSocket RPC host.</summary>
 internal static class ChangeChecks
@@ -50,8 +50,8 @@ internal static class ChangeChecks
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         Directory.CreateDirectory(directory);
         var trash = Path.Combine(directory, "trash");
-        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_TRASH_DIR");
-        Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", trash);
+        var previous = Environment.GetEnvironmentVariable("TEREDITOR_TRASH_DIR");
+        Environment.SetEnvironmentVariable("TEREDITOR_TRASH_DIR", trash);
         try
         {
             var localRoot = await Fixture(Path.Combine(directory, "local"));
@@ -75,7 +75,7 @@ internal static class ChangeChecks
             }
             finally { await server.StopAsync(); }
         }
-        finally { Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", previous); }
+        finally { Environment.SetEnvironmentVariable("TEREDITOR_TRASH_DIR", previous); }
         Console.WriteLine("PASS change revert and undo checks");
     }
 
@@ -136,7 +136,7 @@ internal static class ChangeChecks
         try { return Project(await action()); }
         catch (ChangeException error) { return "code:" + error.Code; }
         catch (UnauthorizedAccessException) { return "denied"; }
-        catch (SharpRail.Host.Protocol.RpcException) { return "denied"; }
+        catch (Tereditor.Host.Protocol.RpcException) { return "denied"; }
     }
 
     private static string Hash(string path) => ContentInfo.Sha256Hex(File.ReadAllBytes(path));
@@ -151,7 +151,7 @@ internal static class ChangeChecks
             return await host.RevertChangeAsync(path, scope, comparison, target, new(sides.OriginalHash, sides.ModifiedHash));
         }
         async Task Reset(string name) { await Git(repo, "checkout", "-q", "--", name); }
-        var trash = Environment.GetEnvironmentVariable("SHARPRAIL_TRASH_DIR")!;
+        var trash = Environment.GetEnvironmentVariable("TEREDITOR_TRASH_DIR")!;
 
         // Hunks: modified, inserted and deleted blocks restore exact bytes, and the file's own mode survives.
         await File.WriteAllTextAsync(P("a.txt"), "one\nTWO\nthree\n");
@@ -189,7 +189,7 @@ internal static class ChangeChecks
         await File.WriteAllTextAsync(P("new.txt"), "added\n");
         var trashed = await Revert("new.txt", "uncommitted", new());
         Require(!File.Exists(P("new.txt")) && trashed.Trashed is not null && trashed.After.Hash is null && File.ReadAllText(Path.Combine(trash, "new.txt")) == "added\n", "An untracked file goes to the trash.");
-        Require(Directory.GetFileSystemEntries(repo).All(entry => !Path.GetFileName(entry).StartsWith(".sharprail-", StringComparison.Ordinal)), "No claim or temp file may remain.");
+        Require(Directory.GetFileSystemEntries(repo).All(entry => !Path.GetFileName(entry).StartsWith(".tereditor-", StringComparison.Ordinal)), "No claim or temp file may remain.");
         log.Add(Project(trashed));
         log.Add(Project(await host.UndoChangeAsync(trashed.Id, null)));
         Require(File.Exists(P("new.txt")), "Undo of a trash revert restores the file.");

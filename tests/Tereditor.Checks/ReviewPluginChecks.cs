@@ -3,15 +3,15 @@ using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.Checks.E2E;
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
-using SharpRail.Plugins.Review;
-using SharpRail.UI.Docking;
+using Tereditor.Checks.E2E;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Core;
+using Tereditor.Plugins.Review;
+using Tereditor.UI.Docking;
 
-using static SharpRail.Checks.E2E.E2eWorkspace;
+using static Tereditor.Checks.E2E.E2eWorkspace;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The Review tool window is a plugin: a layout that still names the old core tool reads as the plugin's, and switching the plugin off removes the tool without touching the layout.</summary>
 internal static class ReviewPluginChecks

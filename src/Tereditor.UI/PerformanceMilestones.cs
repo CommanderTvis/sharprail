@@ -4,11 +4,11 @@ using System.Text.Json.Nodes;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 
-namespace SharpRail.UI;
+namespace Tereditor.UI;
 
 internal static class StartupPhases
 {
-    internal static readonly bool Enabled = Environment.GetEnvironmentVariable("SHARPRAIL_PERFORMANCE") == "1";
+    internal static readonly bool Enabled = Environment.GetEnvironmentVariable("TEREDITOR_PERFORMANCE") == "1";
     private static readonly (string Name, long Timestamp)[] Pending = Enabled ? new (string, long)[32] : [];
     private static int count;
     private static int flushed;
@@ -53,7 +53,7 @@ internal static class StartupPhases
             while (flushed < count)
             {
                 var (name, timestamp) = Pending[flushed++];
-                Console.WriteLine("SHARPRAIL_PERF " + new JsonObject { ["milestone"] = name, ["timestamp"] = timestamp, ["frequency"] = Stopwatch.Frequency, ["status"] = "ok" }.ToJsonString());
+                Console.WriteLine("TEREDITOR_PERF " + new JsonObject { ["milestone"] = name, ["timestamp"] = timestamp, ["frequency"] = Stopwatch.Frequency, ["status"] = "ok" }.ToJsonString());
             }
         }
     }
@@ -102,7 +102,7 @@ public sealed partial class WorkbenchWindow
         private bool failed;
         private readonly HashSet<string> emitted = [];
 
-        internal static StartupMilestones? Create() => Environment.GetEnvironmentVariable("SHARPRAIL_PERFORMANCE") == "1" ? new() : null;
+        internal static StartupMilestones? Create() => Environment.GetEnvironmentVariable("TEREDITOR_PERFORMANCE") == "1" ? new() : null;
         internal void Begin(long request) => initialRequest ??= request;
         internal bool Matches(long request) => initialRequest == request;
 
@@ -122,7 +122,7 @@ public sealed partial class WorkbenchWindow
             if (!emitted.Add(milestone)) return;
             var at = timestamp ?? Stopwatch.GetTimestamp();
             StartupPhases.Flush();
-            Console.WriteLine("SHARPRAIL_PERF " + new JsonObject
+            Console.WriteLine("TEREDITOR_PERF " + new JsonObject
             {
                 ["milestone"] = milestone,
                 ["timestamp"] = at,
@@ -134,7 +134,7 @@ public sealed partial class WorkbenchWindow
     }
 }
 /// <summary>
-/// With <c>SHARPRAIL_PERFORMANCE=1</c>, one line per workspace switch naming each step from the request to its layout pass, in
+/// With <c>TEREDITOR_PERFORMANCE=1</c>, one line per workspace switch naming each step from the request to its layout pass, in
 /// milliseconds since the request: the steps awaited before the workspace mounts are its critical path. Checks observe the
 /// steps as they happen through <see cref="Observer"/>.
 /// </summary>
@@ -154,6 +154,6 @@ internal sealed class SwitchTimeline
 
     internal void Flush(string target)
     {
-        if (StartupPhases.Enabled) Console.WriteLine($"SHARPRAIL_SWITCH {string.Join(' ', steps)} target={target}");
+        if (StartupPhases.Enabled) Console.WriteLine($"TEREDITOR_SWITCH {string.Join(' ', steps)} target={target}");
     }
 }

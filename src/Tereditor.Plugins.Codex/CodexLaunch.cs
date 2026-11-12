@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.Codex;
+namespace Tereditor.Plugins.Codex;
 
 public sealed record CodexLaunchPreset(string Id, string Label)
 {
@@ -15,7 +15,7 @@ public enum CodexDaemonMode
 {
     /// <summary><c>--no-daemon</c>.</summary>
     Standalone,
-    /// <summary><c>--remote unix://</c>: the daemon's default Unix socket. SharpRail never starts the daemon.</summary>
+    /// <summary><c>--remote unix://</c>: the daemon's default Unix socket. tereditor never starts the daemon.</summary>
     Shared
 }
 
@@ -23,7 +23,7 @@ public sealed record CodexLaunchOptions(bool Mcp, bool Windows)
 {
     /// <summary>Null adds no flag; Shared falls back to standalone on Windows, which has no Unix socket.</summary>
     public CodexDaemonMode? Daemon { get; init; }
-    /// <summary>Adds SharpRail's developer instructions from <see cref="CodexLaunch.PromptJsonVariable"/>; ignored on Windows.</summary>
+    /// <summary>Adds tereditor's developer instructions from <see cref="CodexLaunch.PromptJsonVariable"/>; ignored on Windows.</summary>
     public bool AppendSystemPrompt { get; init; }
     /// <summary>Marks this command as a UI launch independently of the prompt and MCP settings.</summary>
     public bool UiLaunch { get; init; }
@@ -38,51 +38,51 @@ public sealed record CodexLaunchOptions(bool Mcp, bool Windows)
     public string? ResumeSessionId { get; init; }
     public CodexLaunchPreset? Preset { get; init; }
     /// <summary>Other plugins' launch contributions, applied to the executable word.</summary>
-    public IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution> Contributions { get; init; } = [];
+    public IReadOnlyList<Tereditor.Plugins.Api.AgentLaunchContribution> Contributions { get; init; } = [];
 }
 
 /// <summary>The launch line, shared by the launcher and the host's revive prefill.</summary>
 public static partial class CodexLaunch
 {
     /// <summary>The developer instructions file's text as a JSON string, set in every terminal by the host.</summary>
-    public const string PromptJsonVariable = "SHARPRAIL_CODEX_PROMPT_JSON";
-    /// <summary>The folder SharpRail lists a project's workspaces from, set in every terminal of a project.</summary>
-    public const string WorktreesVariable = "SHARPRAIL_WORKTREES_DIR";
+    public const string PromptJsonVariable = "TEREDITOR_CODEX_PROMPT_JSON";
+    /// <summary>The folder tereditor lists a project's workspaces from, set in every terminal of a project.</summary>
+    public const string WorktreesVariable = "TEREDITOR_WORKTREES_DIR";
     /// <summary>The workspace's host-owned scratch directory, outside the project, set in every terminal and granted to the session with <c>--add-dir</c>.</summary>
-    public const string ScratchVariable = "SHARPRAIL_SCRATCH_DIR";
+    public const string ScratchVariable = "TEREDITOR_SCRATCH_DIR";
     /// <summary>A command-scoped marker distinguishing UI launches from commands typed into a terminal.</summary>
-    public const string UiLaunchPrefix = "SHARPRAIL_UI_LAUNCH=codex";
-    /// <summary>Tags the inherited status URL, so the first hook report says the session got SharpRail's instructions.</summary>
+    public const string UiLaunchPrefix = "TEREDITOR_UI_LAUNCH=codex";
+    /// <summary>Tags the inherited status URL, so the first hook report says the session got tereditor's instructions.</summary>
     public const string PromptLaunchPrefix = "THINKRAIL_CODEX_STATUS_URL=\"$THINKRAIL_CODEX_STATUS_URL?thinkrail_prompt=1\"";
 
-    public static bool HasSharpRailPrompt(string command) => command.StartsWith(PromptLaunchPrefix + " ", StringComparison.Ordinal);
+    public static bool HasTereditorPrompt(string command) => command.StartsWith(PromptLaunchPrefix + " ", StringComparison.Ordinal);
 
     public static string ShellQuote(string word) => SafeWord().IsMatch(word) ? word : "'" + word.Replace("'", "'\\''") + "'";
 
     private static string ConfigArg(string key, string value) => "-c " + ShellQuote(key + "=" + JsonSerializer.Serialize(value, CodexTextJson.Relaxed.String));
 
     // The MCP URL is minted per terminal by core, so it is left for the shell to expand.
-    public const string McpOverride = "-c \"mcp_servers.sharprail.url=\\\"$THINKRAIL_MCP_URL\\\"\"" +
-        " -c 'mcp_servers.sharprail.tools.set_title.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.spec_get.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.spec_graph.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.spec_grep.approval_mode=\"approve\"'" +
-        " \\\n -c 'mcp_servers.sharprail.tools.spec_validate.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.blueprint_check.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.lsp_navigate.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.lsp_diagnostics.approval_mode=\"approve\"'" +
-        " \\\n -c 'mcp_servers.sharprail.tools.lsp_status.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.lsp_code_actions.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.lsp_rename.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.lsp_format.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.context_search.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.context_status.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.context_index.approval_mode=\"approve\"'";
+    public const string McpOverride = "-c \"mcp_servers.tereditor.url=\\\"$THINKRAIL_MCP_URL\\\"\"" +
+        " -c 'mcp_servers.tereditor.tools.set_title.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.spec_get.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.spec_graph.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.spec_grep.approval_mode=\"approve\"'" +
+        " \\\n -c 'mcp_servers.tereditor.tools.spec_validate.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.blueprint_check.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.lsp_navigate.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.lsp_diagnostics.approval_mode=\"approve\"'" +
+        " \\\n -c 'mcp_servers.tereditor.tools.lsp_status.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.lsp_code_actions.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.lsp_rename.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.lsp_format.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.context_search.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.context_status.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.tereditor.tools.context_index.approval_mode=\"approve\"'";
 
     public static string Line(string command, CodexLaunchOptions options)
     {
         var executable = command.Trim() is { Length: > 0 } trimmed ? trimmed : "codex";
-        var parts = new List<string> { options.Contributions.Count > 0 ? SharpRail.Plugins.Api.AgentLaunchComposition.Apply(executable, "codex", options.Contributions, options.Windows) : executable };
+        var parts = new List<string> { options.Contributions.Count > 0 ? Tereditor.Plugins.Api.AgentLaunchComposition.Apply(executable, "codex", options.Contributions, options.Windows) : executable };
         if (options.Resume) parts.AddRange(["resume", options.ResumeSessionId is { Length: > 0 } id ? ShellQuote(id) : "--last"]);
         else if (options.Preset?.Subcommand is { } subcommand) parts.Add(subcommand);
         if (options.Daemon is { } daemon && !ArgumentWord().Matches(options.Preset?.Args ?? "").Any(match =>

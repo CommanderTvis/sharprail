@@ -3,7 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 
-namespace SharpRail.Plugins.UI.Kit;
+namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>The chip family every terminal accessory row draws from: one height, radius, type size, padding and fill.</summary>
 public static class Chips

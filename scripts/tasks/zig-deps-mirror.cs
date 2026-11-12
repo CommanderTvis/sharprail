@@ -19,7 +19,7 @@ return Guard(() =>
     var architecture = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64";
     Check("sh", [At("src", "Ghostty.Avalonia", "build-native.sh"), $"osx-{architecture}", Path.Combine(work, "native")], env: new Dictionary<string, string>
     {
-        ["SHARPRAIL_CACHE_DIR"] = Path.Combine(work, "cache"),
+        ["TEREDITOR_CACHE_DIR"] = Path.Combine(work, "cache"),
         ["ZIG_GLOBAL_CACHE_DIR"] = Path.Combine(work, "gc"),
         ["ZIG_DEPS_NO_RESTORE"] = "1",
     });

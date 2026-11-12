@@ -1,7 +1,7 @@
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.Epub.Host;
+namespace Tereditor.Plugins.Epub.Host;
 
 /// <summary>
 /// Reads and converts books on the host, so a remote client never touches the file: <c>open</c> returns the book as

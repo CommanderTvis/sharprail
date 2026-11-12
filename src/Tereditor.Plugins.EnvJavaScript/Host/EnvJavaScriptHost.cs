@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-using SharpRail.Plugins.Api;
-using SharpRail.Plugins.Api.Host;
+using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
-namespace SharpRail.Plugins.EnvJavaScript.Host;
+namespace Tereditor.Plugins.EnvJavaScript.Host;
 
 /// <summary>
 /// Puts a workspace's JavaScript tooling on PATH for the main runtimes: <c>node_modules/.bin</c> (npm, pnpm, yarn's

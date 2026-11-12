@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+    <ProjectReference Include="../../Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" />
   </ItemGroup>
 </Project>

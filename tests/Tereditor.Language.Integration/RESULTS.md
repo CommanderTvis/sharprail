@@ -60,7 +60,7 @@ The full four-lane gate did not pass: MarkdownDocumentE2E timed out, and its iso
 resume also timed out while opening LARGE.md. Other completed lanes passed. This unrelated
 UI failure remains unresolved; the final R provisioning guard was verified by a subsequent
 Release build and focused language run, not another full gate. Upstream Git scenarios remain
-conditional on SHARPRAIL_TEST_GIT_SOURCE. No expensive corpus case is registered in the gate.
+conditional on TEREDITOR_TEST_GIT_SOURCE. No expensive corpus case is registered in the gate.
 
 
 Follow-up, 2026-10-17: after rebasing onto main a8abf30f, Release and focused LSP/UI

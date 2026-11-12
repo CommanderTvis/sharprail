@@ -1,6 +1,6 @@
 ---
 name: writing-specs
-description: "Use when drafting or revising a spec in a project that keeps a SharpRail spec graph — a goal-and-requirements, an architecture, or a module SPEC — or when another spec skill names it at such a step. The shared quality bar for specs — not a workflow, nothing to execute. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs unless the user asked for specs."
+description: "Use when drafting or revising a spec in a project that keeps a tereditor spec graph — a goal-and-requirements, an architecture, or a module SPEC — or when another spec skill names it at such a step. The shared quality bar for specs — not a workflow, nothing to execute. Applies only when the Spec plugin is on (Settings › Plugins). Not for projects without specs unless the user asked for specs."
 ---
 
 # Writing Specs
@@ -8,7 +8,7 @@ description: "Use when drafting or revising a spec in a project that keeps a Sha
 The workflow family's shared bar for every spec a workflow produces: **short, honest, on-rails**.
 Process skills name this concept at the steps that draft or revise specs; *what* to draft and *when*
 stays with the referencing skill. Graph mechanics — frontmatter, link kinds — are the ground of
-SharpRail's `spec_*` tools and their own descriptions; this concept carries the quality bar the family
+tereditor's `spec_*` tools and their own descriptions; this concept carries the quality bar the family
 holds on top of them, and is where the family's rules for specs and the spec graph accrue.
 
 A project without a spec graph needs no spec workflow: never create specs there unless the user asked

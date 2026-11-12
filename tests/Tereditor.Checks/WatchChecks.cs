@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Client;
-using SharpRail.Host.Core;
-using SharpRail.Host.Protocol;
-using SharpRail.Host.Remote;
+using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
+using Tereditor.Host.Core;
+using Tereditor.Host.Protocol;
+using Tereditor.Host.Remote;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The host's shared workspace watchers: one set per root, healed when the root is replaced, and a bounded pre-warm pool.</summary>
 internal static class WatchChecks
@@ -155,7 +155,7 @@ internal static class WatchChecks
             await remote.PrewarmWorkspaceAsync(Path.Combine(root, "watch-pool", "absent"));
             foreach (var host in new[] { local, remote })
                 try { await host.PrewarmWorkspaceAsync("relative"); throw new InvalidOperationException("A relative path was pre-warmed."); }
-                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
+                catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
 
             using var warmEnd = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
             var warm = new ProjectServices(pool[^1]).WatchFilesAsync(warmEnd.Token).GetAsyncEnumerator();

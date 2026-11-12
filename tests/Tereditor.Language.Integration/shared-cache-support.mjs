@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const dotnet = process.env.DOTNET ?? 'dotnet';
-const hostAssembly = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');
+const hostAssembly = path.join(root, 'src/Tereditor.Host.Remote/bin/Release/net10.0/Tereditor.Host.Remote.dll');
 export const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 export const require = (value, message) => { if (!value) throw Error(message); };
@@ -32,11 +32,11 @@ export async function snapshot(directory) {
 
 export async function startHost(state, workspace, server, environment, launchArguments) {
   await mkdir(path.join(state, 'language'), { recursive: true });
-  const command = process.env[`SHARPRAIL_LSP_COMMAND_${server.toUpperCase()}`];
-  require(!launchArguments || command, `Set SHARPRAIL_LSP_COMMAND_${server.toUpperCase()} to the actual provider executable for the isolated cache probe`);
+  const command = process.env[`TEREDITOR_LSP_COMMAND_${server.toUpperCase()}`];
+  require(!launchArguments || command, `Set TEREDITOR_LSP_COMMAND_${server.toUpperCase()} to the actual provider executable for the isolated cache probe`);
   await writeFile(path.join(state, 'language/servers.json'), JSON.stringify({ [server]: { ...(command ? { command } : { managed: server !== 'dart' }), ...(launchArguments ? { arguments: launchArguments(state) } : {}) } }));
   const token = randomBytes(32).toString('hex');
-  const child = spawn(dotnet, [hostAssembly], { cwd: root, env: { ...process.env, ...environment, SHARPRAIL_ROOT: workspace, SHARPRAIL_STATE_DIR: state, SHARPRAIL_BIND: '127.0.0.1', SHARPRAIL_PORT: '0', SHARPRAIL_TOKEN: token, SHARPRAIL_HEADLESS_MCP: '1', SHARPRAIL_LSP_DISABLE: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(dotnet, [hostAssembly], { cwd: root, env: { ...process.env, ...environment, TEREDITOR_ROOT: workspace, TEREDITOR_STATE_DIR: state, TEREDITOR_BIND: '127.0.0.1', TEREDITOR_PORT: '0', TEREDITOR_TOKEN: token, TEREDITOR_HEADLESS_MCP: '1', TEREDITOR_LSP_DISABLE: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   let logs = '';
   child.stdout.on('data', data => { logs = (logs + data).slice(-100_000); });
@@ -63,7 +63,7 @@ export async function startHost(state, workspace, server, environment, launchArg
       require(!message.error, `MCP error: ${JSON.stringify(message.error)}`);
       return message.result;
     };
-    await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'sharprail-shared-cache-checks', version: '1' } });
+    await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'tereditor-shared-cache-checks', version: '1' } });
     const call = async (directory, name, arguments_) => {
       const result = await rpc('tools/call', { name, arguments: { workspace: directory, ...arguments_ } });
       const text = result.content?.filter(item => item.type === 'text').map(item => item.text).join('\n');

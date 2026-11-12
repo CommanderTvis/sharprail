@@ -9,13 +9,13 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.Host.Core;
-using SharpRail.UI;
-using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.State;
+using Tereditor.Host.Core;
+using Tereditor.UI;
+using Tereditor.UI.Docking;
+using Tereditor.UI.Panels;
+using Tereditor.UI.State;
 
-namespace SharpRail.Checks;
+namespace Tereditor.Checks;
 
 /// <summary>The phone-sized workbench: side panels and Settings sections as drawers over the content.</summary>
 internal static class DrawerChecks
@@ -73,7 +73,7 @@ internal static class DrawerChecks
         Require(layout.State.LeftVisible && Region("left") is { IsVisible: true } page && Grid.GetColumnSpan(page) == 5 && double.IsNaN(page.Width),
             "Projects must open as a page over the whole workbench.");
         Require(Region("left").GetLogicalDescendants().OfType<Border>().Any(border => border.Name == "ProjectsPage") &&
-            !Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabStrip>().Any(strip => strip.Name?.Contains("left", StringComparison.Ordinal) == true),
+            !Region("left").GetLogicalDescendants().OfType<Tereditor.UI.Docking.DockTabStrip>().Any(strip => strip.Name?.Contains("left", StringComparison.Ordinal) == true),
             "The Projects page must show Projects alone, without a tool tab strip.");
         Click(tools);
         Require(!layout.State.LeftVisible && layout.State.RightVisible, "Opening Tools must leave Projects.");
@@ -126,19 +126,19 @@ internal static class DrawerChecks
         Click(tools);
         _ = window.OpenDocumentAsync("notes.txt");
         Pump(() => !layout.State.RightVisible, "Opening a document must return to the current page.");
-        Require(!Named<Border>(window, "CenterRegion").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(),
+        Require(!Named<Border>(window, "CenterRegion").GetLogicalDescendants().OfType<Tereditor.UI.Docking.DockTabButton>().Any(),
             "Tabs kept in Projects must not fall back to a strip in the centre.");
         Click(projects);
-        Pump(() => Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
+        Pump(() => Region("left").GetLogicalDescendants().OfType<Tereditor.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
         Require(Region("left").GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "CloseTab").All(close => close.Opacity == 1) &&
             Region("left").GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"), "A touch workbench must always draw a tab's close button.");
         var group = layout.State.Center.Leaves().First();
         var selected = layout.Selected(group)!.Id;
         for (var index = 0; index < 24; index++)
-            layout.Open(new SharpRail.UI.Docking.DockTab("scroll-" + index, "Scrolling tab " + index, "file", "notes.txt"), keep: true, activate: false);
+            layout.Open(new Tereditor.UI.Docking.DockTab("scroll-" + index, "Scrolling tab " + index, "file", "notes.txt"), keep: true, activate: false);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        var labels = Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().ToArray();
+        var labels = Region("left").GetLogicalDescendants().OfType<Tereditor.UI.Docking.DockTabButton>().ToArray();
         Require(labels.All(label => !label.IsHitTestVisible), "Compact Projects tab labels must leave touch input to the scroller.");
         var openTab = Region("left").GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "OpenProjectTab" && Equals(button.Tag, selected));
         Require(openTab.Bounds.Width >= 44 && openTab.Bounds.Height >= 44, "Each compact tab needs a readable, reachable open action.");
@@ -227,7 +227,7 @@ internal static class DrawerChecks
         window.Show();
         Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The compact Git workspace did not mount.");
         var layout = window.Layout;
-        var surface = Named<SharpRail.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
+        var surface = Named<Tereditor.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
         var center = Named<Border>(window, "CenterRegion");
         Border Region(string region) => Named<Border>(window, "AuxiliaryRegion_" + region);
         Border Host(int page) => page < 0 ? Region("left") : page > 0 ? Region("right") : center;
@@ -251,8 +251,8 @@ internal static class DrawerChecks
         Require(Region("left").Child is null && Region("right").Child is null, "Side pages must not be built before they are first shown.");
 
         _ = window.OpenDocumentAsync("notes.txt");
-        Pump(() => center.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible), "The document did not open in the centre.");
-        var focusable = center.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().First();
+        Pump(() => center.GetVisualDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible), "The document did not open in the centre.");
+        var focusable = center.GetVisualDescendants().OfType<Tereditor.Scintilla.ScintillaEditor>().First();
         Require(focusable.Focus(), "The centre's editor must take focus.");
         var group = center.Child;
         Require(Region("left").Child is null && Region("right").Child is null, "Opening a document must not build the hidden side pages.");
@@ -347,7 +347,7 @@ internal static class DrawerChecks
         window.Show();
         Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The compact Git workspace did not mount.");
         var layout = window.Layout;
-        var surface = Named<SharpRail.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
+        var surface = Named<Tereditor.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
         var group = layout.State.Center.Leaves().First();
         layout.NewTerminal(group);
         var first = layout.Selected(group)!.Id;
@@ -364,7 +364,7 @@ internal static class DrawerChecks
         var weights = layout.PaneFor(group, first)!.Weights.ToArray();
         Button[] Chips() => [.. pane.GetLogicalDescendants().OfType<Button>().Where(chip => chip.Name == "PaneChip")];
         Border[] Hosts() => [.. pane.GetLogicalDescendants().OfType<Border>().Where(host => host.Name == "PaneMemberHost")];
-        Control? Terminal(string id) => pane.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().FirstOrDefault(view => view.Name == "TerminalSurface_" + id.Replace(':', '_'));
+        Control? Terminal(string id) => pane.GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalView>().FirstOrDefault(view => view.Name == "TerminalSurface_" + id.Replace(':', '_'));
         bool Dot(string id) => Chips().Single(chip => Equals(chip.Tag, id)).Content is Panel { Children: [StackPanel { Children: [_, Avalonia.Controls.Shapes.Ellipse dot] }, ..] } && dot.IsVisible;
         void Frames(int count) { for (var frame = 0; frame < count; frame++) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(16); } }
         void Shows(string id, string message) => Pump(() => pane.Shown == id && Hosts().Length == 1 && Equals(Hosts()[0].Tag, id), message);
@@ -374,13 +374,13 @@ internal static class DrawerChecks
         Pump(() => terminals.Views.Count == 1 && terminals.Views[0].Text.Length > 0, "The shown terminal did not start.");
         var firstView = Terminal(first)!;
         // A member's terminal progress runs along its chip, shown or not, coloured by its state.
-        var progressing = SharpRail.UI.Terminal.TerminalLaunch.SessionFor(window.WorkspaceRoot, second);
-        SharpRail.UI.Terminal.TerminalProgressStrip? ChipProgress(string id) => Chips().Single(chip => Equals(chip.Tag, id))
-            .GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalProgressStrip>().SingleOrDefault();
-        window.Workbench.Signals.SetProgress(progressing, SharpRail.Host.Abstractions.TerminalProgressState.Error, 30);
-        Pump(() => ChipProgress(second) is { IsVisible: true, State: SharpRail.Host.Abstractions.TerminalProgressState.Error, Percent: 30 } &&
+        var progressing = Tereditor.UI.Terminal.TerminalLaunch.SessionFor(window.WorkspaceRoot, second);
+        Tereditor.UI.Terminal.TerminalProgressStrip? ChipProgress(string id) => Chips().Single(chip => Equals(chip.Tag, id))
+            .GetLogicalDescendants().OfType<Tereditor.UI.Terminal.TerminalProgressStrip>().SingleOrDefault();
+        window.Workbench.Signals.SetProgress(progressing, Tereditor.Host.Abstractions.TerminalProgressState.Error, 30);
+        Pump(() => ChipProgress(second) is { IsVisible: true, State: Tereditor.Host.Abstractions.TerminalProgressState.Error, Percent: 30 } &&
             ChipProgress(first) is { IsVisible: false } && ChipProgress(notes) is null, "A terminal member's chip must show its progress.");
-        window.Workbench.Signals.SetProgress(progressing, SharpRail.Host.Abstractions.TerminalProgressState.None, -1);
+        window.Workbench.Signals.SetProgress(progressing, Tereditor.Host.Abstractions.TerminalProgressState.None, -1);
         Pump(() => ChipProgress(second) is { IsVisible: false }, "Removing the progress must clear the chip's bar.");
 
         // What the host keeps for the group: its tabs, its selection and the group's members, direction and weights.
@@ -429,7 +429,7 @@ internal static class DrawerChecks
 
         // News in a hidden member lights its chip; showing it puts the light out.
         Require(!Dot(first), "No member may start marked.");
-        ((SharpRail.UI.Terminal.TerminalView)firstView).Write("echo phone-chip-activity\r");
+        ((Tereditor.UI.Terminal.TerminalView)firstView).Write("echo phone-chip-activity\r");
         Pump(() => Dot(first), "Output in a hidden member must mark its chip.");
         Require(!Dot(second) && !Dot(notes), "Only the member with news may be marked.");
         surface.NoteActivity(second);
