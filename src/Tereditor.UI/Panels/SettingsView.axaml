@@ -217,7 +217,9 @@
         <StackPanel Spacing="8">
           <TextBlock Text="File type icons" Classes="settings-label" />
           <TextBlock Text="How Files, tabs and Changes draw file types. Shared by every client of this host." Classes="settings-description" />
-          <StackPanel x:Name="FileTypeIconChoices" Spacing="4" AutomationProperties.Name="File type icons" />
+          <Border Classes="settings-row">
+            <ComboBox x:Name="FileTypeIconChoices" HorizontalAlignment="Stretch" AutomationProperties.Name="File type icons" />
+          </Border>
         </StackPanel>
         <StackPanel x:Name="WindowDecorationsSection" Spacing="8" IsVisible="False">
           <TextBlock Text="Window decorations" Classes="settings-label" />

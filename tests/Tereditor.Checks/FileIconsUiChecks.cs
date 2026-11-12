@@ -209,15 +209,16 @@ internal static partial class FileIconsChecks
         app.Window.ShowSettings("Appearance");
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
-        Button Choice(string name) => settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "FileTypeIcons_" + name);
-        Until(() => Choice("plain").IsEnabled);
+        var styles = settings.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "FileTypeIconChoices");
+        void Pick(string name) => styles.SelectedIndex = Array.IndexOf(new[] { "plain", "colored", "material", "none" }, name);
+        Until(() => styles.IsEnabled);
         Require(app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: true, FileTypeIconStyle: "" }, "Core file-type icons are on and plain by default.");
-        app.Click(Choice("none"), freshGesture: false);
+        Pick("none");
         Until(() => !app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         Until(() => !app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FileTypeIcon"));
         Require(app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible),
             "Disabling File Icons restores core's plain file glyph.");
-        app.Click(Choice("plain"), freshGesture: false);
+        Pick("plain");
         Until(() => app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         Control Icon(string file, string name)
         {
@@ -228,7 +229,7 @@ internal static partial class FileIconsChecks
         }
         Loaded(app.FileRow("server.py"), "python");
         var plain = Raster(app, Icon("server.py", "python"));
-        app.Click(Choice("colored"), freshGesture: false);
+        Pick("colored");
         Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle == "colored");
         Loaded(app.FileRow("server.py"), "colored/python");
         var coloredBefore = Raster(app, Icon("server.py", "colored/python"));
@@ -239,13 +240,13 @@ internal static partial class FileIconsChecks
         Ui.Apply(theme with { Id = theme.Id + "-file-colors", Colors = palette });
         Until(() => !Raster(app, Icon("server.py", "colored/python")).SequenceEqual(coloredBefore));
         Ui.Apply(theme);
-        app.Click(Choice("material"), freshGesture: false);
+        Pick("material");
         Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle == "material");
         Loaded(app.FileRow("server.py"), "material/python");
         Loaded(app.FileRow("src"), "material/folder");
         var material = Raster(app, Icon("server.py", "material/python"));
         Require(!material.SequenceEqual(plain) && !material.SequenceEqual(coloredBefore), "The Material style renders its own colours in the Files row.");
-        app.Click(Choice("plain"), freshGesture: false);
+        Pick("plain");
         Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle.Length == 0);
         Loaded(app.FileRow("server.py"), "python");
         settings.Close();

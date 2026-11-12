@@ -477,28 +477,38 @@ public sealed partial class SettingsView : UserControl
             }
         }
         AccentSettings(panel);
-        var fileIcons = PageControl<StackPanel>(panel, "FileTypeIconChoices");
+        // Host state: the selection follows the host's broadcast, never the pick.
+        var fileIcons = PageControl<ComboBox>(panel, "FileTypeIconChoices");
+        var fileIconStyles = new[]
+        {
+            ("", "Plain: single-colour icons that follow the text colour"),
+            ("colored", "Colored: the same icons tinted by file kind with the theme’s colours"),
+            ("material", "Material: Material Icon Theme in its own colours"),
+            ("none", "None: generic file glyphs only")
+        };
+        fileIcons.ItemsSource = fileIconStyles.Select(style => style.Item2).ToArray();
+        var syncingFileIcons = false;
+        string CurrentFileIcons() => state.Current.Settings.FileTypeIconsEnabled ? state.Current.Settings.FileTypeIconStyle : "none";
         void FileIconChoices()
         {
-            fileIcons.Children.Clear();
-            var settings = state.Current.Settings;
-            var current = settings.FileTypeIconsEnabled ? settings.FileTypeIconStyle : "none";
-            foreach (var (value, label, description) in new[]
-            {
-                ("", "Plain", "Single-colour icons that follow the text colour"),
-                ("colored", "Colored", "The same icons tinted by file kind with the theme’s colours"),
-                ("material", "Material", "Material Icon Theme in its own colours"),
-                ("none", "None", "Generic file glyphs only")
-            })
-                fileIcons.Children.Add(Choice("FileTypeIcons_" + (value.Length == 0 ? "plain" : value), label, description, current == value, () =>
-                {
-                    if (current == value) return;
-                    if (value == "none") Share(HostStateChange.Setting("file-type-icons", "false"));
-                    else Share(HostStateChange.Setting("file-type-icons", "true"), HostStateChange.Setting("file-type-icon-style", value.Length == 0 ? "plain" : value));
-                }));
+            syncingFileIcons = true;
+            try { fileIcons.SelectedIndex = Array.FindIndex(fileIconStyles, style => style.Item1 == CurrentFileIcons()); }
+            finally { syncingFileIcons = false; }
             fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIconStyle);
         }
         FileIconChoices();
+        fileIcons.SelectionChanged += (_, _) =>
+        {
+            if (syncingFileIcons || fileIcons.SelectedIndex < 0) return;
+            var value = fileIconStyles[fileIcons.SelectedIndex].Item1;
+            if (value != CurrentFileIcons())
+            {
+                if (value == "none") Share(HostStateChange.Setting("file-type-icons", "false"));
+                else Share(HostStateChange.Setting("file-type-icons", "true"), HostStateChange.Setting("file-type-icon-style", value.Length == 0 ? "plain" : value));
+            }
+            // The selection follows the host, not the pick: put it back until the broadcast moves it.
+            FileIconChoices();
+        };
         refreshers.Add(FileIconChoices);
         WindowDecorationSettings(panel);
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
