@@ -4,7 +4,7 @@
 
 Keeps your CLI. Adds what's missing.
 
-<img src="docs/screenshots/desktop-workbench.png" alt="The SharpRail workbench: projects and worktrees on the left, an orchestrating Claude Code terminal and task board in the centre, the Git Graph and Claude Code pane on the right" width="900">
+<img src="docs/screenshots/desktop-workbench.png" alt="The SharpRail workbench: projects and worktrees on the left, an orchestrating Claude Code terminal with a task board in the centre, the file tree and Code Intelligence on the right" width="900">
 
 > [!NOTE]
 > SharpRail is a prototype. The desktop app targets macOS first, and Windows, Linux and Android builds ship too.
