@@ -34,6 +34,7 @@ public static class PluginIcons
         ["chat-new-line"] = "chatNew",
         ["check-line"] = "check",
         ["close-line"] = "close",
+        ["code-s-slash-line"] = "code",
         ["discuss-line"] = "discuss",
         ["discord"] = "discord",
         ["discord-line"] = "discord",
