@@ -1045,7 +1045,7 @@ internal static class ClaudeCodeChecks
         var window = app.Window.OpenSettingsViews.Single();
         TextBox Command() => window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeCommandInput");
         E2eWorkspace.Until(() => Command().Text == "claude");
-        var defaultModel = window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeDefaultModel");
+        var defaultModel = window.GetLogicalDescendants().OfType<AutoCompleteBox>().Single(control => control.Name == "ClaudeDefaultModel");
         defaultModel.Text = "sonnet";
         defaultModel.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("model", out var value) && value.GetString() == "sonnet");
@@ -1090,12 +1090,12 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
         window = app.Window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => Command().Text == "claude --model opus");
-        Require(window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeDefaultModel").Text == "sonnet" &&
+        Require(window.GetLogicalDescendants().OfType<AutoCompleteBox>().Single(control => control.Name == "ClaudeDefaultModel").Text == "sonnet" &&
             Equals((window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudeDefaultEffort").SelectedItem as ComboBoxItem)?.Tag, "high"),
             "Reopened settings restore the saved model and effort.");
         Enter("   ");
         E2eWorkspace.Until(() => Command().Text == "claude" && Saved() == "claude");
-        defaultModel = window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeDefaultModel");
+        defaultModel = window.GetLogicalDescendants().OfType<AutoCompleteBox>().Single(control => control.Name == "ClaudeDefaultModel");
         defaultModel.Text = "";
         defaultModel.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].GetProperty("model").GetString() == "");

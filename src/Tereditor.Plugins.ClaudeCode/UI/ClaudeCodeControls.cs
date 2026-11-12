@@ -16,7 +16,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
 {
     private readonly IPluginUIContext context;
     private readonly TextBox command;
-    private readonly TextBox model;
+    private readonly AutoCompleteBox model;
     private readonly ComboBox effort;
     private readonly ComboBox mode;
     private readonly ComboBox permissionMode;
@@ -32,7 +32,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         AvaloniaXamlLoader.Load(this);
         this.context = context;
         command = this.FindControl<TextBox>("ClaudeCommandInput")!;
-        model = this.FindControl<TextBox>("ClaudeDefaultModel")!;
+        model = this.FindControl<AutoCompleteBox>("ClaudeDefaultModel")!;
+        model.ItemsSource = ClaudeLaunch.Models.Select(choice => choice.Id).ToList();
         mode = this.FindControl<ComboBox>("ClaudeMode")!;
         mode.Items.Add(new ComboBoxItem { Content = "Terminal", Tag = ClaudeCodeMode.Terminal });
         mode.Items.Add(new ComboBoxItem { Content = "Chat", Tag = ClaudeCodeMode.Chat });
@@ -53,6 +54,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         }
         model.LostFocus += (_, _) => SaveModel();
         model.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { SaveModel(); e.Handled = true; } };
+        model.DropDownClosed += (_, _) => SaveModel();
         effort.SelectionChanged += (_, _) =>
         {
             if (effort.SelectedItem is ComboBoxItem { Tag: string value })
@@ -101,7 +103,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     {
         applying = true;
         command.Text = settings.Command;
-        if (!model.IsFocused) model.Text = settings.Model;
+        if (!model.IsKeyboardFocusWithin) model.Text = settings.Model;
         mode.SelectedItem = mode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Mode));
         effort.SelectedItem = effort.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Effort ?? ""));
         if (!permissionMode.Items.OfType<ComboBoxItem>().Any(item => Equals(item.Tag, settings.PermissionMode)))
