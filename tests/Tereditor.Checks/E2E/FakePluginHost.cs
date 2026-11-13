@@ -129,6 +129,14 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
         throw new PluginCallException(PluginCallError.Unknown, $"Plugin {request.PluginId} has no method {request.Method}.");
     }
 
+    // A roster row the host changed on its own (a plugin refused or failed), broadcast as the host would.
+    internal void Replace(PluginRosterEntry entry)
+    {
+        entries[entry.Id] = entry;
+        revision++;
+        Publish();
+    }
+
     // A push for any key: the client must drop what its scope does not ask for.
     internal void Push(string plugin, string channel, object payload)
     {

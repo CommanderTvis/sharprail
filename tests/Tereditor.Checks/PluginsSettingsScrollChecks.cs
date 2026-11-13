@@ -126,6 +126,7 @@ internal static class PluginsSettingsScrollChecks
         BuiltinIcons();
         TailscaleLock(root, through: true);
         TailscaleLock(root, through: false);
+        DependenciesAndEscape(root);
     }
 
     // A category link brings its heading card to the top of the page, not to the bottom edge BringIntoView would leave it at.
@@ -228,6 +229,102 @@ internal static class PluginsSettingsScrollChecks
         window.Close();
         state.Dispose();
         Console.WriteLine($"PASS plugins settings: Tailscale and its dependencies {(through ? "locked on a Tailscale client" : "switchable on another transport")}");
+    }
+
+    // In Settings' overlay: switching on a plugin whose dependencies are off asks to enable the whole chain (declining
+    // leaves all off, agreeing turns all on), and after any switch Escape closes the open dialog first, then Settings.
+    private static void DependenciesAndEscape(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, "plugins-escape-profile"));
+        var store = profile.OpenState();
+        PluginRosterEntry Entry(string id, params string[] dependsOn) => new(id, id, "puzzle", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled) { DependsOn = dependsOn };
+        var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, Entry("leaf", "twig"), Entry("twig", "trunk"), Entry("trunk"), Entry("plain"), Entry("mover"));
+        var state = new SharedState(host, profile.Data.Preferences);
+        state.Start();
+        E2eWorkspace.Until(() => state.Current.Plugins.Count == 5);
+        var window = new OverlayWindow { Width = 800, Height = 600 };
+        window.Show();
+        PluginsSettings page = null!;
+        var settings = new Tereditor.UI.OverlayHost();
+        window.Root.Children.Add(settings);
+        var open = false;
+        // A page stops following the host once detached, so each opening builds its own, as Settings does.
+        void Open() { open = true; page = new PluginsSettings(state, null, window); settings.Show(new ScrollViewer { Content = page }, () => { open = false; settings.Hide(); }); Pump(); }
+        void Pump() { for (var pass = 0; pass < 5; pass++) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); } }
+        string Focused() => window.FocusManager?.GetFocusedElement() is Control control ? control.GetType().Name + "#" + control.Name : "nothing";
+        void Escape() { window.KeyPress(Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null); Pump(); }
+        ToggleSwitch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        PluginStatus Status(string id) => state.Current.Plugins.Single(entry => entry.Id == id).Status;
+        IReadOnlyList<Window> Dialogs() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window);
+        void Flip(string id) { var toggle = Toggle(id); toggle.Focus(); Pump(); toggle.IsChecked = !toggle.IsChecked; Pump(); }
+
+        // A plain switch, then Escape.
+        Open();
+        Flip("plain");
+        E2eWorkspace.Until(() => Status("plain") == PluginStatus.Active);
+        Pump();
+        Console.WriteLine("plugins-settings escape: after a plain switch focus is on " + Focused());
+        Escape();
+        Require(!open, "Escape closes Settings after a plugin is switched (focus on " + Focused() + ").");
+
+        // A card whose plugin the host refuses moves under Unavailable: the switch that had focus leaves the tree, and
+        // Escape, which then starts at the window, still closes Settings.
+        Open();
+        Toggle("mover").Focus();
+        Pump();
+        host.Replace(Entry("mover") with { Status = PluginStatus.Refused, Reason = "not available here" });
+        E2eWorkspace.Until(() => { Pump(); return page.Listing().Contains("PluginCategory_Unavailable"); });
+        Console.WriteLine("plugins-settings escape: after the card moved focus is on " + Focused());
+        Escape();
+        Require(!open, "Escape closes Settings after the focused card moved (focus on " + Focused() + ").");
+
+        // A switch whose chain is off asks first; Escape declines and leaves every plugin off, a second Escape closes Settings.
+        Open();
+        Flip("leaf");
+        E2eWorkspace.Until(() => { Pump(); return Dialogs().Count == 1; });
+        var question = string.Join(" ", ((Control)((Tereditor.Plugins.UI.Kit.DialogWindow)Dialogs()[0]).Surface!).GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text));
+        Require(question.Contains("twig", StringComparison.Ordinal) && question.Contains("trunk", StringComparison.Ordinal), "The question names the whole chain: " + question);
+        Escape();
+        Require(Dialogs().Count == 0 && open, "The first Escape closes only the dialog (focus on " + Focused() + ").");
+        E2eWorkspace.Settle(50);
+        Require(new[] { "leaf", "twig", "trunk" }.All(id => Status(id) == PluginStatus.Disabled && !state.Current.PluginSettings.ContainsKey(id)), "Declining leaves the plugin and its chain off.");
+        Console.WriteLine("plugins-settings escape: after declining focus is on " + Focused());
+        Escape();
+        Require(!open, "The second Escape closes Settings (focus on " + Focused() + ").");
+
+        // Agreeing turns the chain on with the plugin; Escape still closes Settings.
+        Open();
+        Flip("leaf");
+        E2eWorkspace.Until(() => { Pump(); return Dialogs().Count == 1; });
+        ((Control)((Tereditor.Plugins.UI.Kit.DialogWindow)Dialogs()[0]).Surface!).GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PluginEnableDependencies")
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        E2eWorkspace.Until(() => new[] { "leaf", "twig", "trunk" }.All(id => Status(id) == PluginStatus.Active));
+        Pump();
+        Console.WriteLine("plugins-settings escape: after agreeing focus is on " + Focused());
+        Escape();
+        Require(!open, "Escape closes Settings after the chain is enabled (focus on " + Focused() + ").");
+        window.Close();
+        state.Dispose();
+        Console.WriteLine("PASS plugins settings: enabling asks for the whole dependency chain, and Escape closes the dialog, then Settings");
+    }
+
+    // Hosts dialogs in overlays of its own, as the workbench window does.
+    private sealed class OverlayWindow : Window, Tereditor.Plugins.UI.Kit.IDialogOwner
+    {
+        internal Grid Root { get; } = new();
+        private int open;
+
+        internal OverlayWindow() => Content = Root;
+
+        public Action Dim() => () => { };
+
+        public Action? Present(Control card, Action dismiss, double width, double height, bool sheet)
+        {
+            var host = new Tereditor.UI.OverlayHost { ZIndex = 50 + 2 * open++ };
+            Root.Children.Add(host);
+            host.Show(card, dismiss);
+            return () => { host.Hide(); Root.Children.Remove(host); open--; };
+        }
     }
 
     // Every builtin plugin's card draws its own mark: a language server shows the icon Code Intelligence shows for it.

@@ -54,7 +54,11 @@ public sealed partial class OverlayHost : UserControl
         presenter.Content = surface;
         IsVisible = true;
         Fit();
-        if ((top = TopLevel.GetTopLevel(this)) is not null) top.AddHandler(GotFocusEvent, Refocus, RoutingStrategies.Bubble, handledEventsToo: true);
+        if ((top = TopLevel.GetTopLevel(this)) is not null)
+        {
+            top.AddHandler(GotFocusEvent, Refocus, RoutingStrategies.Bubble, handledEventsToo: true);
+            top.AddHandler(KeyDownEvent, Stray, RoutingStrategies.Bubble);
+        }
         Dispatcher.UIThread.Post(() => { if (content == surface) surface.Focus(); }, DispatcherPriority.Input);
     }
 
@@ -62,7 +66,7 @@ public sealed partial class OverlayHost : UserControl
     public void Hide()
     {
         if (content is null) return;
-        top?.RemoveHandler(GotFocusEvent, Refocus); top = null;
+        top?.RemoveHandler(GotFocusEvent, Refocus); top?.RemoveHandler(KeyDownEvent, Stray); top = null;
         content = null; close = null; fit = null;
         presenter.Content = null;
         IsVisible = false;
@@ -84,6 +88,16 @@ public sealed partial class OverlayHost : UserControl
         // Focus inside a surface stacked above this one (a dialog over Settings) is where it belongs.
         if (source.FindAncestorOfType<OverlayHost>() is { } other && other.ZIndex > ZIndex) return;
         Dispatcher.UIThread.Post(() => content?.Focus(), DispatcherPriority.Input);
+    }
+
+    // A focused control that leaves the tree (a Settings › Plugins card moving to another heading) leaves focus nowhere,
+    // so Escape starts at the window, outside every surface: the topmost open one still closes, and only it.
+    private void Stray(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || e.Handled || close is null || top is null) return;
+        if (top.GetVisualDescendants().OfType<OverlayHost>().Any(other => other != this && other.IsOpen && other.ZIndex > ZIndex)) return;
+        close();
+        e.Handled = true;
     }
 
     private void Fit()
