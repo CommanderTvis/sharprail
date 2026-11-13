@@ -77,11 +77,13 @@ public sealed partial class App : Application
         MenuBase.OpenedEvent.AddClassHandler<ContextMenu>((menu, _) =>
             Avalonia.Threading.Dispatcher.UIThread.Post(menu.InvalidateMeasure, Avalonia.Threading.DispatcherPriority.Render));
         // A native popup keeps the frame it is born with, so the menu's width must already be the settled one when it opens:
-        // settle the shared columns synchronously as it opens (Opened runs inside Open, before the popup's first layout pass, with the menu styled; Opening runs while it is detached and measures 0) (and whenever rows arrive or change their icon) and pin it as MinWidth.
+        // settle the shared columns synchronously as the menu enters its popup (a desktop popup window lays out and takes its frame before Opened;
+        // Opening runs while the menu is detached and measures 0), again at Opened and whenever rows arrive or change their icon, and pin it as MinWidth.
         Control.ContextMenuProperty.Changed.AddClassHandler<Control>((_, change) =>
         {
             if (change.NewValue is ContextMenu menu && SizedMenus.TryAdd(menu, menu))
             {
+                menu.AttachedToVisualTree += (_, _) => SettleMenuWidth(menu);
                 menu.Opened += (_, _) => SettleMenuWidth(menu);
                 if (menu.Items is System.Collections.Specialized.INotifyCollectionChanged items) items.CollectionChanged += (_, _) => SettleMenuWidth(menu);
             }
@@ -139,8 +141,12 @@ public sealed partial class App : Application
     {
         menu.MinWidth = 0;
         // Settle under the width the menu may actually take, so a menu its style caps (or the window narrows) wraps at the cap.
-        if (!menu.IsOpen) return;
-        var limit = Math.Min(menu.MaxWidth, TopLevel.GetTopLevel(menu) is { } top ? Math.Max(0, top.ClientSize.Width - 16) : double.PositiveInfinity);
+        // A menu is in a visual tree only while its popup shows it, from just before the popup's first layout pass.
+        var top = TopLevel.GetTopLevel(menu);
+        if (top is null) return;
+        // On desktop that top level is the menu's own popup window, whose size is the menu's, not room it may take: cap at the window that owns it.
+        while (top is PopupRoot { ParentTopLevel: { } outer }) top = outer;
+        var limit = Math.Min(menu.MaxWidth, Math.Max(0, top.ClientSize.Width - 16));
         var width = -1.0;
         for (var pass = 0; pass < 6; pass++)
         {
@@ -149,10 +155,28 @@ public sealed partial class App : Application
             menu.InvalidateMeasure();
             foreach (var part in menu.GetVisualDescendants().OfType<Avalonia.Layout.Layoutable>()) part.InvalidateMeasure();
             menu.Measure(new Size(limit, double.PositiveInfinity));
+            ShareColumns(menu);
             if (Math.Abs(menu.DesiredSize.Width - width) < 0.01) break;
             width = menu.DesiredSize.Width;
         }
         menu.MinWidth = Math.Min(Math.Ceiling(menu.DesiredSize.Width), limit);
+    }
+
+    // Fluent reconciles a menu's shared toggle, icon, shortcut and chevron columns only as a layout pass ends, and a desktop popup window takes
+    // its frame from its first pass, before that: give each shared column of every row the widest content that column has in any row.
+    private static void ShareColumns(ContextMenu menu)
+    {
+        var grids = menu.Items.OfType<MenuItem>()
+            .Select(item => item.GetVisualDescendants().OfType<Grid>().FirstOrDefault(grid => grid.ColumnDefinitions.Any(column => column.SharedSizeGroup is not null)))
+            .OfType<Grid>().ToArray();
+        var widths = new Dictionary<string, double>();
+        foreach (var grid in grids)
+            for (var index = 0; index < grid.ColumnDefinitions.Count; index++)
+                if (grid.ColumnDefinitions[index].SharedSizeGroup is { } group)
+                    widths[group] = Math.Max(widths.GetValueOrDefault(group), grid.Children.Where(part => Grid.GetColumn(part) == index && Grid.GetColumnSpan(part) == 1).Select(part => part.DesiredSize.Width).DefaultIfEmpty(0).Max());
+        foreach (var grid in grids)
+            foreach (var column in grid.ColumnDefinitions)
+                if (column.SharedSizeGroup is { } group && Math.Abs(column.MinWidth - widths[group]) > 0.01) column.MinWidth = widths[group];
     }
 
     // The distance from the menu's visible edge to a row's icon and from the icon to the row's text.

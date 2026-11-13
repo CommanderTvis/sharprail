@@ -170,6 +170,8 @@ internal static class MenuLayoutChecks
             ("an icon pushed past the slot by a margin", item => ((Control)item.Icon!).Margin = new Thickness(9, 0, 0, 0)),
             ("an icon moved out of the slot by a transform", item => ((Control)item.Icon!).RenderTransform = new Avalonia.Media.TranslateTransform(7, 0)),
             ("an icon cut by a clipping ancestor", item => item.Icon = new Border { ClipToBounds = true, Width = 10, Height = 14, Child = Ui.Icon("add", size: 14), HorizontalAlignment = HorizontalAlignment.Center }),
+            // A desktop popup window narrower than its menu centres it, which draws the whole menu past the frame's left edge.
+            ("a menu drawn past its frame's left edge", item => ((ContextMenu)item.Parent!).RenderTransform = new Avalonia.Media.TranslateTransform(-12, 0)),
         };
         MenuIconAudit.Probing = true;
         try

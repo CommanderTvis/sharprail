@@ -185,6 +185,7 @@ internal static class UiChecks
         Gate.Case("AppCommandChecks", () => AppCommandChecks.Run(root));
         Gate.Case("AboutChecks", AboutChecks.Run);
         Gate.Case("MenuLayoutChecks", MenuLayoutChecks.Run);
+        Gate.Case("menu-popups", MenuPopupChecks.InOwnProcess);
         Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));
         Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
         Gate.Case("ChangesBranchSwitchChecks", () => ChangesBranchSwitchChecks.Run(root + "-branch-switch"));

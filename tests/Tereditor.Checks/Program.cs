@@ -522,6 +522,14 @@ internal static class Program
             MenuLayoutChecks.GroupAndReveal(menuRoot);
             return;
         }
+        if (args.SequenceEqual(["--menu-popups"]))
+        {
+            // The desktop heads show each menu in its own popup window; the headless default is the overlay the browser and Android use.
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, OverlayPopups = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            MenuPopupChecks.Run(CheckRoot.Create("menu-popups"));
+            return;
+        }
         if (args.SequenceEqual(["--terminal-resume-hint"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

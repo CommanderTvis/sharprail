@@ -178,6 +178,7 @@ Run: `dotnet run --project tests/Tereditor.Checks -c Release -- <mode>`. Modes a
 | `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
 | `--menu-layout` | Mixed icon, plain and submenu menu rows fit inside the menu padding; labels and shortcuts fit the popup at several font sizes. |
+| `--menu-popups` | Menus in their own popup windows, as desktop shows them (the other headless modes use the overlay): the rail's workspace menu, the Files tree menu, a terminal tab menu and the chat model menu keep every icon inside the popup's frame by at least the menu's padding, labels on one edge. Gate case `menu-popups` runs it as its own process. |
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/Tereditor.Plugins.UI.Kit/Generated` from `src/Tereditor.UI/Rendering/Design`. Edit the authored sources, not generated C#. |
 | `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |
 | `--run-file` | No tracked file runs a `.cs` script with `dotnet run` but without `--file`. |

@@ -82,8 +82,29 @@ internal static class MenuIconAudit
                         $"{name}: the icon of '{label}' draws {part.GetType().Name} at {box}, past {ancestor.GetType().Name} {(ancestor as Control)?.Name} which clips it ({ancestor.Bounds.Width:0.#}x{ancestor.Bounds.Height:0.#}).");
                 }
         }
+        Framed(name, menu, rows);
         if (edges.Count > 1)
             Require(edges.All(edge => Math.Abs(edge.X - edges[0].X) <= Tolerance), $"{name}: row text does not start on one edge: " + string.Join(", ", edges.Select(edge => $"{edge.Row}={edge.X:0.#}")));
+    }
+
+    // The popup's visible frame is what the user sees of the menu: the menu's own box, cut by the window or overlay that hosts it (a native
+    // popup window keeps the frame it was born with, and content wider than that frame is centred in it, so both edges are cut). Every icon
+    // keeps at least the menu's border and padding between itself and that frame on both sides.
+    private static void Framed(string name, ContextMenu menu, IEnumerable<MenuItem> rows)
+    {
+        if (TopLevel.GetTopLevel(menu) is not { } host) return;
+        var frame = Box(menu, host).Intersect(new Rect(host.ClientSize));
+        var inset = menu.BorderThickness.Left + menu.Padding.Left;
+        var trailing = menu.BorderThickness.Right + menu.Padding.Right;
+        foreach (var row in rows)
+        {
+            if (row.Icon is not Control icon) continue;
+            var label = row.Header as string ?? row.Name ?? "?";
+            var box = Box(icon, host);
+            Require(box.X >= frame.X + inset - Tolerance && box.Right <= frame.Right - trailing + Tolerance,
+                $"{name}: the icon of '{label}' spans x {box.X:0.#}..{box.Right:0.#} in its {host.GetType().Name}, but the menu's visible frame is x {frame.X:0.#}..{frame.Right:0.#} " +
+                $"({host.GetType().Name} {host.ClientSize.Width:0.#} wide, menu {menu.Bounds.Width:0.#} wide at {Box(menu, host).X:0.#}), which leaves less than its {inset:0.#} px padding.");
+        }
     }
 
     // Where the child is drawn in the ancestor's space, scaling and offsets of the Viewbox and render transforms included.

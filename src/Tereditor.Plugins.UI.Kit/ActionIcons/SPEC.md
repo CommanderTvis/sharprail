@@ -64,15 +64,18 @@ sees assignments in files that mention `MenuItem` or `Ui.Menu(`; it does not fol
 ## Icon slot
 
 Every menu icon sits in one `LayoutRoles.MenuIconSlot` box (16 px, set once in `App.Initialize`), centred both ways and never clipped, whatever its glyph size; rows without an icon reserve the same column.
-The check `MenuIconAudit` runs on every context menu any headless check opens and fails unless each icon lies inside its slot and every clipping ancestor, is centred within 0.5 px, and the rows' text starts on one edge.
+The check `MenuIconAudit` runs on every context menu any headless check opens and fails unless each icon lies inside its slot and every clipping ancestor, is centred within 0.5 px, keeps at least the menu's border and padding between itself and the popup's visible frame, and the rows' text starts on one edge.
 
 ## Mixed menus
 
 Fluent shares the icon, shortcut and chevron columns across a menu's rows, but the shared widths only settle after the first
 layout pass. A menu that mixes icon rows, plain rows and a submenu row therefore measures narrower on its first pass than once
-settled, and a popup sized from that pass clips the icons and chevrons. The app re-measures every context menu right after it
-opens (`App.Initialize`), and check mode `--menu-layout` (also in `--ui-smoke`) requires such a menu to be as wide as its
-widest row with the icon and chevron inside the menu padding.
+settled, and a popup sized from that pass clips the icons and chevrons. On desktop a menu is its own popup window, which takes
+its frame from that first pass, before the menu reports it opened, and keeps it: content wider than the frame is centred in it,
+so the icons are cut at the left edge. The app therefore settles a context menu's width as the menu enters its popup, giving
+every row's shared columns the widest content of that column across the menu and capping it by the owning window, not the popup
+(`App.Initialize`). Check mode `--menu-layout` (also in `--ui-smoke`) requires such a menu to be as wide as its widest row with
+the icon and chevron inside the menu padding, and `--menu-popups` opens real menus in popup windows.
 
 The icon sits as far from the menu's edge as from its row's text (one 10 px gap, set once in `App.Initialize`), and a submenu
 opens flush against its parent menu's visible edge: the app measures the gap once the submenu is shown and shifts the popup

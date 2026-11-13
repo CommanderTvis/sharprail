@@ -2342,6 +2342,29 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
+    /// <summary>Opens the chat's model menu from its footer chip in a plain window and hands it to <paramref name="check"/> while it is open.</summary>
+    internal static void ModelMenu(Action<ContextMenu> check)
+    {
+        ChatModel[] models = [new("default", "Default (recommended)"), new("opus", "Opus 5.1") { Efforts = ["low", "medium", "high"], Family = "opus", Description = "Most capable" }, new("sonnet", "Sonnet 5.5") { Family = "sonnet" }];
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Models = models, Effort = "medium" } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var button = view.GetVisualDescendants().OfType<Button>().First(button => button.Name == "TerminalAgentFact_model");
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2eWorkspace.Until(() => button.ContextMenu is { IsOpen: true });
+            var menu = button.ContextMenu!;
+            MenuPopupChecks.Settle(menu);
+            check(menu);
+            menu.Close();
+        }
+        finally { window.Close(); }
+    }
+
     // The model, effort, permission and attach pickers are menus: opened from their footer chip, the value in force a checked radio row, one click chooses and closes.
     // More models opens the hand-built searchable list, which keeps the popup family: a container, a muted header, equal rows with a check column.
     private static void PopupFamily()
