@@ -88,7 +88,7 @@ survive into the package, publishes the UI and host as NativeAOT binaries (`Nati
 as self-contained ReadyToRun, and keeps exactly one canonical app bundle. The bundle's icon (`tereditor.icns`) is
 built with `sips` and `iconutil` from `src/Tereditor.UI/Assets/AppIcon/macos.png`, which an unbundled run (`dev`,
 `native`) sets as its Dock icon at runtime instead; the Windows executable carries the same image as
-`src/Tereditor.UI/tereditor.ico`, the Android launcher icon (every build of it) is the same image scaled with `sips` to the
+`src/Tereditor.UI/tereditor.ico`, the Android launcher icon (every build of it) is the round `src/Tereditor.Android/icon-source.png` scaled with `sips` to the
 `mipmap-*` densities in `src/Tereditor.Android/Resources`, and the Linux and browser icons are the transparent logo (`brand.png`). Replacing that
 bundle while the app runs is the caller's responsibility to rule out first.
 Windows and Linux packaging and the profiling publisher publish the same NativeAOT binaries. Linux links them
