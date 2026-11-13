@@ -417,7 +417,7 @@ signals. `MemoryTerminalCatalog` has no shells and reports `NotSupportedExceptio
 
 - The host follows OSC 0 and OSC 2 (BEL or ST terminated) in each tab's output as it records it, with a bounded
   scanner that survives chunk boundaries; OSC 1, an over-long (4 KiB) or cancelled sequence and every other OSC are
-  ignored. A leading status glyph followed by whitespace (Claude Code's `✳`, its spinner frames `✻ ✽ ✶ ✢ ·` and
+  ignored. A leading status glyph followed by whitespace (Claude Code's `✳`, its spinner frames `◐ ◑ ✻ ✽ ✶ ✢ ·` and
   braille U+2800–U+28FF) is dropped so every client shows the bare title; a glyph elsewhere, or one not followed by
   whitespace, stays, and user renames and `set_title` are never touched. Control characters become spaces and the title is cut to the catalog's 1000-character bound.
 - Programs retitle often (Claude Code animates its title while it works), so a tab's latest title is published at most

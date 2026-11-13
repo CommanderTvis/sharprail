@@ -23,7 +23,8 @@ internal static partial class TerminalHostChecks
         Require(!scanner.Scan(Encoding.UTF8.GetBytes("\e]2;" + new string('x', TerminalTitleScanner.MaxBytes + 1) + "\a"), out _) &&
             scanner.Scan("\e]2;after\a"u8, out var after) && after == "after", "An over-long sequence is dropped and scanning recovers.");
         Require(scanner.Scan("\e]0;✳ Foo\a"u8, out var status) && status == "Foo" && scanner.Scan("\e]0;⠂ Foo ✳ bar\a"u8, out var spinner) &&
-            spinner == "Foo ✳ bar" && scanner.Scan("\e]0;✳Foo\a"u8, out var glued) && glued == "✳Foo",
+            spinner == "Foo ✳ bar" && scanner.Scan("\e]0;◑ Foo\a"u8, out var half) && half == "Foo" &&
+            scanner.Scan("\e]0;✳Foo\a"u8, out var glued) && glued == "✳Foo",
             "Only a leading status glyph and its space leave a program title.");
         Require(scanner.Scan("\e]2;cancelled\x18\e]2;kept\a"u8, out var kept) && kept == "kept", "CAN abandons a sequence.");
         var stored = Path.Combine(Path.GetTempPath(), "tereditor-stored-titles-" + Guid.NewGuid().ToString("N"));

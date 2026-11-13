@@ -59,12 +59,12 @@ internal sealed class TerminalTitleScanner
         return true;
     }
 
-    // Claude Code prefixes its title with a status glyph ("✳ ", a spinner frame such as "✻ " or a braille "⠂ ") and
+    // Claude Code prefixes its title with a status glyph ("✳ ", a spinner frame such as "◐ ", "✻ " or a braille "⠂ ") and
     // animates it while working; only a leading glyph followed by whitespace goes, so every client shows the bare title.
     internal static string StripStatus(string value)
     {
         var text = value.TrimStart();
-        if (text.Length < 2 || !(text[0] is '✳' or '✻' or '✽' or '✶' or '✢' or '·' || text[0] is >= '\u2800' and <= '\u28ff')) return value;
+        if (text.Length < 2 || !(text[0] is '✳' or '◐' or '◑' or '✻' or '✽' or '✶' or '✢' or '·' || text[0] is >= '\u2800' and <= '\u28ff')) return value;
         return char.IsWhiteSpace(text[1]) ? text[1..] : value;
     }
 
