@@ -62,6 +62,10 @@ internal static class LocationBarChecks
         // The Remote block's caption names the branch it pushes to and reads "Remote" only while there is none to name.
         Require(captions.SequenceEqual(["Project", "Branch"]) && Label(app, "RemoteCaption") == "Remote",
             "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
+        // The host's status beside the location is a captioned block too, absent while a healthy embedded host has nothing to show.
+        var host = app.Find<Grid>("HostSegment");
+        Require(host.Children.OfType<TextBlock>().Single(text => text.Classes.Contains("location-caption")).Text == "Host" && !host.IsVisible &&
+            !app.Find<Button>("ConnectionButton").IsVisible, "The Host block carries its caption and holds no place while it has nothing to show.");
         Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
         Require(new[] { "ProjectChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),

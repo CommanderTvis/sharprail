@@ -136,6 +136,47 @@ internal static class UnifiedChromeChecks
         Require(Math.Abs(Box(first).Top - Box(cluster).Top) <= 1, $"The first tool opens the cluster ({Box(first).Top - Box(cluster).Top}).");
     }
 
+    /// <summary>
+    /// The host's status is a captioned block like Project and Branch: absent without leaving a gap while a healthy embedded host
+    /// has nothing to say, and with a status its caption, dot and text share the project's caption edge, icon column and text column.
+    /// </summary>
+    private static void HostBlock(E2eWorkspace app, StackPanel header)
+    {
+        void Settle() { Dispatcher.UIThread.RunJobs(); app.Window.UpdateLayout(); }
+        double Left(Control control) => control.TranslatePoint(default, header)!.Value.X;
+        double Top(Control control) => control.TranslatePoint(default, app.Window)!.Value.Y;
+        Settle();
+        var host = app.Find<Grid>("HostSegment");
+        var list = app.Find<Grid>("ProjectsPanel");
+        var listTop = Top(list);
+        Require(ReferenceEquals(host.Parent, header) && ReferenceEquals(header.Children[^1], host) && !host.IsVisible,
+            "The Host block is the rail header's last block, and a healthy embedded host does not show it.");
+
+        app.Window.Report(new IOException("Host replied: permission denied"));
+        Settle();
+        var caption = host.Children.OfType<TextBlock>().Single(text => text.Classes.Contains("location-caption"));
+        var projectCaption = ((Panel)app.Find<Button>("ScopeProject").Parent!).Children.OfType<TextBlock>().Single(text => text.Classes.Contains("location-caption"));
+        var dot = app.Find<TextBlock>("ConnectionDot");
+        var status = app.Find<TextBlock>("ConnectionStatus");
+        var initial = app.Find<Button>("ScopeProject").GetLogicalDescendants().OfType<Border>().Single(border => border.Classes.Contains("location-initial"));
+        var label = app.Find<TextBlock>("ProjectLabel");
+        Require(host.IsVisible && caption.Text == "Host" && status.Text == "Error" && Math.Abs(Left(caption) - Left(projectCaption)) <= 0.5,
+            $"A status shows the Host block, its sentence-case caption at the others' edge ({Left(caption)}, {Left(projectCaption)}).");
+        Require(Math.Abs(Left(dot) - Left(initial)) <= 0.5 && Math.Abs(dot.Bounds.Width - initial.Bounds.Width) <= 0.5 &&
+            Math.Abs(Left(status) - Left(label)) <= 0.5 && status.FontSize == Tereditor.Plugins.UI.Kit.Typography.TitleSection.FontSize,
+            $"The host's dot takes the icon column and its text the value's text column and role (dot {Left(dot)}/{Left(initial)}, text {Left(status)}/{Left(label)}).");
+        Require(Top(list) > listTop, "The Host block takes its own row above the project list.");
+
+        var connection = app.Find<Button>("ConnectionButton");
+        app.Click(connection);
+        var retry = connection.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Retry"));
+        retry.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        connection.ContextMenu.Close();
+        Until(() => !app.Find<TextBlock>("WorkspaceError").IsVisible);
+        Settle();
+        Require(!host.IsVisible && Math.Abs(Top(list) - listTop) <= 0.5, $"Once the status clears the Host block leaves no gap ({Top(list)}, {listTop}).");
+    }
+
     private static void Layout(E2eWorkspace app, StackPanel header)
     {
         // The sync state arrives after the window's last layout pass; measure what the user sees once the rail has settled.
@@ -287,6 +328,7 @@ internal static class UnifiedChromeChecks
             RightBar(app);
             HeaderDivider(app);
             Layout(app, header);
+            HostBlock(app, header);
             // Without a title row for traffic lights (the browser), the header keeps its own inset from the window's top edge.
             Require(OperatingSystem.IsMacOS() || app.Find<Border>("ProjectSegment").TranslatePoint(default, app.Window)!.Value.Y >= WorkbenchWindow.RailTopInset,
                 "The rail header does not touch the window's top edge.");

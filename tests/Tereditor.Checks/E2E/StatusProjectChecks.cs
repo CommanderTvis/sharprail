@@ -95,7 +95,7 @@ internal static class StatusProjectChecks
         bool Visible(string name) => app.Window.GetVisualDescendants().OfType<Control>().FirstOrDefault(c => c.Name == name)?.IsVisible == true;
         // The rail holds its header and everything below the project; the top bar holds its row, the Project segment, the Branch slot (the segment, or the reserve holding its place when hidden) and the tools.
         return unified
-            ? string.Join(" ", Box("RailHeader"), Box("ProjectSegment"), Box("RailStatus"), Box("ProjectsPanel"))
+            ? string.Join(" ", Box("RailHeader"), Box("ProjectSegment"), Box("HostSegment"), Box("ProjectsPanel"))
             : string.Join(" ", Box("LocationBar", false), Box("ProjectSegment"), "Branch" + Box(Visible("BranchSegment") ? "BranchSegment" : "BranchReserve")[(Visible("BranchSegment") ? "BranchSegment" : "BranchReserve").Length..], Box("HeaderTools"));
     }
 }

@@ -285,6 +285,17 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             menu.Open(connection);
         };
         connection.IsHitTestVisible = workbench.ChangeHost is not null;
+        // The Host block holds a place only while it has something to say: the connection state or the listener's mark.
+        var hostSegment = this.FindControl<Grid>("HostSegment")!;
+        var listening = this.FindControl<StackPanel>("HostListeningMark")!;
+        void SyncHostSegment()
+        {
+            connection.IsVisible = status.IsVisible;
+            hostSegment.IsVisible = status.IsVisible || listening.IsVisible;
+        }
+        status.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) SyncHostSegment(); };
+        listening.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) SyncHostSegment(); };
+        SyncHostSegment();
         var settings = this.FindControl<Button>("SettingsButton")!;
         // Plugins' header items (W24) lead the trailing group, before the host and connection status. A phone-sized
         // workbench has no room for them beside the location; their details stay in Settings.

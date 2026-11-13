@@ -161,9 +161,9 @@ On macOS 26 exactly (`MacWindowChrome.WantsToolbar`, pure on the OS version) `Ma
 mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically;
 a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
 The header carries no app logo on any platform and shows the location bar, the connection state and
-Settings. While the embedded host also accepts socket connections, every window shows a green
-"Listening" mark in the top-right header with its endpoint in a tooltip. The mark follows listener
-start/stop immediately and is hidden when serving is off.
+Settings. The connection state and the listener's mark form the captioned Host block (see Location bar). While the
+embedded host also accepts socket connections, every window shows a green "Listening" mark there with its endpoint in a
+tooltip. The mark follows listener start/stop immediately and is hidden when serving is off.
 The local workbench supplies the listener’s browser-consent callback. A loopback browser can
 request access without copying the master token; Allow/Deny shows the actual origin in an
 app-owned dialog and focuses Deny. Settings › Host lists and revokes approved origins. Grants
@@ -235,16 +235,17 @@ main column starts at the top edge. A phone-sized workbench keeps its own pages 
   and double-click zoomed by the system, with the add-project button at its right (the list has no caption row; the application menu holds About and Settings); in the browser there is no such row and the add-project button and the three-dots overflow button
   share the project's row. The overflow button opens the View menu, which a right-click on the header opens too (on a Mac only the right-click). Below it come the
   Project switcher, the Branch block (the branch card, and beside it the Remote block with the sync state and its one action), the
-  plugins' header items as a captioned Credits block, and one wrapping row of status marks: Listening and the connection button.
+  plugins' header items as a captioned Credits block, and last the captioned Host block (Listening and the connection state), gone
+  without leaving a gap while it has nothing to show.
   A 1 px line in the border colour closes the header block, and the project list starts right below it.
-  Project, Branch and Credits are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
+  Project, Branch, Credits and Host are one pattern: a caption over a value row with the same inset, icon column and text role, the value filling the rail's width.
 - The window shows no Settings gear: Settings opens from the application menu on a Mac and from the browser's overflow menu, which lists it with its icon and chord above About tereditor; the right tool bar holds only the tools. The Mac menu's Settings gear is a thin outline drawn as a black-on-transparent template image, never a solid fill.
 
 Everything else about those controls is as described in Location bar; the moved controls keep their names.
 
 ## Location bar
 
-`LocationBar.cs` renders the header's captioned segments — Project and Branch — each a 14px row
+`LocationBar.cs` renders the header's captioned segments — Project and Branch, with the Host block beside them — each a 14px row
 holding a sentence-case `ui.metadata` caption (12px, `Ui.Hint`) centred over a 20px value pill. Segments
 carry no hairlines: an 8px inset plus the pills' own padding is the separation, because full-height rules
 read as a table and never line up with the tab strip's dividers. Every pill value is one style and one
@@ -295,8 +296,11 @@ host state: it shows what the window already knows and calls the same methods as
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
   title bar.
 - Every field is a muted caption over a value whose first element is a `LayoutRoles.LocationIconSlot` icon column
-  (project badge, branch and pull-request icons; an empty state keeps its icon, muted, beside muted
+  (project badge, branch and pull-request icons, the Host block's status dots; an empty state keeps its icon, muted, beside muted
   text), so the caption and the value's first element share one left edge in every field.
+- HOST, in the top bar's trailing group and as the rail header's last block, is captioned Host (the Settings section that starts and
+  stops the listener) over the green Listening mark and the connection state (Connecting, Error in the danger colour, or a remote
+  host's name), each a 10px dot centred in the icon column beside `title.section` text. It is hidden, holding no place, while neither shows.
 - `LocationStrip` lays the segments out. As width shrinks the provider items yield first, then the branch; a
   segment that would fall under 72px is dropped whole, and the project keeps what is left.
 

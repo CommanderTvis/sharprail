@@ -137,15 +137,12 @@ public sealed partial class WorkbenchWindow
         };
         header.Children.Add(credits);
 
-        // The remaining status marks share one wrapping row, inset to the icon column.
-        var marks = new WrapPanel { Name = "RailStatus", Orientation = Orientation.Horizontal, Margin = new Thickness(12, 0, 8, 0) };
-        var settings = this.FindControl<Button>("SettingsButton")!;
-        foreach (var control in tools.Children.Where(child => !ReferenceEquals(child, settings)).ToArray())
-        {
-            tools.Children.Remove(control);
-            marks.Children.Add(control);
-        }
-        header.Children.Add(marks);
+        // The Host block (the listener's mark and the connection state) is the last captioned block, with the segments' inset; it is
+        // gone while it has nothing to show, so only the project list below it moves.
+        var host = this.FindControl<Grid>("HostSegment")!;
+        tools.Children.Remove(host);
+        host.Margin = new Thickness(8, 0, 8, 0);
+        header.Children.Add(host);
 
         // Settings is not drawn in the window: the application menu and the overflow menu open it. The button stays in the
         // hidden title bar, which the window's Settings wiring and the other layouts share.

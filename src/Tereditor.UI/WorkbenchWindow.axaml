@@ -85,6 +85,13 @@
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,4,0" />
     </Style>
+    <!-- A status dot takes the icon column too, so its text starts where the other values' text does. -->
+    <Style Selector="TextBlock.location-dot">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
     <Style Selector="Border.location-initial">
       <Setter Property="Width" Value="16" />
       <Setter Property="Height" Value="16" />
@@ -143,17 +150,24 @@
           <Border x:Name="BranchReserve" Width="360" IsHitTestVisible="False" />
         </local:LocationStrip>
         <StackPanel x:Name="HeaderTools" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-          <StackPanel x:Name="HostListeningMark" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="False"
-                      AutomationProperties.Name="Host listening">
-            <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
-            <TextBlock Text="Listening" Classes="header-label" />
-          </StackPanel>
-          <Button x:Name="ConnectionButton" Classes="location-pill" Padding="4,0" IsHitTestVisible="False" VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
-              <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+          <!-- The host's own state is a captioned block like the location's: the listener's mark and the connection state, each a
+               dot in the icon column beside its text. It is gone while neither shows. -->
+          <Grid x:Name="HostSegment" RowDefinitions="14,20" VerticalAlignment="Center">
+            <TextBlock Classes="location-caption tr-text-metadata" Text="Host" />
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+              <StackPanel x:Name="HostListeningMark" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="False"
+                          AutomationProperties.Name="Host listening">
+                <TextBlock Text="●" Classes="header-label location-dot" Foreground="{x:Static rendering:Ui.Success}" />
+                <TextBlock Text="Listening" Classes="header-label tr-title-section" />
+              </StackPanel>
+              <Button x:Name="ConnectionButton" Classes="location-pill tr-title-section" IsHitTestVisible="False" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label location-dot" Foreground="{x:Static rendering:Ui.Success}" />
+                  <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label tr-title-section" />
+                </StackPanel>
+              </Button>
             </StackPanel>
-          </Button>
+          </Grid>
           <Button x:Name="SettingsButton" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />

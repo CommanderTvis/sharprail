@@ -17,7 +17,7 @@ namespace Tereditor.Checks.E2E;
 /// </summary>
 internal static class StatusSwitchChecks
 {
-    private static readonly string[] Blocks = ["ProjectSegment", "BranchSegment", "ScopeBranch", "RemoteBlock", "RailStatus"];
+    private static readonly string[] Blocks = ["ProjectSegment", "BranchSegment", "ScopeBranch", "RemoteBlock", "HostSegment"];
 
     internal static void Run(string root)
     {

@@ -16,7 +16,7 @@ namespace Tereditor.Checks.E2E;
 /// </summary>
 internal static class StatusRefreshChecks
 {
-    private static readonly string[] Blocks = ["ProjectSegment", "BranchSegment", "ScopeBranch", "RemoteBlock", "RemoteRow", "RailStatus"];
+    private static readonly string[] Blocks = ["ProjectSegment", "BranchSegment", "ScopeBranch", "RemoteBlock", "RemoteRow", "HostSegment"];
 
     internal static void Run(string root)
     {
