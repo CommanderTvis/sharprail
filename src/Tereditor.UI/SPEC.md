@@ -162,7 +162,7 @@ mounted workspace refresh). Subscription failures use the same surface while rec
 a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
 The header carries no app logo on any platform and shows the location bar, the connection state and
 Settings. The connection state and the listener's mark form the captioned Host block (see Location bar). While the
-embedded host also accepts socket connections, every window shows a green "Listening" mark there with its endpoint in a
+embedded host also accepts socket connections, every window shows a "Listening" mark there with its endpoint in a
 tooltip. The mark follows listener start/stop immediately and is hidden when serving is off.
 The local workbench supplies the listener’s browser-consent callback. A loopback browser can
 request access without copying the master token; Allow/Deny shows the actual origin in an
@@ -299,8 +299,9 @@ host state: it shows what the window already knows and calls the same methods as
   (project badge, branch and pull-request icons, the Remote block's cloud, never the Processes plugin's node tree, the Host block's status dots; an empty state keeps its icon, muted, beside muted
   text), so the caption and the value's first element share one left edge in every field.
 - HOST, in the top bar's trailing group and as the rail header's last block, is captioned Host (the Settings section that starts and
-  stops the listener) over the green Listening mark and the connection state (Connecting, Error in the danger colour, or a remote
-  host's name), each a 10px dot centred in the icon column beside `title.section` text. It is hidden, holding no place, while neither shows.
+  stops the listener) over the Listening mark and the connection state (Connecting, Error in the danger colour, or a remote
+  host's name), each the muted 14px server glyph in the icon column beside `title.section` text, like the branch and cloud glyphs:
+  no colour dot, the text tells the state. It is hidden, holding no place, while neither shows.
 - `LocationStrip` lays the segments out. As width shrinks the provider items yield first, then the branch; a
   segment that would fall under 72px is dropped whole, and the project keeps what is left.
 

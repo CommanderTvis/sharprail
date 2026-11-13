@@ -138,7 +138,7 @@ internal static class UnifiedChromeChecks
 
     /// <summary>
     /// The host's status is a captioned block like Project and Branch: absent without leaving a gap while a healthy embedded host
-    /// has nothing to say, and with a status its caption, dot and text share the project's caption edge, icon column and text column.
+    /// has nothing to say, and with a status its caption, glyph and text share the project's caption edge, icon column and text column.
     /// </summary>
     private static void HostBlock(E2eWorkspace app, StackPanel header)
     {
@@ -156,7 +156,7 @@ internal static class UnifiedChromeChecks
         Settle();
         var caption = host.Children.OfType<TextBlock>().Single(text => text.Classes.Contains("location-caption"));
         var projectCaption = ((Panel)app.Find<Button>("ScopeProject").Parent!).Children.OfType<TextBlock>().Single(text => text.Classes.Contains("location-caption"));
-        var dot = app.Find<TextBlock>("ConnectionDot");
+        var dot = app.Find<ContentControl>("ConnectionIcon");
         var status = app.Find<TextBlock>("ConnectionStatus");
         var initial = app.Find<Button>("ScopeProject").GetLogicalDescendants().OfType<Border>().Single(border => border.Classes.Contains("location-initial"));
         var label = app.Find<TextBlock>("ProjectLabel");
@@ -164,7 +164,15 @@ internal static class UnifiedChromeChecks
             $"A status shows the Host block, its sentence-case caption at the others' edge ({Left(caption)}, {Left(projectCaption)}).");
         Require(Math.Abs(Left(dot) - Left(initial)) <= 0.5 && Math.Abs(dot.Bounds.Width - initial.Bounds.Width) <= 0.5 &&
             Math.Abs(Left(status) - Left(label)) <= 0.5 && status.FontSize == Tereditor.Plugins.UI.Kit.Typography.TitleSection.FontSize,
-            $"The host's dot takes the icon column and its text the value's text column and role (dot {Left(dot)}/{Left(initial)}, text {Left(status)}/{Left(label)}).");
+            $"The host's glyph takes the icon column and its text the value's text column and role (glyph {Left(dot)}/{Left(initial)}, text {Left(status)}/{Left(label)}).");
+        // No colour coin: each Host mark is the branch's plain glyph (same size and brush); only the Error text takes the danger colour.
+        var branchGlyph = (Border)app.Find<ContentControl>("BranchIcon").Content!;
+        foreach (var mark in new[] { dot, app.Find<ContentControl>("HostListeningIcon") })
+            Require(mark.Content is Border { OpacityMask: not null } glyph && glyph.Width == branchGlyph.Width && glyph.Height == branchGlyph.Height &&
+                ReferenceEquals(glyph.Background, branchGlyph.Background) &&
+                !host.GetLogicalDescendants().Any(control => control is Avalonia.Controls.Shapes.Ellipse || control is TextBlock { Text: "●" }),
+                $"The Host block's {mark.Name} is a plain glyph like the branch's, not a coloured dot.");
+        Require(ReferenceEquals(status.Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The Host block's Error text carries the problem's colour.");
         Require(Top(list) > listTop, "The Host block takes its own row above the project list.");
 
         var connection = app.Find<Button>("ConnectionButton");

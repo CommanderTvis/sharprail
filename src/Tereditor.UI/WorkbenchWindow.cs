@@ -41,7 +41,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly TextBlock branchLabel;
     private readonly Control branchIcon;
     private readonly TextBlock status;
-    private readonly TextBlock statusDot;
+    private readonly ContentControl statusIcon;
     private readonly TextBlock errorText;
     private readonly DockSurface surface;
     private readonly bool unified;
@@ -104,10 +104,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         projectLabel = this.FindControl<TextBlock>("ProjectLabel")!;
         branchLabel = this.FindControl<TextBlock>("BranchLabel")!;
         status = this.FindControl<TextBlock>("ConnectionStatus")!;
-        statusDot = this.FindControl<TextBlock>("ConnectionDot")!;
+        statusIcon = this.FindControl<ContentControl>("ConnectionIcon")!;
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
+        // The Host block's marks wear the same plain glyph as the other fields; their text tells the state.
+        statusIcon.Content = Ui.Icon("server", Ui.Muted, 14);
+        this.FindControl<ContentControl>("HostListeningIcon")!.Content = Ui.Icon("server", Ui.Muted, 14);
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout, unified);
@@ -813,20 +816,20 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (remote) SetStatus(workbench.HostLabel);
         else
         {
-            statusDot.IsVisible = status.IsVisible = false;
+            statusIcon.IsVisible = status.IsVisible = false;
             this.FindControl<Button>("ConnectionButton")!.IsHitTestVisible = workbench.ChangeHost is not null;
         }
     }
 
-    /// <summary>A status with a <paramref name="problem"/> turns the dot to the danger colour and says what went wrong on hover.</summary>
+    /// <summary>A status with a <paramref name="problem"/> turns its text to the danger colour and says what went wrong on hover.</summary>
     private void SetStatus(string text, string? problem = null)
     {
         status.Text = text;
         this.FindControl<Button>("ConnectionButton")!.IsHitTestVisible = problem is not null || workbench.ChangeHost is not null;
-        statusDot.Foreground = problem is null ? Ui.Success : Ui.Danger;
+        if (problem is null) status.ClearValue(TextBlock.ForegroundProperty); else status.Foreground = Ui.Danger;
         ToolTip.SetTip(status, problem);
-        ToolTip.SetTip(statusDot, problem);
-        statusDot.IsVisible = status.IsVisible = true;
+        ToolTip.SetTip(statusIcon, problem);
+        statusIcon.IsVisible = status.IsVisible = true;
     }
 
     /// <summary>The header's Error never outlives the message it stands for.</summary>

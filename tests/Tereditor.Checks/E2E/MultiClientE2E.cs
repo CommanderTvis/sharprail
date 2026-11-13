@@ -221,7 +221,7 @@ internal static class MultiClientE2E
         using var reloaded = RemoteClient(proxy.Endpoint, project, profile, workspace);
         Until(() => Status(reloaded) == "Error");
         Require(ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } problem && problem == reloaded.Find<TextBlock>("WorkspaceError").Text
-            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionDot").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover and its dot is not the healthy colour.");
+            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionStatus").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover in the danger colour.");
         Require(!reloaded.Window.WorkspaceMounted && new ProfileStore(profile).Data.Windows[0].LastProject == workspace,
             "A failed restore read must keep the remembered workspace.");
         proxy.Allow();
