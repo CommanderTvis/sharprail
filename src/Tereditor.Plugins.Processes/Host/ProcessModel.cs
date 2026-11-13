@@ -1,6 +1,7 @@
 using System.Globalization;
 
 using Tereditor.Plugins.Api;
+using Tereditor.Plugins.Api.Host;
 
 namespace Tereditor.Plugins.Processes.Host;
 
@@ -49,7 +50,6 @@ internal static class ProcessModel
     internal static readonly TimeSpan LongRunning = TimeSpan.FromSeconds(10);
 
     internal const string LanguageGroup = "group:language", AgentGroup = "group:agents", SpawnedGroup = "group:spawned", GuardGroup = "group:guard";
-    private static readonly string[] AgentExecutables = ["claude", "codex", "omp"];
 
     private sealed class Row(string id, string kind, string label, string detail, int? pid, StopTarget? stop, string? workspace)
     {
@@ -216,7 +216,7 @@ internal static class ProcessModel
         foreach (var token in command.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))
         {
             var name = token[(token.LastIndexOfAny(['/', '\\']) + 1)..];
-            if (AgentExecutables.Contains(name, StringComparer.OrdinalIgnoreCase)) return name.ToLowerInvariant();
+            if (AgentExecutables.Names.Contains(name, StringComparer.OrdinalIgnoreCase)) return name.ToLowerInvariant();
         }
         return null;
     }

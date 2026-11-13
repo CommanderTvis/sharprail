@@ -140,6 +140,8 @@ internal static class ProcessesChecks
         var server = Find(plain.Children, "spawn:22");
         Require(server.Label == "npm run dev" && server.Detail.Contains("up 2m") && server.Children.Single().Id == "spawn:23" && TryFind(snapshot.Groups, "spawn:24") is null,
             "A plain terminal lists what has been running a while, nested under its parent, and not a command that has only just started.");
+        Require(ProcessModel.ExecutableOf("/opt/bin/pi --continue") == "pi" && ProcessModel.ExecutableOf("node /x/node_modules/.bin/pi") == "pi" && ProcessModel.ExecutableOf("goose session") == "goose"
+            && ProcessModel.ExecutableOf("pip install x") is null, "Pi and the ACP registry's goose are agents a plain terminal lists, also through an interpreter.");
         Require(snapshot.Groups[1].Cpu == 11 + 12 + 13 + 14 + 15 && snapshot.Groups[2].Cpu == 21 + 22 + 23 && snapshot.TotalCpu == snapshot.Groups.Sum(group => group.Cpu) && snapshot.TotalMemoryBytes == snapshot.Groups.Sum(group => group.MemoryBytes), "The total is the sum of the groups and no process is counted twice.");
         Require(Find(snapshot.Groups, "spawn:12").Cpu == 12 + 13 + 15, "A row includes the spawned agents nested under it.");
 

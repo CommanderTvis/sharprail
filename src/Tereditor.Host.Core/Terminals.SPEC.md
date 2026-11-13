@@ -279,13 +279,15 @@ leaves the agent; until then the notification and the Processes pane carry it. A
 and the notification and do nothing else. Program notifications switched off in Settings silence the desktop notification but not the
 line in the terminal or the Processes pane.
 
-Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp) is what the user is working
+Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp, Pi, goose) is what the user is working
 with, so when it is the largest the guard ends its heaviest subprocess instead (a build, a test run, a language server it started), then,
 when it has none, the heaviest other program in the terminal. The agent itself is ended only as a last resort: when it alone is over
 the per-terminal limit, so no subprocess could bring the terminal back under; then it gets the stop request and the grace period first. An agent under that limit with
 nothing else to end is only warned about, once, whatever the reason (also the total limit and system pressure). Agents are recognised by
-name and by executable path, since a native Claude Code runs as a binary named after its version (`…/claude/versions/2.1.3`); one started
-through a generic runtime (an npm install runs as `node`) is not recognised. A protected program is never ended: if it is the largest,
+name and by executable path against the one list of agent executables the Processes pane also uses (`claude`, `codex`, `omp`, `pi`, and
+`goose`, the ACP registry's agent that ships its own binary; Pi and ACP chats run as host children, not in a terminal, so the guard never
+sees them). The path matters because a native Claude Code runs as a binary named after its version (`…/claude/versions/2.1.3`); an agent
+started through a generic runtime (an npm install runs as `node`, an ACP adapter under `bun` or `python`) is not recognised. A protected program is never ended: if it is the largest,
 the terminal is only warned, once.
 Before the kill the guard checks the process is still the one it sampled (same start and name), so a reused pid is never hit.
 

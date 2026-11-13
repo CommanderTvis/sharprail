@@ -234,6 +234,15 @@ internal static class TerminalMemoryGuardChecks
         }
         Require(TerminalMemoryGuard.AgentOf("2.1.323", "/Users/u/.local/share/claude/versions/2.1.323") == "claude" && TerminalMemoryGuard.AgentOf("codex", null) == "codex"
             && TerminalMemoryGuard.AgentOf("node", "/usr/local/bin/node") is null && TerminalMemoryGuard.AgentOf("x", "/home/u/.local/share/claude/versions/2.0.1 (deleted)") == "claude", "Agents are recognised by name or executable path.");
+        Require(TerminalMemoryGuard.AgentOf("pi", null) == "pi" && TerminalMemoryGuard.AgentOf("x", "/Users/u/.local/bin/pi") == "pi" && TerminalMemoryGuard.AgentOf("goose", null) == "goose"
+            && TerminalMemoryGuard.AgentOf("x", @"C:\Users\u\goose-package\goose.exe") == "goose" && TerminalMemoryGuard.AgentOf("pip", "/usr/bin/pip") is null, "Pi and the ACP registry's goose are agents too, by name or executable path.");
+        // Pi in a terminal is spared like Claude Code: its build is stopped, not Pi.
+        {
+            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            fake.Set(10, P(11, "pi", 3), P(12, "cargo", 2, parent: 11));
+            guard.Tick([new("s", "t", 10)]);
+            Require(fake.Signals.SequenceEqual(["TERM 12"]), "Pi's subprocess is stopped, not Pi: " + string.Join(",", fake.Signals));
+        }
         // The host's own pid and a pid below another terminal are never victims of this terminal.
         {
             var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));

@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using Tereditor.Plugins.Api.Host;
+
 namespace Tereditor.Host.Core;
 
 /// <summary>
@@ -50,7 +52,7 @@ internal readonly record struct GuardUsage(long Bytes, long Limit, GuardState St
 internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller killer, Func<TerminalMemoryLimits> limits, Action<GuardEvent> report)
 {
     internal const double WarnAt = 0.8, ClearBelow = 0.7;
-    private static readonly string[] AgentNames = ["claude", "codex", "omp"];
+    private static readonly IReadOnlyList<string> AgentNames = AgentExecutables.Names;
 
     private sealed class Watch
     {
@@ -83,7 +85,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         lock (gate) return [.. events];
     }
 
-    /// <summary>The agent a process is, by its executable path (<c>…/claude/versions/2.1.3</c> or <c>…/codex</c>) or its name; null for any other program.</summary>
+    /// <summary>The agent a process is, by its executable path (<c>…/claude/versions/2.1.3</c> or <c>…/codex</c>) or its name, against <see cref="AgentExecutables"/>; null for any other program.</summary>
     internal static string? AgentOf(string name, string? path)
     {
         if (AgentNames.FirstOrDefault(agent => agent.Equals(name, StringComparison.OrdinalIgnoreCase)) is { } named) return named;

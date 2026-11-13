@@ -981,3 +981,5 @@ Tereditor.Plugins.Api.Host.LanguageServerSpec.TermsSummary.get -> string!
 Tereditor.Plugins.Api.Host.LanguageServerSpec.TermsSummary.init -> void
 Tereditor.Plugins.Api.Host.LanguageServerSpec.TermsQuestions.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.Api.Host.LanguageServerQuestion!>!
 Tereditor.Plugins.Api.Host.LanguageServerSpec.TermsQuestions.init -> void
+Tereditor.Plugins.Api.Host.AgentExecutables
+static Tereditor.Plugins.Api.Host.AgentExecutables.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
