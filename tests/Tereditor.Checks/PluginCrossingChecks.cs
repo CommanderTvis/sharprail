@@ -280,7 +280,7 @@ internal static class PluginCrossingChecks
         Fails("SRI002", "[PluginAmbient] void Load(Type type);");
         Fails("SRI002", "[PluginAmbient] void Swap(ref int value);");
         Fails("SRI003", "[PluginAmbient] void Show(Uri place);");
-        Fails("SRI004", "[PluginAmbient] void M8bdca(); [PluginAmbient] void Md5579();");
+        Fails("SRI004", "[PluginAmbient] void M3c28c(); [PluginAmbient] void M782f0();");
         Fails("SRI005", "[PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)] string? Title() => null; } sealed class Proxy : IPluginUIContext { public string Id => \"\"; public void Notify(string text, int count) { } public void Offer(Choice choice) { } public ValueTask<string> AskAsync(string question, CancellationToken cancellationToken) => default; public void CopyText(string text) { }");
         Fails("SRI006", "[PluginAmbient] ValueTask<(int, string Name)> PairAsync();");
     }
