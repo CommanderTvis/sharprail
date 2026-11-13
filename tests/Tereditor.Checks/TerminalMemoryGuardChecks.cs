@@ -186,15 +186,15 @@ internal static class TerminalMemoryGuardChecks
         {
             var (guard, fake, events, _, _) = Make(Limits(perTerminalMb: 4096));
             GuardTarget[] targets = [new("s", "t", 10)];
-            fake.Set(10, P(11, "claude", 5), P(12, "python", 2), P(13, "cargo", 0.5, parent: 11), P(14, "rustc", 1, parent: 13));
+            fake.Set(10, P(11, "claude", 3), P(12, "python", 2), P(13, "cargo", 0.5, parent: 11), P(14, "rustc", 1, parent: 13));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 14"]), "The agent's heaviest descendant is stopped, not the agent or an unrelated program: " + string.Join(",", fake.Signals));
             Require(events[0].Text.StartsWith("tereditor memory guard: stopped rustc (pid 14, 1 GB) because", StringComparison.Ordinal), "The notice names the subprocess: " + events[0].Text);
         }
         {
-            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            var (guard, fake, _, _, _) = Make(Limits());
             GuardTarget[] targets = [new("s", "t", 10)];
-            fake.Set(10, P(11, "claude", 7), P(12, "node", 0.5, parent: 11));
+            fake.Set(10, P(11, "claude", 7), P(12, "node", 1.5, parent: 11));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 12"]), "An agent far larger than its subprocess is still passed over while a subprocess is left: " + string.Join(",", fake.Signals));
         }
@@ -205,6 +205,14 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(11, "2.1.323", 5, agent: "claude"));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11"]) && events[0].Text.StartsWith("tereditor memory guard: stopped claude (pid 11, 5 GB)", StringComparison.Ordinal), "An agent alone over the limit is ended, named as the user knows it: " + string.Join(",", events.Select(e => e.Text)));
+        }
+        // An agent over the limit by itself is asked to stop at once: ending its small subprocess could not help.
+        {
+            var (guard, fake, _, _, _) = Make(Limits());
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "claude", 9), P(12, "node", 0.1, parent: 11));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]), "An agent alone over the limit gets the stop request, not a later tree kill: " + string.Join(",", fake.Signals));
         }
         // An agent under the limit by itself with nothing else to end is only warned about, once.
         {

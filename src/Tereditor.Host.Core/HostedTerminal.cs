@@ -82,7 +82,8 @@ internal sealed class HostedTerminal
                         Task? space;
                         lock (gate)
                         {
-                            space = current?.WaitForSpace(chunk.Length);
+                            // Waiting notices are written with this chunk when the command ends in it, so they need room too.
+                            space = current?.WaitForSpace(chunk.Length + notices.Sum(notice => notice.Length * 3 + 16));
                             if (space is null)
                             {
                                 var read = notices.Count > 0 ? shell.PushUntilReturn(chunk.Span) : -1;

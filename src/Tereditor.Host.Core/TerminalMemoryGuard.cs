@@ -224,7 +224,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
     /// <summary>
     /// The process to end: the largest one, unless it is protected (then none). A known agent is what the user works with, so it is
     /// passed over for its heaviest subprocess (a build, a test run, a language server), then for the heaviest other program; it is
-    /// ended only as a last resort, when nothing else is left to end and it alone is over the per-terminal <paramref name="limit"/>.
+    /// ended only as a last resort, when it alone is over the per-terminal <paramref name="limit"/>.
     /// </summary>
     internal static GuardedProcess? Victim(IReadOnlyList<GuardedProcess> tree, TerminalMemoryLimits setting, long limit)
     {
@@ -232,7 +232,8 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         var ordered = tree.OrderByDescending(process => process.Bytes).ThenBy(process => process.Pid).ToArray();
         var largest = ordered[0];
         if (setting.Protects(largest.Name)) return null;
-        if (AgentOf(largest) is null) return largest;
+        // An agent alone over the limit: no subprocess can bring the terminal back under, so it is asked to stop like any other.
+        if (AgentOf(largest) is null || largest.Bytes > limit) return largest;
         var below = Descendants(tree, largest.Pid);
         var endable = ordered.Where(process => AgentOf(process) is null && !setting.Protects(process.Name)).ToArray();
         return endable.Where(process => below.Contains(process.Pid)).Concat(endable).Cast<GuardedProcess?>().FirstOrDefault()

@@ -281,8 +281,8 @@ line in the terminal or the Processes pane.
 
 Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp) is what the user is working
 with, so when it is the largest the guard ends its heaviest subprocess instead (a build, a test run, a language server it started), then,
-when it has none, the heaviest other program in the terminal. The agent itself is ended only as a last resort: nothing else is left to
-end and it alone is over the per-terminal limit, so no subprocess could bring the terminal back under. An agent under that limit with
+when it has none, the heaviest other program in the terminal. The agent itself is ended only as a last resort: when it alone is over
+the per-terminal limit, so no subprocess could bring the terminal back under; then it gets the stop request and the grace period first. An agent under that limit with
 nothing else to end is only warned about, once, whatever the reason (also the total limit and system pressure). Agents are recognised by
 name and by executable path, since a native Claude Code runs as a binary named after its version (`…/claude/versions/2.1.3`); one started
 through a generic runtime (an npm install runs as `node`) is not recognised. A protected program is never ended: if it is the largest,
