@@ -23,7 +23,7 @@ public sealed partial class WorkbenchWindow
     private GitPanelProjection? changesProjection;
 
     private GitPanelProjection CurrentGitProjection() => new(git, gitBranches, scopeCommits ?? [], comparison, changeScope, selectedCommit,
-        changeTree, gitLoading, gitError, string.Join("\n", git.Changes.Select(change =>
+        changeTree, gitLoading, gitError, (FileIconsHidden ? "hidden\n" : "") + string.Join("\n", git.Changes.Select(change =>
             FileIconAnswer(change.Path) is { } icon ? $"{icon.PluginId}\t{icon.Icon}" : "")));
 
     private void ReconcileChangesPanel()

@@ -9,8 +9,12 @@ namespace Tereditor.UI;
 
 public sealed partial class WorkbenchWindow
 {
+    /// <summary>The Hidden choice: no icon beside file and folder names at all, not even a plugin's or a generic glyph.</summary>
+    private bool FileIconsHidden => state.Current.Settings is { FileTypeIconsEnabled: false, FileTypeIconStyle: "hidden" };
+
     private (string PluginId, string Icon)? FileIconAnswer(string path, bool directory = false)
     {
+        if (FileIconsHidden) return null;
         if (Plugins.FileIcon(path, directory ? FileIconKind.Directory : FileIconKind.File) is { } custom) return custom;
         if (!state.Current.Settings.FileTypeIconsEnabled) return null;
         var key = FileTypeIcons.Key(state.Current.Settings.FileTypeIconStyle, path, directory);

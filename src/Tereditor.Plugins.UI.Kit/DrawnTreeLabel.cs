@@ -140,7 +140,8 @@ internal sealed class DrawnTreeLabel : Decorator
     }
 
     private double IconWidth => Math.Max(14, icon?.DesiredSize.Width ?? 14);
-    private double TextOffset => 28 + IconWidth;
+    // An entry whose icon answered none starts its title where the icon would sit, past the chevron.
+    internal double TextOffset => icon is null && Entry.Icon is not null ? 24 : 28 + IconWidth;
     // The trailing mark: a status letter or a dot, with a gap before it.
     private double MarkWidth => badge is not null ? badge.Width + 10 : Entry.Dot ? 16 : 0;
 

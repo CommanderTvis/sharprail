@@ -41,6 +41,8 @@ public sealed partial class DockSurface : Grid
     public Func<DockTab, bool>? IsDeleted { get; set; }
     /// <summary>Replaces a tab's icon, given the brush it is drawn in; null keeps the tab kind's own glyph.</summary>
     public Func<DockTab, IBrush, Control?>? TabIcon { get; set; }
+    /// <summary>Whether a tab shows no icon at all, not even its kind's glyph, and its title starts where the icon would be.</summary>
+    public Func<DockTab, bool>? TabIconHidden { get; set; }
     /// <summary>Extra content after a tab's title, such as a badge.</summary>
     public Func<DockTab, Control?>? TabAdornment { get; set; }
     /// <summary>Plugins' items for a terminal tab's context menu, read each time the menu opens.</summary>

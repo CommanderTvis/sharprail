@@ -39,7 +39,9 @@ Icon Theme is MIT licensed (`licenses/Material-Icon-Theme-MIT.txt`); the pinned 
 
 Settings › Appearance exposes the shared host setting. Turning it off restores generic file
 glyphs in Files and document tabs and removes core file-type icons from Changes. Custom plugin
-icon slots remain an override; this setting controls only the bundled icon set. The former
+icon slots remain an override; this setting controls only the bundled icon set. The Hidden
+choice goes further: no icon at all beside file and folder names, plugin icons included, in Files, document tabs, Changes
+and search results. The name starts where the icon sat, with no blank slot, and folders keep only their chevron. The former
 `file-icons` plugin is absent from both builtin rosters and project references. Host state migrates
 its old enabled choice once, removes that namespace, and gives an explicit new setting precedence.
 

@@ -279,7 +279,8 @@ public sealed partial class WorkbenchWindow
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
         var marked = new MarkedRow();
         var row = new Grid { Margin = new Thickness(0, 0, 4, 0), Children = { marked } };
-        marked.Add(TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14), RowRole.Leading);
+        if (!TabIconHidden(tab, workspace))
+            marked.Add(TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14), RowRole.Leading);
         var external = tab.Kind == "file" && ExternalSource(tab.Path, workspace);
         var title = Ui.Text(tab.Title, foreground, 14);
         title.LineHeight = 20;

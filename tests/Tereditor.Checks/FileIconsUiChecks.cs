@@ -211,7 +211,7 @@ internal static partial class FileIconsChecks
         var settings = app.Window.OpenSettingsViews.Single();
         // Every host settings change rebuilds the Appearance page, so the dropdown is looked up afresh for each pick.
         ComboBox Styles() => settings.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "FileTypeIconChoices");
-        void Pick(string name) => Styles().SelectedIndex = Array.IndexOf(new[] { "plain", "colored", "material", "none" }, name);
+        void Pick(string name) => Styles().SelectedIndex = Array.IndexOf(new[] { "plain", "colored", "material", "none", "hidden" }, name);
         Until(() => Styles().IsEnabled);
         Require(app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: true, FileTypeIconStyle: "" }, "Core file-type icons are on and plain by default.");
         Pick("none");
@@ -219,6 +219,8 @@ internal static partial class FileIconsChecks
         Until(() => !app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FileTypeIcon"));
         Require(app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible),
             "Disabling File Icons restores core's plain file glyph.");
+        Require(Styles().ItemCount == 5, "The dropdown offers Hidden beside the four icon styles.");
+        Hidden(app, Pick);
         Pick("plain");
         Until(() => app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         Control Icon(string file, string name)
@@ -253,6 +255,34 @@ internal static partial class FileIconsChecks
         settings.Close();
         Loaded(app.FileRow("README.md"), "readme");
         Loaded(app.Tab("README.md"), "readme");
+    }
+
+    // Hidden: no icon element in the tree or the tab, and the text starts where the icon was rather than after a blank slot.
+    private static void Hidden(E2eWorkspace app, Action<string> pick)
+    {
+        pick("hidden");
+        Until(() => app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: false, FileTypeIconStyle: "hidden" });
+        bool Bare(Control scope) => !scope.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FileTypeIcon" || control.Tag is "file" or "folder" or "fileText");
+        foreach (var path in new[] { "README.md", "server.py", "src" })
+        {
+            Until(() => app.FileRow(path) is DrawnTreeLabel { Child: null } row && Bare(row));
+            var label = (DrawnTreeLabel)app.FileRow(path);
+            Require(label.TextOffset == 24, $"A Hidden row's name starts where its icon sat, with no blank slot: {path} at {label.TextOffset}.");
+        }
+        Require(((DrawnTreeLabel)app.FileRow("src")).Entry.CanExpand, "A Hidden folder keeps its expander chevron.");
+        bool TabLeading() => app.Tab("README.md").GetLogicalDescendants().OfType<MarkedRow>().Single()
+            .Children.Any(child => child.GetValue(MarkedRow.RoleProperty) == RowRole.Leading);
+        Until(() => Bare(app.Tab("README.md")) && !TabLeading());
+        app.Window.UpdateLayout();
+        var title = app.Tab("README.md").GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("dock-tab-title"));
+        Require(title.Bounds.X == 0, $"A Hidden tab's title starts where its icon was, at {title.Bounds.X}.");
+        pick("none");
+        Until(() => app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: false, FileTypeIconStyle: "" });
+        Until(() => app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible));
+        Require(((DrawnTreeLabel)app.FileRow("README.md")).TextOffset > 24, "None after Hidden brings back the generic glyph and its slot.");
+        Until(TabLeading);
+        pick("hidden");
+        Until(() => app.FileRow("README.md") is DrawnTreeLabel { Child: null });
     }
 
     private static void TwoTone(E2eWorkspace app)

@@ -300,7 +300,7 @@ public sealed partial class WorkbenchWindow
         {
             path.ColumnDefinitions.Insert(0, new ColumnDefinition(GridLength.Auto));
             Grid.SetColumn(directory, 1); Grid.SetColumn(filename, 2);
-            var icon = leadingIcon = FileIcon(change.Path, false, "fileText", color);
+            var icon = leadingIcon = FileIcon(change.Path, false, "fileText", color)!;
             icon.Margin = new Thickness(0, 0, 4, 0);
             Ui.Place(path, icon);
         }

@@ -160,8 +160,8 @@ public sealed partial class DockSurface
             };
             var label = new MarkedRow();
             var foreground = tab.Id == selected?.Id ? Ui.TextBrush : Ui.Muted;
-            var icon = TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14);
-            label.Add(icon, RowRole.Leading);
+            var icon = TabIconHidden?.Invoke(tab) == true ? null : TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14);
+            if (icon is not null) label.Add(icon, RowRole.Leading);
             var adornment = TabAdornment?.Invoke(tab);
             var title = Ui.Text(Session.ToolTitle(tab), foreground, 14);
             title.LineHeight = 20;

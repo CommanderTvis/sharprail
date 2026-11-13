@@ -15,10 +15,10 @@ public sealed partial class WorkbenchWindow
     private IReadOnlyList<LanguageProject> ProjectsAt(string folder) => fileProjectsWorkspace != workspaceRoot ? [] :
         fileProjects.Where(project => project.Root == folder.Replace('\\', '/')).ToArray();
 
-    private Control ProjectFileIcon(ProjectFile file)
+    private Control? ProjectFileIcon(ProjectFile file)
     {
         var folder = FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText", file.GitIgnored ? Ui.Hint : null);
-        if (!file.IsDirectory || ProjectsAt(file.Path).Count == 0) return folder;
+        if (folder is null || !file.IsDirectory || ProjectsAt(file.Path).Count == 0) return folder;
         return new ProjectFolderIcon(folder);
     }
 

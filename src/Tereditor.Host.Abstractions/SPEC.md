@@ -81,7 +81,7 @@ interchangeable adapter choices. Wire DTOs live in `Tereditor.Host.Protocol`, im
   (a commit named by a scope or revision no longer resolves), `NotGit` or `AlreadyOpen` (the two
   project-open refusals). It derives from `IOException`, so a caller that handles none of them sees an
   ordinary failure. Both adapters deliver the same type and message.
-- The core file-type icon setting is enabled by default and independent of the plugin roster. Protocol version 7 (`HostProtocol.FileTypeIcons`) introduces its shared toggle; older hosts do not accept that setting. Protocol version 14 (`HostProtocol.FileTypeIconStyle`) adds `FileTypeIconStyle` (empty or `plain`, `colored`, `material`) beside it; the toggle stays the None choice, and an older host reads as plain.
+- The core file-type icon setting is enabled by default and independent of the plugin roster. Protocol version 7 (`HostProtocol.FileTypeIcons`) introduces its shared toggle; older hosts do not accept that setting. Protocol version 14 (`HostProtocol.FileTypeIconStyle`) adds `FileTypeIconStyle` (empty or `plain`, `colored`, `material`) beside it; the toggle stays the None choice, and an older host reads as plain. Protocol version 20 (`HostProtocol.FileTypeIconsHidden`) adds the `hidden` style, stored with the toggle off: Hidden draws no icon at all, and an older client, which maps the unknown style to plain behind a disabled toggle, shows it as None.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events

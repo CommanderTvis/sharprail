@@ -57,7 +57,7 @@ internal static partial class FileIconsChecks
         Directory.CreateDirectory(directory);
         Require(new HostStateStore(directory).Current.Settings.FileTypeIconStyle.Length == 0, "The icon style defaults to plain.");
         var store = new HostStateStore(directory);
-        foreach (var style in new[] { "colored", "material", "plain" })
+        foreach (var style in new[] { "colored", "material", "hidden", "plain" })
         {
             await store.ChangeAsync([HostStateChange.Setting("file-type-icon-style", style)]);
             Require(new HostStateStore(directory).Current.Settings.FileTypeIconStyle == (style == "plain" ? "" : style), "The icon style persists: " + style);

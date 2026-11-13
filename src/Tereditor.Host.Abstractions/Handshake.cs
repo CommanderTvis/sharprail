@@ -9,7 +9,10 @@ namespace Tereditor.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 19;
+    public const int Current = 20;
+
+    /// <summary>The <c>hidden</c> file-type icon style: no icon beside file and folder names. A host below it rejects the style, so a client does not offer it.</summary>
+    public const int FileTypeIconsHidden = 20;
 
     /// <summary>
     /// External plugins' views over the plugin service's surface session (<c>IPluginRpc.SurfaceAsync</c>). A host below

@@ -31,9 +31,13 @@ public sealed partial class WorkbenchWindow
             var node = new TreeViewItem { Tag = string.Join('/', parts.Take(end)) };
             TrackChangedFolder(node, (string)node.Tag);
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,8,Auto"), Height = 28 };
-            var folderLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,6,*"), ClipToBounds = true };
-            Ui.Place(folderLabel, Ui.Icon("folder"));
-            Ui.Place(folderLabel, Ui.Text(label), 0, 2);
+            var folderLabel = new Grid { ColumnDefinitions = new ColumnDefinitions(FileIconsHidden ? "*" : "Auto,6,*"), ClipToBounds = true };
+            if (FileIconsHidden) Ui.Place(folderLabel, Ui.Text(label));
+            else
+            {
+                Ui.Place(folderLabel, Ui.Icon("folder"));
+                Ui.Place(folderLabel, Ui.Text(label), 0, 2);
+            }
             Ui.Place(row, folderLabel);
             var stats = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
             stats.Children.Add(Ui.Text("+" + descendants.Sum(change => change.Change.Added), Ui.Success, 12));

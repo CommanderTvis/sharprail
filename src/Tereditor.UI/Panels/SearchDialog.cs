@@ -25,9 +25,13 @@ public sealed class SearchDialog
 
     public Tereditor.Plugins.UI.Kit.DialogWindow Window { get; }
 
-    public SearchDialog(Func<string, CancellationToken, Task<SearchHits>> search)
+    private readonly bool fileIcons;
+
+    /// <param name="fileIcons">False with the Hidden file icon choice: file headers carry no glyph.</param>
+    public SearchDialog(Func<string, CancellationToken, Task<SearchHits>> search, bool fileIcons = true)
     {
         this.search = search;
+        this.fileIcons = fileIcons;
         Window = Dialogs.Create("Search in workspace", 640);
         Window.Tag = "SearchDialog";
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
@@ -78,6 +82,7 @@ public sealed class SearchDialog
         foreach (var file in found.Hits.GroupBy(hit => hit.Path))
         {
             var header = Ui.Row("fileText", file.Key, Ui.TextBrush);
+            if (!fileIcons) header.Children.RemoveAt(0);
             header.Name = "SearchFile"; header.Tag = file.Key; header.Margin = new Thickness(0, 8, 0, 2);
             results.Children.Add(header);
             foreach (var hit in file)

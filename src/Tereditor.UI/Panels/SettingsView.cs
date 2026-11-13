@@ -484,15 +484,27 @@ public sealed partial class SettingsView : UserControl
             ("", "Plain: single-colour icons that follow the text colour"),
             ("colored", "Colored: the same icons tinted by file kind with the theme’s colours"),
             ("material", "Material: Material Icon Theme in its own colours"),
-            ("none", "None: generic file glyphs only")
+            ("none", "None: generic file glyphs only"),
+            ("hidden", "Hidden: no icons beside file names")
         };
-        fileIcons.ItemsSource = fileIconStyles.Select(style => style.Item2).ToArray();
         var syncingFileIcons = false;
-        string CurrentFileIcons() => state.Current.Settings.FileTypeIconsEnabled ? state.Current.Settings.FileTypeIconStyle : "none";
+        // Hidden is the toggle off with the hidden style, so an older client shows it as None.
+        string CurrentFileIcons() => state.Current.Settings switch
+        {
+            { FileTypeIconsEnabled: true } settings => settings.FileTypeIconStyle,
+            { FileTypeIconStyle: "hidden" } => "hidden",
+            _ => "none"
+        };
         void FileIconChoices()
         {
             syncingFileIcons = true;
-            try { fileIcons.SelectedIndex = Array.FindIndex(fileIconStyles, style => style.Item1 == CurrentFileIcons()); }
+            try
+            {
+                // A host below protocol 20 rejects the hidden style, so Hidden is offered only by one that keeps it.
+                var offered = state.Supports(HostProtocol.FileTypeIconsHidden) ? fileIconStyles.Length : fileIconStyles.Length - 1;
+                if (fileIcons.ItemCount != offered) fileIcons.ItemsSource = fileIconStyles.Take(offered).Select(style => style.Item2).ToArray();
+                fileIcons.SelectedIndex = Array.FindIndex(fileIconStyles, style => style.Item1 == CurrentFileIcons());
+            }
             finally { syncingFileIcons = false; }
             fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIconStyle);
         }
@@ -503,7 +515,10 @@ public sealed partial class SettingsView : UserControl
             var value = fileIconStyles[fileIcons.SelectedIndex].Item1;
             if (value != CurrentFileIcons())
             {
-                if (value == "none") Share(HostStateChange.Setting("file-type-icons", "false"));
+                if (value == "hidden") Share(HostStateChange.Setting("file-type-icons", "false"), HostStateChange.Setting("file-type-icon-style", "hidden"));
+                else if (value == "none" && state.Current.Settings.FileTypeIconStyle == "hidden")
+                    Share(HostStateChange.Setting("file-type-icons", "false"), HostStateChange.Setting("file-type-icon-style", "plain"));
+                else if (value == "none") Share(HostStateChange.Setting("file-type-icons", "false"));
                 else Share(HostStateChange.Setting("file-type-icons", "true"), HostStateChange.Setting("file-type-icon-style", value.Length == 0 ? "plain" : value));
             }
             // The selection follows the host, not the pick: put it back until the broadcast moves it.

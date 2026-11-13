@@ -35,7 +35,8 @@ internal sealed class DrawnTreeEntry(string id, string text)
     internal int Depth { get; set; }
     internal DrawnTreeEntry? Parent { get; set; }
     internal IReadOnlyList<DrawnTreeEntry> Children { get; set; } = [];
-    internal Func<bool, Control>? Icon { get; set; }
+    /// <summary>The row's icon; when it answers null the title starts where the icon would be (an entry without it keeps the slot).</summary>
+    internal Func<bool, Control?>? Icon { get; set; }
     internal Func<bool, object>? IconKey { get; set; }
     internal Action<bool>? ExpansionChanged { get; set; }
     internal Action<int>? Activate { get; set; }

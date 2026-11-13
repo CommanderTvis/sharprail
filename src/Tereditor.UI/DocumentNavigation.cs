@@ -71,7 +71,7 @@ public sealed partial class WorkbenchWindow
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
             return await Task.Run(async () => await host.SearchAsync(query, linked.Token), linked.Token);
-        });
+        }, !FileIconsHidden);
         var undim = Dim();
         Host.Abstractions.SearchHit? hit;
         try { hit = await dialog.ShowAsync(this); }

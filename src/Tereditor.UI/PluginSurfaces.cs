@@ -34,6 +34,7 @@ public sealed partial class WorkbenchWindow
     private void WirePlugins()
     {
         surface.TabIcon = TabIcon;
+        surface.TabIconHidden = tab => TabIconHidden(tab);
         surface.CenterActions = CenterActions;
         surface.TabAdornment = tab => TabAdornment(tab);
         surface.TabMenuItems = tab => TabMenuItems(tab);
@@ -229,11 +230,16 @@ public sealed partial class WorkbenchWindow
     }
 
     private object FileTreeIconKey(ProjectFile file) =>
-        (FileIconAnswer(file.Path, file.IsDirectory), file.IsDirectory, file.GitIgnored);
+        (FileIconAnswer(file.Path, file.IsDirectory), file.IsDirectory, file.GitIgnored, FileIconsHidden);
 
-    /// <summary>A custom icon, bundled file-type icon, or generic glyph for the path.</summary>
-    private Control FileIcon(string path, bool directory, string glyph, IBrush? color = null)
+    /// <summary>A file tab that the Hidden choice leaves without an icon: one whose fallback would be the generic file glyph.</summary>
+    private bool TabIconHidden(DockTab tab, string? workspace = null) =>
+        FileIconsHidden && !tab.IsTool && tab.Kind is not ("terminal" or "diff" or "changes") && TabIcon(tab, Ui.TextBrush, workspace) is null;
+
+    /// <summary>A custom icon, bundled file-type icon, or generic glyph for the path; none with the Hidden choice.</summary>
+    private Control? FileIcon(string path, bool directory, string glyph, IBrush? color = null)
     {
+        if (FileIconsHidden) return null;
         if (FileIconAnswer(path, directory) is { } icon)
             return ResolveFileIcon(icon, color);
         var fallback = Ui.Icon(directory ? glyph : "file", color, 14);
@@ -254,7 +260,7 @@ public sealed partial class WorkbenchWindow
         PlaceWorkspaceTabs();
     }
 
-    private string DecorationSignature() => string.Join("\n", Layout.State.Groups.SelectMany(group => Layout.Tabs(group.Id))
+    private string DecorationSignature() => (FileIconsHidden ? "hidden\n" : "") + string.Join("\n", Layout.State.Groups.SelectMany(group => Layout.Tabs(group.Id))
         .Select(tab => TabDecorationSignature(tab)).Where(line => line.Length > 0));
 
     private string TabDecorationSignature(DockTab tab, string? workspace = null)

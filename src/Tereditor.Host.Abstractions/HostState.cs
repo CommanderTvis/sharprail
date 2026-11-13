@@ -9,7 +9,7 @@ public sealed record HostSettings
 {
     /// <summary>Whether clients use the bundled file-type icons instead of generic file glyphs.</summary>
     public bool FileTypeIconsEnabled { get; set; } = true;
-    /// <summary>The bundled icon set's look when <see cref="FileTypeIconsEnabled"/>: empty is plain (decoloured), <c>colored</c> tints it per file kind, <c>material</c> uses Material Icon Theme's own colours.</summary>
+    /// <summary>The bundled icon set's look when <see cref="FileTypeIconsEnabled"/>: empty is plain (decoloured), <c>colored</c> tints it per file kind, <c>material</c> uses Material Icon Theme's own colours. With the toggle off, <c>hidden</c> means no icon at all rather than generic glyphs (protocol 20).</summary>
     public string FileTypeIconStyle { get; set; } = "";
     public string Theme { get; set; } = "";
     public string ThemeMode { get; set; } = "system";

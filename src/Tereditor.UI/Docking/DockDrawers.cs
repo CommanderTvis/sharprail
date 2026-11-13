@@ -251,7 +251,8 @@ public sealed partial class DockSurface
             var foreground = expanded ? Ui.TextBrush : Ui.Muted;
             var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,8,14,8,*,Auto"), Height = 40 };
             Ui.Place(label, Ui.Icon(expanded ? "arrowDown" : "arrowRight", foreground, 14));
-            Ui.Place(label, TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14), 0, 2);
+            if (TabIconHidden?.Invoke(tab) == true) label.ColumnDefinitions[2].Width = label.ColumnDefinitions[3].Width = new GridLength(0);
+            else Ui.Place(label, TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14), 0, 2);
             var title = Ui.Text(Session.ToolTitle(tab), foreground, 14);
             title.VerticalAlignment = VerticalAlignment.Center;
             Ui.Place(label, title, 0, 4);
