@@ -251,6 +251,17 @@ internal static class ClaudeContextChecks
         var undeferred = Fixture() with { Categories = [.. Fixture().Categories.Where(category => category.Name != "MCP tools (deferred)")] };
         Require(ClaudeConfigPanel.BaselineRows(undeferred, null).Single(row => row.Key == "mcp-tools").Children.All(server => server.Suffix == "" && server.Tip is null),
             "Without deferred MCP tools a server's subtotal is plain.");
+        // Every MCP tool deferred, as /context prints it then: no "MCP tools" category, the table still lists each tool.
+        var allDeferred = ContextReport.Parse(Report.Replace("| MCP tools | 671 | 0.1% |", "", StringComparison.Ordinal)
+            .Replace("| MCP tools (deferred) | 1.4k |", "| MCP tools (deferred) | 2.1k |", StringComparison.Ordinal))!;
+        var deferredRows = ClaudeConfigPanel.BaselineRows(allDeferred, null);
+        var deferredMcp = deferredRows.SingleOrDefault(row => row.Key == "mcp-tools");
+        Require(allDeferred.Categories.All(category => category.Name != "MCP tools") && deferredMcp is { Tokens: 0 } &&
+            deferredRows.FindIndex(row => row.Key == "mcp-tools") == deferredRows.FindIndex(row => row.Key == "mcp-instructions") + 1 &&
+            deferredMcp.Tip?.Contains("2.1k tokens", StringComparison.Ordinal) == true &&
+            deferredMcp.Children.Select(server => server.Label).SequenceEqual(["docs", "notes"]) && deferredMcp.Children[0].Children.Count == 3 &&
+            deferredMcp.Children.All(server => server.Suffix == " if loaded"),
+            "With every MCP tool deferred the MCP tools row stays, at 0 loaded with the deferred total in its tip, listing its servers \"if loaded\" and their tools.");
         BaselineLineLayout();
         Require(rows.Single(row => row.Key == "skills").Children.Select(skill => skill.Label).SequenceEqual(["dataviz", "example:review", "tidy"]),
             "Skills open into each skill, heaviest first.");

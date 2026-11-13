@@ -438,9 +438,25 @@ internal sealed class ClaudeConfigPanel : DockPanel
         // The "MCP tools" category counts the tools loaded at start; /context's tool table lists every tool, deferred
         // ones included, so a server's subtotal is what all its tools would cost and can exceed the category.
         var deferredMcp = breakdown.Categories.FirstOrDefault(category => category.Name == "MCP tools (deferred)")?.Tokens ?? 0;
+        BaselineEntry McpRow(long loaded) => new("mcp-tools", "MCP tools", "server", loaded,
+            [.. breakdown.McpTools.GroupBy(tool => tool.Source).OrderByDescending(group => group.Sum(tool => tool.Tokens)).Select(server =>
+                new BaselineEntry("mcp-tools/" + server.Key, server.Key, "server", server.Sum(tool => tool.Tokens),
+                    [.. server.OrderByDescending(tool => tool.Tokens).Select(tool => new BaselineEntry("mcp-tools/" + server.Key + "/" + tool.Name,
+                        tool.Name.StartsWith("mcp__" + server.Key + "__", StringComparison.Ordinal) ? tool.Name[(server.Key.Length + 7)..] : tool.Name,
+                        "code", tool.Tokens, [], tool.Name))],
+                    deferredMcp > 0 ? "What all of this server's tools cost if loaded. Deferred tools load only when Claude searches for them." : null,
+                    deferredMcp > 0 ? " if loaded" : ""))],
+            deferredMcp > 0 ? $"Tools loaded at start. Deferred tools take {ClaudeContextUsageView.Tokens(deferredMcp)} tokens more: they load only when Claude searches for them." : null);
+        // With every MCP tool deferred /context prints no "MCP tools" category; the row still lists the servers, at 0 loaded.
+        var anyLoaded = breakdown.Categories.Any(category => category.Name == "MCP tools");
         foreach (var category in breakdown.Categories)
         {
             var name = category.Name;
+            if (name == "MCP tools (deferred)" && !anyLoaded)
+            {
+                rows.Add(McpRow(0));
+                continue;
+            }
             if (name is "Memory files" or "Messages" or "Free space" || name.EndsWith("(deferred)", StringComparison.Ordinal) ||
                 name.StartsWith("Autocompact", StringComparison.Ordinal)) continue;
             rows.Add(name switch
@@ -448,15 +464,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 "System prompt" => new("system-prompt", "Claude Code system prompt", "robot", Math.Max(0, claudePrompt ?? category.Tokens), [],
                     "Claude Code's own prompt; tereditor's appended instructions are counted on their own row"),
                 "System tools" => new("system-tools", "Built-in tools", "terminal", category.Tokens, []),
-                "MCP tools" => new("mcp-tools", "MCP tools", "server", category.Tokens,
-                    [.. breakdown.McpTools.GroupBy(tool => tool.Source).OrderByDescending(group => group.Sum(tool => tool.Tokens)).Select(server =>
-                        new BaselineEntry("mcp-tools/" + server.Key, server.Key, "server", server.Sum(tool => tool.Tokens),
-                            [.. server.OrderByDescending(tool => tool.Tokens).Select(tool => new BaselineEntry("mcp-tools/" + server.Key + "/" + tool.Name,
-                                tool.Name.StartsWith("mcp__" + server.Key + "__", StringComparison.Ordinal) ? tool.Name[(server.Key.Length + 7)..] : tool.Name,
-                                "code", tool.Tokens, [], tool.Name))],
-                            deferredMcp > 0 ? "What all of this server's tools cost if loaded. Deferred tools load only when Claude searches for them." : null,
-                            deferredMcp > 0 ? " if loaded" : ""))],
-                    deferredMcp > 0 ? $"Tools loaded at start. Deferred tools take {ClaudeContextUsageView.Tokens(deferredMcp)} tokens more: they load only when Claude searches for them." : null),
+                "MCP tools" => McpRow(category.Tokens),
                 "MCP server instructions" => new("mcp-instructions", "MCP server instructions", "book", category.Tokens, []),
                 "Skills" => new("skills", "Skills", "sparkling", category.Tokens,
                     [.. breakdown.Skills.OrderByDescending(skill => skill.Tokens).Select(skill => new BaselineEntry("skills/" + skill.Name, skill.Name, "sparkling", skill.Tokens, [], skill.Source))]),
