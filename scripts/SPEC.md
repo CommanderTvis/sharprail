@@ -53,7 +53,9 @@ Pins and checksums. Versions and archive checksums are in the lockfiles; mise ve
 CI runs with `MISE_LOCKED=1`, which fails on anything unlocked. Sources pinned by Git commit (Ghostty) are
 verified against the commit hash; an unexpected revision fails. The Windows ARM64 and x64 Zig archives are
 `http:zig-windows` entries because mise's Zig has no Windows ARM64 build. The .NET SDK is not checksummed
-by the lock (mise installs it with Microsoft's installer); `global.json` pins its version.
+by the lock (mise installs it with Microsoft's installer); `global.json` pins its version. dmgbuild and its
+Python dependencies are pinned by version in `scripts/tasks/dmg.cs` and fetched from PyPI by the locked uv, so
+the lock does not checksum them either.
 
 Store. Tools install into mise's data directory (default `~/.local/share/mise`), one directory per version, shared by every checkout and worktree of the user and found through `scripts/tool`, so there is no bootstrap step and no link in the checkout. Checkouts at the same pin share one
 copy; a version bump is a new directory, so older checkouts keep working. mise downloads and extracts
@@ -112,7 +114,15 @@ file; the checks only add their own, and the gate names the checks' publish so i
 carry what that publish has for it.
 
 `dmg` packs that bundle, unchanged and with an Applications shortcut beside it, into a compressed disk
-image (`artifacts/tereditor.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not
+image (`artifacts/tereditor.dmg` unless a path is given). Opened, the image shows a compact Finder window
+(540 by 380 points, no toolbar, sidebar, path bar or status bar) with 128-point icons: the app on the left,
+Applications on the right, and between them an arrow in the icon's navy and teal over a pale blue-grey gradient,
+with a one-line hint below. The background stays light because Finder draws the labels in the viewer's text
+colour, which the window settings cannot change. The background is committed at 1x and 2x (`scripts/dmg`, drawn
+by `background.py`) and combined into one TIFF, so it is sharp on Retina displays; it and the volume icon (the
+app icon) are dot-files, hidden in the window. The window settings live in `scripts/dmg/settings.py`; the pinned
+dmgbuild, run through the pinned uv, writes the `.DS_Store` itself and attaches the image without showing it, so
+building the image opens no window and needs no Finder. The image is ad-hoc signed like the bundle and not
 notarized. `.github/workflows/nightly.yml` builds it on a macOS runner, the Android package on a Linux
 one and the Windows x64 and ARM64 packages on Windows runners every day at 03:00 UTC (and on demand), each uploaded as a workflow artifact named
 `tereditor-nightly-<date>-<commit>`. When all succeed it replaces the `nightly` prerelease: the tag moves to
