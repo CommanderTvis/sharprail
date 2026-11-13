@@ -93,6 +93,15 @@ public sealed record TerminalAgentRecord(string Kind, string Command)
 
     /// <summary>Whether the detected process came from a tereditor UI launch; null when its origin is unknown.</summary>
     public bool? LaunchedByUi { get; init; }
+
+    /// <summary>
+    /// The agent process tereditor saw in this terminal, with <see cref="AgentStarted"/> its start time in UTC ticks; kept
+    /// across restarts so a revived tab recognises its own earlier agent still running (a reused pid has another start time).
+    /// </summary>
+    public int? AgentPid { get; init; }
+
+    /// <summary>The start time of <see cref="AgentPid"/> in UTC ticks; null or 0 when unknown, which never matches.</summary>
+    public long? AgentStarted { get; init; }
 }
 
 /// <summary>A known project, as a plugin sees it.</summary>

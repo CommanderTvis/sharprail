@@ -142,7 +142,8 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   its own under job control and may ignore SIGHUP, so first the shell's descendants and the terminal's foreground
   group are captured (`ProcessTable`), hung up with the shell, given 2 s, and SIGKILLed if still running (matched by pid and
   command line). Stopping the host disposes every terminal this way. A SIGKILL or crash of the host cannot do it; the
-  stray is then found by the next resume (Plugins.SPEC). Processes that daemonised out of the tree are not found.
+  stray is then found by the next resume (Plugins.SPEC), by its tab's recorded agent pid and start time even after its
+  shell is gone. Processes that daemonised out of the tree are not found.
 - Not tmux: no extra dependency, no competing tab model.
 
 ## Windows processes

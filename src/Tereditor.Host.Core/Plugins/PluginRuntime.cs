@@ -1201,21 +1201,23 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             {
                 var own = terminals.List().Where(process => process.Terminal == terminal && process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
                 var agents = Seams.State.AgentSessions;
+                // The agent this tab ran before the restart, if the plugin recorded it: still running, it is this tab's own.
+                (int, long)? recorded = record is { AgentPid: { } agentPid, AgentStarted: { } agentStarted } ? (agentPid, agentStarted) : null;
                 if (answer == "quit")
                 {
-                    var stray = await Task.Run(() => agents.Inspect(record.Kind, id, own));
+                    var stray = await Task.Run(() => agents.Inspect(record.Kind, id, own, recorded));
                     if (stray is { Kind: SessionOwnerKind.Stray, CanQuit: true } && offer.QuitConfirmation.StartsWith($"End pid {stray.Pid} ", StringComparison.Ordinal))
                     {
                         Seams.State.OfferResume(offer with { Progress = $"Ending pid {stray.Pid}..." });
                         Seams.Log("plugins", "info", $"Ending pid {stray.Pid}, a stray owner of the {record.Kind} session {id}, on the user's confirmation.");
-                        if (await agents.QuitAsync(record.Kind, id, stray.Pid, own) is { } failure)
+                        if (await agents.QuitAsync(record.Kind, id, stray.Pid, own, recorded) is { } failure)
                         {
                             Seams.State.OfferResume(offer with { Progress = $"Could not end pid {stray.Pid}: {failure}" });
                             return;
                         }
                     }
                 }
-                var (owner, held) = await Task.Run(() => { var found = agents.Inspect(record.Kind, id, own); return (found, found is null && agents.Hold(terminal, record.Kind, id)); });
+                var (owner, held) = await Task.Run(() => { var found = agents.Inspect(record.Kind, id, own, recorded); return (found, found is null && agents.Hold(terminal, record.Kind, id)); });
                 if (!held)
                 {
                     Seams.Log("plugins", "info", $"Not resuming the {record.Kind} session {id} in {terminal.TabKey}: {owner?.Describe() ?? "another process took its lock"}");

@@ -756,8 +756,8 @@ internal static class ClaudeCodeChecks
             before = Launches().Length;
             fourthView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => fourthView.ResumeOffer is { Visible: true, Resume: false, Quit: true });
-            Require(fourthView.ResumeOffer.Text!.Contains($"is open in pid {strayPid} (", StringComparison.Ordinal) &&
-                fourthView.ResumeOffer.Text.Contains("tereditor instance that started it is no longer running", StringComparison.Ordinal) && Launches().Length == before,
+            Require(fourthView.ResumeOffer.Text!.Contains($"is still running in an earlier tereditor terminal, as pid {strayPid} (", StringComparison.Ordinal) &&
+                fourthView.ResumeOffer.Text.Contains("tereditor run that started it has ended", StringComparison.Ordinal) && Launches().Length == before,
                 "A stray owner is named by pid and offered a quit: " + fourthView.ResumeOffer.Text);
             Console.WriteLine("PASS Claude revival: a stray owner is named and offers Quit that process and resume");
             Require(fourthView.QuitResumeOffer(), "The quit button is pressable.");

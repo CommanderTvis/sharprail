@@ -191,6 +191,11 @@ internal static class Program
             ProcessesChecks.RunUi();
             return;
         }
+        if (args.SequenceEqual(["--agent-session-ownership"]))
+        {
+            AgentSessionOwnershipChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--owned-processes"]))
         {
             OwnedProcessChecks.Run(root).GetAwaiter().GetResult();

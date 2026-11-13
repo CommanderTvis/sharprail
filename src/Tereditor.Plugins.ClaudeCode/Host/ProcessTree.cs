@@ -152,6 +152,21 @@ internal static partial class ProcessTree
         return line.Length == 0 ? null : line;
     }
 
+    /// <summary>
+    /// A live process's start time in UTC ticks, null when it is gone or unknown: with the pid it tells that process from a
+    /// later one reusing the pid, the way the host's session-ownership guard compares them.
+    /// </summary>
+    internal static long? CaptureStarted(int pid)
+    {
+        if (pid <= 0) return null;
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            return process.HasExited ? null : process.StartTime.ToUniversalTime().Ticks;
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception) { return null; }
+    }
+
     internal static bool? CaptureUiLaunch(int pid)
     {
         if (pid <= 0 || OperatingSystem.IsWindows()) return null;

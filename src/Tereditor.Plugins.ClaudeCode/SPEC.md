@@ -423,7 +423,14 @@ their own session. Only a legacy record without an id keeps the fork's `--contin
 agent exits the tab is an interactive shell in the same directory. The host never runs that revival on
 its own: the tab offers it and runs it only when the user chooses Resume and no other process has the
 session open (Host Plugins.SPEC, Terminals). The hook's `Fresh` command is the same invocation with
-`--session-id` of a new id, for Start fresh. Blueprint's independent revive
+`--session-id` of a new id, for Start fresh. When the process poll sees a Claude in a terminal it records its pid and
+start time on the tab's agent record (`AgentPid`, `AgentStarted`), and they persist across restarts: if the app (and
+with it the terminal) went away while that Claude kept running, the revived tab recognises it as its own (same pid and
+start time) and says the session "is still running in an earlier tereditor terminal (pid …)", offering Start fresh and,
+when it is not an ancestor of the tab or the app, Quit that process and resume, which ends it only after the user
+confirms. A pid reused by another process (another start time) is not taken for it, and a Claude tereditor did not
+start keeps the "which tereditor did not start" refusal with Start fresh only. A tab whose terminal is still hosted
+just reattaches and is never offered anything. Blueprint's independent revive
 hook contributes submit without consuming this plugin's text.
 
 ## IDE and UI

@@ -317,6 +317,10 @@ Tereditor.Plugins.Api.TerminalAgentRecord.Effort.get -> string?
 Tereditor.Plugins.Api.TerminalAgentRecord.Effort.init -> void
 Tereditor.Plugins.Api.TerminalAgentRecord.LaunchedByUi.get -> bool?
 Tereditor.Plugins.Api.TerminalAgentRecord.LaunchedByUi.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.AgentPid.get -> int?
+Tereditor.Plugins.Api.TerminalAgentRecord.AgentPid.init -> void
+Tereditor.Plugins.Api.TerminalAgentRecord.AgentStarted.get -> long?
+Tereditor.Plugins.Api.TerminalAgentRecord.AgentStarted.init -> void
 Tereditor.Plugins.Api.TerminalAgentRecord.SessionId.get -> string?
 Tereditor.Plugins.Api.TerminalAgentRecord.SessionId.init -> void
 Tereditor.Plugins.Api.TerminalAgentRecord.TerminalAgentRecord(string! Kind, string! Command) -> void

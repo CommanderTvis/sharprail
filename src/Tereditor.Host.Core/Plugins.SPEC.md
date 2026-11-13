@@ -303,19 +303,31 @@ Lock and process work runs in order on the thread pool.
 
 `Inspect` names the owner instead of a bare refusal: a `SessionOwner` with pid, age, tty, command and a kind.
 `Instance` is a live lock holder, or a process with a live tereditor (this host, a lock holder, or a `tereditor*`
-executable) among its ancestors; `Stray` has none and either a dead holder's lock is left behind or its topmost
-ancestor below init is a shell with a tty (the instance that started it stopped, e.g. an agent that ignored the
-hang-up); `Foreign` is any other process. The offer then carries `OwnerText`, and only a `Stray` that is neither an
+executable) among its ancestors; `Stray` has none and either it is the asking tab's own earlier agent (below), a dead
+holder's lock is left behind, or its topmost ancestor below init is a shell with a tty (the instance that started it
+stopped, e.g. an agent that ignored the hang-up); `Foreign` is any other process. Every process that has the session
+open is weighed and the most tereditor-owned one is named (`Instance`, then the tab's own agent, then another `Stray`,
+then `Foreign`), so a stray or hand-started process that also names the id never hides one tereditor runs.
+
+The tab's own earlier agent is known from its agent record: the plugin that detects the agent in a terminal records
+its pid and start time (`AgentPid`, `AgentStarted`, UTC ticks of `Process.StartTime`; Claude Code does, Codex and omp do
+not yet). They persist with the record in the host state file (not on the wire), outlive the run, and are compared on
+resume with the live process's start time read for that one pid: the same pid with the same start time is that agent,
+still running after its terminal and its tereditor went (the lock was released by a graceful stop, or the host
+crashed), and it is offered as a `Stray` with the text "is still running in an earlier tereditor terminal (pid …)". A
+pid now running with another start time (reused), an unknown start time, or a pid gone counts for nothing, and the old
+rules apply. A session whose terminal the host still runs never reaches this: attaching to a live session returns before
+any revive or offer ([Terminals.SPEC.md](Terminals.SPEC.md)), so the tab just shows its shell. The offer then carries `OwnerText`, and only a `Stray` that is neither an
 ancestor of the asking tab's shell (or of the host) nor holds such an ancestor in its tree gets a `QuitConfirmation`,
 which clients show as "Quit that process and resume". The `quit` answer re-inspects (the pid must still be that stray
 for that session), shows `Progress` on the offer, and `QuitAsync` signals the process and its descendants: SIGTERM, then
 SIGHUP, then SIGKILL, each after `QuitGrace` (3 s), until none is left (matched by pid and command line, so a reused pid is
 never signalled), drops the stale lock and resumes. A failure stays on the offer as `Progress`. Windows has no
 signals: the tree is ended with `taskkill /T /F` and, without tty or elapsed-time data, only a stale lock marks a stray
-(untested there). There is no separate process registry: the lock file is it, since the agent's pid is unknown when
-the lock is taken and the process scan finds it. At start the runtime only logs processes still naming the session of a
+(untested there). There is no separate process registry: the lock file and the agent record's pid and start time are it. At start the runtime only logs processes still naming the session of a
 stale lock; nothing is ended without a confirmed `quit`. A stray whose lock was already released (a graceful quit
-before this change, a crash) is found only by the orphaned-shell test, and a stray that is neither is `Foreign`.
+that missed the agent) is found by its tab's recorded pid and start time or by the orphaned-shell test, and a stray that
+is neither (a record from before the fields existed, another tab's agent, or a non-Claude agent) is `Foreign`.
 
 Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events

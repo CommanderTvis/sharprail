@@ -317,7 +317,10 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                     SessionId = AgentResume.LaunchedSessionId(command) ?? existing?.SessionId,
                     Model = existing?.Model,
                     Effort = existing?.Effort,
-                    LaunchedByUi = ProcessTree.CaptureUiLaunch(agentPid)
+                    LaunchedByUi = ProcessTree.CaptureUiLaunch(agentPid),
+                    // Kept across restarts: a revived tab whose Claude outlived tereditor recognises it as its own.
+                    AgentPid = agentPid,
+                    AgentStarted = ProcessTree.CaptureStarted(agentPid)
                 });
             });
 

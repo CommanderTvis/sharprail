@@ -169,7 +169,9 @@
         "Cwd": "$ROOT/project-ws",
         "Model": "opus",
         "Effort": "high",
-        "LaunchedByUi": true
+        "LaunchedByUi": true,
+        "AgentPid": null,
+        "AgentStarted": null
       }
     },
     {
@@ -184,7 +186,9 @@
         "Cwd": null,
         "Model": null,
         "Effort": null,
-        "LaunchedByUi": null
+        "LaunchedByUi": null,
+        "AgentPid": null,
+        "AgentStarted": null
       }
     }
   ],
