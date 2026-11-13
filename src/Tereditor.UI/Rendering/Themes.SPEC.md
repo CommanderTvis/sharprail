@@ -69,9 +69,9 @@ accent, while the standard Light keeps its brighter, independently tuned solid f
 components never branch on theme identity or contrast metadata to remove them.
 
 A manifest must also be legible, not merely complete. The design checks hold every bundled manifest to
-WCAG AA (4.5) for `text`, `muted`, `accent` and `success` on every resting surface (`background`, `content`,
+WCAG AA (4.5) for `text`, `muted`, `accent`, `bubbleAccent` and `success` on every resting surface (`background`, `content`,
 `sidebar`, `header`, `elevated`, `input`) and to 3.0 for `hint` and for everything on the transient `hover`
-surface; `accent` and `success` are exempt on `input` alone, where neither is rendered as text. `onAccent`
+surface; `accent`, `bubbleAccent` and `success` are exempt on `input` alone, where none is rendered as text. `onAccent`
 must clear AA on both accent fills (`accentSolid`, `accentHover`), so a theme cannot darken its hover step
 far enough to swallow the primary button's label. Legibility alone is insufficient, since a `hover` fill
 that matches its surface is an invisible selection with every text check green, so `hover` must also stay
@@ -87,7 +87,9 @@ opaque id to the host, validated only for shape (a curated slug or a custom `#rr
 meaning: a curated palette (frog, the app icon's cyan, the default and listed first; then green, blue, purple, pink, red, orange,
 yellow, graphite) and custom hex colours; Teal was merged into its near twin Frog, so a stored `teal` reads as
 `frog`. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`, `accentHover`,
-`onAccent`), cached per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
+`onAccent`), plus `bubbleAccent`, the chat bubble tint, wherever the manifest ties it to the accent by giving both
+the same value (the standard and High Contrast manifests do; Minimal's neutral bubble is its own and stays; no native control draws the role yet, plugin surfaces receive it with the theme), cached
+per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
 accent and baking consumer then follows with no control knowing about it. Frog is the bundled accent, so the
 default (an empty or `frog` setting) is the manifest itself. Green, the accent the manifests carried before Frog,
 is a curated entry that pins those earlier colours per bundled theme (a theme it does not name is solved like the

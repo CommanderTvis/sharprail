@@ -12,9 +12,9 @@ namespace Tereditor.Checks.Design;
 internal static class ThemeGates
 {
     private static readonly string[] Resting = ["background", "content", "sidebar", "header", "elevated", "input"];
-    private static readonly (string Key, double Floor)[] Floors = [("text", 4.5), ("muted", 4.5), ("hint", 3), ("accent", 4.5), ("success", 4.5)];
-    // Neither is ever rendered as text on a control.
-    private static readonly string[] NotOnInput = ["accent", "success"];
+    private static readonly (string Key, double Floor)[] Floors = [("text", 4.5), ("muted", 4.5), ("hint", 3), ("accent", 4.5), ("bubbleAccent", 4.5), ("success", 4.5)];
+    // None is ever rendered as text on a control.
+    private static readonly string[] NotOnInput = ["accent", "bubbleAccent", "success"];
 
     internal static void Run(List<string> failures)
     {
@@ -44,8 +44,12 @@ internal static class ThemeGates
                 var derived = Tereditor.UI.Rendering.Accents.Apply(theme, accent);
                 var label = $"{theme.Id} with accent {accent}";
                 Legibility(derived, label, failures);
-                foreach (var key in Themes.ColorKeys.Except(["accent", "accentSolid", "accentHover", "onAccent"]))
+                foreach (var key in Themes.ColorKeys.Except(["accent", "accentSolid", "accentHover", "onAccent", "bubbleAccent"]))
                     if (derived.Colors[key] != theme.Colors[key]) failures.Add($"{label}: {key} must not follow the accent.");
+                // The chat bubble tint follows the accent where the manifest ties the two; a bubble colour of its own (Minimal's neutral) stays.
+                var tied = theme["bubbleAccent"] == theme["accent"];
+                if (derived["bubbleAccent"] != (tied ? derived["accent"] : theme["bubbleAccent"]))
+                    failures.Add($"{label}: bubbleAccent must {(tied ? "follow the accent" : "keep the manifest's own colour")}.");
                 if (Contrast(derived["onAccent"], Colors.Black) > 1.5 && Contrast(derived["onAccent"], Colors.White) > 1.5)
                     failures.Add($"{label}: onAccent must be black or white by luminance.");
                 if (Contrast(derived["accentSolid"], derived["accentHover"]) < 1.1)

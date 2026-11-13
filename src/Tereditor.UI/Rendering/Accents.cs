@@ -15,7 +15,8 @@ public sealed record AccentChoice(string Id, string Label, double Hue, double Sa
 
 /// <summary>
 /// The user's accent colour. A theme manifest supplies the accent roles (<c>accent</c>, <c>accentSolid</c>, <c>accentHover</c>,
-/// <c>onAccent</c>); a chosen accent replaces exactly those four keys and leaves the manifest otherwise whole, so every role,
+/// <c>onAccent</c>); a chosen accent replaces exactly those four keys, and <c>bubbleAccent</c> where the manifest ties it to <c>accent</c>
+/// (an equal value; Minimal's neutral bubble is its own), and leaves the manifest otherwise whole, so every role,
 /// tint and baking consumer follows through <c>Ui.Apply</c> with no control knowing the accent exists. The default accent is
 /// Frog, which the bundled manifests carry themselves, so the default is the manifest unchanged.
 /// </summary>
@@ -114,7 +115,7 @@ public static partial class Accents
                 ["accentHover"] = Color.Parse(roles[2]),
                 ["onAccent"] = Color.Parse(roles[3])
             };
-            return theme with { Colors = pinned };
+            return theme with { Colors = Bubble(theme, pinned) };
         }
         var high = theme.IsHighContrast;
         var surfaces = Resting.Select(key => theme[key]).ToArray();
@@ -151,7 +152,14 @@ public static partial class Accents
             ["accentHover"] = Step(solid),
             ["onAccent"] = onAccent
         };
-        return theme with { Colors = colors };
+        return theme with { Colors = Bubble(theme, colors) };
+    }
+
+    /// <summary>The chat bubble tint follows the text accent where the manifest ties the two together; a bubble colour of its own stays.</summary>
+    private static Dictionary<string, Color?> Bubble(ThemeManifest theme, Dictionary<string, Color?> colors)
+    {
+        if (theme["bubbleAccent"] == theme["accent"]) colors["bubbleAccent"] = colors["accent"];
+        return colors;
     }
 
     /// <summary>The lightness nearest the preferred one whose margin is not negative; failing that, the one with the best margin.</summary>
