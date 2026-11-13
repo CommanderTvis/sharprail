@@ -20,9 +20,13 @@ public static partial class Accents
 {
     public const string DefaultId = "green";
 
-    /// <summary>Green is the bundled theme accents themselves; the rest keep their hue and take the lightness each theme can legibly hold.</summary>
+    /// <summary>
+    /// Green is the bundled theme accents themselves; the rest keep their hue and take the lightness each theme can legibly hold.
+    /// Frog, the app icon's cyan, comes first; the order is only the picker's, green stays the default.
+    /// </summary>
     public static IReadOnlyList<AccentChoice> Curated { get; } =
     [
+        new("frog", "Frog", 188, 0.9),
         new(DefaultId, "Green", 100, 1),
         new("blue", "Blue", 215, 1),
         new("purple", "Purple", 265, 0.9),
@@ -30,9 +34,14 @@ public static partial class Accents
         new("red", "Red", 355, 0.9),
         new("orange", "Orange", 28, 1),
         new("yellow", "Yellow", 50, 1),
-        new("teal", "Teal", 175, 0.85),
         new("graphite", "Graphite", 220, 0.08)
     ];
+
+    /// <summary>Retired ids and the curated accent each now means: Teal merged into Frog, its near twin.</summary>
+    private static readonly Dictionary<string, string> Retired = new() { ["teal"] = "frog" };
+
+    /// <summary>The stored value, with a retired id replaced by the accent it became.</summary>
+    public static string Canonical(string accent) => Retired.GetValueOrDefault(accent, accent);
 
     [GeneratedRegex("^#?[0-9a-fA-F]{6}$")]
     private static partial Regex CustomPattern();
@@ -51,6 +60,7 @@ public static partial class Accents
     private static AccentChoice? Resolve(string? accent)
     {
         if (string.IsNullOrEmpty(accent) || accent == DefaultId) return null;
+        accent = Canonical(accent);
         if (Curated.FirstOrDefault(choice => choice.Id == accent) is { } curated) return curated;
         if (ParseCustom(accent) is not { } hex) return null;
         var (hue, saturation, _) = ToHsl(Color.Parse(hex));

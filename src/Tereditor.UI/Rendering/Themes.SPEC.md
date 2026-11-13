@@ -84,9 +84,10 @@ than a label.
 
 The user's accent is one more host setting (`accent`, empty by default: the theme's own accent). It is an
 opaque id to the host, validated only for shape (a curated slug or a custom `#rrggbb`). `Accents.cs` owns its
-meaning: a curated palette (green, blue, purple, pink, red, orange, yellow, teal, graphite) and custom hex
-colours. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`,
-`accentHover`, `onAccent`), cached per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
+meaning: a curated palette (frog, the app icon's cyan, listed first; then green, blue, purple, pink, red, orange,
+yellow, graphite) and custom hex colours; Teal was merged into its near twin Frog, so a stored `teal` reads as
+`frog`. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`, `accentHover`,
+`onAccent`), cached per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
 accent and baking consumer then follows with no control knowing about it. Green is the bundled accent, so the
 default is the manifest itself. Each accent keeps its hue and saturation (scaled by the theme's own accent
 saturation so Minimal stays quiet; custom colours keep theirs) and each theme solves the lightness: the text

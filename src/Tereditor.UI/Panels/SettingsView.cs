@@ -527,7 +527,7 @@ public sealed partial class SettingsView : UserControl
         var custom = PageControl<TextBox>(panel, "AccentCustom");
         var apply = PageControl<Button>(panel, "AccentCustomApply");
         var message = PageControl<TextBlock>(panel, "AccentCustomMessage");
-        var current = state.Preferences.Accent;
+        var current = Accents.Canonical(state.Preferences.Accent);
         var isCustom = Accents.ParseCustom(current) is not null && current.StartsWith('#');
         var theme = Themes.Resolve(state.Preferences, Themes.SystemAppearance).Theme;
         void Choose(string id) { if (id != current && !(Accents.IsDefault(current) && id == Accents.DefaultId)) Share(HostStateChange.Setting("accent", id)); }
