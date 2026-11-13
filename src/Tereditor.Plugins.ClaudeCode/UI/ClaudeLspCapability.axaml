@@ -8,7 +8,5 @@
     <TextBlock Text="lsp_navigate · lsp_diagnostics · lsp_status" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
     <TextBlock Text="Provided by tereditor in every session it starts."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-    <TextBlock Text="Lets agents navigate, inspect, fix missing libraries and configure or restart language servers. Subagents pass their own workspace path."
-               FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
   </StackPanel>
 </Border>

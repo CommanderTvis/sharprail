@@ -16,8 +16,6 @@
       <TextBlock Text="tereditor" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock x:Name="LspAvailability" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
       <TextBlock x:Name="LspTools" Text="LSP: lsp_navigate · lsp_diagnostics · lsp_status" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
-      <TextBlock Text="Lets agents navigate, inspect, fix missing libraries and configure or restart language servers. Subagents pass their own workspace path."
-                 FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock Text="tereditor's own MCP server, added to every session the launcher starts unless turned off in Settings."
                  FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" TextTrimming="None" />
     </StackPanel>
