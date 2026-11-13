@@ -509,7 +509,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         // The facts the terminal shows beside the pickers: the launch choices, the folder, the IDE switch and attach. A fact chip is read-only.
         // They give way with the width (see the density levels): the read-only facts at level 2, attach and the IDE switch at level 3 (the switch stays in the "+" popup).
         if (ChipShown("advisor") && header.Advisor is { Length: > 0 } advisor) Add(TerminalFacts.FactChip("advisor", "advisor " + advisor, "Started with --advisor"));
-        if (ChipShown("cwd") && TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"{env.Agent.Short} runs in {header.Cwd}"));
+        if (ChipShown("cwd") && TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"{env.Agent.Short} runs in {ScopedSetting.AbbreviateHomePath(header.Cwd!)}"));
         if (ChipShown("ide")) AddFactButton(TerminalFacts.IdeContextChip(ide, () => _ = ToggleIde()));
         // Looks and sits as in the terminal: lowercase "chrome" with the Chrome mark, right after the IDE switch.
         if (ChipShown("chrome") && header.Chrome) Add(TerminalFacts.FactChip("chrome", "chrome", "Started with Claude in Chrome (--chrome)", Ui.Icon("chrome", Ui.Muted, 12)));

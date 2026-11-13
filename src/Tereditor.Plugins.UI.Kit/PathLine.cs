@@ -6,7 +6,8 @@ namespace Tereditor.Plugins.UI.Kit;
 
 /// <summary>
 /// The one way a directory is printed in a pane: a muted 12 px folder icon, then the path in the code font, a path too wide for the pane
-/// losing whole middle segments (never its identifying end) and the full path as tooltip. The Claude Code and Code Intelligence panes share it.
+/// losing whole middle segments (never its identifying end) and the full path as tooltip. The user's home folder is shown as <c>~</c>
+/// (see <see cref="ScopedSetting.AbbreviateHomePath"/>); the tooltip and stored value keep the whole path. The Claude Code and Code Intelligence panes share it.
 /// </summary>
 public sealed class PathLine : DockPanel
 {
@@ -32,7 +33,7 @@ public sealed class PathLine : DockPanel
     public string? Path
     {
         get => field;
-        set { field = value; text.Text = string.IsNullOrEmpty(value) ? "…" : value; ToolTip.SetTip(this, value ?? "Reading the directory…"); }
+        set { field = value; text.Text = string.IsNullOrEmpty(value) ? "…" : ScopedSetting.AbbreviateHomePath(value); ToolTip.SetTip(this, value ?? "Reading the directory…"); }
     }
 
     /// <summary>
@@ -42,6 +43,7 @@ public sealed class PathLine : DockPanel
     public static string? Label(string? path)
     {
         if (string.IsNullOrEmpty(path)) return null;
+        path = ScopedSetting.AbbreviateHomePath(path);
         if (path.Length <= LabelMax) return path;
         var segments = path.Split('/');
         return $"{segments[0]}/…/{string.Join('/', segments[^2..])}";

@@ -24,8 +24,34 @@ public static partial class ScopedSetting
     [GeneratedRegex("^/Users/[^/]+|^/home/[^/]+")]
     private static partial Regex HomePrefix();
 
-    /// <summary>A path with the user's home written as <c>~</c>.</summary>
-    public static string AbbreviateHomePath(string path) => HomePrefix().Replace(path, "~", 1);
+    [GeneratedRegex(@"^[A-Za-z]:[\\/]Users[\\/][^\\/]+", RegexOptions.IgnoreCase)]
+    private static partial Regex WindowsHomePrefix();
+
+    /// <summary>
+    /// The one switch for Windows paths: off, a Windows path (drive letter or backslashes) is shown as it is, because cmd and
+    /// PowerShell users do not read <c>C:\Users\name</c> as <c>~</c>. On, it becomes <c>~</c> with the host's separators kept,
+    /// so <c>C:\Users\name\Projects\x</c> reads <c>~\Projects\x</c>. Flip it here to enable.
+    /// </summary>
+    internal const bool AbbreviateWindowsHome = false;
+
+    /// <summary>
+    /// A path with the user's home written as <c>~</c>, for display only (tooltips and copies keep the full path). With the host's
+    /// <paramref name="home"/> only that folder, as a whole-segment prefix, becomes <c>~</c>; without it (the state does not carry the
+    /// host's home yet) the usual <c>/Users/name</c> and <c>/home/name</c> prefixes are taken for it.
+    /// </summary>
+    public static string AbbreviateHomePath(string path, string? home = null) => Abbreviate(path, home, AbbreviateWindowsHome);
+
+    internal static string Abbreviate(string path, string? home, bool windows)
+    {
+        var isWindows = path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is '\\' or '/' || path.Contains('\\');
+        if (isWindows && !windows) return path;
+        if (string.IsNullOrEmpty(home)) return (isWindows ? WindowsHomePrefix() : HomePrefix()).Replace(path, "~", 1);
+        var folder = home.TrimEnd('/', '\\');
+        if (folder.Length == 0) return path;
+        var comparison = isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (path.Equals(folder, comparison)) return "~";
+        return path.StartsWith(folder, comparison) && path.Length > folder.Length && path[folder.Length] is '/' or '\\' ? "~" + path[folder.Length..] : path;
+    }
 
     private static (IBrush Background, IBrush Foreground) ScopeColours(string scope) => scope switch
     {

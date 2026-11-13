@@ -312,7 +312,7 @@ override Tereditor.Plugins.UI.Kit.ScopedSettingSource.ToString() -> string!
 override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.Equals(object? obj) -> bool
 override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.GetHashCode() -> int
 override Tereditor.Plugins.UI.Kit.SettingValueDialogOptions.ToString() -> string!
-static Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(string! path) -> string!
+static Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(string! path, string? home = null) -> string!
 static Tereditor.Plugins.UI.Kit.ScopedSetting.RowAction(string! name, string! label, System.Action! onClick, bool danger = false) -> Avalonia.Controls.Button!
 static Tereditor.Plugins.UI.Kit.ScopedSetting.ScopeChip(string! scope, string! name = "ScopeChip") -> Avalonia.Controls.Border!
 static Tereditor.Plugins.UI.Kit.ScopedSetting.SettingRow(string! namePrefix, string! settingKey, Avalonia.Controls.Control! value, Tereditor.Plugins.UI.Kit.ScopedSettingSource! source, System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.ScopedSettingShadow!>! shadowed, System.Action<string!>! onOpen, System.Collections.Generic.IEnumerable<Avalonia.Controls.Control!>? actions = null, string? docsUrl = null, string? docsTitle = null) -> Avalonia.Controls.Control!

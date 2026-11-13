@@ -85,10 +85,10 @@ public sealed partial class WorkbenchWindow
                     parts.Worktree = path;
                     parts.Row.MinHeight = TwoLineRow;
                 }
-                if (!Equals(ToolTip.GetTip(parts.Worktree), holder.Path))
+                if (!Equals(ToolTip.GetTip(parts.Worktree), ScopedSetting.AbbreviateHomePath(holder.Path)))
                 {
                     parts.Worktree.Text = PathLine.Label(holder.Path);
-                    ToolTip.SetTip(parts.Worktree, holder.Path);
+                    ToolTip.SetTip(parts.Worktree, ScopedSetting.AbbreviateHomePath(holder.Path));
                 }
             }
             else if (parts.Worktree is not null)

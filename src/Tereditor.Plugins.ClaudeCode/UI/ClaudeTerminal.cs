@@ -116,7 +116,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var advisorAt = Array.IndexOf(words, "--advisor");
         if (advisorAt >= 0 && advisorAt + 1 < words.Length) facts.Add(("advisor", $"advisor {words[advisorAt + 1].Trim('\'')}", "Started with --advisor"));
         if (words.Contains("--chrome")) facts.Add(("chrome", "chrome", "Started with Claude in Chrome (--chrome)"));
-        if (TerminalFacts.CwdLabel(state.Cwd) is { } directory) facts.Add(("cwd", directory, $"Claude started in {state.Cwd}"));
+        if (TerminalFacts.CwdLabel(state.Cwd) is { } directory) facts.Add(("cwd", directory, $"Claude started in {ScopedSetting.AbbreviateHomePath(state.Cwd!)}"));
         // Read-only: Claude Code's hooks report the model and effort; tereditor never types a command to change them.
         if (state.Model is { } model) facts.Add(("model", System.Text.RegularExpressions.Regex.Replace(model.StartsWith("claude-", StringComparison.Ordinal) ? model[7..] : model, @"-\d{8}$", ""), $"{model} — as last reported by Claude Code's hooks"));
         if (state.Effort is { } effort) facts.Add(("effort", $"{effort} effort", "Reasoning effort as last reported by Claude Code's hooks"));

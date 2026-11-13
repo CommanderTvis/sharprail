@@ -358,6 +358,23 @@ internal static class LanguagePaneNarrowChecks
 
     private const double PlainSuggestedRowBudget = 56;
 
+    /// <summary>The home folder reads as ~ in displayed paths only: whole-segment prefix, never a sibling, never outside it, never a Windows path (unless the switch is on).</summary>
+    private static void HomeAbbreviation()
+    {
+        const string home = "/Users/someone";
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/Projects/x", home, false) == "~/Projects/x", "A path under the home must read ~/...");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home, home, false) == "~" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/", home, false) == "~/", "The home itself must read ~.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "2/x", home, false) == home + "2/x", "A sibling that only shares the home's text must stay as it is.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/opt/x", home, false) == "/opt/x", "A path outside the home must stay as it is.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/a", null, false) == "~/a" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/home/me", null, false) == "~", "Without the host's home the /Users/name and /home/name prefixes stand for it.");
+        const string windows = @"C:\Users\someone\Projects\x";
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateWindowsHome == false && Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(windows) == windows
+            && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"C:\Users\someone", false) == windows, "A Windows path must stay untouched while the switch is off.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, null, true) == @"~\Projects\x" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"c:\users\SOMEONE", true) == @"~\Projects\x"
+            && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(@"C:\Users\someone2\x", @"C:\Users\someone", true) == @"C:\Users\someone2\x", "With the switch on a Windows path must read ~\\Projects\\x, case-blind, whole segments only.");
+        Require(Tereditor.Plugins.UI.Kit.PathLine.Label("/Users/someone/p") == "~/p", "The one-line label must show the home as ~.");
+    }
+
     /// <summary>The path line prints the whole path and trims whole middle segments to its width, keeping the last segment and the full path as tooltip.</summary>
     private static void PathLineTrims()
     {
@@ -371,9 +388,10 @@ internal static class LanguagePaneNarrowChecks
             var text = line.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Name == "PathLineText");
             var shown = text.TextLayout.TextLines.Single();
             var printed = string.Concat(shown.TextRuns.Select(run => run.Text.ToString()));
-            Require(text.Text == path && shown.HasCollapsed && line.Bounds.Width <= 220 && printed.Contains('…') && printed.EndsWith("/the-project", StringComparison.Ordinal),
+            Require(text.Text == "~/Projects/a-rather-long-organisation-name/nested/deeper/still-deeper/the-project" && shown.HasCollapsed && line.Bounds.Width <= 220 && printed.Contains('…') && printed.EndsWith("/the-project", StringComparison.Ordinal),
                 $"A path wider than its line must lose middle segments and keep its end, but it printed '{printed}'.");
             Require(ToolTip.GetTip(line) as string == path, "The path line's tooltip is not the full path.");
+            HomeAbbreviation();
             Console.WriteLine("PASS the path line trims a long path's middle segments to its width and keeps the full path as tooltip");
         }
         finally { window.Close(); }
