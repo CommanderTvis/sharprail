@@ -16,7 +16,6 @@
   </StackPanel.Styles>
   <StackPanel Spacing="4">
     <TextBlock Text="Processes" FontSize="15" FontWeight="SemiBold" />
-    <TextBlock Classes="detail" Text="The Processes pane — turn the plugin itself on or off from Settings › Plugins." />
   </StackPanel>
   <CheckBox x:Name="ProcessesStopAgentChildren" AutomationProperties.Name="Stop what an agent started along with it">
     <StackPanel Spacing="2">

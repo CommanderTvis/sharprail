@@ -148,8 +148,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     {
         var dangerous = ClaudePermissionModes.IsDangerous(saved);
         permissionNote.Text = dangerous
-            ? "Every session tereditor starts will skip all permission checks. Only use this in a sandbox with no internet access."
-            : "Passed as --permission-mode to sessions tereditor starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run.";
+            ? "Sessions skip all permission checks. Use this only in a sandbox with no internet access."
+            : "Launch sessions with --permission-mode. The launcher's right-click menu overrides it for one run.";
         permissionNote.Foreground = dangerous ? Ui.Danger : Ui.Muted;
     }
 

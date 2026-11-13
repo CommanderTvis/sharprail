@@ -7,7 +7,7 @@
   <StackPanel Spacing="16">
     <TextBlock Text="Discord Rich Presence" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
-               Text="Shows the project and file you have open on your Discord profile. Turn the Discord plugin on in Settings › Plugins to start; your choice here is saved on the host and follows you across devices." />
+               Text="Shows the project and file you have open on your Discord profile." />
     <TextBlock x:Name="DiscordStatus" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Checking…" />
     <StackPanel Spacing="4">
       <TextBlock Text="Application id" Foreground="{x:Static kit:Ui.TextBrush}" />

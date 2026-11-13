@@ -16,7 +16,7 @@
   </StackPanel.Styles>
   <StackPanel Spacing="4">
     <TextBlock Text="Codex" FontSize="15" FontWeight="SemiBold" />
-    <TextBlock Classes="detail" Text="The Codex pane, launcher and terminal status — turn the plugin itself on or off from Settings › Plugins." />
+    <TextBlock Classes="detail" Text="The Codex pane, launcher and terminal status." />
   </StackPanel>
   <StackPanel Spacing="4">
     <TextBlock Text="Launch command" />
