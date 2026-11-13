@@ -28,9 +28,8 @@ The host half (`Host/`) registers three methods and a channel (`consent`, `works
 item (H20) and observers of terminal agent changes and workspace removal. The UI half (`UI/`) contributes no side tool; it uses the slot seam (W23) for two sections of core's Code Intelligence pages,
 present exactly while the plugin is enabled. The account section, in Settings › Code Intelligence, holds what is global to the JetBrains
 login: terms review and download, Refresh, Sign in and Sign out, and the signed-in state. The workspace section, in the workspace's
-language servers pane, holds Enable for this project, indexing state, Index now, Stop and Logs; when the login is missing it shows a
-one-line notice and an Open Settings button (`OpenSettings`) instead of a sign-in button of its own. The consent window and the logs
-window belong to those sections.
+language servers pane, holds Enable for this project and the indexing state; when the login is missing it shows a
+one-line notice and an Open Settings button (`OpenSettings`) instead of a sign-in button of its own. The consent window belongs to those sections.
 
 The login is the CLI's, so the host keeps one signed-in fact for all workspaces (`ContextOutcome.SignedIn`: true, false, or null when not
 yet probed). The workspace operation `check` probes the CLI's `status` (off the UI thread, no indexing, no source sent) and, like `login`
@@ -75,7 +74,7 @@ project knows is its own scope (its path is the key). Consent is the project's, 
 enabled project, existing or created later (by `workspace_create`, the UI, or on a remote host, whose host resolves its own projects), is
 enabled without action, because it is the same repository with the same remote and the same vendor index. The first opt-in per project
 and the terms acceptance stay explicit, and a project the user never enabled stays disabled. The UI explicitly explains
-cloud processing and automatic indexing on tereditor agent launch. Both sections and the consent window carry a "What is Air Context?" link to `AirContextContract.AboutUrl` (https://www.jetbrains.com/air/context/), opened through the platform launcher off the UI thread; the workspace section keeps Index now, Stop and Logs… in one wrapping row (`--context-ui` checks the link and the shared row). Disabling from any workspace's pane disables the
+cloud processing and automatic indexing on tereditor agent launch. Both sections and the consent window carry a "What is Air Context?" link to `AirContextContract.AboutUrl` (https://www.jetbrains.com/air/context/), opened through the platform launcher off the UI thread; the workspace section has no Index now, Stop or Logs buttons, since indexing follows agent launches (`--context-ui` checks the link and the buttons' absence). Disabling from any workspace's pane disables the
 project (the pane says so), cancels owned requests/indexing and disposes the runtime of each of the project's workspaces.
 Removing a workspace keeps its project's enablement. Before this, enablement was a list of workspace paths in `workspaces.json`
 and new workspaces did not inherit it; when `projects.json` is missing that list seeds it, and each record is promoted to its

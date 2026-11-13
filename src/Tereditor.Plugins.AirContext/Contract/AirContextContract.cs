@@ -41,7 +41,7 @@ public static class AirContextContract
 
     public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Consent, Workspace], [Changed], AirContextJson.Default);
 
-    public static readonly PluginManifest Manifest = new(Id, "Air Context", "asset:air.svg", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Air Context", "", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
         // Runs Air Context's command line on the host's operating system, which a browser tab does not have.
@@ -50,7 +50,6 @@ public static class AirContextContract
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
         DependsOn = [new("code-intelligence", 1)],
-        Assets = "assets",
         Host = "Tereditor.Plugins.AirContext.Host.dll",
         Ui = "Tereditor.Plugins.AirContext.UI.dll"
     };

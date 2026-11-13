@@ -24,7 +24,7 @@ internal sealed class ContextService(Func<string, CancellationToken, ValueTask<b
         internal Task<IContextRuntime>? Runtime;
         internal Task? Index;
         internal volatile string State = "idle";
-        internal volatile string Detail = "Launch a tereditor agent or choose Index now.";
+        internal volatile string Detail = "Launch a tereditor agent to start indexing.";
     }
     private readonly ConcurrentDictionary<string, Entry> entries = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, ContextLog> logs = new(StringComparer.Ordinal);
@@ -47,7 +47,7 @@ internal sealed class ContextService(Func<string, CancellationToken, ValueTask<b
         var account = request.Operation is "check" or "login" or "logout";
         if (!account && !on) return new("disabled", "Enable JetBrains Context for this project in the Air Context pane; it covers every workspace of the project. Indexing sends source chunks to JetBrains.", SignedIn: Known());
         if (request.Operation == "status")
-            return entries.TryGetValue(workspace, out var known) ? new(known.State == "requiresLogin" && Known() == true ? "idle" : known.State, known.State == "requiresLogin" && Known() == true ? "Launch a tereditor agent or choose Index now." : known.Detail, true, SignedIn: Known()) : new("idle", "Launch a tereditor agent or choose Index now.", true, SignedIn: Known());
+            return entries.TryGetValue(workspace, out var known) ? new(known.State == "requiresLogin" && Known() == true ? "idle" : known.State, known.State == "requiresLogin" && Known() == true ? "Launch a tereditor agent to start indexing." : known.Detail, true, SignedIn: Known()) : new("idle", "Launch a tereditor agent to start indexing.", true, SignedIn: Known());
         if (request.Operation is not ("search" or "index" or "refresh" or "login" or "check" or "logout")) throw new ArgumentException("Unknown Context operation.");
         if (request.Limit is < 1 or > 100 || request.Query.Length > 8000) throw new ArgumentException("Context query limit is 100 results and 8,000 characters.");
         if (request.Operation == "search" && string.IsNullOrWhiteSpace(request.Query)) throw new ArgumentException("A semantic search query is required.");
@@ -82,7 +82,7 @@ internal sealed class ContextService(Func<string, CancellationToken, ValueTask<b
                     return new(entry.State, ContextOutput.Sanitize(error.Message), on, SignedIn: Known());
                 }
                 Interlocked.Exchange(ref signed, 1);
-                if (entry.State == "requiresLogin") { entry.State = "idle"; entry.Detail = "Launch a tereditor agent or choose Index now."; }
+                if (entry.State == "requiresLogin") { entry.State = "idle"; entry.Detail = "Launch a tereditor agent to start indexing."; }
                 return new(entry.State, entry.Detail, on, SignedIn: true);
             }
             if (request.Operation == "logout")

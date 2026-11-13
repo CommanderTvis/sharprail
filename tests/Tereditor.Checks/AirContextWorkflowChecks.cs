@@ -204,14 +204,12 @@ internal static partial class AirContextChecks
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(window, "ContextEnabled").IsEnabled);
             Toggle(); E2E.E2eWorkspace.Until(() => Dialogs().Count > 0);
             confirmation = Dialogs().Single(); Button(confirmation, "EnableContextConfirm");
-            E2E.E2eWorkspace.Until(() => EnabledNow().Contains(workspace) && Find<Button>(window, "ContextIndex").IsEnabled);
-            Require(runtime is null, "Enabling started an index before a launch or explicit Index now.");
+            E2E.E2eWorkspace.Until(() => EnabledNow().Contains(workspace) && Find<CheckBox>(window, "ContextEnabled").IsChecked == true);
+            Require(runtime is null, "Enabling started an index before a launch.");
             Require(Equals(Find<Button>(window, "ContextAbout").Content, "What is Air Context? ↗"), "The workspace section lacks the What is Air Context? link.");
-            window.UpdateLayout();
-            var rows = new[] { "ContextIndex", "ContextStop", "ContextLogs" }.Select(name => Find<Button>(window, name)).Select(button => (button.IsEffectivelyVisible, Y: button.TranslatePoint(default, window)?.Y)).ToArray();
-            Require(rows.All(row => row.IsEffectivelyVisible && row.Y is not null && Math.Abs(row.Y.Value - rows[0].Y!.Value) < 1), $"Index now, Stop and Logs… do not share one row: {string.Join(", ", rows.Select(row => row.Y))}.");
             // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
             Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
+            Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextIndex" or "ContextStop" or "ContextLogs"), "The workspace section still offers Index now, Stop or Logs.");
             var settings = new Tereditor.UI.Panels.SettingsView(window, () => { }, section: "Code Intelligence");
             window.ShowInOverlay(settings);
             try
@@ -221,39 +219,32 @@ internal static partial class AirContextChecks
                 E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Not signed in", StringComparison.Ordinal) == true);
                 Require(Find<Button>(settings, "ContextLogin").IsVisible && !Find<Button>(settings, "ContextLogout").IsVisible, "A signed-out account offered no Sign in.");
                 // The workspace section follows the global state without being reopened.
-                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled);
+                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible);
                 Require(Find<Button>(window, "ContextOpenSettings").IsVisible, "The sign-in notice has no way to Settings.");
                 // A sign-in that has not completed leaves everything as it was.
                 var terminals = app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal");
                 Button(settings, "ContextLogin"); E2E.E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal") == terminals + 1);
                 Button(settings, "ContextRefresh"); E2E.E2eWorkspace.Settle(300);
-                Require(Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Not signed in", StringComparison.Ordinal) == true && Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled,
+                Require(Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Not signed in", StringComparison.Ordinal) == true && Find<StackPanel>(window, "SignInNotice").IsVisible,
                     "An unfinished sign-in changed the account state.");
                 // The terminal's login succeeds; the account section notices on its own, the workspace section follows.
                 runtime!.SignedIn = true;
                 E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Signed in", StringComparison.Ordinal) == true);
                 Require(Find<Button>(settings, "ContextLogout").IsVisible && !Find<Button>(settings, "ContextLogin").IsVisible, "A signed-in account kept offering Sign in.");
-                E2E.E2eWorkspace.Until(() => !Find<StackPanel>(window, "SignInNotice").IsVisible && Find<Button>(window, "ContextIndex").IsEnabled);
+                E2E.E2eWorkspace.Until(() => !Find<StackPanel>(window, "SignInNotice").IsVisible);
                 // Signing out from the global section reaches the workspace section too.
                 Button(settings, "ContextLogout");
-                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled);
+                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible);
                 runtime.SignedIn = true; Button(settings, "ContextRefresh");
-                E2E.E2eWorkspace.Until(() => Find<Button>(window, "ContextIndex").IsEnabled);
+                E2E.E2eWorkspace.Until(() => !Find<StackPanel>(window, "SignInNotice").IsVisible);
             }
             finally { settings.Close(); }
-            Button(window, "ContextIndex"); E2E.E2eWorkspace.Until(() => runtime?.Indexes == 1);
-            Button(window, "ContextLogs"); E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.LogsWindow>().Any());
-            var logs = window.OwnedWindows.OfType<Tereditor.Plugins.AirContext.UI.LogsWindow>().Single();
-            E2E.E2eWorkspace.Until(() => Find<TextBox>(logs, "ServerOutput").Text?.Contains("fixture indexing", StringComparison.Ordinal) == true);
-            Require(!Find<TextBox>(logs, "ServerOutput").Text!.Contains("fixture-private-secret", StringComparison.Ordinal), "The logs window exposed a secret."); logs.Close();
-            E2E.E2eWorkspace.Until(() => Find<Button>(window, "ContextStop").IsEnabled);
-            Button(window, "ContextStop"); E2E.E2eWorkspace.Until(() => runtime!.Disposed);
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(window, "ContextEnabled").IsEnabled);
             Toggle(); E2E.E2eWorkspace.Until(() => !EnabledNow().Contains(workspace));
             Require(Find<CheckBox>(window, "ContextEnabled").IsChecked == false, "Disabling was not immediately visible.");
         }
         finally { foreach (var dialog in Dialogs()) dialog.Dismiss(); }
-        Console.WriteLine("PASS Context workspace UI: cloud confirmation/cancel, host enablement, sign-in terminal, explicit indexing, redacted logs and owned stop");
+        Console.WriteLine("PASS Context workspace UI: cloud confirmation/cancel, host enablement, sign-in terminal, no index, stop or logs buttons");
     }
 
     private static async Task ResolveSiblingAsync()

@@ -776,8 +776,8 @@ The Files tree menu shows icons on exactly New file, New folder, Copy path, Copy
 bring their own mark (the Claude mention). The icons come from the [menu action icon registry](../Tereditor.Plugins.UI.Kit/ActionIcons/SPEC.md); the
 other rows have none, and the menu's shared icon column keeps all labels aligned.
 
-The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement, Index now,
-Stop and Logs; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,
+The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement and the indexing
+state; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,
 automatic tereditor agent-launch indexing and reuse of the CLI's JetBrains login/cache.
 New workspaces stay disabled. Sign in opens a tereditor-owned host terminal; no
 credentials pass through UI configuration. Context controls are compact when disabled.

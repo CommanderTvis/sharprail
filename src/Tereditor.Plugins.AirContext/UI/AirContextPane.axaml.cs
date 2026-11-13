@@ -36,7 +36,6 @@ internal sealed partial class AirContextPane : UserControl
     private CancellationTokenSource? lifetime;
     private IDisposable? subscription;
     private ConsentWindow? consentWindow;
-    private LogsWindow? logsWindow;
     private bool checkingConsent;
     private bool contextBusy;
     private ContextOutcome? contextFailure;
@@ -51,7 +50,6 @@ internal sealed partial class AirContextPane : UserControl
         this.FindControl<TextBlock>("ContextBlurb")!.Text = account
             ? "Semantic code discovery through the JetBrains Context CLI. The CLI and its JetBrains login are shared by every workspace."
             : "Semantic code discovery for this project. Indexing happens in the cloud and covers every workspace of the project.";
-        BrandIcon();
         timer.Tick += async (_, _) => { if (IsEffectivelyVisible) await RefreshAsync(false); };
         AttachedToVisualTree += (_, _) =>
         {
@@ -64,7 +62,7 @@ internal sealed partial class AirContextPane : UserControl
         DetachedFromVisualTree += (_, _) =>
         {
             timer.Stop(); subscription?.Dispose(); subscription = null;
-            consentWindow?.Close(); logsWindow?.Close();
+            consentWindow?.Close();
             lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null;
         };
     }
@@ -137,16 +135,6 @@ internal sealed partial class AirContextPane : UserControl
             if (outcome.WorkspaceId == workspace && !contextBusy) ApplyWorkspace(outcome);
         }, new ContextCall(workspace));
 
-    private async void BrandIcon()
-    {
-        try
-        {
-            var svg = await context.ReadAssetAsync("air.svg");
-            this.FindControl<ContentControl>("ContextBrand")!.Content = new SvgAsset(svg, 24);
-        }
-        catch (Exception error) when (error is IOException or PluginCallException or InvalidOperationException) { }
-    }
-
     private void ApplyConsent(ContextConsentResult result)
     {
         var button = this.FindControl<Button>("ContextSetup")!;
@@ -211,10 +199,6 @@ internal sealed partial class AirContextPane : UserControl
         state.Text = result.Detail.Length > 0 ? label + " · " + result.Detail : label;
         state.Foreground = result.State is "error" or "requiresAcceptance" ? Ui.Danger : result.State == "requiresLogin" ? Ui.Warning : Ui.Muted;
         state.IsVisible = result.Enabled || result.State is not "disabled";
-        this.FindControl<Button>("ContextIndex")!.IsVisible = result.Enabled;
-        this.FindControl<Button>("ContextStop")!.IsVisible = result.Enabled;
-        this.FindControl<Button>("ContextIndex")!.IsEnabled = result.Enabled && !contextBusy && result.State != "indexing" && result.SignedIn != false;
-        this.FindControl<Button>("ContextStop")!.IsEnabled = result.Enabled && !contextBusy;
         this.FindControl<CheckBox>("ContextEnabled")!.IsEnabled = !contextBusy;
     }
 
@@ -298,15 +282,4 @@ internal sealed partial class AirContextPane : UserControl
     }
 
     private async void ContextLoginClicked(object? sender, RoutedEventArgs e) => await RunAsync("login");
-    private async void ContextIndexClicked(object? sender, RoutedEventArgs e) => await RunAsync("index");
-    private async void ContextStopClicked(object? sender, RoutedEventArgs e) => await RunAsync("stop");
-
-    private void ContextLogsClicked(object? sender, RoutedEventArgs e)
-    {
-        if (logsWindow is { } existing) { existing.Activate(); return; }
-        if (TopLevel.GetTopLevel(this) is not Window owner) return;
-        logsWindow = new(context, workspace);
-        logsWindow.Closed += (_, _) => logsWindow = null;
-        logsWindow.Show(owner);
-    }
 }
