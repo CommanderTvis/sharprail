@@ -543,6 +543,8 @@ static Tereditor.Plugins.UI.Kit.Typography.Apply<T>(T! control, Tereditor.Plugin
 static Tereditor.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!
 static readonly Tereditor.Plugins.UI.Kit.Ui.PdfPaper -> Avalonia.Media.SolidColorBrush!
 static readonly Tereditor.Plugins.UI.Kit.Ui.PdfSelection -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PromptBorder -> Avalonia.Media.SolidColorBrush!
+static readonly Tereditor.Plugins.UI.Kit.Ui.PromptFill -> Avalonia.Media.SolidColorBrush!
 
 override Tereditor.Plugins.UI.Kit.Editor.SemanticToken.Equals(object? obj) -> bool
 override Tereditor.Plugins.UI.Kit.Editor.SemanticToken.GetHashCode() -> int

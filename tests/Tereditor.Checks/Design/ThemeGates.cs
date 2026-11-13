@@ -109,6 +109,9 @@ internal static class ThemeGates
             Floor(key, theme[key], "hover", theme["hover"], strict ? 4.5 : 3);
         }
         foreach (var fill in new[] { "accentSolid", "accentHover" }) Floor("onAccent", theme["onAccent"], fill, theme[fill], 4.5);
+        // A human prompt is read on the accent-washed bubble: its text, attachment names and Show more hold the resting floors there.
+        var prompt = Tereditor.UI.Rendering.Accents.PromptFill(theme);
+        foreach (var key in new[] { "text", "muted", "accent" }) Floor(key, theme[key], "the prompt bubble", prompt, high ? 7 : 4.5);
         // A hover or selected fill that matches its surface is an invisible selection, however legible its text.
         foreach (var surface in Resting) Floor("hover", theme["hover"], surface, theme[surface], 1.15);
         if (!high) return;

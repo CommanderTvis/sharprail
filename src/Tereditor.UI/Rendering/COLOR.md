@@ -44,6 +44,7 @@ without rebuilding the tree.
 | Disabled | `ControlDisabledFill` · `ControlDisabledText` · `ControlDisabledBorder` · `PrimaryDisabledFill` · `PrimaryDisabledText` | the enabled colour at the 60% step: a disabled control keeps its semantic colour, dimmed at the role, never a separate palette value and never `Opacity` |
 | Border | `BorderBrush` · `ControlBorder` · `ControlBorderActive` | `BorderBrush` is the structural border (`borderStrong`); `ControlBorder` is an input's quiet resting border (`border`); `ControlBorderActive` is the neutral strengthening for focused, pressed and open controls, never the accent |
 | Primary | `Accent` · `PrimarySubtle` · `PrimarySoft` · `PrimaryMuted` | accent @ 10%, 20% and 40%: the selected Settings choice's fill and border; dock drop hints rest at subtle fill with a soft border and activate to a soft fill with an accent border |
+| Chat prompt | `PromptFill` · `PromptBorder` | the human prompt bubble: `bubbleAccent` @ 12% composited over `elevated` (opaque, so a clipped prompt's fade can end in it) inside `bubbleAccent` @ 40%. `bubbleAccent` follows the chosen accent where the manifest ties it to `accent` (see Themes.SPEC.md), so the bubble wears the accent; Minimal's neutral bubble stays neutral |
 | Feedback | `Info` · `Success` · `Warning` · `Danger` + `*Wash` | a wash is the solid colour @ 12%, the feedback-surface fill |
 | Selection | `TextSelection` | Inputs and the Markdown preview share `selection`. Upstream mixes the preview at 40% because browsers wash whole line boxes; Avalonia highlights only glyph runs, and the mix left dark selections nearly invisible. The nullable selected-text foreground is the `ThemeSelectionForeground` dynamic resource |
 | Selection colours | `SelectionText` · `EditorSelection` · `EditorSelectionText` | colour roles for the baking consumers below; the two foregrounds are null when the theme keeps the native one |
@@ -61,7 +62,9 @@ subtle 10%   ·   wash 12%   ·   soft 20%   ·   muted 40%   ·   strong 60%
 `wash` sits one step above `subtle` so primary fills stay at 10% while feedback backgrounds read at 12%.
 Control-level `Opacity` is not a colour tool: it dims nested content and bypasses role ownership. It is used
 only to hide and reveal affordances (the workspace kebab, the change-row menu button), so the guard accepts
-only 0 and 1. A new tint is a new role on the scale, never a one-off alpha at the call site.
+only 0 and 1. A new tint is a new role on the scale, never a one-off alpha at the call site. A role whose
+consumer needs an opaque colour names the surface it sits on with `"over"`: the generated code composites the
+tint onto that palette key with `Ui.Over`.
 
 ## Control states
 

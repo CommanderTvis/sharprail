@@ -428,10 +428,10 @@ internal sealed class ChatRowLayout : IDisposable
         foreach (var (shape, pen) in geometries) context.DrawGeometry(null, pen, shape);
     }
 
-    // A fade to the bubble colour over the foot of a clipped block.
-    private void Fade(Rect area)
+    // A fade to the fill of the box it sits in over the foot of a clipped block.
+    private void Fade(Rect area, IBrush fill)
     {
-        if (Ui.Elevated is not ISolidColorBrush solid) return;
+        if (fill is not ISolidColorBrush solid) return;
         var color = solid.Color;
         var fade = new LinearGradientBrush
         {
@@ -478,11 +478,12 @@ internal sealed class ChatRowLayout : IDisposable
         if (large && !expanded)
         {
             plansClip = new Rect(left, start, inner, shown);
-            Fade(new Rect(left + 1, start + shown - 11, inner - 2, 11));
+            Fade(new Rect(left + 1, start + shown - 11, inner - 2, 11), Ui.PromptFill);
         }
         var extra = (chips.Count > 0 ? 18 : 0) + (user.Queued ? 16 : 0) + (large ? 20 : 0);
         var box = new Rect(left, boxTop, inner, shown + 2 * BubblePad + extra);
-        fills.Add(new(box, Ui.Elevated, 8, new Pen(Ui.BorderBrush)));
+        // The prompt wears the accent: a calm accent wash over the raised surface inside an accent-tinted outline.
+        fills.Add(new(box, Ui.PromptFill, 8, new Pen(Ui.PromptBorder)));
         var cursor = start + shown;
         if (chips.Count > 0)
         {
@@ -780,7 +781,7 @@ internal sealed class ChatRowLayout : IDisposable
             lineTop += line.Height;
         }
         if (shownChars < shown.Length) Sources.AddOrUpdate(layout, shown[..shownChars]);
-        if (layout.Height > clip) Fade(new Rect(box.X + 1, box.Bottom - 5 - 11, box.Width - 2, 11));
+        if (layout.Height > clip) Fade(new Rect(box.X + 1, box.Bottom - 5 - 11, box.Width - 2, 11), Ui.Elevated);
         if (ToolCards.Openable(text)) hits.Add(new(box, ChatHitKind.OpenText, which));
         y = box.Bottom + 4;
     }

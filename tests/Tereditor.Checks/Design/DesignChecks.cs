@@ -40,7 +40,7 @@ internal static partial class DesignChecks
             return;
         }
         var sources = Sources(root);
-        ColorUsage(DesignSources.LoadColors(root), sources, failures);
+        ColorUsage(DesignSources.LoadColors(root), sources, PluginText(root), failures);
         SpacingUsage(root, sources, failures);
         LayoutRoles(root, failures);
         TypographyUsage(DesignSources.LoadTypography(root), sources, failures);
@@ -88,12 +88,23 @@ internal static partial class DesignChecks
     // Quiet scroll curtains are an opacity mask: alpha only, never a painted colour.
     private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Rendering/Accents.cs", "Panels/QrCodeView.cs", "Rendering/QuietScroll.cs", "ApplicationMenu.cs"];
 
-    private static void ColorUsage(DesignSources.Colors colors, List<SourceFile> sources, List<string> failures)
+    /// <summary>The plugin projects' C# and XAML: a role a plugin alone draws (the chat's prompt bubble) is still used, though those projects are not scanned for colour rules here.</summary>
+    private static string PluginText(string root) => string.Join('\n', Directory.EnumerateDirectories(Path.Combine(root, "src"), "Tereditor.Plugins.*")
+        .Where(directory => Path.GetFileName(directory) != "Tereditor.Plugins.UI.Kit")
+        .SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
+            .Where(path => (path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith(".axaml", StringComparison.Ordinal)) &&
+                !Path.GetRelativePath(directory, path).Replace('\\', '/').StartsWith("bin/", StringComparison.Ordinal) &&
+                !Path.GetRelativePath(directory, path).Replace('\\', '/').StartsWith("obj/", StringComparison.Ordinal)))
+        .Select(path => string.Join('\n', Uncomment(File.ReadAllText(path), path.EndsWith(".axaml", StringComparison.Ordinal)))));
+
+    private static void ColorUsage(DesignSources.Colors colors, List<SourceFile> sources, string pluginText, List<string> failures)
     {
         foreach (var role in colors.Roles)
         {
             if (!Themes.ColorKeys.Contains(role.From)) failures.Add($"colors.json: role {role.Name} names the unknown palette key {role.From}.");
             if (role.Alpha is not null && !colors.Scale.ContainsKey(role.Alpha)) failures.Add($"colors.json: role {role.Name} names the unknown alpha step {role.Alpha}.");
+            if (role.Over is not null && (!Themes.ColorKeys.Contains(role.Over) || Themes.NullableKeys.Contains(role.Over) || role.Alpha is null))
+                failures.Add($"colors.json: role {role.Name} composites a tint over {role.Over}, which must be a required palette key, and needs an alpha step.");
             if (DesignSources.Nullable(role) && (!role.IsColor || role.Alpha is not null))
                 failures.Add($"colors.json: role {role.Name} reads a nullable key, so it must be an untinted colour role.");
         }
@@ -111,7 +122,7 @@ internal static partial class DesignChecks
         Scan(controls, PaletteRead(), "palette key read outside Ui; add a role to colors.json", failures);
         Scan(controls, PartialOpacity(), "opacity used as a tint; add a role on the alpha scale", failures);
 
-        var text = string.Join('\n', controls.SelectMany(source => source.Lines));
+        var text = string.Join('\n', controls.SelectMany(source => source.Lines)) + '\n' + pluginText;
         var own = string.Join('\n', sources.Single(source => source.Path == "Rendering/Ui.cs").Lines);
         foreach (var name in colors.Roles.Select(role => role.Name).Concat(colors.Effects.Select(effect => effect.Name)))
             if (!Regex.IsMatch(text, $@"\bUi\.{name}\b") && !Regex.IsMatch(own, $@"(?<![.\w]){name}\b"))

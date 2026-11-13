@@ -48,6 +48,8 @@
     "FileIconData": { "role": "file-icon-data", "from": "accent" },
     "FileIconScript": { "role": "file-icon-script", "from": "success" },
     "FileIconMedia": { "role": "file-icon-media", "from": "danger" },
+    "PromptFill": { "role": "chat-prompt-bg", "from": "bubbleAccent", "alpha": "wash", "over": "elevated" },
+    "PromptBorder": { "role": "chat-prompt-border", "from": "bubbleAccent", "alpha": "muted" },
     "PdfSelection": { "role": "pdf-selection-bg", "from": "accent", "alpha": "muted" },
     "TextSelection": { "role": "selection-bg", "from": "selection" },
     "SelectionText": { "role": "selection-text", "from": "selectionForeground", "kind": "color" },
@@ -61,7 +63,5 @@
     "PopoverShadow": { "note": "upstream shadow-md: transient notifications", "dark": "#00000059", "light": "#0000001f" },
     "DialogShadow": { "note": "upstream shadow-lg: dialog cards", "dark": "#00000066", "light": "#00000024" }
   },
-  "unclaimed": {
-    "bubbleAccent": "chat bubbles; AI functionality is out of scope"
-  }
+  "unclaimed": {}
 }

@@ -88,18 +88,20 @@ meaning: a curated palette (frog, the app icon's cyan, the default and listed fi
 yellow, graphite) and custom hex colours; Teal was merged into its near twin Frog, so a stored `teal` reads as
 `frog`. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`, `accentHover`,
 `onAccent`), plus `bubbleAccent`, the chat bubble tint, wherever the manifest ties it to the accent by giving both
-the same value (the standard and High Contrast manifests do; Minimal's neutral bubble is its own and stays; no native control draws the role yet, plugin surfaces receive it with the theme), cached
+the same value (the standard and High Contrast manifests do; Minimal's neutral bubble is its own and stays; the chat's human prompt bubble is tinted from it through the `PromptFill` and `PromptBorder` roles, see COLOR.md), cached
 per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
 accent and baking consumer then follows with no control knowing about it. Frog is the bundled accent, so the
 default (an empty or `frog` setting) is the manifest itself. Green, the accent the manifests carried before Frog,
 is a curated entry that pins those earlier colours per bundled theme (a theme it does not name is solved like the
-others); a stored `green` therefore stays Green, and only users who never chose an accent moved to Frog. Each accent keeps its hue and saturation (scaled by the theme's own accent
+others; a pinned text accent that misses the floor on the prompt bubble keeps its hue and takes the nearest lightness that meets it); a stored `green` therefore stays Green, and only users who never chose an accent moved to Frog. Each accent keeps its hue and saturation (scaled by the theme's own accent
 saturation so Minimal stays quiet; custom colours keep theirs) and each theme solves the lightness: the text
-accent meets the theme's text floor on every resting surface and on `hover`, the solid fill is chosen with a
+accent meets the theme's text floor on every resting surface, on `hover` and on the prompt bubble it tints (links and Show more
+are accent text there), the solid fill is chosen with a
 black or white label that clears 4.5 on both fills, and the hover fill stays distinguishable from the solid fill.
 Feedback colours never follow the accent. `WorkbenchWindow.ApplyTheme` applies it on every settings broadcast,
 so open windows change live. The design check holds every curated accent and a spread of custom colours in every
-bundled theme to the same floors as a manifest.
+bundled theme to the same floors as a manifest, and holds `text`, `muted` and `accent` to 4.5 (7.0 in High
+Contrast) on the composited prompt bubble fill.
 
 Bundled files are enumerated from the `Assets/Themes` avares folder rather than named in code, and validated
 all-or-nothing at first use of `Themes.All`. They are our own files, so an invalid or duplicate manifest, a

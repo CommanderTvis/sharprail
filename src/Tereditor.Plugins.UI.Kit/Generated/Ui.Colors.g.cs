@@ -48,6 +48,8 @@ public static partial class Ui
     public static readonly SolidColorBrush FileIconData = new();
     public static readonly SolidColorBrush FileIconScript = new();
     public static readonly SolidColorBrush FileIconMedia = new();
+    public static readonly SolidColorBrush PromptFill = new();
+    public static readonly SolidColorBrush PromptBorder = new();
     public static readonly SolidColorBrush PdfSelection = new();
     public static readonly SolidColorBrush TextSelection = new();
     public static Color? SelectionText { get; private set; }
@@ -101,6 +103,8 @@ public static partial class Ui
         FileIconData.Color = theme["accent"];
         FileIconScript.Color = theme["success"];
         FileIconMedia.Color = theme["danger"];
+        PromptFill.Color = Over(Alpha(theme["bubbleAccent"], 12), theme["elevated"]);
+        PromptBorder.Color = Alpha(theme["bubbleAccent"], 40);
         PdfSelection.Color = Alpha(theme["accent"], 40);
         TextSelection.Color = theme["selection"];
         SelectionText = theme.Colors["selectionForeground"];

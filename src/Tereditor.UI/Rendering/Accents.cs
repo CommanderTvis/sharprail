@@ -104,35 +104,49 @@ public static partial class Accents
 
     private static readonly string[] Resting = ["background", "content", "sidebar", "header", "elevated"];
 
+    /// <summary>The wash step colors.json gives <c>PromptFill</c>; RoleChecks holds the generated role to <see cref="PromptFill"/>.</summary>
+    private const int PromptWash = 12;
+
+    /// <summary>The chat prompt bubble's opaque fill, as <c>Ui.PromptFill</c> composites it: the bubble tint at the wash step over <c>elevated</c>.</summary>
+    internal static Color PromptFill(ThemeManifest theme, Color? bubble = null) => Ui.Over(Ui.Alpha(bubble ?? theme["bubbleAccent"], PromptWash), theme["elevated"]);
+
     private static ThemeManifest Derive(ThemeManifest theme, AccentChoice choice, bool custom)
     {
+        var high = theme.IsHighContrast;
+        var surfaces = Resting.Select(key => theme[key]).ToArray();
+        var hover = theme["hover"];
+        var textFloor = high ? 7.0 : 4.5;
+        var onHoverFloor = high ? 4.5 : 3.0;
+        var tied = theme["bubbleAccent"] == theme["accent"];
+        // The text accent reads on every resting surface, on hover, and on the prompt bubble, whose tint is the accent itself where the manifest ties them.
+        double Margin(Color color) => Math.Min(Math.Min(surfaces.Min(surface => Contrast(color, surface)) - textFloor, Contrast(color, hover) - onHoverFloor),
+            Contrast(color, PromptFill(theme, tied ? color : null)) - textFloor);
+
         if (choice.Fixed?.GetValueOrDefault(theme.Id) is { } roles)
         {
+            // A pinned accent that does not read on the prompt bubble keeps its hue and saturation and takes the nearest lightness that does.
+            var held = Color.Parse(roles[0]);
+            if (Margin(held) < 0)
+            {
+                var (heldHue, heldSaturation, heldLightness) = ToHsl(held);
+                held = FromHsl(heldHue, heldSaturation, Solve(heldLightness, lightness => Margin(FromHsl(heldHue, heldSaturation, lightness))));
+            }
             var pinned = new Dictionary<string, Color?>(theme.Colors)
             {
-                ["accent"] = Color.Parse(roles[0]),
+                ["accent"] = held,
                 ["accentSolid"] = Color.Parse(roles[1]),
                 ["accentHover"] = Color.Parse(roles[2]),
                 ["onAccent"] = Color.Parse(roles[3])
             };
             return theme with { Colors = Bubble(theme, pinned) };
         }
-        var high = theme.IsHighContrast;
-        var surfaces = Resting.Select(key => theme[key]).ToArray();
-        var hover = theme["hover"];
         var (_, themeSaturation, accentLightness) = ToHsl(theme["accent"]);
         // A quiet palette keeps its accents quiet; a custom colour keeps the saturation it was given.
         var saturation = custom ? choice.Saturation : choice.Saturation * Math.Min(1, themeSaturation);
 
         Color At(double lightness) => FromHsl(choice.Hue, saturation, lightness);
 
-        var textFloor = high ? 7.0 : 4.5;
-        var onHoverFloor = high ? 4.5 : 3.0;
-        var accent = Solve(accentLightness, lightness =>
-        {
-            var color = At(lightness);
-            return Math.Min(surfaces.Min(surface => Contrast(color, surface)) - textFloor, Contrast(color, hover) - onHoverFloor);
-        });
+        var accent = Solve(accentLightness, lightness => Margin(At(lightness)));
 
         var (_, _, solidLightness) = ToHsl(theme["accentSolid"]);
         var hoverStep = ToHsl(theme["accentHover"]).Lightness - solidLightness;

@@ -9,7 +9,8 @@ namespace Tereditor.Checks.Design;
 /// <summary>The authored design sources under Rendering/Design and the C# generated from them.</summary>
 internal static class DesignSources
 {
-    internal sealed record ColorRole(string Name, string From, string? Alpha, bool IsColor);
+    /// <summary>A role reads <c>From</c>, tinted to its <c>Alpha</c> step and, with <c>Over</c>, composited onto that opaque palette key.</summary>
+    internal sealed record ColorRole(string Name, string From, string? Alpha, bool IsColor, string? Over = null);
     internal sealed record Effect(string Name, string Dark, string Light);
     internal sealed record Colors(IReadOnlyDictionary<string, int> Scale, IReadOnlyList<ColorRole> Roles, IReadOnlyList<Effect> Effects,
         IReadOnlyList<string> Unclaimed);
@@ -35,7 +36,7 @@ internal static class DesignSources
         return new(
             document.GetProperty("scale").EnumerateObject().ToDictionary(step => step.Name, step => step.Value.GetInt32()),
             [.. document.GetProperty("roles").EnumerateObject().Select(role => new ColorRole(role.Name,
-                role.Value.GetProperty("from").GetString()!, Optional(role.Value, "alpha"), Optional(role.Value, "kind") == "color"))],
+                role.Value.GetProperty("from").GetString()!, Optional(role.Value, "alpha"), Optional(role.Value, "kind") == "color", Optional(role.Value, "over")))],
             [.. document.GetProperty("effects").EnumerateObject().Select(effect => new Effect(effect.Name,
                 effect.Value.GetProperty("dark").GetString()!, effect.Value.GetProperty("light").GetString()!))],
             [.. document.GetProperty("unclaimed").EnumerateObject().Select(key => key.Name)]);
@@ -155,6 +156,7 @@ internal static class DesignSources
         {
             var source = Nullable(role) ? $"theme.Colors[\"{role.From}\"]" : $"theme[\"{role.From}\"]";
             if (role.Alpha is not null) source = $"Alpha({source}, {colors.Scale[role.Alpha]})";
+            if (role.Over is not null) source = $"Over({source}, theme[\"{role.Over}\"])";
             text.Append($"        {role.Name}{(role.IsColor ? "" : ".Color")} = {source};\n");
         }
         foreach (var effect in colors.Effects)

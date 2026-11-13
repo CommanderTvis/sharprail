@@ -49,6 +49,8 @@ internal static class RoleChecks
                     Ui.PrimaryMuted.Color == Ui.Alpha(derived["accent"], 40) && Ui.PdfSelection.Color == Ui.Alpha(derived["accent"], 40) &&
                     Ui.PrimaryDisabledFill.Color == Ui.Alpha(derived["accent"], 60) && Ui.PrimaryDisabledText.Color == Ui.Alpha(derived["onAccent"], 60),
                     $"{where}: the accent tints must derive from the accent at the scale's steps.");
+                Require(Ui.PromptFill.Color == Tereditor.UI.Rendering.Accents.PromptFill(derived) && Ui.PromptBorder.Color == Ui.Alpha(derived["bubbleAccent"], 40),
+                    $"{where}: the prompt bubble must wear the derived bubble tint.");
                 Require(Tereditor.UI.Rendering.Accents.Contrast(Ui.OnPrimary.Color, Ui.PrimaryFill.Color) >= 4.5 && Tereditor.UI.Rendering.Accents.Contrast(Ui.OnPrimary.Color, Ui.PrimaryFillHover.Color) >= 4.5,
                     $"{where}: the on-accent label must be legible on both fills.");
                 Require(Ui.Success.Color == theme["success"] && Ui.Danger.Color == theme["danger"] && Ui.Info.Color == theme["info"] && Ui.Warning.Color == theme["warning"],
