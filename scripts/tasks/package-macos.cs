@@ -40,7 +40,7 @@ return Guard(() =>
     foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" }) File.Copy(file, Path.Combine(resources, file), true);
     CopyInto("licenses", resources);
     foreach (var file in new[] { "Geist-OFL.txt", "JetBrainsMono-OFL.txt" }) File.Copy(Path.Combine("src", "Tereditor.Plugins.UI.Kit", "Assets", "Fonts", file), Path.Combine(resources, file), true);
-    // The icon: an iconset scaled from the source image (686 px, so no 512@2x, which would only be upscaled), packed by iconutil.
+    // The icon: an iconset scaled from the source image (815 px: the art at 655 px inside Apple's transparent margin, 824 of 1024; no 512@2x, which would only be upscaled), packed by iconutil.
     var iconset = Path.Combine("artifacts", "tereditor.iconset");
     DeleteAll(iconset);
     Directory.CreateDirectory(iconset);
