@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -69,7 +70,7 @@ internal static class DockInputChecks
         var clusters = rail.Children.OfType<StackPanel>().ToArray();
         Require(clusters.Select(cluster => cluster.Name).SequenceEqual(right.Select(group => "RailCluster_" + group.Id)) &&
             clusters[0].GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(new[] { "Tab_plugin_spec-dialect_specs", "Tab_files" }) &&
-            rail.GetLogicalDescendants().OfType<Button>().Count(button => Equals(button.Tag, "pressed")) == right.Length,
+            rail.GetLogicalDescendants().OfType<Button>().Count(button => button is ToggleButton { IsChecked: true }) == right.Length,
             "The rail must mirror its panes as separated clusters, with exactly one pressed entry per expanded pane.");
         // Every entry's accent bar shares its icon's vertical centre, and every separator the icon column's horizontal centre.
         double CentreY(Control control) => control.TranslatePoint(new Point(0, control.Bounds.Height / 2), rail)!.Value.Y;
@@ -91,7 +92,7 @@ internal static class DockInputChecks
             "Activating an unplaced tool must restore it to its recorded pane.");
         var files = Find<Button>("Tab_files");
         files.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Pump(() => window.Layout.Selected(right[0].Id)?.Id == "files" && Equals(Find<Button>("Tab_files").Tag, "pressed"),
+        Pump(() => window.Layout.Selected(right[0].Id)?.Id == "files" && Find<Button>("Tab_files") is ToggleButton { IsChecked: true },
             "An unpressed entry must select its tool in its pane.");
         Find<Button>("Tab_files").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Pump(() => window.Layout.Group(right[0].Id).Folded && Find<Button>("Tab_files").IsFocused &&
@@ -115,7 +116,7 @@ internal static class DockInputChecks
             "Project Home must show its own Projects pane.");
         Require(!window.GetLogicalDescendants().Any(item => item is Grid { Name: "AuxiliaryStack_bottom" or "AuxiliaryStack_left" }) &&
             Find<StackPanel>("leftRailEntries").GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(new[] { "Tab_projects" }) &&
-            Equals(Find<Button>("Tab_projects").Tag, "pressed") && window.Layout.View.Documents.Values.All(tabs => tabs.Count == 0),
+            Find<Button>("Tab_projects") is ToggleButton { IsChecked: true } && window.Layout.View.Documents.Values.All(tabs => tabs.Count == 0),
             "Project Home shows its own Projects pane and rail entry instead of the frame's left side and bottom, and starts no terminal.");
         var leftVisible = window.Layout.State.LeftVisible;
         Find<Button>("HidePane_home").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -446,7 +447,7 @@ internal static class DockInputChecks
             var hiddenRail = Find<Border>(region + "Rail");
             var firstEntry = hiddenRail.GetLogicalDescendants().OfType<Button>().First();
             Require(Bounds(hiddenRail).Width == 40 && Bounds(hiddenRail).Height == Bounds(surface).Height &&
-                firstEntry.Bounds.Size == new Size(32, 32) && !hiddenRail.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Tag, "pressed")),
+                firstEntry.Bounds.Size == new Size(32, 32) && !hiddenRail.GetLogicalDescendants().OfType<Button>().Any(button => button is ToggleButton { IsChecked: true }),
                 "A hidden side keeps its full-height 40px rail with 32px entries, none of them pressed.");
             var destination = new Point(Bounds(hiddenRail).Center.X, Bounds(hiddenRail).Bottom - 40);
             Drag(tab, destination);

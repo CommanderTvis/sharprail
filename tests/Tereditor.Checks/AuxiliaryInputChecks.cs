@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
@@ -65,7 +66,7 @@ internal static class AuxiliaryInputChecks
                 Require(committed[foldedIndex].Weight == groups[foldedIndex].Weight && Math.Abs(committed.Sum(group => group.Weight) - 1) < 1e-8 &&
                     committed.First(group => group.Id == expanded[0].Id).Weight > expanded[0].Weight,
                     "Side resize must keep a folded pane's weight while committing the expanded proportions.");
-                Require(Find<Button>("RailPane_" + groups[1].Id) is var entry && Equals(entry.Tag, foldedIndex == 1 ? null : "pressed"),
+                Require(Find<ToggleButton>("RailPane_" + groups[1].Id).IsChecked == (foldedIndex != 1),
                     "A folded pane's rail entry must not be pressed; an expanded one's must be.");
             }
         foreach (var region in new[] { "left", "right" })

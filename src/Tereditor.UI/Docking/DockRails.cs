@@ -1,14 +1,15 @@
 using Avalonia;
 using Avalonia.Automation;
-using Avalonia.Automation.Peers;
-using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Media.Transformation;
+using Avalonia.Styling;
 using Avalonia.Threading;
 
 namespace Tereditor.UI.Docking;
@@ -100,7 +101,7 @@ public sealed partial class DockSurface
 
     private Border RailFrame(string region, StackPanel entries)
     {
-        return new()
+        var frame = new Border
         {
             Name = region + "Rail",
             Width = RailWidth,
@@ -109,7 +110,25 @@ public sealed partial class DockSurface
             BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
             Child = entries
         };
+        frame.Styles.AddRange(RailEntryStyles());
+        return frame;
     }
+
+    // Like a tab, an entry's frame paints its check and selection: the toggle button's own checked, hover and pressed
+    // fills stay clear, and pressing an entry (to drag it) does not shrink it. On the rail, these outrank the
+    // application's checked-toggle style. A style belongs to one owner, so each rail gets its own.
+    private static Style[] RailEntryStyles() =>
+    [
+        .. new[] { ":checked", ":pointerover", ":pressed" }.Select(state =>
+            new Style(selector => selector.OfType<ToggleButton>().Class("rail-entry").Class(state).Template().OfType<ContentPresenter>().Name("PART_ContentPresenter"))
+            {
+                Setters = { new Setter(ContentPresenter.BackgroundProperty, Brushes.Transparent), new Setter(ContentPresenter.BorderThicknessProperty, new Thickness(0)) }
+            }),
+        new Style(selector => selector.OfType<ToggleButton>().Class("rail-entry").Class(":pressed"))
+        {
+            Setters = { new Setter(RenderTransformProperty, TransformOperations.Identity) }
+        }
+    ];
 
     /// <summary>Takes a control out of the parent it is still in, so a rebuilt tree can adopt it.</summary>
     internal static void Detach(Control control)
@@ -212,9 +231,11 @@ public sealed partial class DockSurface
         return Wrap(button, pressed, group.Region);
     }
 
-    private static Button RailButton(string name, Control icon, string title, bool pressed, string region)
+    // A rail entry is a toggle button checked while its pane shows it. The dock state drives the check: a click asks the
+    // dock to show or fold, and the rail rebuilt from the new state carries the new check, so the button never flips itself.
+    private static ToggleButton RailButton(string name, Control icon, string title, bool pressed, string region)
     {
-        var button = new RailEntryButton(pressed)
+        var button = new ToggleButton
         {
             Name = name,
             Width = 32,
@@ -228,11 +249,10 @@ public sealed partial class DockSurface
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(4),
-            Tag = pressed ? "pressed" : null
+            IsChecked = pressed
         };
+        button.Click += (_, _) => button.SetCurrentValue(ToggleButton.IsCheckedProperty, pressed);
         button.Classes.Add("rail-entry");
-        // Like a tab, the frame paints selection; pressing an entry (to drag it) neither tints nor shrinks it.
-        button.Classes.Add("dock-tab-button");
         AutomationProperties.SetName(button, title);
         AutomationProperties.SetHelpText(button, pressed ? "Shown; activate to fold" : "Activate to show");
         ToolTip.SetTip(button, title);
@@ -273,7 +293,7 @@ public sealed partial class DockSurface
     private static void Rove(List<Button> buttons)
     {
         if (buttons.Count == 0) return;
-        var stop = buttons.FirstOrDefault(button => Equals(button.Tag, "pressed")) ?? buttons[0];
+        var stop = buttons.FirstOrDefault(button => button is ToggleButton { IsChecked: true }) ?? buttons[0];
         foreach (var button in buttons)
         {
             button.IsTabStop = button == stop;
@@ -446,19 +466,5 @@ public sealed partial class DockSurface
     {
         Session.HidePane(id);
         FocusGroup(id);
-    }
-}
-
-/// <summary>A rail entry: a pressed (toggle) button in its rail's toolbar; pressed while its pane shows it.</summary>
-internal sealed class RailEntryButton(bool pressed) : Button
-{
-    protected override Type StyleKeyOverride => typeof(Button);
-    internal bool IsPressedEntry => pressed;
-    protected override AutomationPeer OnCreateAutomationPeer() => new EntryPeer(this);
-
-    private sealed class EntryPeer(RailEntryButton owner) : ButtonAutomationPeer(owner), IToggleProvider
-    {
-        public ToggleState ToggleState => owner.IsPressedEntry ? ToggleState.On : ToggleState.Off;
-        public void Toggle() => owner.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(ClickEvent));
     }
 }

@@ -214,10 +214,11 @@ The left and right sides have persistent 40px rails (`DockRails.cs`), present wh
 hidden or all folded. A rail mirrors its region's panes: one cluster per group in order, separated by a
 hairline; a tool pane has one entry per tool, a terminal or empty pane one entry; tools placed nowhere form a
 trailing dimmed cluster, and activating one restores it to its recorded target. Exactly one entry per expanded
-pane is pressed (its frame carries the selected fill and an accent edge) and none in a folded or hidden one.
-Activating an unpressed entry reveals the region, unfolds its pane and selects it in one transition
-(`LayoutSession.ActivateEntry`); activating the pressed one folds its pane. Entries are pressed (toggle)
-buttons in a single-tab-stop toolbar: arrows and Home/End rove, Enter/Space activates, Delete removes a tool
+pane is checked (its frame carries the selected fill and an accent edge) and none in a folded or hidden one.
+Activating an unchecked entry reveals the region, unfolds its pane and selects it in one transition
+(`LayoutSession.ActivateEntry`); activating the checked one folds its pane. Entries are stock toggle buttons
+whose check follows the dock state one way: activating one asks the dock to show or fold and never flips the
+check by itself. They sit in a single-tab-stop toolbar: arrows and Home/End rove, Enter/Space activates, Delete removes a tool
 from its pane as its menu's Close does; a terminal pane's entry navigates and never closes a session. An
 unchanged projection keeps the rail controls mounted.
 

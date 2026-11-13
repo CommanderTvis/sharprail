@@ -319,7 +319,7 @@ internal static class UiChecks
         var child = specNode.Children.Single(item => Equals(item.Tag, "src/SPEC.md"));
         Require(child.Text == "Architecture · components", "Spec titles must compact spaced em dashes to middle dots.");
         // The entry already pressed would fold its pane.
-        if (!Equals(Find<Button>(window, "Tab_plugin_spec-dialect_specs").Tag, "pressed")) Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs"));
+        if (Find<ToggleButton>(window, "Tab_plugin_spec-dialect_specs").IsChecked != true) Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs"));
         window.UpdateLayout();
         var specHeader = E2E.E2eWorkspace.TreeRow(Find<DrawnTree>(window, "SpecsTree"), specNode.Id);
         Require(!specHeader.RoleVisible && specNode.Role == "PRODUCT GOAL", "Spec type must initially be hidden.");
@@ -329,7 +329,7 @@ internal static class UiChecks
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs)
             .Any(tab => tab.Path == "SPEC.md" && tab.Preview), "Single-clicking a spec did not preview its Markdown.");
 
-        // Rail entries are a toolbar's pressed buttons: toggling the unpressed one shows its tool.
+        // Rail entries are a toolbar's toggle buttons: toggling the unchecked one shows its tool.
         var filesPeer = ControlAutomationPeer.CreatePeerForElement(Find<Button>(window, "Tab_files"))!;
         Require(filesPeer.GetAutomationControlType() == AutomationControlType.Button && filesPeer.GetName() == "Files" &&
             ((IToggleProvider)filesPeer).ToggleState == ToggleState.Off, "A tool's rail entry lacks accessible identity or pressed state.");
@@ -339,6 +339,17 @@ internal static class UiChecks
         Require(((IToggleProvider)filesPeer).ToggleState == ToggleState.On &&
             window.Layout.State.Groups.Any(group => window.Layout.Selected(group.Id)?.Id == "files"),
             "Activating a rail entry did not show its tool and press it.");
+        // The entry's frame paints its check; the toggle button's own checked fill stays clear.
+        window.UpdateLayout();
+        Require(Find<ToggleButton>(window, "Tab_files").GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
+            .First(presenter => presenter.Name == "PART_ContentPresenter").Background is ISolidColorBrush { Color.A: 0 },
+            "A checked rail entry must not paint the toggle button's checked fill.");
+        var uncheckedEntry = window.GetLogicalDescendants().OfType<ToggleButton>().First(entry => entry.Classes.Contains("rail-entry") && entry.IsChecked != true);
+        window.MouseMove(Center(window, uncheckedEntry)); Dispatcher.UIThread.RunJobs();
+        Require(uncheckedEntry.IsPointerOver && uncheckedEntry.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
+            .First(presenter => presenter.Name == "PART_ContentPresenter").Background is ISolidColorBrush { Color.A: 0 },
+            "Hovering an unchecked rail entry must not paint the toggle button's hover fill.");
+        window.MouseMove(new Point(window.Bounds.Width - 2, window.Bounds.Height - 2)); Dispatcher.UIThread.RunJobs();
         Require(Find<DrawnTree>(window, "FilesTree").Items.Count >= 3, "File tree is empty.");
         var filesTree = Find<DrawnTree>(window, "FilesTree");
         var readmeNode = filesTree.Rows.Single(item => item.Tag is Tereditor.Host.Abstractions.ProjectFile { Path: "README.md" });
@@ -417,7 +428,7 @@ internal static class UiChecks
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
         Dispatcher.UIThread.RunJobs();
         Require(!window.Layout.Group(filesGroup).Folded && Find<Grid>(window, "GroupHeader_" + filesGroup).IsFocused &&
-            Equals(Find<Button>(window, "Tab_files").Tag, "pressed"),
+            Find<ToggleButton>(window, "Tab_files").IsChecked == true,
             "Keyboard activation of the entry did not unfold its pane and return focus to it.");
         window.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
         Find<Button>(window, "Tab_files").Focus();

@@ -271,8 +271,8 @@ internal sealed class E2eWorkspace : IDisposable
         var name = "Tab_" + id.Replace(':', '_');
         var deadline = Awake.Now.AddSeconds(10);
         while (Awake.Now < deadline && !Window.GetLogicalDescendants().OfType<Button>().Any(item => item.Name == name)) Pump();
-        var entry = Find<Button>(name);
-        if (!Equals(entry.Tag, "pressed")) Click(entry, freshGesture: false);
+        var entry = Find<ToggleButton>(name);
+        if (entry.IsChecked != true) Click(entry, freshGesture: false);
     }
 
     internal Button Tab(string path) => Find<Button>("Tab_" + (path.EndsWith(".txt", StringComparison.Ordinal) ? "file_" : "markdown_") + path.Replace('/', '_'));
