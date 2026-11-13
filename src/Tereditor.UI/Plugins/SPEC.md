@@ -289,8 +289,12 @@ plugin deleted from disk.
   describe host workspaces and must not trigger plugin state or spec subscriptions.
   Terminal tab decorations use the layout's active workspace during switches, before the window's
   asynchronous project open completes, so existing agent marks survive without another host update.
+- `Host().Terminals` lists the windows' terminal tabs, then every terminal in the host's catalog that no window
+  placed, each with the host's agent record and title; only window tabs count as shown. A rail row of a terminal
+  this client never opened (a phone's Projects page lists the desktop's) therefore wears the same agent icon as on
+  the host: the agent kind is host state every client already receives, and the decorators answer from it.
 - `Workbench.ActiveWindow` is the last activated window; `ProjectionChanged` is raised on shared-state snapshots,
-  window activation, layout and selection changes and revision bumps, and `WatchHost` filters it.
+  window activation, layout and selection changes, terminal catalog snapshots and revision bumps, and `WatchHost` filters it.
 - Local and remote file revisions advance from the host's workspace change stream. Reconnecting or a
   rescan invalidates open document paths; workspace switches cancel the old stream and reject stale events.
   Git-only batches advance workspace revisions while leaving file revisions unchanged, so Graph follows

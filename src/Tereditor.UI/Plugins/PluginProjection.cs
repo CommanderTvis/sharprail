@@ -28,6 +28,15 @@ internal static class PluginProjection
                 if (!shown.TryGetValue(workspace, out var keys)) shown[workspace] = keys = [];
                 keys.AddRange(visible.Where(key => !keys.Contains(key)));
             }
+        // The host's terminals no window placed (a phone's Projects lists the desktop's) still carry their agent, so a
+        // decorator answers for every row a rail shows; they are never shown.
+        foreach (var (workspace, tabs) in workbench.TerminalCatalog?.Workspaces ?? new Dictionary<string, IReadOnlyList<Tereditor.Host.Abstractions.TerminalTab>>())
+        {
+            if (!terminals.TryGetValue(workspace, out var list)) terminals[workspace] = list = [];
+            foreach (var tab in tabs.Where(tab => list.All(known => known.TabKey != tab.Key)))
+                list.Add(new(tab.Key, state.TerminalTitles.FirstOrDefault(title => title.Terminal == new TerminalRef(workspace, tab.Key))?.Title ?? tab.Title,
+                    state.TerminalAgents.FirstOrDefault(agent => agent.Terminal == new TerminalRef(workspace, tab.Key))?.Record));
+        }
         var activeWorkspace = window is { WorkspaceMounted: true, AtHome: false } ? window.WorkspaceRoot : null;
         return new(
             projects,

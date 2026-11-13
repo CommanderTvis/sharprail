@@ -61,7 +61,7 @@ public sealed record TerminalTabInfo(string TabKey, string Title, TerminalAgentR
 /// <param name="ContextProjectId">The project the active window's view is about, or <see langword="null"/>.</param>
 /// <param name="ActiveEditor">The active window's active editor, or <see langword="null"/>.</param>
 /// <param name="AppSettings">The applied app settings.</param>
-/// <param name="Terminals">Terminal tabs by workspace id, across windows.</param>
+/// <param name="Terminals">Terminal tabs by workspace id, across windows, then the host's terminals no window holds.</param>
 /// <param name="ShownTerminalTabKeys">Per workspace, visible terminal tabs, including members beside a selected editor: last-focused centre group first, then bottom groups, then the rest.</param>
 /// <param name="WorkspaceRevisions">Filesystem revision counters by workspace id, bumped on a watched change.</param>
 /// <param name="Roster">The plugin roster.</param>

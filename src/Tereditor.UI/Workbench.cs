@@ -238,6 +238,7 @@ public sealed class Workbench : IDisposable
         if (!first && TerminalCatalog is { } current && snapshot.Revision <= current.Revision) return;
         TerminalCatalog = snapshot;
         TerminalCatalogChanged?.Invoke();
+        ProjectionChanged?.Invoke();
     }
 
     private async Task WatchTerminalsAsync()

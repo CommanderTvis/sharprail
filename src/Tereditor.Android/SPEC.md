@@ -111,7 +111,9 @@ Contract:
   across the swap. `DrawerChecks.Wide` covers the decision and the reopen headlessly.
 - On every Android screen centre tabs live in Projects, under their workspace (as on every client):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
-  for them. Split groups list their tabs there too.
+  for them. Split groups list their tabs there too. A terminal listed there that this device never opened wears the
+  icon its agent wears on the host (Claude Code, Codex, omp), read from the host's agent records
+  ([Plugins/SPEC.md](../Tereditor.UI/Plugins/SPEC.md)); the browser client renders the same rail the same way.
 - Any other window is a transparent, undimmed Android dialog with its own view, laid out in the area the
   system bars and soft keyboard leave visible. A window sized to its content (`SizeToContent` with height:
   every `DialogWindow`) is a sheet across the bottom of that area, at the height it asks for and at most

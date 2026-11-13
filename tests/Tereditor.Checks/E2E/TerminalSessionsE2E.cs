@@ -165,6 +165,9 @@ internal static class TerminalSessionsE2E
 
         internal PtyTerminalService Pty => pty;
 
+        /// <summary>The host's own state store, for what only the host writes (a terminal's agent record).</summary>
+        internal HostStateStore State => (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
+
         /// <summary>The host's undo-close setting, which every client and the host's own sessions follow.</summary>
         internal int UndoCloseSeconds
         {

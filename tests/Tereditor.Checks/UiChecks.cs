@@ -142,6 +142,7 @@ internal static class UiChecks
         {
             Gate.Case("workspace-tools-ui", () => WorkspaceToolChecks.RunUi(root));
             Gate.Case("AgentTabMarksE2E", () => E2E.AgentTabMarksE2E.Run(Path.Combine(root, "upstream-e2e")));
+            Gate.Case("RemoteAgentMarksE2E", () => E2E.RemoteAgentMarksE2E.Run(Path.Combine(root, "upstream-e2e")));
             Gate.Case("TerminalSessionIdE2E", () => E2E.TerminalSessionIdE2E.Run(Path.Combine(root, "upstream-e2e")));
             Gate.Case("AgentLaunchNotices", () => AgentLaunchChecks.RunUi(Path.Combine(root, "upstream-e2e")));
             Gate.Case("TerminalChromeChecks", () => E2E.TerminalChromeChecks.Run(Path.Combine(root, "upstream-e2e")));
