@@ -308,6 +308,7 @@ internal static class Program
             LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult();
             LanguageOnDemandChecks.Lifetime(root).GetAwaiter().GetResult();
             LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult();
+            EditDiagnosticsChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--headless"]))
@@ -1510,7 +1511,7 @@ internal static class Program
         Gate.Case("settings-terms-status", IntelliJLicenseChecks.TermsStatus);
         Gate.Case("intellij-license-mount", () => IntelliJLicenseMountChecks.Run(root));
         Gate.Case("language-catalog", () => LanguageCatalogChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("language-on-demand", () => { LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.Lifetime(root).GetAwaiter().GetResult(); LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.CloneWait(root).GetAwaiter().GetResult(); });
+        Gate.Case("language-on-demand", () => { LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.Lifetime(root).GetAwaiter().GetResult(); LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.CloneWait(root).GetAwaiter().GetResult(); EditDiagnosticsChecks.Run(root).GetAwaiter().GetResult(); });
         Gate.Case("language-refactoring", () => LanguageRefactoringChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-exit", () => LanguageExitChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-limits", () => LanguageLimitChecks.Run(root).GetAwaiter().GetResult());

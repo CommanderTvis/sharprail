@@ -159,7 +159,9 @@ dependencies from such a call.
   HTTP/2) that starts on first use of its `BaseUrl` and stops with its host: a remote host starts it once
   listening, the app's own host when its terminal relay starts or a plugin asks for its URL. It serves
   `POST /mcp/<token>`, where `GET` and `DELETE` answer 405, since every tool is request/response and there
-  is no SSE stream or session, and `/plugin/<id>/<subpath>` for any method, which reaches the plugin
+  is no SSE stream or session, `POST /mcp/<token>/edit-diagnostics`, the agent edit hook's diagnostics of
+  the files a hook input names from servers already running (the hook output JSON, or 204; Claude Code plugin SPEC),
+  and `/plugin/<id>/<subpath>` for any method, which reaches the plugin
   runtime's route dispatch and answers 404 for an unknown, disabled or routeless plugin.
 - Every route is a request delegate that reads its route values itself: minimal-API delegate binding is
   reflection-based and would keep the host from NativeAOT. The same holds for the headless `POST /mcp`.

@@ -22,7 +22,7 @@ if [ -r "${TEREDITOR_CLAUDE_PROMPT_FILE:-}" ]; then
 	EXAMPLE=$(awk '/^Examples in this project/ { getline; sub(/^- `/, ""); sub(/`.*/, ""); gsub(/": /, "\":"); gsub(/, "/, ",\""); print; exit }' "$TEREDITOR_CLAUDE_PROMPT_FILE" 2>/dev/null)
 fi
 [ -n "$EXAMPLE" ] || EXAMPLE='{"operation":"references","query":"TypeName","workspace":"<absolute path>"}'
-REMINDER="tereditor code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. $EXAMPLE (also definition, implementation, hover; symbols/symbolBody with a path).${SERVERS:+ Servers for this project: $SERVERS.} grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Run lsp_diagnostics with paths on every edited file before reporting. Pass the absolute workspace to every tereditor tool."
+REMINDER="tereditor code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. $EXAMPLE (also definition, implementation, hover; symbols/symbolBody with a path).${SERVERS:+ Servers for this project: $SERVERS.} grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Diagnostics from servers already running arrive after each edit; still run lsp_diagnostics with paths on every edited file before reporting (it starts servers and covers skipped files) and for broader scans. Pass the absolute workspace to every tereditor tool."
 
 context() {
 	# $1 event name, $2 text without double quotes or backslashes needing more than the escaping below.

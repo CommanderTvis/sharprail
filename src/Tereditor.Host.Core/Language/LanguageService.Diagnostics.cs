@@ -10,6 +10,9 @@ public sealed partial class LanguageService
     /// <summary>How long a file check waits for diagnostics a push-only server has not sent yet, per server; a call's own timeout replaces it. Settable for checks.</summary>
     internal TimeSpan DiagnosticWait { get; set; } = TimeSpan.FromSeconds(12);
 
+    /// <summary>The freshness of a file a running-only scan skipped because its server is not running; the detail is that server's id.</summary>
+    internal const string NotRunning = "notRunning";
+
     private static bool IsGlob(string path) => path.AsSpan().IndexOfAny('*', '?', '{') >= 0;
 
     private static int SeverityRank(string name) => name.ToLowerInvariant() switch
@@ -24,8 +27,22 @@ public sealed partial class LanguageService
     /// <summary>The LSP severity number (1 error to 4 hint) as the word agents read; a value outside that range is shown as is.</summary>
     internal static string SeverityName(string kind) => kind switch { "1" => "error", "2" => "warning", "3" => "information", "4" => "hint", _ => kind };
 
-    private async Task<LanguageResult> DiagnoseFilesAsync(LanguageRequest request, CancellationToken token)
+    /// <summary>
+    /// Diagnostics of files an agent just edited, from the servers already running in <paramref name="workspace"/> only: nothing is
+    /// started, a file whose server is not running is skipped, and the scan answers within <paramref name="budget"/>, leaving
+    /// files it could not finish pending. The same per-file check as <c>lsp_diagnostics</c> otherwise.
+    /// </summary>
+    internal async Task<LanguageResult> DiagnoseRunningAsync(string workspace, IReadOnlyList<string> paths, TimeSpan budget, CancellationToken token)
     {
+        if (!enabled()) return new("disabled", "Language services are disabled.") { Freshness = "unavailable" };
+        if (!Path.IsPathFullyQualified(workspace) || !Directory.Exists(workspace)) return new("unavailable", "No such workspace.") { Freshness = "unavailable" };
+        workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace));
+        return await DiagnoseFilesAsync(new(workspace, Operation: "diagnostics", Scope: "files", Paths: paths, Origin: LanguageLimits.AgentOrigin), token, DateTime.UtcNow + budget);
+    }
+
+    private async Task<LanguageResult> DiagnoseFilesAsync(LanguageRequest request, CancellationToken token, DateTime? runningOnlyUntil = null)
+    {
+        var runningOnly = runningOnlyUntil is not null;
         var scope = request.Scope.Length == 0 ? "files" : request.Scope;
         if (scope is not ("files" or "workspace") || scope == "files" && request.Paths is not { Count: > 0 } ||
             scope == "workspace" && request.Paths is { Count: > 0 })
@@ -59,15 +76,17 @@ public sealed partial class LanguageService
             .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var files = new List<LanguageFileResult>();
         var diagnostics = new List<LanguageItem>();
-        var until = DateTime.UtcNow + TimeSpan.FromMinutes(2) + (request.Timeout > 0 ? wait : TimeSpan.Zero);
-        // Every needed server starts now, in parallel, so no file is skipped merely because its server was stopped.
+        var until = runningOnlyUntil ?? DateTime.UtcNow + TimeSpan.FromMinutes(2) + (request.Timeout > 0 ? wait : TimeSpan.Zero);
+        if (runningOnly && until - DateTime.UtcNow < wait) wait = until - DateTime.UtcNow;
+        // Every needed server starts now, in parallel, so no file is skipped merely because its server was stopped;
+        // a running-only scan starts nothing and does not wait for a loading project graph (its files report pending).
         var starts = new Dictionary<string, LanguageResult>();
         var owners = new Dictionary<string, string>();
         foreach (var path in selection)
         {
             try { ProjectServices.Contain(request.Workspace, path); }
             catch (UnauthorizedAccessException) { continue; }
-            if (Detect(request.Workspace, path) is { } owner) owners.TryAdd(owner.Id, path);
+            if (!runningOnly && Detect(request.Workspace, path) is { } owner) owners.TryAdd(owner.Id, path);
         }
         var waited = System.Diagnostics.Stopwatch.StartNew();
         var started = await Task.WhenAll(owners.Select(async pair => (pair.Key, Result: await EnsureStartedAsync(request.Workspace, pair.Value, request.Origin, token))));
@@ -106,7 +125,8 @@ public sealed partial class LanguageService
                 !entry.Session.IsValueCreated || !entry.Session.Value.IsCompletedSuccessfully)
             {
                 var start = starts.GetValueOrDefault(server.Id);
-                if (start?.State is "installing" or "initializing") files.Add(new(path, "pending", "pending", start.Detail));
+                if (runningOnly) files.Add(new(path, "skipped", NotRunning, server.Id));
+                else if (start?.State is "installing" or "initializing") files.Add(new(path, "pending", "pending", start.Detail));
                 else files.Add(new(path, "skipped", "unavailable", start is null || start.Detail.Length == 0 ? $"{server.Id} could not be started. Check lsp_status operation=servers." : $"{server.Id}: {start.Detail}"));
                 continue;
             }
@@ -145,7 +165,7 @@ public sealed partial class LanguageService
             notes.Add($"{removed.Length} diagnostic{(removed.Length == 1 ? "" : "s")} below minSeverity {request.MinSeverity} hidden ({string.Join(", ", removed.GroupBy(item => SeverityName(item.Kind)).OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => $"{group.Count()} {group.Key}"))}).");
         var checkedCount = files.Count(file => file.State == "checked");
         return new(files.Any(file => file.State == "error") ? "error" : starts.Values.Any(start => start.State is "installing" or "initializing") || loading.Count > 0 ? "initializing" : "ready",
-            $"Checked {checkedCount} of {files.Count} selected files; servers that were not running were started on demand." + (notes.Count > 0 ? " " + string.Join(" ", notes) : ""))
+            $"Checked {checkedCount} of {files.Count} selected files; " + (runningOnly ? "only servers already running were asked." : "servers that were not running were started on demand.") + (notes.Count > 0 ? " " + string.Join(" ", notes) : ""))
         {
             Files = files,
             Diagnostics = diagnostics.Distinct().ToArray(),

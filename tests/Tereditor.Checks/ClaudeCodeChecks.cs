@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -1499,6 +1500,7 @@ internal static class ClaudeCodeChecks
         await ConfigCases(runtime, state, project, directory);
         await Skills();
         await CodeIntelHooks();
+        await LanguageToolHooks();
         await state.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]);
         await runtime.Schedule();
         Require(Directory.GetFiles(Path.Combine(Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!, "ide"), "*.lock").Length == 0 &&
@@ -1577,6 +1579,124 @@ internal static class ClaudeCodeChecks
         }
         finally { if (Directory.Exists(state)) Directory.Delete(state, true); }
         Console.WriteLine("PASS code-intelligence hooks: session and subagent reminders, advisory rate-limited grep nudges, silent for non-code and outside tereditor");
+    }
+
+    /// <summary>
+    /// The hooks that close the gaps to Claude Code's built-in LSP tool: after Edit, Write and NotebookEdit the edit hook relays
+    /// the hook input to the host and prints its answer (silent when there is none, outside tereditor or with the host gone,
+    /// one note when it is slow); before a language tool call the permission hook approves reads and stays out of writes.
+    /// </summary>
+    private static async Task LanguageToolHooks()
+    {
+        var plugin = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin");
+        var hooks = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(plugin, "hooks", "hooks.json"))).RootElement.GetProperty("hooks");
+        const string prefix = "mcp__plugin_tereditor_tereditor__";
+        string[] languageTools = ["lsp_navigate", "lsp_diagnostics", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format"];
+        Require(hooks.GetProperty("PostToolUse").EnumerateArray().Any(group => group.TryGetProperty("matcher", out var matcher) && matcher.GetString() == "Edit|Write|NotebookEdit"
+                && group.GetProperty("hooks")[0].GetProperty("command").GetString()!.EndsWith("/scripts/edit-diagnostics.sh", StringComparison.Ordinal) && group.GetProperty("hooks")[0].GetProperty("timeout").GetInt32() == 10)
+            && hooks.GetProperty("PreToolUse").EnumerateArray().Any(group => group.TryGetProperty("matcher", out var matcher) && matcher.GetString() == string.Join('|', languageTools.Select(tool => prefix + tool))
+                && group.GetProperty("hooks")[0].GetProperty("command").GetString()!.EndsWith("/scripts/lsp-permission.sh", StringComparison.Ordinal)),
+            "The plugin does not register the edit diagnostics and language tool permission hooks.");
+        if (OperatingSystem.IsWindows()) return;
+
+        async Task<(int Exit, string Output)> Run(string script, string input, string? url, string? timeout = null)
+        {
+            var start = new System.Diagnostics.ProcessStartInfo("sh") { RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false };
+            start.ArgumentList.Add(Path.Combine(plugin, "scripts", script));
+            if (url is null) start.Environment.Remove("THINKRAIL_MCP_URL"); else start.Environment["THINKRAIL_MCP_URL"] = url;
+            if (timeout is null) start.Environment.Remove("EDIT_DIAGNOSTICS_TIMEOUT"); else start.Environment["EDIT_DIAGNOSTICS_TIMEOUT"] = timeout;
+            using var process = System.Diagnostics.Process.Start(start)!;
+            try { await process.StandardInput.WriteAsync(input); process.StandardInput.Close(); }
+            catch (IOException) { }
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            return (process.ExitCode, output.Trim());
+        }
+
+        // A fake host: answers each request with the next queued status, body and delay, and records what it was sent.
+        var port = FreePort();
+        using var listener = new HttpListener();
+        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+        listener.Start();
+        var replies = new Queue<(int Status, string Body, int DelayMs)>();
+        var received = new List<(string Path, string Body)>();
+        var serving = Task.Run(async () =>
+        {
+            while (listener.IsListening)
+            {
+                HttpListenerContext context;
+                try { context = await listener.GetContextAsync(); }
+                catch (Exception error) when (error is HttpListenerException or ObjectDisposedException or InvalidOperationException) { return; }
+                using (var reader = new StreamReader(context.Request.InputStream)) lock (received) received.Add((context.Request.Url!.AbsolutePath, reader.ReadToEnd()));
+                var (status, body, delay) = replies.Count > 0 ? replies.Dequeue() : (204, "", 0);
+                if (delay > 0) await Task.Delay(delay);
+                try
+                {
+                    context.Response.StatusCode = status;
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    await context.Response.OutputStream.WriteAsync(bytes);
+                    context.Response.Close();
+                }
+                catch (Exception error) when (error is HttpListenerException or ObjectDisposedException) { }
+            }
+        });
+        try
+        {
+            var url = $"http://127.0.0.1:{port}/mcp/terminal-token";
+            var edit = JsonSerializer.Serialize(new { hook_event_name = "PostToolUse", cwd = "/work/space", tool_name = "Edit", tool_input = new { file_path = "/work/space/a.ts", old_string = "a", new_string = "b" } });
+            var answer = """{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"tereditor: diagnostics from the running language server after this edit\n/work/space/a.ts:1:1 error 2304 x"}}""";
+            replies.Enqueue((200, answer, 0));
+            Require(await Run("edit-diagnostics.sh", edit, url) == (0, answer), "The edit hook did not print the host's answer.");
+            Require(received.Single() == ("/mcp/terminal-token/edit-diagnostics", edit), "The edit hook did not relay the hook input to the terminal's route: " + string.Join(", ", received));
+            replies.Enqueue((204, "", 0));
+            Require(await Run("edit-diagnostics.sh", edit, url) == (0, ""), "A clean edit was not silent.");
+            replies.Enqueue((404, "unknown terminal", 0));
+            Require(await Run("edit-diagnostics.sh", edit, url) == (0, ""), "A refused token was not silent.");
+            Require(await Run("edit-diagnostics.sh", edit, null) == (0, "") && received.Count == 3, "The edit hook spoke or posted outside a tereditor session.");
+            Require(await Run("edit-diagnostics.sh", edit, $"http://127.0.0.1:{FreePort()}/mcp/gone") == (0, ""), "A host that is gone was not silent.");
+            replies.Enqueue((200, answer, 4000));
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var slow = await Run("edit-diagnostics.sh", edit, url, timeout: "1");
+            Require(slow.Exit == 0 && clock.Elapsed < TimeSpan.FromSeconds(3) && JsonDocument.Parse(slow.Output).RootElement.GetProperty("hookSpecificOutput").GetProperty("additionalContext").GetString()
+                == "tereditor: diagnostics for this edit did not arrive within 1 s; run lsp_diagnostics with its path.", "A slow host did not get one short note in time: " + slow.Output);
+        }
+        finally { listener.Stop(); await serving; }
+
+        // Reads are approved, writes and lifecycle changes get no decision, and a spoofed operation inside a string is not believed.
+        string Call(string tool, string input) => $$"""{"hook_event_name":"PreToolUse","tool_name":"{{prefix}}{{tool}}","tool_input":{{input}}}""";
+        foreach (var (tool, input) in new[]
+        {
+            ("lsp_navigate", """{"operation":"references","query":"Foo","payload":{"operation":"anything"}}"""), ("lsp_diagnostics", """{"paths":["src/a.ts"]}"""),
+            ("lsp_status", "{}"), ("lsp_status", """{"operation":"servers"}"""), ("lsp_code_actions", """{"path":"a.ts"}"""), ("lsp_code_actions", """{"operation":"preview","id":"a1"}"""),
+            ("lsp_rename", """{"query":"Old","newName":"New"}"""), ("lsp_rename", """{"operation":"preview","query":"Old","newName":"\"operation\":\"apply\""}"""), ("lsp_format", """{"operation":"preview","path":"a.ts"}""")
+        })
+        {
+            var decision = await Run("lsp-permission.sh", Call(tool, input), "http://127.0.0.1:1/mcp/x");
+            Require(decision.Exit == 0 && JsonDocument.Parse(decision.Output).RootElement.GetProperty("hookSpecificOutput") is var output
+                && output.GetProperty("hookEventName").GetString() == "PreToolUse" && output.GetProperty("permissionDecision").GetString() == "allow",
+                $"A read-only {tool} call was not approved: {input} -> {decision.Output}");
+        }
+        foreach (var (tool, input) in new[]
+        {
+            ("lsp_code_actions", """{"operation":"apply","id":"a1"}"""), ("lsp_rename", """{"operation":"apply","query":"Old","newName":"New"}"""),
+            ("lsp_rename", """{"query":"x\"operation\":\"preview","operation":"apply"}"""), ("lsp_format", """{"operation":"apply","path":"a.ts"}"""), ("lsp_format", """{"operation":""}"""),
+            ("lsp_status", """{"operation":"configure","configuration":{"settings":{"operation":"status"}}}"""), ("lsp_status", """{"operation":"stop","server":"typescript"}"""),
+            ("lsp_status", """{"operation":"retry","server":"typescript"}"""), ("lsp_status", """{"operation":"restart","server":"typescript"}""")
+        })
+            Require(await Run("lsp-permission.sh", Call(tool, input), "http://127.0.0.1:1/mcp/x") == (0, ""), $"A {tool} call that writes or changes servers got a decision: {input}");
+        Require(await Run("lsp-permission.sh", """{"tool_name":"Bash","tool_input":{"command":"ls"}}""", "http://127.0.0.1:1/mcp/x") == (0, "")
+            && await Run("lsp-permission.sh", "not json", "http://127.0.0.1:1/mcp/x") == (0, "")
+            && await Run("lsp-permission.sh", Call("lsp_navigate", "{}"), null) == (0, ""), "The permission hook decided for another tool, broken input or outside tereditor.");
+        Console.WriteLine("PASS language tool hooks: edit diagnostics relayed, silent and time-boxed; read-only language calls approved, writes left to the prompt");
+
+        static int FreePort()
+        {
+            var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+            probe.Start();
+            var free = ((IPEndPoint)probe.LocalEndpoint).Port;
+            probe.Stop();
+            return free;
+        }
     }
 
     /// <summary>

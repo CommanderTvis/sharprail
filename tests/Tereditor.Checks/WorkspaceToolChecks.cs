@@ -66,6 +66,18 @@ internal static class WorkspaceToolChecks
         var path = result["path"]!.GetValue<string>();
         Require(Path.GetDirectoryName(path) == Tereditor.Host.Core.WorktreePaths.ProjectDirectory(root, stateDirectory), "The tool must use this host's managed directory.");
         Require((await GitRepository.RunAsync(path, default, "rev-parse", "HEAD")).Trim() == initial, "The requested base must determine the new HEAD.");
+        // The agent edit hook's route: the terminal's token only and silence outside the project (language services are off
+        // here, so it is silent inside too); a file in another checkout of the project resolves to that checkout.
+        async Task<HttpResponseMessage> Edited(string hookUrl, string file)
+            => await http.PostAsync(hookUrl, new StringContent(JsonSerializer.Serialize(new { tool_name = "Edit", tool_input = new { file_path = file } }), Encoding.UTF8, "application/json"));
+        using (var stranger = await Edited(endpoint + "/mcp/0000/edit-diagnostics", Path.Combine(path, "edited.ts")))
+            Require(stranger.StatusCode == HttpStatusCode.NotFound, "The edit hook route must refuse an unminted token.");
+        using (var outside = await Edited(url + "/edit-diagnostics", Path.Combine(root + "-elsewhere", "edited.ts")))
+            Require(outside.StatusCode == HttpStatusCode.NoContent, "An edit outside the project must be silent.");
+        Require(Tereditor.Host.Core.Language.EditDiagnostics.CheckoutOf(Path.Combine(path, "src", "edited.ts"), root) == Path.TrimEndingDirectorySeparator(Path.GetFullPath(path))
+            && Tereditor.Host.Core.Language.EditDiagnostics.CheckoutOf(Path.Combine(root, "edited.ts"), path) == Path.TrimEndingDirectorySeparator(Path.GetFullPath(root))
+            && Tereditor.Host.Core.Language.EditDiagnostics.CheckoutOf(Path.Combine(root + "-elsewhere", "edited.ts"), root) is null,
+            "An edit in another checkout of the project must resolve to that checkout, and one outside it to none.");
         IHostStateService client = server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
             new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools");
         var snapshot = await client.GetStateAsync();

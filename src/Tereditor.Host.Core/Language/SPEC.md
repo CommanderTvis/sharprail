@@ -366,6 +366,11 @@ Settings hint); terms that need the user keep blocking with their actionable mes
 call has a 90 second deadline (`LanguageLimits.ToolDeadline`); past it the call is cancelled and
 returns state `initializing` with the servers still starting under `starting`, never a hang.
 
+The one exception is the agent edit hook (`EditDiagnostics`, served at `/mcp/<token>/edit-diagnostics`): after an
+agent edits a file it runs the same per-file check against the servers already running for that checkout only. It
+starts nothing, does not wait for a loading project graph (such files report `pending`), marks a file whose server is
+not running `skipped` with that server's id, and returns within 6 seconds of scanning and an 8 second hard deadline.
+
 `lsp_navigate` hover, definition, type definition, implementation and references with a symbol
 `query` and no `path` resolve the name through workspace symbols (the server is sent the last
 segment; a simple name, `Type/Member` or `Namespace.Type.Member` all work) and run at the one

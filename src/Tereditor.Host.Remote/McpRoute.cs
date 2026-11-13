@@ -7,14 +7,16 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 using Tereditor.Host.Core;
+using Tereditor.Host.Core.Language;
 using Tereditor.Host.Core.Plugins;
 using Tereditor.Plugins.Api.Host;
 
 namespace Tereditor.Host.Remote;
 
 // The host's loopback HTTP/1.1 server, which processes on the host machine reach: workspace and active plugin tools
-// over MCP at /mcp/{token}, where the per-terminal token is the only identity and an unknown one is 404,
-// and plugin routes at /plugin/{id}/{subpath}. It starts on first use and lives as long as the host.
+// over MCP at /mcp/{token}, where the per-terminal token is the only identity and an unknown one is 404, the agent edit
+// hook's diagnostics at /mcp/{token}/edit-diagnostics, and plugin routes at /plugin/{id}/{subpath}. It starts on first
+// use and lives as long as the host.
 public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore? state = null) : IAsyncDisposable
 {
     private readonly Lock gate = new();
@@ -66,6 +68,7 @@ public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore
         app.MapPost("/mcp/{token}", async context => await (await McpAsync(context, (string)context.Request.RouteValues["token"]!)).ExecuteAsync(context));
         // Every tool is request/response, so there is no SSE stream to open and no session to end.
         app.MapMethods("/mcp/{token}", ["GET", "DELETE"], context => Results.StatusCode(StatusCodes.Status405MethodNotAllowed).ExecuteAsync(context));
+        app.MapPost("/mcp/{token}/edit-diagnostics", async context => await (await EditDiagnosticsAsync(context, (string)context.Request.RouteValues["token"]!)).ExecuteAsync(context));
         app.Map("/plugin/{id}", context => ServeAsync(context, (string)context.Request.RouteValues["id"]!, ""));
         app.Map("/plugin/{id}/{**subpath}", context => ServeAsync(context, (string)context.Request.RouteValues["id"]!, context.Request.RouteValues["subpath"] as string ?? ""));
         return app;
@@ -82,6 +85,20 @@ public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore
         if (state is not null) tools = [.. tools, .. LanguageMcpTools.Create(state, owner.Workspace)];
         var (status, body) = await McpServer.HandleAsync(message, tools, context.RequestAborted);
         return body is null ? Results.StatusCode(status) : Results.Text(body.ToJsonString(), "application/json", statusCode: status);
+    }
+
+    // The agent edit hook's question: the hook input of an Edit, Write or NotebookEdit call, answered with the hook output
+    // carrying the edited files' diagnostics from servers already running, or 204 when there is nothing to say.
+    private async Task<IResult> EditDiagnosticsAsync(HttpContext context, string token)
+    {
+        if (terminals?.McpOwner(token) is not { } owner) return Results.NotFound();
+        if (state is null) return Results.NoContent();
+        JsonNode? input;
+        try { input = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: context.RequestAborted); }
+        catch (JsonException) { return Results.BadRequest(); }
+        if (await EditDiagnostics.ContextAsync(state, owner.Workspace, input, context.RequestAborted) is not { } text) return Results.NoContent();
+        var output = new JsonObject { ["hookSpecificOutput"] = new JsonObject { ["hookEventName"] = "PostToolUse", ["additionalContext"] = text } };
+        return Results.Text(output.ToJsonString(), "application/json");
     }
 
     private async Task ServeAsync(HttpContext context, string id, string subpath)

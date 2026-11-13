@@ -493,7 +493,31 @@ Host-state updates retain the accessory mount.
 The bundled plugin contains hooks, skills and the MCP declaration. Besides status reports, its hooks
 carry code-intelligence guidance to every session and subagent (the plugin's `code-intel.sh`; silent without
 `THINKRAIL_MCP_URL`): a short reminder naming `lsp_navigate` and `lsp_diagnostics` at session and subagent start, and a
-rate-limited advisory note on code-symbol searches. The note never carries a permission decision and the script always exits 0. Every launcher command receives
+rate-limited advisory note on code-symbol searches. The note never carries a permission decision and the script always exits 0.
+
+Two hooks close the gaps to Claude Code's built-in LSP tool (https://code.claude.com/docs/en/tools-reference#lsp-tool-behavior),
+which tereditor never enables: it would start a second set of language servers.
+- Diagnostics after edits: a `PostToolUse` hook on `Edit|Write|NotebookEdit` (`edit-diagnostics.sh`, timeout 10 s) POSTs the
+  hook input to `$THINKRAIL_MCP_URL/edit-diagnostics` with curl (9 s limit) and prints the answer. The host takes
+  `tool_input.file_path` or `notebook_path`, finds the checkout (the terminal's workspace or another worktree of its
+  project, as `lsp_diagnostics` allows) and runs `lsp_diagnostics`' per-file check against servers already running there
+  only, starting none, in at most 6 s with an 8 s hard deadline. It answers the whole hook output, `hookSpecificOutput`
+  with `hookEventName` `PostToolUse` and `additionalContext` (https://code.claude.com/docs/en/hooks), or 204 when there is
+  nothing to say: a header line, then one `path:line:column severity code message` line per error, then per warning
+  (1-based; information and hints hidden), at most 20, then `… and N more`, then one line per file whose server is not
+  running (skipped, nothing started) or that was not ready in time. Files no server handles and files outside the project
+  stay silent, as do clean edits. The script is silent without `THINKRAIL_MCP_URL` or curl, when the host is gone or
+  refuses the token, and prints one short note when the host does not answer in time.
+- No prompt for reading: a `PreToolUse` hook on the six `lsp_*` tools (`lsp-permission.sh`, POSIX sh and awk) returns
+  `permissionDecision: "allow"`, which skips the permission prompt while deny and ask rules still apply
+  (https://code.claude.com/docs/en/permissions#extend-permissions-with-hooks), for `lsp_navigate` and `lsp_diagnostics`,
+  `lsp_status` reads (status, servers, catalog, capabilities, configurationSchema, configuration, logs, projects),
+  `lsp_code_actions` list and preview, and `lsp_rename` and `lsp_format` preview, the defaults included. Calls that write
+  (`apply`) or change servers or saved settings (retry, restart, stop, configure) get no decision and keep Claude Code's
+  normal flow, like Edit. It fails closed: every `operation` key in the input must name an approved operation. MCP
+  `readOnlyHint` was not used: Claude Code reads it only to retry and parallelize calls (https://code.claude.com/docs/en/mcp).
+
+Every launcher command receives
 `--plugin-dir` using a host-provided directory, even when the prompt appendix is disabled. Revived
 sessions use the current build’s directory, replacing an old tereditor-owned path while preserving
 other plugin directories. Paths are quoted for the launcher’s shell. There is no install/update

@@ -1,5 +1,5 @@
 {
-	"description": "tereditor terminal status tracking, notifications and code-intelligence reminders",
+	"description": "tereditor terminal status tracking, notifications, code-intelligence reminders, diagnostics after edits and prompt-free read-only language tools",
 	"hooks": {
 		"SessionStart": [
 			{
@@ -43,6 +43,16 @@
 						"timeout": 5
 					}
 				]
+			},
+			{
+				"matcher": "mcp__plugin_tereditor_tereditor__lsp_navigate|mcp__plugin_tereditor_tereditor__lsp_diagnostics|mcp__plugin_tereditor_tereditor__lsp_status|mcp__plugin_tereditor_tereditor__lsp_code_actions|mcp__plugin_tereditor_tereditor__lsp_rename|mcp__plugin_tereditor_tereditor__lsp_format",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/lsp-permission.sh",
+						"timeout": 5
+					}
+				]
 			}
 		],
 		"UserPromptSubmit": [
@@ -61,6 +71,16 @@
 					{
 						"type": "command",
 						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/on-post-tool-use.sh"
+					}
+				]
+			},
+			{
+				"matcher": "Edit|Write|NotebookEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/edit-diagnostics.sh",
+						"timeout": 10
 					}
 				]
 			}
