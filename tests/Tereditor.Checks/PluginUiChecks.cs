@@ -407,15 +407,15 @@ internal static partial class PluginUiChecks
             "Every shipped builtin plugin declares a category.");
 
         // Enabling an external plugin refuses it with a plain reason and loads nothing; its switch stays on so it can be turned off.
-        Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle").IsChecked = true;
+        Find<Switch>(Page().Card("removable")!, "PluginToggle").Request(true);
         E2eWorkspace.Until(() => Page().Card("removable") is { } refused && Texts(refused).Contains(PluginHostChecks.ExternalRefusal, StringComparison.Ordinal));
-        var refusedToggle = Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle");
+        var refusedToggle = Find<Switch>(Page().Card("removable")!, "PluginToggle");
         Require(refusedToggle is { IsChecked: true, IsEnabled: true } && !loader.Registry.Active.Contains("removable"),
             "A refused external plugin that is switched on keeps a usable switch, and nothing mounts.");
-        refusedToggle.IsChecked = false;
+        refusedToggle.Request(false);
         E2eWorkspace.Until(() => app.Workbench.State.Current.Plugins.Single(entry => entry.Id == "removable").Status == PluginStatus.Disabled &&
             app.Workbench.State.Current.PluginSettings["removable"].GetProperty("enabled").ValueKind == JsonValueKind.False);
-        E2eWorkspace.Until(() => Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle") is { IsChecked: false, IsEnabled: true } &&
+        E2eWorkspace.Until(() => Find<Switch>(Page().Card("removable")!, "PluginToggle") is { IsChecked: false, IsEnabled: true } &&
             !Texts(Page().Card("removable")!).Contains(PluginHostChecks.ExternalRefusal, StringComparison.Ordinal));
         settings.Close();
 
@@ -430,8 +430,8 @@ internal static partial class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         settings = window.OpenSettingsViews.Single();
-        var toggle = Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
-        toggle.IsChecked = true;
+        var toggle = Find<Switch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
+        toggle.Request(true);
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_fixture_fixture"));
         var nested = Find<Grid>(settings, "PluginSettingsNavigation");
@@ -487,7 +487,7 @@ internal static partial class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         settings = window.OpenSettingsViews.Single();
-        Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").IsChecked = false;
+        Find<Switch>(settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").Request(false);
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => !Has(settings, "Settings_plugin_fixture_fixture"));
         static bool Gone<T>(IReadOnlyList<PluginRow<T>> rows) => rows.All(row => row.PluginId != "fixture");

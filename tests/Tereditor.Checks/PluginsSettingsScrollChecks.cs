@@ -16,6 +16,8 @@ using Tereditor.UI.Plugins;
 using Tereditor.UI.Rendering;
 using Tereditor.UI.State;
 
+using Switch = Tereditor.Plugins.UI.Kit.Switch;
+
 namespace Tereditor.Checks;
 
 // Settings › Plugins with a long roster (every language server is its own plugin): scrolling realizes only the cards
@@ -109,14 +111,14 @@ internal static class PluginsSettingsScrollChecks
         // Toggling a visible card turns its plugin on through the host and the switch follows the snapshot.
         var target = Realized().OrderBy(row => row.Bounds.Y).First(row => row.TranslatePoint(default, scroller) is { Y: >= 0 });
         var id = (string)target.Tag!;
-        var toggle = target.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        var toggle = target.GetVisualDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle");
         Require(toggle.IsChecked == false, "A disabled plugin's switch reads off.");
-        toggle.IsChecked = true;
+        toggle.Request(true);
         E2eWorkspace.Until(() => state.Current.Plugins.Single(entry => entry.Id == id).Status == PluginStatus.Active);
         E2eWorkspace.Settle(50);
         window.UpdateLayout();
         var after = Realized().Single(row => (string)row.Tag! == id);
-        Require(after.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked == true, "The switch follows the host's snapshot.");
+        Require(after.GetVisualDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle").IsChecked == true, "The switch follows the host's snapshot.");
         Require(scroller.Offset == offset, "Toggling must not move the scroll.");
         window.Close();
         state.Dispose();
@@ -216,15 +218,15 @@ internal static class PluginsSettingsScrollChecks
         var window = new Window { Width = 800, Height = 600, Content = new ScrollViewer { Content = page } };
         window.Show();
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-        ToggleSwitch Toggle(string id) => window.GetVisualDescendants().OfType<Border>().Single(row => row.Name == "PluginRow" && (string?)row.Tag == id)
-            .GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        Switch Toggle(string id) => window.GetVisualDescendants().OfType<Border>().Single(row => row.Name == "PluginRow" && (string?)row.Tag == id)
+            .GetVisualDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle");
         foreach (var id in new[] { "tailscale", "network" })
             Require(Toggle(id).IsEnabled == !through && (ToolTip.GetTip(Toggle(id)) as string == (through ? TailscaleDependence.Refusal : null)),
                 $"{id}'s switch must be {(through ? "locked with the reason on a Tailscale client" : "free on a client connected another way")}.");
         Require(Toggle("other").IsEnabled, "An unrelated plugin stays switchable.");
         if (!through)
         {
-            Toggle("tailscale").IsChecked = false;
+            Toggle("tailscale").Request(false);
             E2eWorkspace.Until(() => state.Current.Plugins.Single(entry => entry.Id == "tailscale").Status == PluginStatus.Disabled);
         }
         window.Close();
@@ -254,10 +256,10 @@ internal static class PluginsSettingsScrollChecks
         void Pump() { for (var pass = 0; pass < 5; pass++) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); } }
         string Focused() => window.FocusManager?.GetFocusedElement() is Control control ? control.GetType().Name + "#" + control.Name : "nothing";
         void Escape() { window.KeyPress(Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null); Pump(); }
-        ToggleSwitch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        Switch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle");
         PluginStatus Status(string id) => state.Current.Plugins.Single(entry => entry.Id == id).Status;
         IReadOnlyList<Window> Dialogs() => Tereditor.Plugins.UI.Kit.DialogWindow.On(window);
-        void Flip(string id) { var toggle = Toggle(id); toggle.Focus(); Pump(); toggle.IsChecked = !toggle.IsChecked; Pump(); }
+        void Flip(string id) { Toggle(id).Focus(); Pump(); window.KeyPress(Avalonia.Input.Key.Space, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Space, null); window.KeyRelease(Avalonia.Input.Key.Space, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Space, null); Pump(); }
 
         // A plain switch, then Escape.
         Open();
@@ -327,7 +329,7 @@ internal static class PluginsSettingsScrollChecks
         window.Root.Children.Add(new ScrollViewer { Content = page });
         void Pump() { for (var pass = 0; pass < 5; pass++) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); } }
         Pump();
-        ToggleSwitch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        Switch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle");
         TextBlock Notice() => page.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PluginsError");
         foreach (var (id, chain, expected) in new[]
         {
@@ -335,7 +337,7 @@ internal static class PluginsSettingsScrollChecks
             ("leaner", new[] { "leaner", "broken" }, "Can't turn on leaner: it needs broken, which failed to load.")
         })
         {
-            Toggle(id).IsChecked = true;
+            Toggle(id).Request(true);
             Pump();
             E2eWorkspace.Settle(50);
             Pump();

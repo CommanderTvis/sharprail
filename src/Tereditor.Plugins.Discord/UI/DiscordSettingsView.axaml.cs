@@ -17,7 +17,7 @@ internal sealed partial class DiscordSettingsView : UserControl
     private readonly IPluginUIContext context;
     private readonly TextBlock status;
     private readonly TextBox applicationId;
-    private readonly ToggleSwitch shareFileName;
+    private readonly Switch shareFileName;
     private readonly StackPanel blocked;
     private readonly StackPanel blockedProjects;
     private readonly List<IDisposable> observers = [];
@@ -30,7 +30,7 @@ internal sealed partial class DiscordSettingsView : UserControl
         AvaloniaXamlLoader.Load(this);
         status = this.FindControl<TextBlock>("DiscordStatus")!;
         applicationId = this.FindControl<TextBox>("DiscordApplicationId")!;
-        shareFileName = this.FindControl<ToggleSwitch>("DiscordShareFileName")!;
+        shareFileName = this.FindControl<Switch>("DiscordShareFileName")!;
         blocked = this.FindControl<StackPanel>("DiscordBlocked")!;
         blockedProjects = this.FindControl<StackPanel>("DiscordBlockedProjects")!;
         applicationId.LostFocus += (_, _) => SaveApplicationId(applicationId.Text ?? "");
@@ -40,10 +40,7 @@ internal sealed partial class DiscordSettingsView : UserControl
             shareFileName.Focus();
             args.Handled = true;
         };
-        shareFileName.IsCheckedChanged += (_, _) =>
-        {
-            if (!applying) Update(Settings with { ShareFileName = shareFileName.IsChecked == true });
-        };
+        shareFileName.CheckedChange += next => Update(Settings with { ShareFileName = next });
         Apply(Settings);
         AttachedToVisualTree += (_, _) =>
         {

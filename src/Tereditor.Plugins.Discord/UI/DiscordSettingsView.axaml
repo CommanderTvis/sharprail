@@ -21,7 +21,7 @@
         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
                    Text="Off shows the project only, never the path that leads to it." />
       </StackPanel>
-      <ToggleSwitch x:Name="DiscordShareFileName" Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center" />
+      <kit:Switch x:Name="DiscordShareFileName" Grid.Column="1" Label="Share the open file name" VerticalAlignment="Center" />
     </Grid>
     <StackPanel x:Name="DiscordBlocked" Spacing="4" IsVisible="False">
       <TextBlock Text="Blocked projects" Foreground="{x:Static kit:Ui.TextBrush}" />

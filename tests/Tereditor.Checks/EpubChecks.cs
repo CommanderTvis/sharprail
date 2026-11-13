@@ -28,6 +28,8 @@ using Tereditor.Plugins.UI.Kit;
 using Tereditor.Plugins.UI.Kit.Markdown;
 using Tereditor.UI.Panels;
 
+using Switch = Tereditor.Plugins.UI.Kit.Switch;
+
 namespace Tereditor.Checks;
 
 // The EPUB Reader plugin: generated EPUB 3 (nav) and EPUB 2 (NCX) fixtures converted on the host, the plugin disabled
@@ -317,7 +319,7 @@ internal static class EpubChecks
         var settings = window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card(Id) is not null);
         var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card(Id)!;
-        row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
+        row.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle").Request(enabled);
         E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(Id) == enabled);
         settings.Close();
     }

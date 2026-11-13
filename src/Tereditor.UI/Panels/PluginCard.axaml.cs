@@ -1,4 +1,3 @@
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
@@ -46,9 +45,8 @@ internal sealed partial class PluginCard : Border
     private readonly Border support;
     private readonly ContentControl icon;
     private readonly Button retry;
-    private readonly ToggleSwitch toggle;
+    private readonly Switch toggle;
     private string? iconKey, drawn;
-    private bool showing;
 
     internal PluginCard(Action<PluginRosterEntry> retryPlugin, Action<PluginRosterEntry> togglePlugin)
     {
@@ -59,19 +57,15 @@ internal sealed partial class PluginCard : Border
         reason = Part<TextBlock>("PluginReason"); dependents = Part<TextBlock>("PluginDependents");
         category = Part<TextBlock>("PluginCategory");
         support = Part<Border>("PluginSupport"); supportText = Part<TextBlock>("PluginSupportText");
-        icon = Part<ContentControl>("PluginIcon"); toggle = Part<ToggleSwitch>("PluginToggle");
+        icon = Part<ContentControl>("PluginIcon"); toggle = Part<Switch>("PluginToggle");
         label.FontSize = Ui.FontSize;
         retry = Ui.Button("Retry", () => { if (Model is { } model) retryPlugin(model.Entry); });
         retry.Name = "PluginRetry";
         Part<ContentControl>("PluginRetrySlot").Content = retry;
-        // The switch only asks: it snaps back to the roster's state, and the host's snapshot moves it.
-        toggle.IsCheckedChanged += (_, _) =>
+        // The switch only asks; the host's snapshot moves it.
+        toggle.CheckedChange += next =>
         {
-            if (showing || Model is not { } model) return;
-            var enabled = model.Entry.Status != Status.Disabled;
-            if (toggle.IsChecked == enabled) return;
-            Set(toggle, enabled);
-            togglePlugin(model.Entry);
+            if (Model is { } model && next != (model.Entry.Status != Status.Disabled)) togglePlugin(model.Entry);
         };
         DataContextChanged += (_, _) =>
         {
@@ -115,20 +109,13 @@ internal sealed partial class PluginCard : Border
         Text(reason, troubled ? entry.Reason ?? entry.Status.ToString().ToLowerInvariant() : entry.Status == Status.Disabled && entry.Reason is { Length: > 0 } why ? why : model.Locked);
         Text(dependents, model.Dependents.Count > 0 ? $"Also used by {string.Join(", ", model.Dependents)}. Disabling turns them off too." : null);
         retry.IsVisible = entry.Status == Status.Failed;
-        AutomationProperties.SetName(toggle, entry.Label + " enabled");
+        toggle.Label = entry.Label + " enabled";
         // A refused or failed plugin cannot run here: its switch shows off and stays disabled (a failed one keeps Retry).
         // A refused plugin still switched on in host state shows on, so the user can turn it off.
         var refused = troubled && !model.SwitchedOn;
-        Set(toggle, entry.Status != Status.Disabled && !refused);
+        toggle.IsChecked = entry.Status != Status.Disabled && !refused;
         toggle.IsEnabled = model.Locked is null && !refused;
         ToolTip.SetTip(toggle, refused ? entry.Reason : model.Locked);
-    }
-
-    private void Set(ToggleSwitch target, bool value)
-    {
-        showing = true;
-        try { target.IsChecked = value; }
-        finally { showing = false; }
     }
 
     private static void Text(TextBlock block, string? value)

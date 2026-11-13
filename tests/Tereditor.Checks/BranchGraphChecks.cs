@@ -250,7 +250,7 @@ internal static class BranchGraphChecks
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
             var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("branch-graph")!;
-            row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
+            row.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle").Request(enabled);
             E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id) == enabled);
             settings.Close();
         }

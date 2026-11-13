@@ -62,7 +62,7 @@ The host half references only the contract and `Tereditor.Plugins.Api.Host`; the
   `DispatcherTimer`, and reported once at activation.
 - `web/DiscordSettings.tsx` becomes `DiscordSettingsView`, registered with `SettingsSection`. It reads
   `Settings<DiscordSettings>()`, writes through `UpdateSettingsAsync`, follows `OnSettings`, and lists projects
-  from `Host().Projects` through `WatchHost`. The share-file-name button becomes a `ToggleSwitch` and each
+  from `Host().Projects` through `WatchHost`. The share-file-name button becomes the kit `Switch` and each
   blocked-project row a `CheckBox` tagged with the project id, which is what the fork's `aria-pressed` buttons
   were.
 - `web/DiscordMark.tsx` becomes `assets/discord.svg`, preserving the fork's path and currentColor fill.

@@ -271,7 +271,7 @@ internal static class DiscordChecks
         field.Focus();
         E2eWorkspace.Until(() => field.IsFocused);
         field.Text = text;
-        Find<ToggleSwitch>(settings, "DiscordShareFileName").Focus();
+        Find<Switch>(settings, "DiscordShareFileName").Focus();
         E2eWorkspace.Until(() => !field.IsFocused);
     }
 
@@ -315,7 +315,7 @@ internal static class DiscordChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var plugins = window.OpenSettingsViews.Single();
-            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = true;
+            Find<Switch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").Request(true);
             E2eWorkspace.Until(() => loader.Registry.Active.Contains("discord"));
             Close(window, plugins);
 
@@ -331,9 +331,9 @@ internal static class DiscordChecks
             E2eWorkspace.Until(() => opening.IsCompleted);
             opening.GetAwaiter().GetResult();
             E2eWorkspace.Until(() => discord.Activities.LastOrDefault()?["details"]?.GetValue<string>() == "Editing notes.txt");
-            Find<ToggleSwitch>(settings, "DiscordShareFileName").IsChecked = false;
+            Find<Switch>(settings, "DiscordShareFileName").Request(false);
             E2eWorkspace.Until(() => discord.Activities.LastOrDefault() is JsonObject current && current["state"] is not null && current["details"] is null);
-            Find<ToggleSwitch>(settings, "DiscordShareFileName").IsChecked = true;
+            Find<Switch>(settings, "DiscordShareFileName").Request(true);
             E2eWorkspace.Until(() => discord.Activities.LastOrDefault()?["details"]?.GetValue<string>() == "Editing notes.txt");
 
             // Clearing the field is a choice, and the one that puts it back in the silent state.
@@ -374,7 +374,7 @@ internal static class DiscordChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             plugins = window.OpenSettingsViews.Single();
-            Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = false;
+            Find<Switch>(plugins.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").Request(false);
             E2eWorkspace.Until(() => !loader.Registry.Active.Contains("discord"));
             Require(!Has(plugins, "Settings_plugin_discord_discord"), "Disable removes the Discord settings contribution.");
             Close(window, plugins);

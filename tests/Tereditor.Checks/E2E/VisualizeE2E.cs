@@ -316,7 +316,7 @@ internal static class VisualizeE2E
             Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
             var row = settings.GetLogicalDescendants().OfType<Tereditor.UI.Panels.PluginsSettings>().Single().Card("visualize")!;
-            row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
+            row.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "PluginToggle").Request(enabled);
             Until(() => app.Workbench.PluginLoader.Registry.Active.Contains("visualize") == enabled);
             settings.Close();
         }

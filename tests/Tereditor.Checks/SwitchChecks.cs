@@ -112,6 +112,12 @@ internal static class SwitchChecks
         }
     }
 
+    /// <summary>Asks a switch for a value through its automation Toggle, the request path assistive tools and users take.</summary>
+    internal static void Request(this Switch control, bool value)
+    {
+        if (control.IsChecked != value) ControlAutomationPeer.CreatePeerForElement(control)!.GetProvider<IToggleProvider>()!.Toggle();
+    }
+
     private static bool Throws(Action action)
     {
         try { action(); return false; }
