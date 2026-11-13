@@ -24,14 +24,11 @@
       </DockPanel>
     </Border>
     </StackPanel>
-    <!-- The strip behind the accessory chips is the terminal's own background, so it reads as part of the surface. -->
+    <!-- The strip behind the accessory chips is the terminal's own background, with no border: it is part of the terminal's box. Beside a companion it spans the surface's column only, so the companion runs down to the bottom edge. -->
     <!-- Padded only while a row shows: 8 px above the first row and, with the chips' own 4 px gap, 8 px below the last. -->
     <Border x:Name="TerminalAccessoriesStrip" Grid.Row="5" Grid.ColumnSpan="3" Background="{x:Static rendering:Ui.Terminal}">
       <StackPanel x:Name="TerminalAccessories" />
     </Border>
-    <!-- While a companion is open a hairline separates it and the surface from the chips; it overlays the strip's first pixel, so nothing moves. -->
-    <Border x:Name="TerminalAccessoriesDivider" Grid.Row="5" Grid.ColumnSpan="3" Height="1" VerticalAlignment="Top" IsVisible="False"
-            IsHitTestVisible="False" ZIndex="6" Background="{x:Static rendering:Ui.BorderBrush}" />
     <ContentControl x:Name="TerminalBody" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="1" Grid.Column="1" Width="1" IsVisible="False"
                   Background="{x:Static rendering:Ui.BorderBrush}" ResizeDirection="Columns" />

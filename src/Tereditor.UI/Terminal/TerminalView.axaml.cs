@@ -37,7 +37,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly ContentControl companion;
     private readonly GridSplitter companionSplitter;
     private readonly GridSplitter stackSplitter;
-    private readonly Border accessoriesDivider;
+    private readonly Border accessoriesStrip, detachedBar;
+    private readonly Control exitedBar;
     // 45% of the view beside a 1* terminal column.
     private GridLength companionWidth = new(45.0 / 55, GridUnitType.Star);
     private int generation;
@@ -82,8 +83,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         stackSplitter = this.FindControl<GridSplitter>("TerminalCompanionStackSplitter")!;
         companionSplitter.DragCompleted += (_, _) => CompanionWidthChanged?.Invoke(CompanionColumns[2].ActualWidth);
-        accessoriesDivider = this.FindControl<Border>("TerminalAccessoriesDivider")!;
-        var accessoriesStrip = this.FindControl<Border>("TerminalAccessoriesStrip")!;
+        accessoriesStrip = this.FindControl<Border>("TerminalAccessoriesStrip")!;
+        detachedBar = this.FindControl<Border>("TerminalDetached")!;
+        exitedBar = this.FindControl<Control>("TerminalExited")!;
         Accessories.SizeChanged += (_, _) =>
         {
             accessoriesStrip.Padding = Accessories.Bounds.Height > 0 ? new Thickness(0, 2 * LayoutRoles.ChipGap, 0, LayoutRoles.ChipGap) : default;
@@ -461,7 +463,13 @@ public sealed partial class TerminalView : UserControl, IDisposable
         }
         companionSplitter.IsVisible = companion.IsVisible && !stacked;
         stackSplitter.IsVisible = stacked;
-        accessoriesDivider.IsVisible = companion.IsVisible && this.FindControl<StackPanel>("TerminalAccessories")!.Bounds.Height > 0;
+        // Beside the companion the chips and the status rows stay in the surface's column, so the companion reaches the bottom edge.
+        var span = companion.IsVisible && !stacked ? 1 : 3;
+        Grid.SetColumnSpan(accessoriesStrip, span);
+        Grid.SetColumnSpan(detachedBar, span);
+        Grid.SetColumnSpan(exitedBar, span);
+        Grid.SetRowSpan(companion, span == 1 ? 5 : 1);
+        Grid.SetRowSpan(companionSplitter, companion.IsVisible && !stacked ? 5 : 1);
     }
 
     /// <summary>Types into the shell as if typed; ignored until the shell has started.</summary>
