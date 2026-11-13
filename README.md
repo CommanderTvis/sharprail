@@ -79,8 +79,8 @@ Nightly builds are on the [releases page](https://github.com/CommanderTvis/tered
   [WinGet source](https://github.com/CommanderTvis/winget):
 
   ```powershell
-  winget source add --name thinkrail --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
-  winget install --id CommanderTvis.Tereditor --exact --source thinkrail --scope user
+  winget source add --name commandertvis --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
+  winget install --id CommanderTvis.Tereditor --exact --source commandertvis --scope user
   ```
 
 - On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).

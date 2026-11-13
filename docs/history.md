@@ -10,6 +10,6 @@ Until 2026-11-02 the port followed both lines and recorded each sync; the last t
 personal fork is no longer maintained. tereditor is now the only maintained line, and its specs describe tereditor
 on their own terms. SharpRail was later renamed tereditor.
 
-Some code and text still carry the old name, for example the `dev.thinkrail.tereditor` package id, the
-`THINKRAIL_MCP_URL` variable and the `thinkrail` Homebrew tap and WinGet source. Files adapted from ThinkRail stay
-under Apache-2.0; see [NOTICE](../NOTICE) and [third-party notices](../THIRD-PARTY-NOTICES.md).
+Some code and text still carry the old name, for example the `dev.thinkrail.tereditor` package id and the
+`THINKRAIL_MCP_URL` variable. The WinGet source, once named `thinkrail`, is now `commandertvis`, matching the
+`commandertvis/homebrew` tap. Files adapted from ThinkRail stay under Apache-2.0; see [NOTICE](../NOTICE) and [third-party notices](../THIRD-PARTY-NOTICES.md).

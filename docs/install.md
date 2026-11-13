@@ -24,11 +24,12 @@ Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/tereditor.
 [Windows](windows.md) for running a host and platform limits.
 
 WinGet also works through the [WinGet source](https://github.com/CommanderTvis/winget). Add the
-source once from an administrator terminal, then install.
+source once from an administrator terminal, then install. If you added it earlier under the old name, run
+`winget source remove --name thinkrail` first.
 
 ```powershell
-winget source add --name thinkrail --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
-winget install --id CommanderTvis.Tereditor --exact --source thinkrail --scope user
+winget source add --name commandertvis --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
+winget install --id CommanderTvis.Tereditor --exact --source commandertvis --scope user
 ```
 
 WinGet adds no command alias, so launch `client\tereditor.exe` from the install folder.
