@@ -36,7 +36,7 @@ jobs:
         with:
           name: build
 
-  smoke:
+  checks:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -67,7 +67,7 @@ jobs:
       - if: failure()
         uses: ./.github/actions/diagnostics
         with:
-          name: smoke-${{ strategy.job-index }}
+          name: checks-${{ strategy.job-index }}
 
   windows:
     runs-on: windows-2025
@@ -93,7 +93,7 @@ jobs:
           name: tereditor-win-x64
           path: artifacts/tereditor-win-x64.zip
           if-no-files-found: error
-      # The plugin channel and runner process (Linux runs it in the smoke gate), from the checks' framework-dependent build.
+      # The plugin channel and runner process (Linux runs it in the checks jobs), from the checks' framework-dependent build.
       - run: ./scripts/mise.cmd x -- dotnet run --file scripts/ci-run.cs -- "Plugin channel Windows" ./scripts/mise.cmd run check -- --plugin-channel
       - if: failure()
         uses: ./.github/actions/diagnostics
