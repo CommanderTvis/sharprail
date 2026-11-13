@@ -15,7 +15,7 @@ namespace Tereditor.Checks;
 /// <summary>
 /// Programs' signals in the workbench: OSC 9;4 progress on terminal tabs and in Projects, OSC 9/777 notifications
 /// only while their terminal is out of view, bells marking tabs until viewed, the Terminal settings, and no second
-/// notification for an agent's tab.
+/// notification for an agent's tab, and the memory guard's banner.
 /// </summary>
 internal static class TerminalSignalUiChecks
 {
@@ -166,6 +166,34 @@ internal static class TerminalSignalUiChecks
         app.Click(Named<Tereditor.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled"), freshGesture: false);
         Until(() => !app.State.Current.Settings.TerminalNotificationsEnabled, "the switch turns program notifications off");
         settings.Close();
+
+        // The memory guard speaks in the tab's banner, never in its output: one notice as it is, several collapsed into a count with the
+        // full list behind a button; the cross dismisses it for every client and a new notice brings it back.
+        app.Window.Layout.Select(app.Center, a);
+        Until(() => app.Workbench.ShowsTerminal(workspace, a));
+        var guarded = new Tereditor.Plugins.Api.TerminalRef(workspace, a);
+        TerminalView Surface() => app.Window.GetLogicalDescendants().OfType<TerminalView>().Single(view => view.Launch.SessionId == TerminalLaunch.SessionFor(workspace, a));
+        Tereditor.Host.Core.GuardEvent Stopped(int pid) => new(TerminalLaunch.SessionFor(workspace, a), Tereditor.Host.Core.GuardEventKind.Stopped,
+            $"tereditor memory guard: stopped dotnet (pid {pid}, 0.4 GB) because the system is under memory pressure", DateTimeOffset.UtcNow,
+            $"Memory guard stopped dotnet (pid {pid}, 0.4 GB): the system was under memory pressure");
+        Require(!Surface().GuardNotice.Visible, "No banner before the guard acts.");
+        app.State!.NoteGuard(guarded, Stopped(72826));
+        Until(() => Surface().GuardNotice is { Visible: true, Text: "Memory guard stopped dotnet (pid 72826, 0.4 GB): the system was under memory pressure", Listed: 1 },
+            "the guard's banner names what it stopped and why");
+        Require(!View(a).Text.Contains("emory guard", StringComparison.Ordinal), "The guard's notice stays out of the terminal's output: " + View(a).Text);
+        app.State.NoteGuard(guarded, Stopped(72827));
+        app.State.NoteGuard(guarded, Stopped(72828));
+        Until(() => Surface().GuardNotice is { Visible: true, Listed: 3 } notice &&
+            notice.Text == "Memory guard acted 3 times in this terminal. Latest: stopped dotnet (pid 72828, 0.4 GB): the system was under memory pressure",
+            "repeated actions collapse into one banner with a count");
+        Require(!Surface().GuardNotice.Expanded, "The full list starts closed.");
+        Surface().ExpandGuardNotice();
+        Require(Surface().GuardNotice.Expanded, "The banner's button opens the list of every notice.");
+        Surface().DismissGuardNotice();
+        Until(() => app.State.Current.GuardNotices.Count == 0 && !Surface().GuardNotice.Visible, "the cross dismisses the banner in the host's state");
+        app.State.NoteGuard(guarded, Stopped(72829));
+        Until(() => Surface().GuardNotice is { Visible: true, Text: "Memory guard stopped dotnet (pid 72829, 0.4 GB): the system was under memory pressure", Expanded: false },
+            "a new action after a dismissal shows the banner again, counting from one");
 
         // A shell's exit removes the progress it showed.
         Progress(b, "\\033]9;4;1;5\\007", TerminalProgressState.Normal, 5, "progress before exit");

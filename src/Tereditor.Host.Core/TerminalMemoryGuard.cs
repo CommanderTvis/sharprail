@@ -34,8 +34,15 @@ internal enum GuardState { Ok, Warned, Terminating, Killing }
 
 internal enum GuardEventKind { Warned, Stopped, Killed, TreeKilled, Protected }
 
-/// <summary>Something the guard did or noticed: the line shown in the terminal, the same text for the notification and the Processes pane.</summary>
-internal sealed record GuardEvent(string Session, GuardEventKind Kind, string Text, DateTimeOffset At);
+/// <summary>
+/// Something the guard did or noticed: <see cref="Text"/> for the notification and the Processes pane, <see cref="Banner"/> for the
+/// terminal's banner row ("Memory guard stopped dotnet (pid 7, 2 GB): the system was under memory pressure"). Neither reaches the
+/// terminal's output.
+/// </summary>
+internal sealed record GuardEvent(string Session, GuardEventKind Kind, string Text, DateTimeOffset At, string Banner = "");
+
+/// <summary>Why a terminal is over: as it stands now, for the notice, and as it stood, for the banner that outlives the moment.</summary>
+internal readonly record struct GuardReason(string Now, string Then);
 
 /// <summary>A terminal the guard watches: its session, the name shown in notices and its shell's pid.</summary>
 internal readonly record struct GuardTarget(string Session, string Name, int ShellPid);
@@ -115,7 +122,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         finally { Flush(); }
     }
 
-    // Events are reported after the lock is released: the report writes into a terminal and raises a notification.
+    // Events are reported after the lock is released: the report publishes the terminal's banner and raises a notification.
     private void Flush()
     {
         GuardEvent[] pending;
@@ -138,19 +145,23 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
             for (var i = 0; i < trees.Length; i++)
             {
                 var (target, tree) = trees[i];
-                string? reason = null;
-                if (sums[i] > perTerminal) reason = $"this terminal uses {Size(sums[i])}, over its limit of {Size(perTerminal)}";
-                else if (i == biggest && overTotal) reason = $"all terminals use {Size(sums.Sum())}, over their total limit of {Size(setting.TotalBytes(physical))}";
-                else if (i == biggest && pressure) reason = "the system is under memory pressure";
+                GuardReason? reason = null;
+                if (sums[i] > perTerminal)
+                    reason = new($"this terminal uses {Size(sums[i])}, over its limit of {Size(perTerminal)}", $"this terminal used {Size(sums[i])}, over its limit of {Size(perTerminal)}");
+                else if (i == biggest && overTotal)
+                    reason = new($"all terminals use {Size(sums.Sum())}, over their total limit of {Size(setting.TotalBytes(physical))}",
+                        $"all terminals used {Size(sums.Sum())}, over their total limit of {Size(setting.TotalBytes(physical))}");
+                else if (i == biggest && pressure) reason = new("the system is under memory pressure", "the system was under memory pressure");
                 Step(target, tree, sums[i], perTerminal, reason, setting);
             }
     }
 
-    private void Step(GuardTarget target, GuardedProcess[] tree, long bytes, long limit, string? reason, TerminalMemoryLimits setting)
+    private void Step(GuardTarget target, GuardedProcess[] tree, long bytes, long limit, GuardReason? why, TerminalMemoryLimits setting)
     {
         if (!watches.TryGetValue(target.Session, out var watch)) watches[target.Session] = watch = new();
         var now = Clock();
-        var over = reason is not null;
+        var over = why is not null;
+        var (reason, then) = why ?? default;
         var largest = tree.Length == 0 ? "" : Shown(tree.MaxBy(process => process.Bytes));
         watch.Usage = new(bytes, limit, watch.State, largest);
         switch (watch.State)
@@ -163,7 +174,8 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     if (!alive) { Settle(watch); goto default; }
                     var victim = tree.First(process => Same(process, watch.Victim));
                     killer.Kill(victim);
-                    Raise(target, GuardEventKind.Killed, $"tereditor memory guard: killed {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because it did not stop within {setting.GraceSeconds} s and {reason}");
+                    Raise(target, GuardEventKind.Killed, $"tereditor memory guard: killed {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because it did not stop within {setting.GraceSeconds} s and {reason}",
+                        $"Memory guard killed {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}): it did not stop within {setting.GraceSeconds} s, and {then}");
                     watch.State = GuardState.Killing;
                     break;
                 }
@@ -176,7 +188,8 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     foreach (var process in rest.OrderByDescending(process => process.Pid)) killer.Kill(process);
                     var spared = tree.Length > rest.Length ? $", sparing {string.Join(", ", tree.Except(rest).Select(Shown).Distinct())}" : "";
                     if (rest.Length > 0)
-                        Raise(target, GuardEventKind.TreeKilled, $"tereditor memory guard: killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}{spared}) because {reason} after its largest process was killed");
+                        Raise(target, GuardEventKind.TreeKilled, $"tereditor memory guard: killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}{spared}) because {reason} after its largest process was killed",
+                            $"Memory guard killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}{spared}): {then}, even after its largest process was killed");
                     Settle(watch);
                     break;
                 }
@@ -185,7 +198,8 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     if (over && Victim(tree, setting, limit) is { } victim)
                     {
                         killer.Terminate(victim);
-                        Raise(target, GuardEventKind.Stopped, $"tereditor memory guard: stopped {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because {reason}");
+                        Raise(target, GuardEventKind.Stopped, $"tereditor memory guard: stopped {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because {reason}",
+                            $"Memory guard stopped {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}): {then}");
                         watch.State = GuardState.Terminating;
                         watch.Victim = victim;
                         watch.Deadline = now + TimeSpan.FromSeconds(setting.GraceSeconds);
@@ -198,14 +212,16 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                         if (!watch.ProtectedReported)
                         {
                             watch.ProtectedReported = true;
-                            var why = AgentOf(tree.MaxBy(process => process.Bytes)) is null ? "is protected" : "is an agent with no subprocess to stop and is under the limit by itself";
-                            Raise(target, GuardEventKind.Protected, $"tereditor memory guard: {target.Name} is over its limit ({reason}), but {largest} {why}, so tereditor will not stop it");
+                            var spared = AgentOf(tree.MaxBy(process => process.Bytes)) is null ? "is protected" : "is an agent with no subprocess to stop and is under the limit by itself";
+                            Raise(target, GuardEventKind.Protected, $"tereditor memory guard: {target.Name} is over its limit ({reason}), but {largest} {spared}, so tereditor will not stop it",
+                                $"Memory guard left {largest} running: {then}, but it {spared}");
                         }
                     }
                     else if (bytes >= limit * WarnAt && watch.State == GuardState.Ok)
                     {
                         watch.State = GuardState.Warned;
-                        Raise(target, GuardEventKind.Warned, $"{target.Name} uses {Size(bytes)} of {Size(limit)}: {largest}");
+                        Raise(target, GuardEventKind.Warned, $"{target.Name} uses {Size(bytes)} of {Size(limit)}: {largest}",
+                            $"Memory guard warns: this terminal uses {Size(bytes)} of its {Size(limit)} limit, most of it {largest}");
                     }
                     else if (watch.State == GuardState.Warned && bytes < limit * ClearBelow)
                     {
@@ -253,9 +269,9 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         return found;
     }
 
-    private void Raise(GuardTarget target, GuardEventKind kind, string text)
+    private void Raise(GuardTarget target, GuardEventKind kind, string text, string banner)
     {
-        var item = new GuardEvent(target.Session, kind, text, Wall());
+        var item = new GuardEvent(target.Session, kind, text, Wall(), banner);
         events.Enqueue(item);
         while (events.Count > MaxEvents) events.Dequeue();
         raised.Add(item);

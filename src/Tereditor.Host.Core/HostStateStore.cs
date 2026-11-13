@@ -77,6 +77,7 @@ public sealed partial class HostStateStore : IHostStateService
             if (terminals is not null)
             {
                 terminals.TitleChanged -= ProgramTitle;
+                terminals.GuardNoticed -= NoteGuard;
                 terminals.Owned.Changed -= PublishOwnedProcesses;
                 terminals.PrepareRevival = null;
             }
@@ -85,6 +86,7 @@ public sealed partial class HostStateStore : IHostStateService
             if (value is not null)
             {
                 value.TitleChanged += ProgramTitle;
+                value.GuardNoticed += NoteGuard;
                 value.Owned.Changed += PublishOwnedProcesses;
                 value.PrepareRevival = async (workspace, token) =>
                 {
@@ -105,6 +107,40 @@ public sealed partial class HostStateStore : IHostStateService
     }
 
     private void ProgramTitle(TerminalRef terminal, string? title) => SetTerminalTitle(terminal, title, TerminalTitleSource.Program);
+
+    private long guardSequence;
+
+    /// <summary>
+    /// Adds what the memory guard did in a tab to that tab's banner, collapsing with the notices not dismissed yet; null drops the banner
+    /// with its ended terminal. Never persisted.
+    /// </summary>
+    internal void NoteGuard(TerminalRef terminal, GuardEvent? guard)
+    {
+        lock (gate)
+        {
+            var known = state.GuardNotices.FirstOrDefault(notice => notice.Terminal == terminal);
+            var others = state.GuardNotices.Where(notice => notice.Terminal != terminal);
+            if (guard is null)
+            {
+                if (known is not null) Publish(state with { GuardNotices = others.ToArray() }, persist: false);
+                return;
+            }
+            var line = guard.Banner.Length > 0 ? guard.Banner : guard.Text;
+            var lines = (known?.Lines ?? []).Append(line).TakeLast(TerminalGuardNotice.MaxLines).ToArray();
+            var count = (known?.Count ?? 0) + 1;
+            var notice = new TerminalGuardNotice(terminal, GuardSummary(line, count), lines, count, ++guardSequence);
+            Publish(state with { GuardNotices = others.Append(notice).ToArray() }, persist: false);
+        }
+    }
+
+    // One notice as it is; several as their number with the latest: "Memory guard acted 3 times here. Latest: stopped dotnet (...)".
+    internal static string GuardSummary(string latest, int count)
+    {
+        const string lead = "Memory guard ";
+        if (count == 1) return latest;
+        var rest = latest.StartsWith(lead, StringComparison.Ordinal) ? latest[lead.Length..] : latest;
+        return $"Memory guard acted {count} times in this terminal. Latest: {rest}";
+    }
 
     public string? LastError { get; private set; }
     /// <summary>Raised with the path of a workspace the host removed, so its other resources can end with it.</summary>
@@ -750,6 +786,13 @@ public sealed partial class HostStateStore : IHostStateService
                 if (value is not ("resume" or "fresh" or "quit") || JsonSerializer.Deserialize(key, HostJson.Default.TerminalRef) is null)
                     throw new ArgumentException("A resume answer names a terminal and is resume, fresh or quit.");
                 return current;
+            case "terminal-guard-dismiss":
+                var dismissed = JsonSerializer.Deserialize(key, HostJson.Default.TerminalRef) ?? throw new ArgumentException("A terminal is required.");
+                if (!long.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seen))
+                    throw new ArgumentException("A guard dismissal names the notice it saw.");
+                // A notice newer than the one the client showed stays, so a dismissal never hides what the user has not seen.
+                return current.GuardNotices.Any(notice => notice.Terminal == dismissed && notice.Sequence <= seen)
+                    ? current with { GuardNotices = current.GuardNotices.Where(notice => notice.Terminal != dismissed || notice.Sequence > seen).ToArray() } : current;
             case "terminal-emigration-answer":
                 if (value is not ("approve" or "deny")) throw new ArgumentException("An emigration answer is approve or deny.");
                 return current.PendingEmigrations.Any(pending => pending.Id == key)

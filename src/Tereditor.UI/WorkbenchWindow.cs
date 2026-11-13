@@ -729,6 +729,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             terminal.GotFocus += (_, _) => workbench.Signals.ClearBell(terminal.Launch.SessionId);
             AttachPluginTerminal(terminal);
             ApplyResumeOffer(terminal, state.Current);
+            ApplyGuardNotice(terminal, state.Current);
             return terminal;
         }
         if (tab.Kind == "plugin") return PluginDocumentContent(tab, key);

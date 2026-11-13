@@ -165,7 +165,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         PendingEmigrations = reply.PendingEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
         OwnedProcesses = reply.OwnedProcesses.Select(owned => new OwnedProcessInfo(new(owned.WorkspaceId, owned.TabKey), owned.Pid, owned.Description)).ToArray(),
         FailedEmigrations = reply.FailedEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
-        ResumeOffers = reply.ResumeOffers.Select(offer => new TerminalResumeOffer(new(offer.WorkspaceId, offer.TabKey), offer.Agent, offer.SessionId, offer.OpenElsewhere, offer.OwnerText, offer.QuitConfirmation, offer.Progress)).ToArray()
+        ResumeOffers = reply.ResumeOffers.Select(offer => new TerminalResumeOffer(new(offer.WorkspaceId, offer.TabKey), offer.Agent, offer.SessionId, offer.OpenElsewhere, offer.OwnerText, offer.QuitConfirmation, offer.Progress)).ToArray(),
+        GuardNotices = reply.GuardNotices.Select(notice => new TerminalGuardNotice(new(notice.WorkspaceId, notice.TabKey), notice.Text, notice.Lines.ToArray(), notice.Count, notice.Sequence)).ToArray()
     };
 
     public void Dispose() => channel.Dispose();

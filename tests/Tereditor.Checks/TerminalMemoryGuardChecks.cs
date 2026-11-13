@@ -53,6 +53,7 @@ internal static class TerminalMemoryGuardChecks
         Membership();
         Transitions();
         await Settings(Path.Combine(root, "terminal-memory"));
+        await Notices(Path.Combine(root, "terminal-memory-notices"));
         await RealProcess();
         await RealTerminal();
     }
@@ -125,6 +126,7 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(11, "node", 7.9));
             guard.Tick(targets); guard.Tick(targets);
             Require(events is [{ Kind: GuardEventKind.Warned, Text: "Terminal in app uses 7.9 GB of 8 GB: node" }], "The warning is one line naming the terminal and the largest process: " + string.Join("|", events.Select(e => e.Text)));
+            Require(events[0].Banner == "Memory guard warns: this terminal uses 7.9 GB of its 8 GB limit, most of it node", "The warning's banner line: " + events[0].Banner);
             Require(guard.UsageOf("s") is { State: GuardState.Warned, Bytes: > 0 } warned && warned.Limit == 8 * Gb, "The usage shows the warned state against the limit.");
             fake.Set(10, P(11, "node", 6.0));
             guard.Tick(targets);
@@ -145,12 +147,14 @@ internal static class TerminalMemoryGuardChecks
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11"]), "The largest descendant, not the shell, is asked to stop: " + string.Join(",", fake.Signals));
             Require(events[0].Text == "tereditor memory guard: stopped node (pid 11, 9.2 GB) because this terminal uses 9.7 GB, over its limit of 8 GB", "The notice text: " + events[0].Text);
+            Require(events[0].Banner == "Memory guard stopped node (pid 11, 9.2 GB): this terminal used 9.7 GB, over its limit of 8 GB", "The banner line: " + events[0].Banner);
             Require(guard.UsageOf("s")!.Value.State == GuardState.Terminating, "The terminal is Terminating.");
             advance(TimeSpan.FromSeconds(9)); guard.Tick(targets);
             Require(fake.Signals.Count == 1, "Nothing more happens within the grace period.");
             advance(TimeSpan.FromSeconds(2)); guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11", "KILL 11"]) && events[1].Kind == GuardEventKind.Killed && guard.UsageOf("s")!.Value.State == GuardState.Killing, "After the grace the process is killed: " + string.Join(",", fake.Signals));
             Require(events[1].Text.StartsWith("tereditor memory guard: killed node (pid 11, 9.2 GB) because it did not stop within 10 s and this terminal uses", StringComparison.Ordinal), "The kill notice says who and why: " + events[1].Text);
+            Require(events[1].Banner.StartsWith("Memory guard killed node (pid 11, 9.2 GB): it did not stop within 10 s, and this terminal used", StringComparison.Ordinal), "The kill's banner line: " + events[1].Banner);
             guard.Tick(targets);
             Require(guard.UsageOf("s")!.Value.State == GuardState.Ok && fake.Signals.Count == 2, "Once under the limit the terminal is Ok and the rest is left alone.");
         }
@@ -270,6 +274,7 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(11, "node", 5));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11"]) && events.Last().Text.EndsWith("the system is under memory pressure", StringComparison.Ordinal), "Pressure ends the biggest offender: " + string.Join(",", events.Select(e => e.Text)));
+            Require(events.Last().Banner == "Memory guard stopped node (pid 11, 5 GB): the system was under memory pressure", "The pressure banner line: " + events.Last().Banner);
         }
         // Off: nothing is sampled or ended.
         {
@@ -305,6 +310,39 @@ internal static class TerminalMemoryGuardChecks
         Require(reopened.Current.Settings.TerminalMemory == "", "An empty value resets to the defaults.");
     }
 
+    // The tab's banner in the shared state: notices collapse, a dismissal clears what the client saw for every client, a newer notice
+    // survives a stale dismissal, the next notice shows the banner again counting from one, and an ended terminal takes its banner along.
+    private static async Task Notices(string directory)
+    {
+        var state = new HostStateStore(directory);
+        var tab = new Tereditor.Plugins.Api.TerminalRef(directory, "guard-tab");
+        var other = new Tereditor.Plugins.Api.TerminalRef(directory, "other-tab");
+        GuardEvent Stop(int pid) => new("s", GuardEventKind.Stopped, $"tereditor memory guard: stopped cc (pid {pid}, 1 GB) because the system is under memory pressure",
+            DateTimeOffset.UtcNow, $"Memory guard stopped cc (pid {pid}, 1 GB): the system was under memory pressure");
+        TerminalGuardNotice? Of(Tereditor.Plugins.Api.TerminalRef terminal) => state.Current.GuardNotices.SingleOrDefault(notice => notice.Terminal == terminal);
+        state.NoteGuard(tab, Stop(1));
+        Require(Of(tab) is { Count: 1, Text: "Memory guard stopped cc (pid 1, 1 GB): the system was under memory pressure", Lines.Count: 1 }, "One notice is the banner as it is.");
+        state.NoteGuard(tab, Stop(2));
+        state.NoteGuard(tab, Stop(3));
+        state.NoteGuard(other, Stop(4));
+        Require(Of(tab) is { Count: 3, Lines.Count: 3 } three && three.Text == "Memory guard acted 3 times in this terminal. Latest: stopped cc (pid 3, 1 GB): the system was under memory pressure"
+            && Of(other) is { Count: 1 }, "Repeated notices collapse per tab: " + Of(tab)?.Text);
+        for (var pid = 5; pid < 5 + TerminalGuardNotice.MaxLines; pid++) state.NoteGuard(tab, Stop(pid));
+        Require(Of(tab) is { Count: 3 + TerminalGuardNotice.MaxLines } many && many.Lines.Count == TerminalGuardNotice.MaxLines && many.Lines[^1].Contains("pid 24,", StringComparison.Ordinal),
+            "The list keeps the newest notices and the count keeps them all.");
+        var seen = Of(tab)!.Sequence;
+        state.NoteGuard(tab, Stop(99));
+        await state.ChangeAsync([HostStateChange.DismissGuardNotice(tab, seen)]);
+        Require(Of(tab) is { Sequence: > 0 } kept && kept.Sequence > seen, "A dismissal of an older notice keeps the newer one the client has not shown.");
+        await state.ChangeAsync([HostStateChange.DismissGuardNotice(tab, Of(tab)!.Sequence)]);
+        Require(Of(tab) is null && Of(other) is not null, "A dismissal clears that tab's banner only.");
+        state.NoteGuard(tab, Stop(100));
+        Require(Of(tab) is { Count: 1, Lines.Count: 1 }, "A new action after a dismissal shows the banner again, counting from one.");
+        state.NoteGuard(tab, null);
+        Require(Of(tab) is null, "An ended terminal takes its banner along.");
+        Require(!File.ReadAllText(Path.Combine(directory, "state.json")).Contains("Memory guard", StringComparison.Ordinal), "Guard notices are never persisted.");
+    }
+
     private static string? Perl() => OperatingSystem.IsWindows() ? null : new[] { "/usr/bin/perl", "/usr/local/bin/perl", "/bin/perl" }.FirstOrDefault(File.Exists);
 
     // A real runaway: a child of a throwaway shell allocates 300 MB under a 100 MB limit and is ended; the shell lives on.
@@ -337,7 +375,7 @@ internal static class TerminalMemoryGuardChecks
         finally { if (!shell.HasExited) shell.Kill(true); }
     }
 
-    // The same in a real PTY terminal: the notice appears in its output and the shell answers afterwards.
+    // The same in a real PTY terminal: the notice appears in the tab's banner, never in its output, and the shell answers afterwards.
     private static async Task RealTerminal()
     {
         if (Perl() is not { } perl) { Console.WriteLine("SKIP terminal memory guard PTY: no perl."); return; }
@@ -345,6 +383,7 @@ internal static class TerminalMemoryGuardChecks
         try
         {
             await using var pty = new PtyTerminalService("/bin/sh", terminalMemory: () => """{"perTerminalMb":100,"graceSeconds":1}""") { GuardInterval = TimeSpan.FromMilliseconds(200) };
+            var state = new HostStateStore(Path.Combine(directory, "state")) { Terminals = pty };
             var tab = new Tereditor.Plugins.Api.TerminalRef(directory, "guard-tab");
             var attached = await pty.AttachAsync(new(PtyTerminalService.SessionFor(tab), directory, "client", 100, 30) { TabKey = tab.TabKey });
             var text = new StringBuilder(Encoding.UTF8.GetString(attached.Replay.Span));
@@ -363,14 +402,23 @@ internal static class TerminalMemoryGuardChecks
                     await Task.Delay(50);
                 }
             }
-            // The shell integration's marks around a foreground command, as zsh and bash print them: the notice is shown when the guard
-            // acts and again after the command ends, before the next prompt.
+            // The shell integration's marks around a foreground command, as zsh and bash print them: neither while the command runs nor
+            // after it ends does the guard write into the output; the tab's banner in the shared state says what it did.
             await attached.WriteAsync(Encoding.UTF8.GetBytes($"printf '\\033]133;C\\007'; {perl} -e '$x = \"a\" x (300 << 20); sleep 60'; printf '\\033]133;D;0\\007'\r"));
-            await Await("tereditor memory guard: stopped perl (pid ", "the stop notice in the terminal");
-            await Await("\u001b]133;D;0\u0007\r\n\u001b[33mtereditor memory guard: stopped perl (pid ", "the stop notice repeated after the command ended");
+            var until = DateTime.UtcNow.AddSeconds(60);
+            while (state.Current.GuardNotices.SingleOrDefault(notice => notice.Terminal == tab) is not { } notice || !notice.Text.StartsWith("Memory guard stopped perl (pid ", StringComparison.Ordinal))
+            {
+                if (DateTime.UtcNow > until) throw new TimeoutException("The tab's banner never named the stop: " + string.Join("|", state.Current.GuardNotices.Select(item => item.Text)));
+                await Task.Delay(50);
+            }
+            Require(state.Current.GuardNotices.Single(notice => notice.Terminal == tab).Text.EndsWith("over its limit of 0.1 GB", StringComparison.Ordinal), "The banner says why.");
+            await Await("\u001b]133;D;0\u0007", "the command to end");
             await attached.WriteAsync(Encoding.UTF8.GetBytes("echo SHELL_ALIVE_$((6*7))\r"));
             await Await("SHELL_ALIVE_42", "the shell to answer after the guard acted");
             Require(pty.MemoryGuard!.Events().Any(e => e.Kind == GuardEventKind.Stopped), "The Processes pane has no event for the stop.");
+            lock (text) Require(!text.ToString().Contains("emory guard", StringComparison.Ordinal), "No guard text reaches the terminal's output: " + text);
+            var replay = await pty.AttachAsync(new(PtyTerminalService.SessionFor(tab), directory, "second", 100, 30) { TabKey = tab.TabKey });
+            Require(!Encoding.UTF8.GetString(replay.Replay.Span).Contains("emory guard", StringComparison.Ordinal), "Nor its recording, which a later client replays.");
         }
         finally { try { Directory.Delete(directory, true); } catch (IOException) { } }
     }

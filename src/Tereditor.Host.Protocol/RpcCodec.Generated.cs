@@ -213,6 +213,8 @@ internal static class RpcCodec
         RpcMessage<ProjectRecordMessage>.Read = static (ref ProtoReader reader) => ReadProjectRecordMessage(ref reader, null);
         RpcMessage<StateReply>.Write = WriteStateReply;
         RpcMessage<StateReply>.Read = static (ref ProtoReader reader) => ReadStateReply(ref reader, null);
+        RpcMessage<TerminalGuardNoticeMessage>.Write = WriteTerminalGuardNoticeMessage;
+        RpcMessage<TerminalGuardNoticeMessage>.Read = static (ref ProtoReader reader) => ReadTerminalGuardNoticeMessage(ref reader, null);
         RpcMessage<WorkspaceCreatorMessage>.Write = WriteWorkspaceCreatorMessage;
         RpcMessage<WorkspaceCreatorMessage>.Read = static (ref ProtoReader reader) => ReadWorkspaceCreatorMessage(ref reader, null);
         RpcMessage<TerminalResumeOfferMessage>.Write = WriteTerminalResumeOfferMessage;
@@ -3892,6 +3894,13 @@ internal static class RpcCodec
                 writer.EndMessage(start);
             }
         if (value.HomeDirectory is { } field34) writer.String(34, field34);
+        if (value.GuardNotices is { } field35)
+            foreach (var item in field35)
+            {
+                var start = writer.BeginMessage(35);
+                if (item is not null) WriteTerminalGuardNoticeMessage(writer, item);
+                writer.EndMessage(start);
+            }
     }
 
     private static StateReply ReadStateReply(ref ProtoReader reader, StateReply? value)
@@ -4077,6 +4086,43 @@ internal static class RpcCodec
                     break;
                 }
                 case 34: value.HomeDirectory = reader.String(); break;
+                case 35:
+                {
+                    var outer = reader.Enter();
+                    (value.GuardNotices ??= new()).Add(ReadTerminalGuardNoticeMessage(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WriteTerminalGuardNoticeMessage(ProtoWriter writer, TerminalGuardNoticeMessage value)
+    {
+        if (value.WorkspaceId is { } field1) writer.String(1, field1);
+        if (value.TabKey is { } field2) writer.String(2, field2);
+        if (value.Text is { } field3) writer.String(3, field3);
+        if (value.Lines is { } field4)
+            foreach (var item in field4) writer.String(4, item ?? throw new ArgumentNullException(nameof(value), "A repeated RPC string is null."));
+        if (value.Count != 0) writer.Int32(5, value.Count);
+        if (value.Sequence != 0) writer.Int64(6, value.Sequence);
+    }
+
+    private static TerminalGuardNoticeMessage ReadTerminalGuardNoticeMessage(ref ProtoReader reader, TerminalGuardNoticeMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.WorkspaceId = reader.String(); break;
+                case 2: value.TabKey = reader.String(); break;
+                case 3: value.Text = reader.String(); break;
+                case 4: (value.Lines ??= new()).Add(reader.String()); break;
+                case 5: value.Count = reader.Int32(); break;
+                case 6: value.Sequence = reader.Int64(); break;
                 default: reader.Skip(); break;
             }
         }

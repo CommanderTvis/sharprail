@@ -147,6 +147,18 @@ public sealed class StateReply
     [ProtoMember(33)] public List<WorkspaceCreatorMessage> WorkspaceCreators { get; set; } = [];
     // Empty when the host does not report its home folder.
     [ProtoMember(34)] public string HomeDirectory { get; set; } = "";
+    [ProtoMember(35)] public List<TerminalGuardNoticeMessage> GuardNotices { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class TerminalGuardNoticeMessage
+{
+    [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(2)] public string TabKey { get; set; } = "";
+    [ProtoMember(3)] public string Text { get; set; } = "";
+    [ProtoMember(4)] public List<string> Lines { get; set; } = [];
+    [ProtoMember(5)] public int Count { get; set; }
+    [ProtoMember(6)] public long Sequence { get; set; }
 }
 
 [ProtoContract]

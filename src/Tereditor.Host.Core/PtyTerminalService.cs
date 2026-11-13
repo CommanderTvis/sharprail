@@ -387,6 +387,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         signals.End(sessionId);
         if (terminal is not null) await terminal.DisposeAsync();
         if (closed is not null) await Owned.StopTerminalAsync(closed);
+        if (closed is not null) GuardNoticed?.Invoke(closed, null);
         SessionClosed?.Invoke(sessionId, closed);
     }
 
@@ -484,13 +485,19 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         return directory is null ? "A terminal" : "Terminal in " + Path.GetFileName(directory.TrimEnd('/', '\\'));
     }
 
-    // The notice goes to the terminal itself and, as a notification, to every client that watches the host's signals. A stop or kill
-    // is shown again when the command running in the terminal ends, since the program on screen may repaint over the first line.
+    /// <summary>
+    /// Raised with a tab's terminal and what the memory guard did there, for the tab's banner; with null when the terminal ended, so its
+    /// banner goes with it. Never under the service's lock.
+    /// </summary>
+    internal event Action<TerminalRef, GuardEvent?>? GuardNoticed;
+
+    // The notice never enters the terminal's output, where it would land in the program's screen: it goes to the tab's banner and, as a
+    // notification, to every client that watches the host's signals.
     private void AnnounceGuardEvent(GuardEvent guard)
     {
-        HostedTerminal? hosted;
-        lock (gate) sessions.TryGetValue(guard.Session, out hosted);
-        hosted?.Announce(guard.Text, repeat: guard.Kind is GuardEventKind.Stopped or GuardEventKind.Killed or GuardEventKind.TreeKilled);
+        TerminalRef? terminal;
+        lock (gate) terminal = sessions.ContainsKey(guard.Session) ? terminals.GetValueOrDefault(guard.Session) : null;
+        if (terminal is not null) GuardNoticed?.Invoke(terminal, guard);
         signals.Publish(new(guard.Session, TerminalSignalKind.Notification) { Title = "Terminal memory", Body = guard.Text });
     }
 

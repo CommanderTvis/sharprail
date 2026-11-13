@@ -204,6 +204,11 @@ public sealed record HostState
     /// fresh, from any client, through <see cref="HostStateChange.AnswerResume"/>. Never persisted: the next revival offers again.
     /// </summary>
     public IReadOnlyList<TerminalResumeOffer> ResumeOffers { get; init; } = [];
+    /// <summary>
+    /// What the terminals' memory guard did in each tab since its banner was last dismissed, shown in the tab's banner row by every client
+    /// and dismissed for all of them through <see cref="HostStateChange.DismissGuardNotice"/>. Never persisted.
+    /// </summary>
+    public IReadOnlyList<TerminalGuardNotice> GuardNotices { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
     /// <summary>The host's own user home folder, so a client shows exactly that folder as <c>~</c>; null from a host that does not report it, and then no path is abbreviated.</summary>
@@ -230,6 +235,16 @@ public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, 
 /// <param name="Progress">The host's inline status while it ends the stray owner, or why that failed; empty otherwise.</param>
 public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false,
     string OwnerText = "", string QuitConfirmation = "", string Progress = "");
+
+/// <summary>The memory guard's banner of one tab: what it did there since the banner was last dismissed.</summary>
+/// <param name="Text">The banner's line: the one notice, or for several a count with the latest.</param>
+/// <param name="Lines">The notices, oldest first; the newest <see cref="MaxLines"/> of them.</param>
+/// <param name="Count">How many notices there were, including those no longer in <paramref name="Lines"/>.</param>
+/// <param name="Sequence">Rises with every notice on the host: a dismissal names the one it saw, and a newer notice shows the banner again.</param>
+public sealed record TerminalGuardNotice(TerminalRef Terminal, string Text, IReadOnlyList<string> Lines, int Count, long Sequence)
+{
+    public const int MaxLines = 20;
+}
 
 /// <param name="Workspace">The created workspace's path.</param>
 /// <param name="Creator">The terminal tab (a chat's id starts with <c>chat:</c>) whose <c>workspace_create</c> made it.</param>
@@ -292,6 +307,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange AnswerResume(TerminalRef terminal, bool resume) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), resume ? "resume" : "fresh");
     /// <summary>Answers a resume offer by ending its stray owner process, then resuming; the host re-checks that the process is still a stray owner.</summary>
     public static HostStateChange QuitOwnerAndResume(TerminalRef terminal) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), "quit");
+    /// <summary>Dismisses a tab's memory guard banner for every client, up to the notice <paramref name="sequence"/> the client showed.</summary>
+    public static HostStateChange DismissGuardNotice(TerminalRef terminal, long sequence) => new("terminal-guard-dismiss", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), sequence.ToString(System.Globalization.CultureInfo.InvariantCulture));
     public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths, HostAbstractionsJson.Default.IReadOnlyListString));
 }
 

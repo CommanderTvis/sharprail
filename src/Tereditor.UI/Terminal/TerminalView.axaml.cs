@@ -99,6 +99,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
         var dismiss = Ui.IconButton("close", "Dismiss", () => { dismissedOffer = shownOffer; this.FindControl<Control>("TerminalResumeOffer")!.IsVisible = false; });
         dismiss.Name = "TerminalResumeOfferDismissButton";
         this.FindControl<ContentControl>("TerminalResumeOfferDismiss")!.Content = dismiss;
+        var guardDismiss = Ui.IconButton("close", "Dismiss", () => guardDismissed?.Invoke());
+        guardDismiss.Name = "TerminalGuardNoticeDismissButton";
+        this.FindControl<ContentControl>("TerminalGuardNoticeDismiss")!.Content = guardDismiss;
+        this.FindControl<Button>("TerminalGuardNoticeMore")!.Click += (_, _) => ToggleGuardLines();
         takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         // Held input never reaches a renderer: keys, composed text and the pointer's paste and menu buttons are
@@ -359,6 +363,49 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     /// <summary>Presses the offer's "Quit that process and resume" button, as a click would; false when it is not shown.</summary>
     internal bool QuitResumeOffer() { if (quitOffered is not { } quit) return false; quit(); return true; }
+
+    private Action? guardDismissed;
+
+    /// <summary>
+    /// Shows the memory guard's banner for this tab above the surface, or hides it when <paramref name="text"/> is null. The guard never
+    /// writes into the terminal's output, where its line would land in the program's screen. Several notices collapse into one line with
+    /// a button that lists them all; the cross runs <paramref name="dismiss"/>, which dismisses the banner for every client.
+    /// </summary>
+    internal void ShowGuardNotice(string? text, IReadOnlyList<string> lines, Action? dismiss)
+    {
+        var row = this.FindControl<Control>("TerminalGuardNotice")!;
+        var list = this.FindControl<StackPanel>("TerminalGuardNoticeLines")!;
+        var more = this.FindControl<Button>("TerminalGuardNoticeMore")!;
+        guardDismissed = dismiss;
+        row.IsVisible = text is not null;
+        if (text is null) { list.IsVisible = false; return; }
+        var line = this.FindControl<TextBlock>("TerminalGuardNoticeText")!;
+        line.Text = text;
+        ToolTip.SetTip(line, string.Join("\n", lines));
+        more.IsVisible = lines.Count > 1;
+        list.Children.Clear();
+        foreach (var item in lines) list.Children.Add(new TextBlock { Text = item, FontSize = 12, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        if (lines.Count <= 1) list.IsVisible = false;
+        more.Content = list.IsVisible ? "Hide" : $"Show all {lines.Count}";
+    }
+
+    private void ToggleGuardLines()
+    {
+        var list = this.FindControl<StackPanel>("TerminalGuardNoticeLines")!;
+        list.IsVisible = !list.IsVisible;
+        this.FindControl<Button>("TerminalGuardNoticeMore")!.Content = list.IsVisible ? "Hide" : $"Show all {list.Children.Count}";
+    }
+
+    /// <summary>Whether the memory guard's banner is shown, its line, and whether its full list is open.</summary>
+    internal (bool Visible, string? Text, bool Expanded, int Listed) GuardNotice =>
+        (this.FindControl<Control>("TerminalGuardNotice")!.IsVisible, this.FindControl<TextBlock>("TerminalGuardNoticeText")!.Text,
+            this.FindControl<Control>("TerminalGuardNoticeLines")!.IsVisible, this.FindControl<StackPanel>("TerminalGuardNoticeLines")!.Children.Count);
+
+    /// <summary>Presses the banner's "Show all" button, as a click would.</summary>
+    internal void ExpandGuardNotice() => ToggleGuardLines();
+
+    /// <summary>Presses the banner's cross, as a click would.</summary>
+    internal void DismissGuardNotice() => guardDismissed?.Invoke();
 
     /// <summary>Below this view width the companion stacks below the surface instead of squeezing it.</summary>
     public const double CompanionStackBelow = 560;

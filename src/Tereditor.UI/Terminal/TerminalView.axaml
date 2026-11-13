@@ -23,6 +23,20 @@
         <TextBlock x:Name="TerminalResumeOfferText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
       </DockPanel>
     </Border>
+    <!-- The memory guard's banner: what it stopped or killed in this tab, never written into the terminal's output. -->
+    <Border x:Name="TerminalGuardNotice" IsVisible="False" Padding="12,0,8,0" MinHeight="{x:Static rendering:LayoutRoles.PaneHeaderStrip}"
+            BorderThickness="0,0,0,1" BorderBrush="{x:Static rendering:Ui.BorderBrush}" Background="{x:Static rendering:Ui.Elevated}">
+      <StackPanel>
+        <DockPanel Height="{x:Static rendering:LayoutRoles.PaneHeaderStrip}">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button x:Name="TerminalGuardNoticeMore" Padding="8,2" FontSize="12" IsVisible="False" />
+            <ContentControl x:Name="TerminalGuardNoticeDismiss" />
+          </StackPanel>
+          <TextBlock x:Name="TerminalGuardNoticeText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
+        </DockPanel>
+        <StackPanel x:Name="TerminalGuardNoticeLines" IsVisible="False" Spacing="2" Margin="0,0,0,6" />
+      </StackPanel>
+    </Border>
     </StackPanel>
     <!-- The strip behind the accessory chips is the terminal's own background, with no border: it is part of the terminal's box. Beside a companion it spans the surface's column only, so the companion runs down to the bottom edge. -->
     <!-- Padded only while a row shows: 8 px above the first row and, with the chips' own 4 px gap, 8 px below the last. -->

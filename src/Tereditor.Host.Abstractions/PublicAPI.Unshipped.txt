@@ -2202,7 +2202,7 @@ Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
 Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.set -> void
 Tereditor.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Host.Abstractions.KeymapPreset!>!
 Tereditor.Host.Abstractions.HostState.KeymapPresets.init -> void
-const Tereditor.Host.Abstractions.HostProtocol.Current = 20 -> int
+const Tereditor.Host.Abstractions.HostProtocol.Current = 21 -> int
 const Tereditor.Host.Abstractions.HostProtocol.IsolatedSurfaces = 19 -> int
 const Tereditor.Host.Abstractions.HostProtocol.Keymaps = 18 -> int
 static Tereditor.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> Tereditor.Host.Abstractions.HostStateChange!
@@ -2425,3 +2425,28 @@ virtual Tereditor.Host.Abstractions.BranchTip.Equals(Tereditor.Host.Abstractions
 virtual Tereditor.Host.Abstractions.BranchTip.PrintMembers(System.Text.StringBuilder! builder) -> bool
 Tereditor.Host.Abstractions.HostSettings.Accent.get -> string!
 Tereditor.Host.Abstractions.HostSettings.Accent.set -> void
+const Tereditor.Host.Abstractions.HostProtocol.TerminalGuardNotices = 21 -> int
+const Tereditor.Host.Abstractions.TerminalGuardNotice.MaxLines = 20 -> int
+override Tereditor.Host.Abstractions.TerminalGuardNotice.Equals(object? obj) -> bool
+override Tereditor.Host.Abstractions.TerminalGuardNotice.GetHashCode() -> int
+override Tereditor.Host.Abstractions.TerminalGuardNotice.ToString() -> string!
+static Tereditor.Host.Abstractions.TerminalGuardNotice.operator !=(Tereditor.Host.Abstractions.TerminalGuardNotice? left, Tereditor.Host.Abstractions.TerminalGuardNotice? right) -> bool
+static Tereditor.Host.Abstractions.TerminalGuardNotice.operator ==(Tereditor.Host.Abstractions.TerminalGuardNotice? left, Tereditor.Host.Abstractions.TerminalGuardNotice? right) -> bool
+static Tereditor.Host.Abstractions.HostStateChange.DismissGuardNotice(Tereditor.Plugins.Api.TerminalRef! terminal, long sequence) -> Tereditor.Host.Abstractions.HostStateChange!
+Tereditor.Host.Abstractions.HostState.GuardNotices.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Host.Abstractions.TerminalGuardNotice!>!
+Tereditor.Host.Abstractions.HostState.GuardNotices.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice
+Tereditor.Host.Abstractions.TerminalGuardNotice.<Clone>$() -> Tereditor.Host.Abstractions.TerminalGuardNotice!
+Tereditor.Host.Abstractions.TerminalGuardNotice.Deconstruct(out Tereditor.Plugins.Api.TerminalRef! Terminal, out string! Text, out System.Collections.Generic.IReadOnlyList<string!>! Lines, out int Count, out long Sequence) -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.Equals(Tereditor.Host.Abstractions.TerminalGuardNotice? other) -> bool
+Tereditor.Host.Abstractions.TerminalGuardNotice.Count.get -> int
+Tereditor.Host.Abstractions.TerminalGuardNotice.Count.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.Lines.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Tereditor.Host.Abstractions.TerminalGuardNotice.Lines.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.Sequence.get -> long
+Tereditor.Host.Abstractions.TerminalGuardNotice.Sequence.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.Terminal.get -> Tereditor.Plugins.Api.TerminalRef!
+Tereditor.Host.Abstractions.TerminalGuardNotice.Terminal.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.Text.get -> string!
+Tereditor.Host.Abstractions.TerminalGuardNotice.Text.init -> void
+Tereditor.Host.Abstractions.TerminalGuardNotice.TerminalGuardNotice(Tereditor.Plugins.Api.TerminalRef! Terminal, string! Text, System.Collections.Generic.IReadOnlyList<string!>! Lines, int Count, long Sequence) -> void

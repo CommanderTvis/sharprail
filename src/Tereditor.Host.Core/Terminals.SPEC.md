@@ -259,26 +259,26 @@ Escalation, never silent. Each terminal is in one of four states.
 2. Warned. From 80% of the limit the terminal gets a warning naming it and its largest process ("Terminal in app uses 7.9 GB of 8 GB:
    node"), once per crossing: the warning clears only below 70%, so a program hovering near the line does not repeat itself.
 3. Terminating. Above the limit the guard sends a stop request (SIGTERM; on Windows a close request) to the single largest process
-   below the shell (see Which process) and shows "tereditor memory guard: stopped node (pid 4242, 9.2 GB) because this terminal uses
-   9.5 GB, over its limit of 8 GB". The process has the grace period.
+   below the shell (see Which process) and says "Memory guard stopped node (pid 4242, 9.2 GB): this terminal used 9.5 GB, over its
+   limit of 8 GB". The process has the grace period.
    If it is gone and the terminal is under the limit, the terminal is Ok again.
 4. Killing. After the grace period a process still running is killed (SIGKILL, on Windows terminated). On the next sample, if the terminal
    is still over its limit, everything below the shell except protected programs and agents is killed, children first, and the terminal
    says so. An agent is killed here only when it alone is over the limit.
 
-The shell and its PTY always survive, so the user keeps the terminal and its scrollback. Every step is written into the terminal as a
-line of output (it never reaches the shell's input), is sent to the host's clients as a notification, and is kept in a short list of
-recent events that the Processes pane shows with each terminal's memory against its limit. Each line starts with "tereditor memory
-guard:" and names the process, its pid, its memory and the reason, so the user can tell the guard ended it and not a crash.
-
-A line written while a program holds the terminal can be painted over at once: an agent's or editor's interface redraws its part of the
-screen, and a program on the alternate screen takes its screen away when it exits. So every stop and kill is written again right after
-the command running in the terminal ends, between the program's last output and the next prompt, where it stays in the scrollback. This
-uses the shell integration's command-end mark (OSC 133 D), which tereditor's zsh and bash integration print; a shell without it gets
-the first line only. When the guard ended an agent's subprocess and the agent keeps running, that second line comes only when the user
-leaves the agent; until then the notification and the Processes pane carry it. Android and browser clients show the notice
-and the notification and do nothing else. Program notifications switched off in Settings silence the desktop notification but not the
-line in the terminal or the Processes pane.
+The shell and its PTY always survive, so the user keeps the terminal and its scrollback. Nothing the guard says is written into the
+terminal's output: a line there lands inside the program's screen (an agent's interface, even its input line) and is painted over or
+mistaken for the program's own. Instead every step shows in the terminal tab's banner row above the surface, the same row the resume
+offer of a revived agent uses ("Memory guard stopped VBCSCompiler (pid 79503, 2.3 GB): the system was under memory pressure"), with a
+cross to dismiss it. Several steps before a dismissal collapse into one banner, "Memory guard acted 3 times in this terminal. Latest:
+…", whose button lists them all (the newest 20; the count keeps the rest); the line's tooltip lists them too. A dismissal hides the
+banner for every client of the host, and the guard's next step shows it again, counting from one. A dismissal names the newest step
+its client showed, so a step that arrived meanwhile stays. The banner is host state, not terminal output (`HostState.GuardNotices`,
+never persisted): desktop, remote, browser and Android clients all show it, a client that attaches later sees it, and it ends with its
+terminal. Each step is also sent to the host's clients as a notification ("tereditor memory guard: stopped node … because …") and kept in
+a short list of recent events that the Processes pane shows with each terminal's memory against its limit. Every line names the
+process, its pid, its memory and the reason, so the user can tell the guard ended it and not a crash. Program notifications switched off
+in Settings silence the desktop notification but not the banner or the Processes pane.
 
 Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp, Pi, goose) is what the user is working
 with, so when it is the largest the guard ends its heaviest subprocess instead (a build, a test run, a language server it started), then,

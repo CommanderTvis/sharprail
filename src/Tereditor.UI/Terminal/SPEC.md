@@ -77,6 +77,15 @@ the clicking client names the pid, command and age, then `HostStateChange.QuitOw
 (Plugins.SPEC); progress or failure shows inline in the row. A live tereditor owner never gets the button. The row is applied when a terminal view is created and on every state
 broadcast that changes `ResumeOffers`; it reads state only (Plugins.SPEC, Terminals).
 
+## Memory guard banner
+
+The host's `TerminalGuardNotice` for a tab shows in a row of the same look just below the resume offer row (both can show at once): the
+guard's line, or for several steps "Memory guard acted N times in this terminal. Latest: …" with a "Show all N" button that opens the
+full list under the line, and a close cross. The cross sends `HostStateChange.DismissGuardNotice` with the notice's sequence, so the
+banner leaves every window and remote client, and the guard's next step brings it back. The row is applied when a terminal view is
+created and on every state broadcast whose notices changed (compared by tab and sequence); the guard never writes into the terminal's
+output (Terminals, "Memory guard").
+
 ## Session revival hint
 
 A backend that acknowledges writing an offered, non-submitted revival prefill shows “Press Enter to
