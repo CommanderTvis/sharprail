@@ -15,8 +15,8 @@ using Tereditor.Plugins.Api.Host;
 namespace Tereditor.Host.Core;
 
 // Owns every terminal session for the lifetime of the host, and the catalog of terminal tabs its clients
-// share. Clients attach and detach; a shell ends only when its tab is closed, its workspace is removed, it
-// exits, or the host stops.
+// share. Clients attach and detach; a shell ends only when its tab is closed, its workspace is removed or its folder
+// deleted, it exits, or the host stops.
 public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogService, IAsyncDisposable, IPluginTerminalSeams
 {
     private readonly Dictionary<string, HostedTerminal> sessions = [];
@@ -396,15 +396,33 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     /// <summary>Ends all sessions and MCP identities owned by a closing project, including detached worktrees.</summary>
     public async ValueTask CloseProjectAsync(string project, IReadOnlyList<string> workspaces)
     {
+        foreach (var id in SessionsOf(project, workspaces)) await CloseAsync(id);
+    }
+
+    /// <summary>
+    /// Ends the sessions and MCP identities rooted in a folder found deleted (a project with its workspaces, or one workspace),
+    /// keeping their tabs so a restored folder reopens them with fresh shells. The notice goes to the first attached tab first.
+    /// </summary>
+    internal async ValueTask EndDeletedFolderAsync(string root, IReadOnlyList<string> workspaces, string title, string body)
+    {
+        var ids = SessionsOf(root, workspaces);
+        string? notice;
+        lock (gate) notice = ids.FirstOrDefault(terminals.ContainsKey);
+        if (notice is not null) signals.Publish(new(notice, TerminalSignalKind.Notification) { Title = title, Body = body });
+        foreach (var id in ids) await EndAsync(id);
+    }
+
+    // The sessions and MCP identities rooted in a project's folders, including detached worktrees of it.
+    private string[] SessionsOf(string project, IReadOnlyList<string> workspaces)
+    {
         var projectRoot = Path.GetFullPath(project);
         var roots = workspaces.Append(projectRoot).Select(Path.GetFullPath).ToHashSet(StringComparer.Ordinal);
         KeyValuePair<string, string>[] known;
         lock (gate)
             known = directories.Concat(tokens.Where(entry => owners.ContainsKey(entry.Value)).Select(entry =>
                 new KeyValuePair<string, string>(entry.Key, owners[entry.Value].Workspace))).ToArray();
-        var ids = known.Where(entry => roots.Contains(entry.Value) || ProjectServices.KnownCheckout(entry.Value)?.ProjectRoot == projectRoot)
+        return known.Where(entry => roots.Contains(entry.Value) || ProjectServices.KnownCheckout(entry.Value)?.ProjectRoot == projectRoot)
             .Select(entry => entry.Key).Distinct().ToArray();
-        foreach (var id in ids) await CloseAsync(id);
     }
 
     /// <summary>Raised with a tab's terminal and the title its program set with OSC 0/2 (null when cleared), coalesced.</summary>

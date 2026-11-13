@@ -90,9 +90,23 @@ presets belong to the UI.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
-- Recents is filtered against the host filesystem whenever a snapshot is read: a path that no longer
-  names a directory (missing, or replaced by a file) disappears, while permission or other filesystem
-  errors keep the entry. The projection never changes the stored list, so a restored folder returns.
+- Recents, open projects and their workspaces are filtered against the host filesystem whenever a snapshot
+  is read: a path that no longer names a directory (missing, or replaced by a file) disappears, while
+  permission or other filesystem errors keep the entry. The projection never changes the stored lists, so a
+  restored folder returns. Plugins watch the stored lists, so a hidden workspace is not a removed one to them.
+- A host with terminals looks at every open project's folder, and at its workspaces' folders while the
+  project's is there, every 3 seconds. A folder missing on every look for 10 seconds counts as deleted: its
+  shells and MCP identities end (a project's with all its workspaces', detached ones included, as on a
+  close), its language servers stop with the reason "its folder was deleted", the host logs it once, and the
+  first attached tab carries a "Closed <name>" notification, which a client shows as a terminal
+  notification. A folder back within the grace is untouched. Nothing on disk is deleted, and the stored
+  entry, its terminal tabs and its plugin data stay: a removed entry would read to plugins as a removed
+  workspace, and a deleted folder cannot be told from one on an unmounted volume safely. When the folder
+  returns, its workspaces may start language servers again (a project's autostart ones start), and its
+  tabs open fresh shells. A folder on a volume that is no longer mounted is not deleted: the host remembers
+  the mount each folder was last seen on and waits while that mount is gone; a folder it never saw counts
+  only when its parent folder still exists. A folder deleted together with its parent before the host saw
+  it is therefore left alone.
 - A plain folder opens as a project directly, with no Git required: it is its own root and its Default
   workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 

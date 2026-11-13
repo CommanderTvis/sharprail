@@ -81,6 +81,7 @@ public sealed partial class HostStateStore : IHostStateService
                 terminals.PrepareRevival = null;
             }
             terminals = value;
+            WatchFolders(value is not null);
             if (value is not null)
             {
                 value.TitleChanged += ProgramTitle;
@@ -257,18 +258,18 @@ public sealed partial class HostStateStore : IHostStateService
     // restored folder (or a remounted volume) returns.
     private static HostState Visible(HostState current)
     {
-        var projects = current.Projects.Where(Exists).ToArray();
-        var recents = current.RecentProjects.Where(Exists).ToArray();
-        var workspaces = current.Workspaces.Where(workspace => Exists(workspace.ProjectRoot) && (workspace.Path == workspace.ProjectRoot || Exists(workspace.Path))).ToArray();
+        var projects = current.Projects.Where(FolderExists).ToArray();
+        var recents = current.RecentProjects.Where(FolderExists).ToArray();
+        var workspaces = current.Workspaces.Where(workspace => FolderExists(workspace.ProjectRoot) && (workspace.Path == workspace.ProjectRoot || FolderExists(workspace.Path))).ToArray();
         return projects.Length == current.Projects.Count && recents.Length == current.RecentProjects.Count && workspaces.Length == current.Workspaces.Count ? current
             : current with { Projects = projects, RecentProjects = recents, Workspaces = workspaces };
+    }
 
-        static bool Exists(string path)
-        {
-            try { return File.GetAttributes(path).HasFlag(FileAttributes.Directory); }
-            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
-        }
+    private static bool FolderExists(string path)
+    {
+        try { return File.GetAttributes(path).HasFlag(FileAttributes.Directory); }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
     }
 
     /// <summary>Sends every client a fresh snapshot without changing the state, so a folder found gone leaves their rails.</summary>

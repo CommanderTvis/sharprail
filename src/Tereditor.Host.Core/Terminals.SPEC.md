@@ -74,9 +74,10 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   again, receives a terminal reset (RIS) and a snapshot taken at that moment, so a stalled watcher costs the
   host one marker and nothing per chunk, and its view is never left mid-sequence. Terminal query replies come
   only from the holder: a watcher's writes are dropped on the host, and snapshots carry no queries.
-- A shell ends for exactly five reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
+- A shell ends for exactly six reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
   id; for a user close through `CloseTabForUndoAsync`, once the undo timeout passes), its workspace is
-  removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
+  removed, its workspace's or project's folder is deleted (the tab stays and opens a fresh shell once the
+  folder is back; see [HostState.SPEC.md](HostState.SPEC.md)), it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
   culling and no abandoned-client reap. A shell that exits while detached keeps its final output and exit
   status for the next attach; the exit code is the shell's, or 128 plus the terminating signal.
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
@@ -219,7 +220,7 @@ including draining output while closing the pseudoconsole.
   else to the pid; after a short grace (3 s, settable for checks) SIGKILL, and it waits for the process to be gone.
   Windows runs `taskkill /T /F` (best effort). A record that no longer matches a live process is dropped silently.
 - Stops happen when the owning tab's session ends (`EndAsync`: tab closed after its undo window, workspace or project
-  removed, an emigration moving the tab), when the service is disposed (a clean quit or host stop), and on release.
+  removed or its folder deleted, an emigration moving the tab), when the service is disposed (a clean quit or host stop), and on release.
 - Records persist to `owned-processes-<host pid>.json` beside the terminal recordings (memory only without a recordings
   directory), with the host's own start time. At start a sweep reads every such file whose host is no longer running
   (pid and start time must not match a live process), stops each record that still matches its process, and deletes the
