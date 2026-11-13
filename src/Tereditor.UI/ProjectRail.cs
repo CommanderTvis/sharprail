@@ -471,7 +471,8 @@ public sealed partial class WorkbenchWindow
             _ = SyncWorkspacesAsync(project);
     }
 
-    // Change totals per workspace path, read after the rail is up and applied to the rows in place.
+    // Last known change totals per workspace path, kept across switches so a rebuilt row shows them at once; a refresh
+    // redraws only the rows whose totals changed, as each workspace's totals arrive.
     private readonly Dictionary<string, DiffStats> workspaceStats = [];
     private readonly Dictionary<string, Action> railStats = [];
     internal int RailStatsCount => railStats.Count;
@@ -483,22 +484,21 @@ public sealed partial class WorkbenchWindow
         statsRefresh?.Dispose();
         statsRefresh = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         var token = statsRefresh.Token;
-        var read = new Dictionary<string, DiffStats>();
-        foreach (var worktree in git.Worktrees)
+        // The open workspace first: its row is the one the user just switched to.
+        foreach (var worktree in git.Worktrees.OrderBy(tree => tree.Path != workspaceRoot).ToArray())
         {
-            try
-            {
-                if (await Task.Run(async () => await host.GetDiffStatsAsync(worktree.Path, token), token) is { } stats) read[worktree.Path] = stats;
-            }
+            DiffStats? stats;
+            try { stats = await Task.Run(async () => await host.GetDiffStatsAsync(worktree.Path, token), token); }
             // A superseded refresh cancels the call in flight, which a remote host reports as an RPC status, not as a cancellation.
             catch (Exception) when (token.IsCancellationRequested) { return; }
             // A badge is a convenience: a workspace whose totals cannot be read simply shows none.
-            catch (Exception error) { Console.Error.WriteLine($"Change totals of {worktree.Path} are unavailable: {error.Message}"); }
+            catch (Exception error) { Console.Error.WriteLine($"Change totals of {worktree.Path} are unavailable: {error.Message}"); stats = null; }
             if (token.IsCancellationRequested || request != projectRequest) return;
+            var known = workspaceStats.GetValueOrDefault(worktree.Path);
+            if (known == stats) continue;
+            if (stats is null) workspaceStats.Remove(worktree.Path); else workspaceStats[worktree.Path] = stats;
+            railStats.GetValueOrDefault(worktree.Path)?.Invoke();
         }
-        workspaceStats.Clear();
-        foreach (var (path, stats) in read) workspaceStats[path] = stats;
-        foreach (var update in railStats.Values.ToArray()) update();
     }
 
     /// <summary>

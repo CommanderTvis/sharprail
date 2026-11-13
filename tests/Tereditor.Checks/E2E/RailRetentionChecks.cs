@@ -92,6 +92,12 @@ internal static class RailRetentionChecks
         var tabsHost = Controls(app).OfType<ContentControl>().First(control => control.Name == "WorkspaceTabs" && Equals(control.Tag, workspaceRow.Tag));
         Require(Left(workspaceRow) >= Left(projectRow) + 12 && Left(tabsHost) >= Left(workspaceRow) + 12,
             $"Rail levels indent under each other (project {Left(projectRow)}, workspace {Left(workspaceRow)}, tabs {Left(tabsHost)}).");
+        // A staged change gives the first workspace a badge, read on the switches below, that must survive another project's
+        // refresh and the switch back to it.
+        File.WriteAllText(Path.Combine(first, "rail-badge.txt"), "badge\n");
+        IsolatedGit.Run(first, "add", "rail-badge.txt");
+        bool Badged() => Controls(app).OfType<Grid>().Where(item => item.Name == "WorkspaceItem" && Equals(item.Tag, first))
+            .SelectMany(item => item.GetLogicalDescendants().OfType<StackPanel>()).Any(panel => panel.Name == "WorkspaceDiffStats" && panel.IsVisible);
         var detached = 0;
         panel.DetachedFromVisualTree += (_, _) => detached++;
         foreach (var target in new[] { first, app.Root, second })
@@ -125,16 +131,19 @@ internal static class RailRetentionChecks
         Until(() => Rows(app).All(row => row.IsEffectivelyVisible));
         Require(Rows(app).Zip(rows).All(pair => ReferenceEquals(pair.First, pair.Second)) && detached == 0,
             "Folding and unfolding a project keeps its workspace rows and the rail mounted.");
+        Until(Badged);
         // Opening another project and coming back to this one's workspace restyles the rail; nothing is rebuilt.
         var other = IsolatedGit.Repository(Path.Combine(Path.GetDirectoryName(app.Root)!, "rail-retention-other"));
         AddProject(app, "Open project", other);
         Until(() => app.Window.ProjectRoot == other && Controls(app).OfType<Grid>().Any(item => item.Name == "WorkspaceItem" && Equals(item.Tag, other)));
         Settle(500);
+        Require(Badged(), "Another project's change totals must not blank this project's workspace badges.");
         var settled = Rows(app);
         var rail = Controls(app).OfType<Grid>().Single(control => control.Name == "ProjectsPanel");
         var reattached = 0;
         rail.DetachedFromVisualTree += (_, _) => reattached++;
         app.Click(Select(app, first));
+        Require(Badged(), "Switching to a workspace shows its last known change totals at once.");
         Until(() => Active(app, first) && app.Window.ProjectRoot == app.Root && app.Find<TextBlock>("BranchLabel").Text is { Length: > 0 });
         Settle(800);
         var back = Rows(app);
@@ -145,6 +154,9 @@ internal static class RailRetentionChecks
         Require(Controls(app).OfType<Button>().Single(button => button.Name == "AddWorkspace" && button.IsEffectivelyVisible).GetLogicalAncestors()
             .OfType<Border>().Any(border => Equals(border.Tag, app.Root)), "The open project's trailing controls follow the switch.");
         Console.WriteLine("PASS switching workspaces keeps the rail's rows");
+        // The workspace is removed below, which git refuses while it holds a staged change.
+        IsolatedGit.Run(first, "rm", "--cached", "--quiet", "rail-badge.txt");
+        File.Delete(Path.Combine(first, "rail-badge.txt"));
         app.ShowTool("projects");
         Controls(app).OfType<ScrollViewer>().Single(item => item.Content is StackPanel && item.Parent is Grid { Name: "ProjectsPanel" }).MaxHeight = 110;
         Settle(300);
