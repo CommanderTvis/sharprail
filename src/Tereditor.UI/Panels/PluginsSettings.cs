@@ -194,13 +194,22 @@ public sealed class PluginsSettings : StackPanel
 
     private static string Label(string id, IReadOnlyList<PluginRosterEntry> roster) => roster.FirstOrDefault(entry => entry.Id == id)?.Label ?? id;
 
-    /// <summary>Disabling is immediate (the host cascades dependents off); enabling asks first when disabled dependencies must come along.</summary>
+    /// <summary>
+    /// Disabling is immediate (the host cascades dependents off); enabling is refused with a notice when a dependency in the
+    /// chain is missing, refused or failed, and otherwise asks first when disabled dependencies must come along.
+    /// </summary>
     public async Task Toggle(PluginRosterEntry entry)
     {
         var roster = state.Current.Plugins;
         if (entry.Status != PluginStatus.Disabled)
         {
             await Run($"Couldn't disable {entry.Label}", () => state.ChangeAsync(HostStateChange.PluginEnabled(entry.Id, false)));
+            return;
+        }
+        if (PluginRegistry.Unavailable(entry.Id, roster) is { } blocked)
+        {
+            error.Text = $"Can't turn on {entry.Label}: it needs {Label(blocked.Id, roster)}, which {blocked.Why}.";
+            error.IsVisible = true;
             return;
         }
         var dependencies = PluginRegistry.ToEnable(entry.Id, roster);

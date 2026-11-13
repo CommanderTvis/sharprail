@@ -294,6 +294,32 @@ public sealed class PluginRegistry
         return [.. seen.Where(dependency => byId.GetValueOrDefault(dependency)?.Status == PluginStatus.Disabled)];
     }
 
+    /// <summary>
+    /// The first dependency in <paramref name="id"/>'s transitive chain that cannot come on, and why (completing "which …"),
+    /// or null when turning the chain on would do. Missing and failed dependencies block; a refused one blocks unless it is
+    /// refused only because a dependency of its own is off, which the chain's enable fixes. A deeper cause is named first.
+    /// </summary>
+    public static (string Id, string Why)? Unavailable(string id, IReadOnlyList<PluginRosterEntry> roster)
+    {
+        var byId = roster.GroupBy(entry => entry.Id).ToDictionary(group => group.Key, group => group.First());
+        var seen = new HashSet<string> { id };
+        return Walk(id);
+
+        (string Id, string Why)? Walk(string current)
+        {
+            foreach (var dependency in byId.GetValueOrDefault(current)?.DependsOn ?? [])
+            {
+                if (!seen.Add(dependency)) continue;
+                if (!byId.TryGetValue(dependency, out var entry)) return (dependency, "is not installed");
+                if (entry.Status == PluginStatus.Failed) return (dependency, "failed to load");
+                if (Walk(dependency) is { } deeper) return deeper;
+                if (entry.Status == PluginStatus.Refused && entry.Reason?.EndsWith(", which is off", StringComparison.Ordinal) != true)
+                    return (dependency, entry.Reason is { Length: > 0 } reason ? $"is unavailable ({reason})" : "is unavailable");
+            }
+            return null;
+        }
+    }
+
     private bool Declares(string pluginId, string path)
     {
         var contributions = Entry(pluginId)?.Contributes ?? manifests.GetValueOrDefault(pluginId)?.Contributes;

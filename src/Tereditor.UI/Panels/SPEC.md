@@ -249,7 +249,8 @@ could not save this change: …” inline and re-renders from host state.
   A failed or refused row's switch shows off and cannot be used, except a refused row still switched on in host
   state: its switch shows on, so the user can turn it off. The switch disables at once (the host cascades
   dependents off) and enables after a “Also turn on …?” confirmation when disabled dependencies must come too,
-  sent as one batch. Failed rows offer Retry; Rescan re-reads the plugin roots; the External plugin directories
+  sent as one batch; when a dependency in the chain is missing, failed or refused, it refuses instead: nothing is
+  sent, the switch stays off and the page's notice line names the dependency and why. Failed rows offer Retry; Rescan re-reads the plugin roots; the External plugin directories
   editor adds and removes roots as one `plugin-paths` change each. The card list is virtualized: only cards near
   the viewport are realized, and a card (`PluginCard.axaml`) is recycled across plugins rather than rebuilt. Each
   plugin keeps one card model for the page's life; a roster change updates that model in place, so a broadcast

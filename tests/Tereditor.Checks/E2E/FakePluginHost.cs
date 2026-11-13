@@ -36,7 +36,7 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
     internal int Subscriptions { get { lock (subscriptions) return subscriptions.Count; } }
 
     internal IReadOnlyList<PluginRosterEntry> Roster() => [.. entries.Values.Select(entry =>
-        entry.Status is PluginStatus.Refused ? entry :
+        entry.Status is PluginStatus.Refused or PluginStatus.Failed ? entry :
         entry with { Status = Enabled(entry.Id) ? PluginStatus.Active : PluginStatus.Disabled })];
 
     private bool Enabled(string id) =>

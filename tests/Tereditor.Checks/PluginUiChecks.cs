@@ -154,6 +154,18 @@ internal static partial class PluginUiChecks
             "A dependent that is itself disabled is not listed.");
         Require(PluginRegistry.ToEnable("blueprint", [Entry("blueprint", PluginStatus.Disabled, "spec-dialect"), Entry("spec-dialect", PluginStatus.Disabled)]).SequenceEqual(["spec-dialect"]),
             "Enabling Blueprint on a fresh profile, where Specs is off by default, brings Specs along.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Disabled, "a")]) == ("a", "is not installed"),
+            "A missing dependency deep in the chain blocks the enable.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Failed)]) == ("b", "failed to load"),
+            "A failed dependency blocks the enable.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Refused) with { Reason = "not available here" }]) == ("b", "is unavailable (not available here)"),
+            "A refused dependency blocks the enable with its reason.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Refused, "a") with { Reason = "depends on a, which is off" },
+            Entry("a", PluginStatus.Disabled)]) is null, "A dependency refused only because its own dependency is off does not block: the chain's enable fixes it.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Refused, "a") with { Reason = "depends on a, which is failed" },
+            Entry("a", PluginStatus.Failed)]) == ("a", "failed to load"), "A refusal caused deeper names the deeper cause.");
+        Require(PluginRegistry.Unavailable("c", [Entry("c", PluginStatus.Disabled, "b"), Entry("b", PluginStatus.Disabled, "a"), Entry("a", PluginStatus.Active)]) is null,
+            "Dependencies that are off or on do not block.");
         Console.WriteLine("PASS Settings › Plugins dependency enable and disable walks");
     }
 

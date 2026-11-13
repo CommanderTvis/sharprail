@@ -246,13 +246,19 @@ own control keyed by plugin id, and a roster change updates rows and headings in
 
 Enabling and disabling walk the roster's `DependsOn` edges rather than touching one row:
 
-- Enable: the transitive `DependsOn` closure of the plugin, filtered to disabled entries. Empty: one
-  `plugin-settings` change enabling it, at once. Otherwise a confirmation ("Also turn on X, Y?") first, and
-  accepting sends one batch enabling the plugin and every listed dependency.
+- Enable: first the same closure is checked for a dependency that cannot come on: one missing from the roster,
+  failed, or refused for a reason of its own (a dependency refused only because one of its own dependencies is off
+  does not count, since enabling the chain fixes it; a deeper cause is named before the row it refuses). If there is
+  one, nothing is sent and nothing asked: the switch stays off and the page's notice line says "Can't turn on X: it
+  needs Y, which is not installed / failed to load / is unavailable (reason)." Otherwise the transitive `DependsOn`
+  closure of the plugin, filtered to disabled entries. Empty: one `plugin-settings` change enabling it, at once.
+  Otherwise a confirmation ("Also turn on X, Y?") first, and accepting sends one batch enabling the plugin and every
+  listed dependency. This is a rule of the switch, not of the host: a stored `enabled` over an unavailable
+  dependency still reaches the host from elsewhere and is refused there with a reason, as before.
 - Disable: at once (the host's reconciler cascades dependents off); the row names the enabled plugins that
   depend on it, the same walk in reverse, before the switch is used, so the cascade is never a surprise.
 
-Both walks are pure functions over the roster, and the checks call them directly on constructed rosters.
+The walks are pure functions over the roster, and the checks call them directly on constructed rosters.
 
 ## Checks
 

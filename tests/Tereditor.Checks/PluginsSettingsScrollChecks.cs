@@ -127,6 +127,7 @@ internal static class PluginsSettingsScrollChecks
         TailscaleLock(root, through: true);
         TailscaleLock(root, through: false);
         DependenciesAndEscape(root);
+        UnavailableDependencies(root);
     }
 
     // A category link brings its heading card to the top of the page, not to the bottom edge BringIntoView would leave it at.
@@ -306,6 +307,46 @@ internal static class PluginsSettingsScrollChecks
         window.Close();
         state.Dispose();
         Console.WriteLine("PASS plugins settings: enabling asks for the whole dependency chain, and Escape closes the dialog, then Settings");
+    }
+
+    // Switching on a plugin with a missing or failed dependency anywhere in its chain is refused at once: no question, the
+    // switch stays off, a notice names the dependency and why, and no setting is written.
+    private static void UnavailableDependencies(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, "plugins-unavailable-profile"));
+        var store = profile.OpenState();
+        PluginRosterEntry Entry(string id, params string[] dependsOn) => new(id, id, "puzzle", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled) { DependsOn = dependsOn };
+        var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, Entry("orphan", "bridge"), Entry("bridge", "ghost"),
+            Entry("leaner", "broken"), Entry("broken") with { Status = PluginStatus.Failed, Reason = "activation threw" });
+        var state = new SharedState(host, profile.Data.Preferences);
+        state.Start();
+        E2eWorkspace.Until(() => state.Current.Plugins.Count == 4);
+        var window = new OverlayWindow { Width = 800, Height = 600 };
+        window.Show();
+        var page = new PluginsSettings(state, null, window);
+        window.Root.Children.Add(new ScrollViewer { Content = page });
+        void Pump() { for (var pass = 0; pass < 5; pass++) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); } }
+        Pump();
+        ToggleSwitch Toggle(string id) => page.Card(id)!.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        TextBlock Notice() => page.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PluginsError");
+        foreach (var (id, chain, expected) in new[]
+        {
+            ("orphan", new[] { "orphan", "bridge", "ghost" }, "Can't turn on orphan: it needs ghost, which is not installed."),
+            ("leaner", new[] { "leaner", "broken" }, "Can't turn on leaner: it needs broken, which failed to load.")
+        })
+        {
+            Toggle(id).IsChecked = true;
+            Pump();
+            E2eWorkspace.Settle(50);
+            Pump();
+            Require(Tereditor.Plugins.UI.Kit.DialogWindow.On(window).Count == 0, $"Switching on {id} asks nothing.");
+            Require(Toggle(id).IsChecked == false && state.Current.Plugins.Single(entry => entry.Id == id).Status == PluginStatus.Disabled, $"{id}'s switch stays off.");
+            Require(Notice().IsVisible && Notice().Text == expected, $"The notice names the dependency and why: {Notice().Text}");
+            Require(chain.All(item => !state.Current.PluginSettings.ContainsKey(item)), $"Refusing {id} writes no setting.");
+        }
+        window.Close();
+        state.Dispose();
+        Console.WriteLine("PASS plugins settings: a plugin with a missing or failed dependency is refused with a notice, nothing written");
     }
 
     // Hosts dialogs in overlays of its own, as the workbench window does.
