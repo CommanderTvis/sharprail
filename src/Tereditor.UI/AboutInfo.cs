@@ -10,7 +10,7 @@ namespace Tereditor.UI;
 public static class AboutInfo
 {
     public const string Name = "tereditor";
-    public const string Description = "A native C# and Avalonia workbench for projects, worktrees, terminals and Git";
+    public const string Description = "A workbench for projects, worktrees, terminals and Git";
     public const string Repository = "https://github.com/CommanderTvis/tereditor";
     /// <summary>A new issue on the repository the About screen links to.</summary>
     public const string NewIssue = Repository + "/issues/new";

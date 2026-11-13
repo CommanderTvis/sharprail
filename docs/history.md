@@ -1,6 +1,6 @@
 # History
 
-tereditor started on 2026-09-28 as SharpRail, a native C# and Avalonia port of ThinkRail, the web and desktop
+tereditor started on 2026-09-28 as SharpRail, a C# and Avalonia port of ThinkRail, the web and desktop
 workbench by JetBrains. It ported both JetBrains ThinkRail and a personal fork of it that added a plugin API,
 builtin plugins (Claude Code, Codex, Blueprint, branch graph and others) and general improvements. The module specs
 began as translations of ThinkRail's specs, and the first end-to-end checks translated its E2E scenarios.
