@@ -30,6 +30,7 @@ internal static class Program
     {
         if (args.SequenceEqual(["--native-editor-find"])) { NativeEditorFindChecks.Run(args); return; }
         if (args.Contains("--fake-agent-launch")) { Thread.Sleep(30_000); return; }
+        if (args.SequenceEqual([AirContextChecks.FakeMcpArgument])) { AirContextChecks.FakeMcp(); return; }
         Environment.SetEnvironmentVariable("TEREDITOR_LSP_DISABLE", "1");
         // No check may take this machine's real Secure Event Input.
         RecordingSecureEventInput.Install();

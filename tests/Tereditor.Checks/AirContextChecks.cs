@@ -348,25 +348,51 @@ internal static partial class AirContextChecks
 
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 
+    internal const string FakeMcpArgument = "--fake-context-mcp";
+
+    // A minimal Context MCP server on stdio: asks the client for its roots during initialize, lists one code_search tool and answers
+    // every call with the first root, except a call whose query is "wait", which it never answers.
+    internal static void FakeMcp()
+    {
+        static void Send(JsonObject message)
+        {
+            message["jsonrpc"] = "2.0";
+            Console.Out.Write(message.ToJsonString() + "\n");
+            Console.Out.Flush();
+        }
+        JsonNode? initialization = null;
+        var root = "";
+        while (Console.In.ReadLine() is { } line)
+        {
+            if (JsonNode.Parse(line) is not JsonObject message) continue;
+            var method = message["method"]?.GetValue<string>();
+            var id = message["id"]?.DeepClone();
+            if (method == "initialize")
+            {
+                initialization = id;
+                Send(new JsonObject { ["id"] = 100, ["method"] = "roots/list" });
+            }
+            else if (method is null && id?.GetValueKind() == System.Text.Json.JsonValueKind.Number && id.GetValue<int>() == 100)
+            {
+                root = message["result"]?["roots"]?[0]?["uri"]?.GetValue<string>() ?? "";
+                Send(new JsonObject { ["id"] = initialization?.DeepClone(), ["result"] = new JsonObject { ["protocolVersion"] = "2025-06-18", ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() } } });
+            }
+            else if (method == "tools/list")
+                Send(new JsonObject { ["id"] = id, ["result"] = new JsonObject { ["tools"] = new JsonArray(new JsonObject { ["name"] = "code_search", ["inputSchema"] = new JsonObject { ["type"] = "object" } }) } });
+            else if (method == "tools/call" && message["params"]?["arguments"]?["query"]?.GetValue<string>() != "wait")
+                Send(new JsonObject { ["id"] = id, ["result"] = new JsonObject { ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = root }) } });
+        }
+    }
+
     private static async Task McpAsync(string storage)
     {
-        var fixture = Path.Combine(storage, "mcp.mjs");
-        await File.WriteAllTextAsync(fixture, """
-            import readline from 'node:readline';
-            let initialization,root;
-            const send=m=>process.stdout.write(JSON.stringify({jsonrpc:'2.0',...m})+'\n');
-            readline.createInterface({input:process.stdin}).on('line',line=>{
-              const m=JSON.parse(line);
-              if(m.method==='initialize'){initialization=m.id;send({id:100,method:'roots/list'});}
-              else if(m.id===100){root=m.result.roots[0].uri;send({id:initialization,result:{protocolVersion:'2025-06-18',capabilities:{tools:{}}}});}
-              else if(m.method==='tools/list')send({id:m.id,result:{tools:[{name:'code_search',inputSchema:{type:'object'}}]}});
-              else if(m.method==='tools/call' && m.params.arguments.query!=='wait')send({id:m.id,result:{content:[{type:'text',text:root}]}});
-            });
-            """);
-        ProcessStartInfo Start()
+        // The fake Context MCP server is this checks binary itself (FakeMcp below), so the check needs no JavaScript runtime.
+        static ProcessStartInfo Start()
         {
-            var start = new ProcessStartInfo("node");
-            start.ArgumentList.Add(fixture);
+            var executable = Environment.ProcessPath!;
+            var start = new ProcessStartInfo(executable);
+            if (Path.GetFileNameWithoutExtension(executable) == "dotnet") start.ArgumentList.Add(typeof(AirContextChecks).Assembly.Location);
+            start.ArgumentList.Add(FakeMcpArgument);
             return start;
         }
         var workspaces = new[] { Path.Combine(storage, "workspace-a"), Path.Combine(storage, "workspace-b") };
