@@ -40,16 +40,6 @@ return Guard(() =>
     foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" }) File.Copy(file, Path.Combine(resources, file), true);
     CopyInto("licenses", resources);
     foreach (var file in new[] { "Geist-OFL.txt", "JetBrainsMono-OFL.txt" }) File.Copy(Path.Combine("src", "Tereditor.Plugins.UI.Kit", "Assets", "Fonts", file), Path.Combine(resources, file), true);
-    // The icon: an iconset scaled from the source image (815 px: the art at 655 px inside Apple's transparent margin, 824 of 1024; no 512@2x, which would only be upscaled), packed by iconutil.
-    var iconset = Path.Combine("artifacts", "tereditor.iconset");
-    DeleteAll(iconset);
-    Directory.CreateDirectory(iconset);
-    foreach (var (name, size) in new[] { ("16x16", 16), ("16x16@2x", 32), ("32x32", 32), ("32x32@2x", 64), ("128x128", 128),
-                 ("128x128@2x", 256), ("256x256", 256), ("256x256@2x", 512), ("512x512", 512) })
-        if (Capture("sips", ["-z", $"{size}", $"{size}", "src/Tereditor.UI/Assets/AppIcon/macos.png", "--out", Path.Combine(iconset, $"icon_{name}.png")]).Code != 0)
-            throw new TaskFailure("sips could not scale the app icon");
-    Check("iconutil", ["--convert", "icns", "--output", Path.Combine(resources, "tereditor.icns"), iconset]);
-    DeleteAll(iconset);
     WriteLf(Path.Combine(bundle, "Contents", "Info.plist"), $"""
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,6 +51,7 @@ return Guard(() =>
         <key>CFBundleShortVersionString</key><string>0.2.0</string>
         <key>CFBundlePackageType</key><string>APPL</string>
         <key>CFBundleIconFile</key><string>tereditor</string>
+        <key>CFBundleIconName</key><string>tereditor</string>
         <key>NSHighResolutionCapable</key><true/>
         </dict></plist>
 
@@ -75,6 +66,20 @@ return Guard(() =>
         throw new TaskFailure("xcrun vtool -set-build-version failed");
     File.Move(exe + ".stamped", exe, true);
     MakeExecutable(exe);
+    // The icon: actool (Xcode 26 or newer) compiles the Icon Composer document into Assets.car, which macOS 26 draws with
+    // the system shape and Liquid Glass (CFBundleIconName), and into tereditor.icns at every size for older macOS
+    // (CFBundleIconFile), both for the executable's minimum macOS.
+    var (versionCode, version) = Capture("xcrun", ["actool", "--version"], discardError: true);
+    var actoolMajor = System.Text.RegularExpressions.Regex.Match(version, @"short-bundle-version</key>\s*<string>(\d+)").Groups[1].Value;
+    if (versionCode != 0 || !int.TryParse(actoolMajor, out var major) || major < 26)
+        throw new TaskFailure($"The app icon needs actool from Xcode 26 or newer to compile src/Tereditor.UI/tereditor.icon; xcrun found {(versionCode != 0 ? "no actool" : $"actool {(actoolMajor.Length > 0 ? actoolMajor : "of an unknown version")}")} (select an Xcode with xcode-select or DEVELOPER_DIR).");
+    var partialPlist = Path.Combine("artifacts", "tereditor-icon.plist");
+    Check("xcrun", ["actool", "src/Tereditor.UI/tereditor.icon", "--compile", resources, "--app-icon", "tereditor", "--platform", "macosx",
+        "--minimum-deployment-target", minos, "--standalone-icon-behavior", "all", "--enable-on-demand-resources", "NO",
+        "--output-partial-info-plist", partialPlist, "--output-format", "human-readable-text", "--errors", "--warnings"]);
+    DeleteAll(partialPlist);
+    if (!File.Exists(Path.Combine(resources, "Assets.car")) || !File.Exists(Path.Combine(resources, "tereditor.icns")))
+        throw new TaskFailure("actool did not write Assets.car and tereditor.icns");
     Check("codesign", ["--force", "--deep", "--sign", "-", bundle]);
     return 0;
 });

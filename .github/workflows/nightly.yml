@@ -20,6 +20,9 @@ jobs:
   dmg:
     runs-on: macos-15
     timeout-minutes: 90
+    # The image's default Xcode is 16.4; actool compiles the Icon Composer app icon only from Xcode 26 on.
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v7
       - id: stamp
