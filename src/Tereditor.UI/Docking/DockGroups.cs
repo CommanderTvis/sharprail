@@ -475,7 +475,8 @@ public sealed partial class DockSurface
         actions.Children.Add(overflow);
         if (!group.Folded)
         {
-            if (NewTerminals)
+            // Only the centre opens terminals from its strip; a side pane gets one through its tool pane's add menu or a drag.
+            if (NewTerminals && group.Region == "center")
             {
                 var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
                 terminal.Name = "NewTerminal_" + group.Id;

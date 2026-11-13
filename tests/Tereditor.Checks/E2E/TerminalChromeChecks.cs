@@ -238,8 +238,8 @@ internal static class TerminalChromeChecks
         var right = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList();
         var below = right[right.FindIndex(group => group.Id == side.Id) + 1];
         Until(() => app.Window.Layout.Tabs(below.Id).Count(tab => tab.Kind == "terminal") == 1);
-        app.Click(app.Find<Button>("NewTerminal_" + below.Id));
-        Until(() => app.Window.Layout.Tabs(below.Id).Count(tab => tab.Kind == "terminal") == 2);
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + below.Id),
+            "A side terminal pane must not show a terminal opener.");
         Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal") &&
             app.Window.Layout.Tabs(side.Id).All(tab => tab.IsTool),
             "The side menu must create terminals in a terminal pane of its own side.");

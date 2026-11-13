@@ -167,8 +167,10 @@ internal static class DockInputChecks
         Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "RemoveGroup_" + window.Layout.State.Center.Leaves().Single()),
             "The final empty center group offers no remove button; only its menu explains why.");
         var terminalButtons = window.GetLogicalDescendants().OfType<Button>().Count(button => button.IsVisible && button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true);
-        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true),
-            "Only resource and empty views must offer terminal creation.");
+        Require(terminalButtons == window.Layout.State.Groups.Count(group => group.Region == "center" && !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true),
+            "Only center resource and empty views must offer terminal creation.");
+        Require(Find<Button>("NewTerminal_" + window.Layout.State.Center.Leaves().First()).IsVisible,
+            "An empty center group must keep its terminal button.");
         var projectsGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
         Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + projectsGroup) &&
             window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "PaneTitle" && text.Text == "Projects") && Find<Button>("HidePane_" + projectsGroup).IsVisible,
@@ -177,9 +179,18 @@ internal static class DockInputChecks
         var terminalPane = window.Layout.View.FocusedGroup;
         var leftPanes = window.Layout.State.Groups.Where(group => group.Region == "left").Select(group => group.Id).ToList();
         Require(terminalPane != projectsGroup && leftPanes.IndexOf(terminalPane) == leftPanes.IndexOf(projectsGroup) + 1 &&
-            Find<Button>("NewTerminal_" + terminalPane).IsVisible && window.Layout.Tabs(projectsGroup).All(tab => tab.IsTool),
+            window.Layout.Tabs(projectsGroup).All(tab => tab.IsTool),
             "New terminal from a tool pane must create a terminal pane directly below it.");
+        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + terminalPane),
+            "A side terminal pane must offer no terminal button.");
         window.Layout.Close(terminalPane, window.Layout.Selected(terminalPane)!.Id);
+        var emptySide = Find<Grid>("GroupHeader_" + terminalPane);
+        emptySide.ContextMenu!.Open(emptySide);
+        Dispatcher.UIThread.RunJobs();
+        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + terminalPane) &&
+            !emptySide.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("New terminal", StringComparison.Ordinal)),
+            "An empty side group must offer no terminal button and no New terminal menu entry.");
+        emptySide.ContextMenu.Close();
         Require(window.Layout.RemoveGroup(terminalPane), "The emptied terminal pane must merge back.");
         foreach (var group in window.Layout.State.Groups.Where(group => !group.Folded && group.Region is "left" or "right"))
         {

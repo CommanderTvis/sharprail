@@ -186,7 +186,7 @@ closes, separators resize from the keyboard and Escape restores their origin. Ct
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
 button with path-aware filtering and keyboard selection (`TabSearch.axaml`). Singleton tools have no inline
-close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected. Pane headers have no add button; side tool panes use the plain header of [Edge rails](#edge-rails).
+close glyph. An unfolded center strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected; side strips never do. Pane headers have no add button; side tool panes use the plain header of [Edge rails](#edge-rails).
 
 ## Tool and terminal panes
 
@@ -205,7 +205,7 @@ has a mixed pane migrates the same way when it is loaded (`MigrateLegacyTools`),
 (`WorkspaceView.BeforeToolByTabId`) are accepted and discarded.
 
 New terminal from a tool pane ("New terminal pane below" in its add menu) creates a tool-free pane directly
-below it and places the terminal there; a terminal or empty pane adds to itself. Showing an empty region only
+below it and places the terminal there. A center group adds to itself; a side terminal or empty pane offers no New terminal, and terminals reach it by drag or menu move. Showing an empty region only
 offers creation: nothing starts a shell until a terminal tab is selected in a visible pane.
 
 ## Edge rails
