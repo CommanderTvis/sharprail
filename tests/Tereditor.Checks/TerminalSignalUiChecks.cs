@@ -184,7 +184,7 @@ internal static class TerminalSignalUiChecks
         app.State.NoteGuard(guarded, Stopped(72827));
         app.State.NoteGuard(guarded, Stopped(72828));
         Until(() => Surface().GuardNotice is { Visible: true, Listed: 3 } notice &&
-            notice.Text == "Memory guard acted 3 times in this terminal. Latest: stopped dotnet (pid 72828, 0.4 GB): the system was under memory pressure",
+            notice.Text == "Memory guard stopped 3 processes in this terminal. Latest: stopped dotnet (pid 72828, 0.4 GB): the system was under memory pressure",
             "repeated actions collapse into one banner with a count");
         Require(!Surface().GuardNotice.Expanded, "The full list starts closed.");
         Surface().ExpandGuardNotice();

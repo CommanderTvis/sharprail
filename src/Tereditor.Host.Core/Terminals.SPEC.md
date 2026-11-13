@@ -271,8 +271,8 @@ The shell and its PTY always survive, so the user keeps the terminal and its scr
 terminal's output: a line there lands inside the program's screen (an agent's interface, even its input line) and is painted over or
 mistaken for the program's own. Instead every step shows in the terminal tab's banner row above the surface, the same row the resume
 offer of a revived agent uses ("Memory guard stopped VBCSCompiler (pid 79503, 2.3 GB): the system was under memory pressure"), with a
-cross to dismiss it. Several steps before a dismissal collapse into one banner, "Memory guard acted 3 times in this terminal. Latest:
-…", whose button lists them all (the newest 20; the count keeps the rest); the line's tooltip lists them too. A dismissal hides the
+cross to dismiss it. Several steps before a dismissal collapse into one banner, "Memory guard stopped 3 processes in this terminal. Latest:
+…" (only stops and kills count; warnings show but do not), whose button lists them all (the newest 20; the count keeps the rest); the line's tooltip lists them too. A dismissal hides the
 banner for every client of the host, and the guard's next step shows it again, counting from one. A dismissal names the newest step
 its client showed, so a step that arrived meanwhile stays. The banner is host state, not terminal output (`HostState.GuardNotices`,
 never persisted): desktop, remote, browser and Android clients all show it, a client that attaches later sees it, and it ends with its

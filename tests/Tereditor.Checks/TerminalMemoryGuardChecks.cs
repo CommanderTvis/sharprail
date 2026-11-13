@@ -325,7 +325,7 @@ internal static class TerminalMemoryGuardChecks
         state.NoteGuard(tab, Stop(2));
         state.NoteGuard(tab, Stop(3));
         state.NoteGuard(other, Stop(4));
-        Require(Of(tab) is { Count: 3, Lines.Count: 3 } three && three.Text == "Memory guard acted 3 times in this terminal. Latest: stopped cc (pid 3, 1 GB): the system was under memory pressure"
+        Require(Of(tab) is { Count: 3, Lines.Count: 3 } three && three.Text == "Memory guard stopped 3 processes in this terminal. Latest: stopped cc (pid 3, 1 GB): the system was under memory pressure"
             && Of(other) is { Count: 1 }, "Repeated notices collapse per tab: " + Of(tab)?.Text);
         for (var pid = 5; pid < 5 + TerminalGuardNotice.MaxLines; pid++) state.NoteGuard(tab, Stop(pid));
         Require(Of(tab) is { Count: 3 + TerminalGuardNotice.MaxLines } many && many.Lines.Count == TerminalGuardNotice.MaxLines && many.Lines[^1].Contains("pid 24,", StringComparison.Ordinal),
@@ -338,6 +338,8 @@ internal static class TerminalMemoryGuardChecks
         Require(Of(tab) is null && Of(other) is not null, "A dismissal clears that tab's banner only.");
         state.NoteGuard(tab, Stop(100));
         Require(Of(tab) is { Count: 1, Lines.Count: 1 }, "A new action after a dismissal shows the banner again, counting from one.");
+        state.NoteGuard(tab, new("s", GuardEventKind.Warned, "tereditor memory guard: cc uses 1 GB", DateTimeOffset.UtcNow, "Memory guard warns: cc uses 1 GB"));
+        Require(Of(tab) is { Count: 1, Lines.Count: 2, Text: "Memory guard warns: cc uses 1 GB" }, "A warning shows but does not count as a stop.");
         state.NoteGuard(tab, null);
         Require(Of(tab) is null, "An ended terminal takes its banner along.");
         Require(!File.ReadAllText(Path.Combine(directory, "state.json")).Contains("Memory guard", StringComparison.Ordinal), "Guard notices are never persisted.");

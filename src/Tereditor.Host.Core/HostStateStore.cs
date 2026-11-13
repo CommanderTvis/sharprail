@@ -127,19 +127,20 @@ public sealed partial class HostStateStore : IHostStateService
             }
             var line = guard.Banner.Length > 0 ? guard.Banner : guard.Text;
             var lines = (known?.Lines ?? []).Append(line).TakeLast(TerminalGuardNotice.MaxLines).ToArray();
-            var count = (known?.Count ?? 0) + 1;
+            var count = (known?.Count ?? 0) + (guard.Kind is GuardEventKind.Stopped or GuardEventKind.Killed or GuardEventKind.TreeKilled ? 1 : 0);
             var notice = new TerminalGuardNotice(terminal, GuardSummary(line, count), lines, count, ++guardSequence);
             Publish(state with { GuardNotices = others.Append(notice).ToArray() }, persist: false);
         }
     }
 
-    // One notice as it is; several as their number with the latest: "Memory guard acted 3 times here. Latest: stopped dotnet (...)".
+    // Counts only stops and kills; warnings show but do not count. Up to one stop the latest notice shows as it is; more as their number
+    // with the latest: "Memory guard stopped 3 processes in this terminal. Latest: stopped dotnet (...)".
     internal static string GuardSummary(string latest, int count)
     {
         const string lead = "Memory guard ";
-        if (count == 1) return latest;
+        if (count <= 1) return latest;
         var rest = latest.StartsWith(lead, StringComparison.Ordinal) ? latest[lead.Length..] : latest;
-        return $"Memory guard acted {count} times in this terminal. Latest: {rest}";
+        return $"Memory guard stopped {count} processes in this terminal. Latest: {rest}";
     }
 
     public string? LastError { get; private set; }

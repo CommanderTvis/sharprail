@@ -90,7 +90,7 @@ broadcast that changes `ResumeOffers`; it reads state only (Plugins.SPEC, Termin
 ## Memory guard banner
 
 The host's `TerminalGuardNotice` for a tab shows in a row of the same look just below the resume offer row (both can show at once): the
-guard's line, or for several steps "Memory guard acted N times in this terminal. Latest: …" with a "Show all N" button that opens the
+guard's line, or after several stops "Memory guard stopped N processes in this terminal. Latest: …" (warnings show but do not count) with a "Show all N" button that opens the
 full list under the line, and a close cross. The cross sends `HostStateChange.DismissGuardNotice` with the notice's sequence, so the
 banner leaves every window and remote client, and the guard's next step brings it back. The row is applied when a terminal view is
 created and on every state broadcast whose notices changed (compared by tab and sequence); the guard never writes into the terminal's
