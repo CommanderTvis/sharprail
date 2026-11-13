@@ -3,4 +3,4 @@
 version = 1
 
 [clone]
-include = ["**/obj", "**/bin"]
+include = ["**/obj", "**/bin", "CLAUDE.local.md"]
