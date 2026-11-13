@@ -323,8 +323,8 @@
       "tereditor.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
-          "Tereditor.Plugins.Api.Host": "[1.0.0, )",
-          "System.IO.Hashing": "[10.0.12, )"
+          "System.IO.Hashing": "[10.0.12, )",
+          "Tereditor.Plugins.Api.Host": "[1.0.0, )"
         }
       },
       "tereditor.plugins.lsp.csharp": {
