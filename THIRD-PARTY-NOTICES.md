@@ -83,7 +83,7 @@ The theme manifests in src/Tereditor.UI/Assets/Themes and `theme.schema.json` ar
 Thinkrail's apps/web/src/themes/bundled (Apache 2.0; licenses/Thinkrail-Apache-2.0.txt): a few values differ from the
 originals.
 
-The 78 core SVG icons in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0 and may not be
+The 80 core SVG icons in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0 and may not be
 extracted as a standalone icon set. They use the original paths from
 @remixicon/react 4.9.0, including the server glyph for Host settings. The alias map is
 Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's

@@ -46,7 +46,6 @@
   },
   "exceptions": [
     { "file": "ProjectRail.cs", "value": "17.5", "reason": "the workspace row's name keeps the rail's measured row height until the rail adopts a role" },
-    { "file": "ProjectRail.cs", "value": "15", "reason": "the workspace row's branch line, ui.metadata's line box written out until the rail adopts a role" },
     { "file": "CenterTabsInProjects.cs", "value": "20", "reason": "inactive workspace tab titles use the same measured line box as active Projects tabs" },
     { "file": "Docking/DockGroups.cs", "value": "20", "reason": "a tab title's line box fills its fixed-height tab chrome" }
   ]

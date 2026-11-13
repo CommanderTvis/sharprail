@@ -264,7 +264,7 @@ internal static class CodexE2E
         Require(Texts(One<Control>(panel, "CodexCliSection")).Contains("Version", StringComparison.Ordinal) && Texts(One<Control>(panel, "CodexCliSection")).Contains("1.0.0", StringComparison.Ordinal),
             "the CLI version has its own section");
         Require(Texts(windows[0]).Contains("25% used", StringComparison.Ordinal) && windows[0].GetLogicalDescendants().OfType<ProgressBar>().Single().Value == 25 &&
-            Texts(windows[0]).Contains("5 hr", StringComparison.Ordinal) && Texts(windows[0]).Contains("Resets", StringComparison.Ordinal), "the first window: " + Texts(windows[0]));
+            Texts(windows[0]).Contains(Units.Pair("5", "hr"), StringComparison.Ordinal) && Texts(windows[0]).Contains("Resets", StringComparison.Ordinal), "the first window: " + Texts(windows[0]));
         Require(Texts(windows[1]).Contains("80% used", StringComparison.Ordinal), "the second window");
         var pid = LastPid(log);
 
