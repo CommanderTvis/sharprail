@@ -147,7 +147,7 @@ exercised over WebSocket.
 The vendor CLI resolves a worktree to the repository by its remote (`status --project-path=<linked worktree>` reports the same
 `repositoryId` and snapshots as the main checkout; verified with 0.9.16.1161, read-only), and needs no per-directory init or hook.
 Search at a revision without its own snapshot is the vendor's choice of snapshot and was not verified.
-Node/fake executables never accept JetBrains terms, authenticate or index real source. Expensive real-provider corpora remain opt-in
+Fake executables never accept JetBrains terms, authenticate or index real source. Expensive real-provider corpora remain opt-in
 and are not added to the full gate.
 
 Current native 0.9.16.1161 help/config/MCP startup were inspected in a sandbox denying

@@ -823,8 +823,8 @@ normalization/importer JDK fields, and PowerShell session-file isolation from ho
 metadata. The networked real-project matrix in `tests/Tereditor.Language.Integration`
 is explicitly separate and must never be registered through `Gate.Case`.
 
-`--context` (also the inexpensive context-consent gate case) exercises only fake executable bytes, fake HTTP and a local Node stdio
-server: authorization before I/O, pinned download integrity, concurrent provisioning,
+`--context` (also the inexpensive context-consent gate case) exercises only fake executable bytes, fake HTTP and a fake stdio Context
+server and CLI played by the checks binary itself (no Node): authorization before I/O, pinned download integrity, concurrent provisioning,
 corruption repair, cancellation cleanup, MCP initialization, workspace roots and owned
 process cancellation. It neither downloads the proprietary Context CLI nor accepts
 real terms, authenticates or indexes source. Real Context compatibility is unverified. The consent fixtures additionally cover host receipt persistence, changed terms/builds, missing/stale UI identities, MCP exclusion, direct/WebSocket parity and no binary download during review. `--context-ui` and the context-consent-ui gate case cover the pane entry, unchecked default, cancellation and explicit download completion using only synthetic agreements.

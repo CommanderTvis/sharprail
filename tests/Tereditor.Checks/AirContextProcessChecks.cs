@@ -12,38 +12,12 @@ internal static partial class AirContextChecks
     {
         if (OperatingSystem.IsWindows()) { Console.WriteLine("SKIP Context native-command fixtures: the pinned integration has no Windows artifact."); return; }
         var workspace = Path.Combine(root, "native-workflow"); Directory.CreateDirectory(workspace);
-        var executable = Path.Combine(workspace, "context-fixture.mjs");
-        await File.WriteAllTextAsync(executable, """
-            #!/usr/bin/env node
-            import readline from 'node:readline';
-            import fs from 'node:fs';
-            const args=process.argv.slice(2), mode=args[0];
-            fs.appendFileSync('invocations.jsonl',JSON.stringify(args)+'\n');
-            if(mode==='index'){
-              process.stdout.write(JSON.stringify({progress:50,token:'fixture-native-private'})+'\n');
-              if(fs.existsSync('hold-index'))setInterval(()=>{},1000);
-              else process.stdout.write('{"indexed":true}\n');
-            }else if(mode==='status')process.stdout.write('{"indexed":true}\n');
-            else if(mode==='mcp'){
-              if(fs.existsSync('requires-login')){process.stdout.write('You need to log in to JetBrains AI Platform first\n');process.exit(1);}
-              let initialize,root;
-              const send=m=>process.stdout.write(JSON.stringify({jsonrpc:'2.0',...m})+'\n');
-              readline.createInterface({input:process.stdin}).on('line',line=>{
-                const m=JSON.parse(line);
-                if(m.method==='initialize'){initialize=m.id;send({id:100,method:'roots/list'});}
-                else if(m.id===100){root=m.result.roots;send({id:initialize,result:{protocolVersion:'2025-06-18',capabilities:{tools:{}}}});}
-                else if(m.method==='tools/list')send({id:m.id,result:{tools:[{name:'code_search',inputSchema:{type:'object',properties:{text:{type:'string'},pathFilter:{type:'string'},limit:{type:'integer'}},required:['text']}}]}});
-                else if(m.method==='tools/call'){
-                  const a=m.params.arguments;
-                  if(a.text==='cancel'){fs.writeFileSync('search-entered','');return;}
-                  if(a.text==='needs-auth'){send({id:m.id,result:{isError:true,content:[{type:'text',text:'You need to log in to JetBrains AI Platform first'}]}});return;}
-                  if(a.text==='large'){send({id:m.id,result:{content:[{type:'text',text:'x'.repeat(50000)}]}});return;}
-                  process.stderr.write('Authorization: Bearer fixture-mcp-private\n');
-                  send({id:m.id,result:{content:[{type:'text',text:JSON.stringify({root,...a})}]}});
-                }
-              });
-            }else process.exit(22);
-            """);
+        // The fake jbcontext is this checks binary itself (FakeJbContext below) behind a shell launcher, so the check needs no JavaScript runtime.
+        var executable = Path.Combine(workspace, "context-fixture");
+        static string Quote(string value) => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
+        var process = Environment.ProcessPath!;
+        var command = Quote(process) + (Path.GetFileNameWithoutExtension(process) == "dotnet" ? " " + Quote(typeof(AirContextChecks).Assembly.Location) : "");
+        await File.WriteAllTextAsync(executable, "#!/bin/sh\nexec " + command + " " + FakeJbContextArgument + " \"$@\"\n");
         File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var logs = new ConcurrentQueue<string>(); var authorizations = 0;
         await using var runtime = new ContextRuntime(executable, workspace, logs.Enqueue, token => { token.ThrowIfCancellationRequested(); Interlocked.Increment(ref authorizations); return Task.CompletedTask; });
@@ -93,5 +67,86 @@ internal static partial class AirContextChecks
         try { await signedOut.SearchAsync("query", ".", 2, deadline.Token); throw new InvalidOperationException("Signed-out native MCP appeared ready."); }
         catch (ContextLoginRequiredException) { }
         Console.WriteLine("PASS Context native-command fixtures: pinned launch, fresh-execution authorization, warm MCP schema/roots, progress, redaction, bounded results, cancellation, reconnect and login state");
+    }
+
+    internal const string FakeJbContextArgument = "--fake-jbcontext";
+
+    // A fake jbcontext for the native workflow: logs each argv to invocations.jsonl in the working directory, then serves the index,
+    // status and mcp modes. hold-index makes index never finish, requires-login makes mcp refuse to start, and the code_search queries
+    // "cancel" (never answered, writes search-entered), "needs-auth" and "large" are special. Any other mode exits with 22.
+    internal static int FakeJbContext(string[] args)
+    {
+        static void Write(TextWriter writer, string line)
+        {
+            writer.Write(line + "\n");
+            writer.Flush();
+        }
+        static void Send(JsonObject message)
+        {
+            var framed = new JsonObject { ["jsonrpc"] = "2.0" };
+            foreach (var (key, value) in message) framed[key] = value?.DeepClone();
+            Write(Console.Out, framed.ToJsonString());
+        }
+        var mode = args.Length > 0 ? args[0] : null;
+        File.AppendAllText("invocations.jsonl", new JsonArray(args.Select(arg => (JsonNode?)arg).ToArray()).ToJsonString() + "\n");
+        if (mode == "index")
+        {
+            Write(Console.Out, new JsonObject { ["progress"] = 50, ["token"] = "fixture-native-private" }.ToJsonString());
+            if (File.Exists("hold-index")) Thread.Sleep(Timeout.Infinite);
+            Write(Console.Out, """{"indexed":true}""");
+            return 0;
+        }
+        if (mode == "status") { Write(Console.Out, """{"indexed":true}"""); return 0; }
+        if (mode != "mcp") return 22;
+        if (File.Exists("requires-login")) { Write(Console.Out, "You need to log in to JetBrains AI Platform first"); return 1; }
+        JsonNode? initialize = null, root = null;
+        while (Console.In.ReadLine() is { } line)
+        {
+            var message = JsonNode.Parse(line)!.AsObject();
+            var method = message["method"]?.GetValue<string>();
+            var id = message["id"];
+            if (method == "initialize")
+            {
+                initialize = id?.DeepClone();
+                Send(new JsonObject { ["id"] = 100, ["method"] = "roots/list" });
+            }
+            else if (id is JsonValue number && number.GetValueKind() == System.Text.Json.JsonValueKind.Number && number.GetValue<double>() == 100)
+            {
+                root = message["result"]!["roots"]?.DeepClone();
+                Send(new JsonObject { ["id"] = initialize?.DeepClone(), ["result"] = new JsonObject { ["protocolVersion"] = "2025-06-18", ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() } } });
+            }
+            else if (method == "tools/list")
+            {
+                var schema = new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject { ["text"] = new JsonObject { ["type"] = "string" }, ["pathFilter"] = new JsonObject { ["type"] = "string" }, ["limit"] = new JsonObject { ["type"] = "integer" } },
+                    ["required"] = new JsonArray("text"),
+                };
+                Send(new JsonObject { ["id"] = id?.DeepClone(), ["result"] = new JsonObject { ["tools"] = new JsonArray(new JsonObject { ["name"] = "code_search", ["inputSchema"] = schema }) } });
+            }
+            else if (method == "tools/call")
+            {
+                var arguments = message["params"]!["arguments"]!.AsObject();
+                var text = arguments["text"] is JsonValue value && value.GetValueKind() == System.Text.Json.JsonValueKind.String ? value.GetValue<string>() : null;
+                if (text == "cancel") { File.WriteAllText("search-entered", ""); continue; }
+                if (text == "needs-auth")
+                {
+                    Send(new JsonObject { ["id"] = id?.DeepClone(), ["result"] = new JsonObject { ["isError"] = true, ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = "You need to log in to JetBrains AI Platform first" }) } });
+                    continue;
+                }
+                if (text == "large")
+                {
+                    Send(new JsonObject { ["id"] = id?.DeepClone(), ["result"] = new JsonObject { ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = new string('x', 50_000) }) } });
+                    continue;
+                }
+                Write(Console.Error, "Authorization: Bearer fixture-mcp-private");
+                var echo = new JsonObject();
+                if (root is not null) echo["root"] = root.DeepClone();
+                foreach (var (key, item) in arguments) echo[key] = item?.DeepClone();
+                Send(new JsonObject { ["id"] = id?.DeepClone(), ["result"] = new JsonObject { ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = echo.ToJsonString() }) } });
+            }
+        }
+        return 0;
     }
 }
