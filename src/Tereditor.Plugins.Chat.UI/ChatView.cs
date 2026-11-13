@@ -520,10 +520,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         foreach (var picker in pickers) Add(picker);
         gear ??= TerminalFacts.ChipButton("ChatChipSettings", Ui.Icon("settings", Ui.Muted, 14), "Configure chips", ShowChipSettings);
         if (!chips.Children.Contains(gear)) { gear.Classes.Add("plain"); gear.Background = Ui.ChipFill; Add(gear); }
-        // The "+" wears a warning dot when an MCP server is down.
+        // The "+" names the MCP servers that are down to screen readers; its menu lists them.
         var down = header.McpServers.Count(server => server.Status is not ("connected" or "ok"));
-        plusBadge.IsVisible = down > 0;
-        plusBadge.Background = Ui.Warning;
         Avalonia.Automation.AutomationProperties.SetName(plus!, down > 0 ? $"Add to the chat ({down} MCP servers down)" : "Add to the chat");
         ApplyDensity();
     }

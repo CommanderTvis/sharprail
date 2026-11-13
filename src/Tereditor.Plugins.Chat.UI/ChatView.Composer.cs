@@ -128,10 +128,8 @@ internal sealed partial class ChatView
             Child = menuFrame
         };
         attachmentRow = new WrapPanel { Name = "ChatAttachmentRow", Orientation = Orientation.Horizontal, ItemSpacing = Space.Gap, LineSpacing = Space.Gap, IsVisible = false };
-        plusBadge = new Border { Name = "ChatPlusBadge", Width = 6, Height = 6, CornerRadius = new CornerRadius(3), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, IsVisible = false, IsHitTestVisible = false };
         var plusContent = new Grid { Width = 16, Height = 16 };
         plusContent.Children.Add(Ui.Icon("add", Ui.Muted, 14));
-        plusContent.Children.Add(plusBadge);
         plus = TerminalFacts.ChipButton("ChatPlus", plusContent, "Conversations, skills, commands, IDE context, MCP servers", () =>
         {
             var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
@@ -458,7 +456,6 @@ internal sealed partial class ChatView
     internal Button StopButton => stop;
     private Button pie = null!, history = null!;
     private Button? plus;
-    private Border plusBadge = null!;
     private WrapPanel contextRow = null!;
 
     /// <summary>The row of content chips above the input takes room only while it holds one.</summary>
