@@ -12,13 +12,14 @@ settings, plugins and shells stay on the host.
 ## Layout
 
 - A wide window gets the desktop layout: the project rail, the centre and the side tools, with Settings in the top bar.
-  That is a tablet held sideways, an unfolded foldable, or the app's window on a monitor in Android's desktop mode
-  (with a mouse and keyboard, as on the desktop). Wide means at least 840 × 480 dp.
-- A narrower window, such as a phone or a portrait tablet, puts Projects, the current tab, Tools and Settings on
-  separate pages, reached from a bottom bar.
+  That is a tablet in either orientation, an unfolded foldable, or the app's window on a monitor in Android's desktop
+  mode (with a mouse and keyboard, as on the desktop). Wide means at least 600 × 480 dp, or 600 × 360 dp on a tablet
+  or an external monitor, so a 1280×720 px desktop-mode window counts.
+- A phone, in either orientation, and any window narrower than 600 dp put Projects, the current tab, Tools and
+  Settings on separate pages, reached from a bottom bar.
 - The layout follows the window as it is resized, turned, unfolded or moved to another display, and opens again on
-  the same workspace and tab. While a file has unsaved edits or an agent is mid-turn, the change waits until they are
-  done.
+  the same workspace and tab. While a file has unsaved edits, the change waits until they are saved or discarded;
+  agents and terminals keep running on the host through it.
 
 ## Requirements
 

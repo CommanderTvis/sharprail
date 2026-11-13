@@ -29,8 +29,9 @@ public sealed class MainActivity : AvaloniaActivity
         AndroidWindows.Instance.Attach(this);
         BackRequested += (_, e) => e.Handled = AndroidWindows.Instance.Back() || MoveTaskToBack(true);
         // The window's size, not the screen's: a desktop-mode window or a split screen gets the shell that fits it.
+        // The display's smallest side tells a phone's own screen from a tablet's or an external monitor's.
         var configuration = Resources!.Configuration!;
-        session = new ClientSession(FilesDir!.AbsolutePath, ShellSwitch.For(configuration.ScreenWidthDp, configuration.ScreenHeightDp));
+        session = new ClientSession(FilesDir!.AbsolutePath, ShellSwitch.For(configuration.ScreenWidthDp, configuration.ScreenHeightDp, DisplaySmallestDp(configuration)));
         session.Start();
         ReceiveShare(Intent);
     }
@@ -106,7 +107,21 @@ public sealed class MainActivity : AvaloniaActivity
     public override void OnConfigurationChanged(global::Android.Content.Res.Configuration newConfig)
     {
         base.OnConfigurationChanged(newConfig);
-        session?.Resized(newConfig.ScreenWidthDp, newConfig.ScreenHeightDp);
+        session?.Resized(newConfig.ScreenWidthDp, newConfig.ScreenHeightDp, DisplaySmallestDp(newConfig));
+    }
+
+    // The smallest side, in dp, of the display the window is on. The configuration's own smallest width follows the
+    // window in split screen and desktop mode, so the display's full size is read instead.
+    private double DisplaySmallestDp(global::Android.Content.Res.Configuration configuration)
+    {
+        var density = configuration.DensityDpi / 160.0;
+        if (density <= 0) return 0;
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
+            return WindowManager?.MaximumWindowMetrics.Bounds is { } bounds ? Math.Min(bounds.Width(), bounds.Height()) / density : 0;
+        if (WindowManager?.DefaultDisplay is not { } display) return 0;
+        var metrics = new global::Android.Util.DisplayMetrics();
+        display.GetRealMetrics(metrics);
+        return Math.Min(metrics.WidthPixels, metrics.HeightPixels) / density;
     }
 
     protected override void OnResume()

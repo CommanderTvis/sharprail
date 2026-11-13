@@ -86,21 +86,26 @@ Contract:
   replaces the activity's content inside a frame padded by the status bar, navigation bar, display cutout and
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
-- The shell follows the activity's window, not the screen (`ShellSwitch`): a window at least 840 dp wide and
-  480 dp high (the activity configuration's `ScreenWidthDp` and `ScreenHeightDp`) gets the desktop frame, the same
-  one the desktop app uses, with the project rail, the centre and the side tools, Settings in the top bar and no page
-  bar. That covers a tablet held sideways, an unfolded foldable and a desktop-mode window on a monitor. Any smaller
-  window, a phone in either orientation or a portrait tablet included, is compact (`Workbench.Compact`): the
+- The shell follows the activity's window, not the screen (`ShellSwitch`): a window at least 600 dp wide (the
+  activity configuration's `ScreenWidthDp`) and at least 480 dp high (`ScreenHeightDp`) gets the desktop frame, the
+  same one the desktop app uses, with the project rail, the centre and the side tools, Settings in the top bar and no
+  page bar. On a display whose smallest side is at least 600 dp (a tablet's, or the external monitor of Android's
+  desktop mode; read from the window manager's largest window, since the configuration's smallest width follows the
+  window) 360 dp of height is enough, so a 1280×720 px desktop-mode window at density 2 (640×360 dp) is wide. That
+  covers a tablet in either orientation, an unfolded foldable and a desktop-mode window on a monitor. A phone on its
+  own screen stays compact in either orientation, since held sideways it is under 480 dp high, and so does any window
+  under 600 dp wide (`Workbench.Compact`): the
   workbench is one page at a time from a bar at the bottom, and Settings is a list of sections that only choosing one leaves (a host broadcast or a theme change redraws
   the current page behind the list); see
   [Docking/SPEC.md](../Tereditor.UI/Docking/SPEC.md#phone-pages). The browser client composes the same phone shell for narrow touch viewports
   (see [Browser](../Tereditor.Browser/SPEC.md#phone-layout)) by its own threshold; nothing in this client changes for it.
 - The activity handles size changes itself, so a resize, rotation, unfold or move to another display reaches the
   session as a configuration change. Crossing the threshold closes the workbench and opens it again over the same
-  profile and host in the other shell, on the same workspace and tab; a compact shell stays until the window clears
-  the threshold by 40 dp, so dragging a desktop-mode window does not rebuild it on every step. The soft keyboard does
-  not change these sizes. While an editor has unsaved edits, an agent is mid-turn or a reported process runs, the
-  swap waits and is tried again every two seconds, since closing would ask about them. The phone pages hide both side
+  profile and host in the other shell, on the same workspace and tab; a wide shell stays until the window falls
+  below a threshold by 32 dp, so dragging a desktop-mode window does not rebuild it on every step. The soft keyboard
+  does not change these sizes. While an editor has unsaved edits the swap waits and is tried again every two
+  seconds, since closing would ask about them. Agents mid-turn and reported processes do not hold it back: they run
+  on the host, and the swap closes the workbench without asking to quit. The phone pages hide both side
   panels whenever the current page shows, so the side panels the desktop frame showed are remembered for the session
   and restored with it; a frame with none remembered and both hidden shows both. Scroll positions are not carried
   across the swap. `DrawerChecks.Wide` covers the decision and the reopen headlessly.

@@ -221,13 +221,21 @@ internal static class DrawerChecks
     /// </summary>
     internal static void Wide(string root)
     {
-        Require(!ShellSwitch.For(1280, 720).Compact && ShellSwitch.For(400, 800).Compact, "A 1280×720 dp window must be wide and a 400×800 one compact.");
-        Require(ShellSwitch.For(915, 412).Compact && ShellSwitch.For(800, 1280).Compact && !ShellSwitch.For(840, 480).Compact,
-            "A phone held sideways and a portrait tablet must stay compact; 840×480 dp is the first wide size.");
-        Require(ShellSwitch.Decide(true, 860, 720) && !ShellSwitch.Decide(true, 880, 720) && !ShellSwitch.Decide(false, 860, 720) && ShellSwitch.Decide(false, 830, 720),
-            "A compact shell must stay until the window clears the threshold by the hysteresis.");
-        var waiting = ShellSwitch.For(400, 800);
-        waiting.Fit(1280, 720);
+        // Display sizes: a phone's own screen, a tablet's, and an external monitor in desktop mode (1920×1200 px at density 2).
+        const double phone = 412, tablet = 800, monitor = 600;
+        Require(!ShellSwitch.For(1280, 720, monitor).Compact && ShellSwitch.For(400, 800, phone).Compact, "A 1280×720 dp window must be wide and a 400×800 one compact.");
+        Require(ShellSwitch.For(412, 915, phone).Compact && ShellSwitch.For(915, 412, phone).Compact && ShellSwitch.For(851, 393, phone).Compact &&
+            ShellSwitch.For(780, 360, phone).Compact && ShellSwitch.For(915, 412, 0).Compact, "A phone on its own screen must be compact in either orientation.");
+        Require(!ShellSwitch.For(800, 1280, tablet).Compact && !ShellSwitch.For(1280, 800, tablet).Compact && !ShellSwitch.For(600, 960, 600).Compact &&
+            !ShellSwitch.For(600, 480, phone).Compact, "A tablet must be wide in either orientation; 600×480 dp is the first wide size.");
+        Require(!ShellSwitch.For(640, 360, monitor).Compact && ShellSwitch.For(640, 359, monitor).Compact && ShellSwitch.For(599, 900, monitor).Compact,
+            "A 1280×720 px desktop-mode window at density 2 must be wide, and a smaller or narrower window compact.");
+        Require(!ShellSwitch.Decide(true, 600, 720, tablet) && !ShellSwitch.Decide(false, 580, 720, tablet) && ShellSwitch.Decide(false, 560, 720, tablet) &&
+            !ShellSwitch.Decide(false, 900, 460, phone) && ShellSwitch.Decide(false, 900, 440, phone) && !ShellSwitch.Decide(false, 900, 340, monitor) &&
+            ShellSwitch.Decide(false, 900, 320, monitor) && ShellSwitch.Decide(true, 580, 720, tablet),
+            "A wide shell must stay until the window falls below a threshold by the hysteresis, and a compact one turn wide at the threshold.");
+        var waiting = ShellSwitch.For(400, 800, phone);
+        waiting.Fit(1280, 720, monitor);
         Require(!waiting.Compact, "A resize while no workbench is open must choose the shell the next one opens in.");
 
         var directory = Path.Combine(root, "drawer-wide");
@@ -235,7 +243,7 @@ internal static class DrawerChecks
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
         E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
         E2E.E2eWorkspace.EnableSpecPlugins(new ProfileStore(directory + "-profile").OpenState());
-        var shell = ShellSwitch.For(400, 800);
+        var shell = ShellSwitch.For(400, 800, phone);
         WorkbenchWindow Open(double width, double height)
         {
             // As the session does: a fresh store over the profile the closed window saved.
@@ -249,8 +257,9 @@ internal static class DrawerChecks
         }
         WorkbenchWindow Resize(WorkbenchWindow open, double width, double height)
         {
-            Require(shell.Wants(width, height) && !ShellSwitch.Busy(open.Workbench), "A resize across the threshold must ask for the other shell.");
+            Require(shell.Wants(width, height, tablet) && !ShellSwitch.Busy(open.Workbench), "A resize across the threshold must ask for the other shell.");
             shell.Swap(open.Slot);
+            ShellSwitch.Release(open.Workbench);
             open.Close();
             Pump(() => !open.IsVisible, "The window in the old shell did not close.");
             return Open(width, height);
@@ -264,7 +273,14 @@ internal static class DrawerChecks
         Pump(() => window.Layout.Selected(group)?.Id is { } id && id.Contains("notes.txt", StringComparison.Ordinal), "The document did not open.");
         var tab = window.Layout.Selected(group)!.Id;
         var workspace = window.Layout.State.ActiveWorkspace;
-        Require(!shell.Wants(860, 720), "A compact window just past the threshold must not rebuild.");
+        Require(!shell.Wants(580, 720, tablet), "A compact window just short of the threshold must not rebuild.");
+        // Only unsaved edits hold the swap back: closing would ask about them.
+        var view = window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
+        view.Editor.ReplaceRange(0, 0, "edited ");
+        Pump(() => view.HasPendingChanges, "The edit did not mark the document modified.");
+        Require(ShellSwitch.Busy(window.Workbench), "A swap must wait while an editor has unsaved edits.");
+        view.Discard();
+        Pump(() => !view.HasPendingChanges, "Discarding did not clear the edit.");
 
         window = Resize(window, 1280, 720);
         Require(!window.Workbench.Compact && !Shown(window, "PageBar") && Shown(window, "SettingsButton"),
@@ -281,8 +297,8 @@ internal static class DrawerChecks
         // The frame's own choice of side panels survives a trip through the phone pages.
         layout.Visible("right", false);
         Dispatcher.UIThread.RunJobs();
-        Require(shell.Wants(800, 1280), "Turning to a portrait tablet must ask for the phone pages.");
-        window = Resize(window, 800, 1280);
+        Require(!shell.Wants(800, 1280, tablet) && shell.Wants(400, 800, phone), "A portrait tablet must keep the desktop frame and a phone ask for the pages.");
+        window = Resize(window, 400, 800);
         Require(window.Workbench.Compact && Shown(window, "PageBar") && window.Layout.State.ActiveWorkspace == workspace &&
             window.Layout.Selected(window.Layout.State.Center.Leaves().First())?.Id == tab, "The phone pages must open on the same workspace and tab.");
         window = Resize(window, 1280, 800);

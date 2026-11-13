@@ -25,7 +25,7 @@ public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : ID
     private DispatcherTimer? watch;
     private int unreachable;
     private DispatcherTimer? deferred;
-    private (double Width, double Height) size;
+    private (double Width, double Height, double Display) size;
 
     /// <summary>
     /// Whether the app is on screen. Android cuts a background app's connections, so the host is given its
@@ -149,16 +149,16 @@ public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : ID
 
     /// <summary>
     /// The activity's window changed size (a rotation, a fold, a desktop-mode window resized or moved to another
-    /// display), in dp. Crossing the threshold reopens the workbench in the other shell; the layout, tabs and
+    /// display), in dp, with the smallest side of the display it is on. Crossing the threshold reopens the workbench in the other shell; the layout, tabs and
     /// documents are the profile's and the host's, so the same workspace and tab come back.
     /// </summary>
-    public void Resized(double width, double height)
+    public void Resized(double width, double height, double display)
     {
-        size = (width, height);
+        size = (width, height, display);
         // Behind the connect screen there is nothing to rebuild; the workbench it opens takes the shell that fits.
-        if (workbench is null) { shell.Fit(width, height); return; }
-        if (disposed || workbench is not { } open || Endpoint is not { } endpoint || !shell.Wants(width, height)) return;
-        // Closing the window would ask about unsaved edits and running agents; a resize must not, so try again later.
+        if (workbench is null) { shell.Fit(width, height, display); return; }
+        if (disposed || workbench is not { } open || Endpoint is not { } endpoint || !shell.Wants(width, height, display)) return;
+        // Closing the window would ask about unsaved edits; a resize must not, so try again later.
         if (ShellSwitch.Busy(open))
         {
             deferred ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
@@ -169,6 +169,8 @@ public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : ID
         }
         deferred?.Stop();
         shell.Swap(open.Profile.Data.Windows[0]);
+        // Agents mid-turn and reported processes run on the host, so closing for the swap does not ask to quit.
+        ShellSwitch.Release(open);
         // The route the connect screen registered for an embedded tailnet stays: the same host is reached again.
         Close(keepRoute: true);
         Open(endpoint);
@@ -177,7 +179,7 @@ public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : ID
     private void RetryResize(object? sender, EventArgs e)
     {
         deferred?.Stop();
-        Resized(size.Width, size.Height);
+        Resized(size.Width, size.Height, size.Display);
     }
 
     private void Close(bool keepRoute = false)

@@ -11,45 +11,71 @@ namespace Tereditor.UI;
 /// </summary>
 public sealed class ShellSwitch(bool compact)
 {
-    /// <summary>The narrowest window, in dp, that gets the desktop frame (Material's expanded width).</summary>
-    public const double WideWidth = 840;
-    /// <summary>The lowest window, in dp, that gets the desktop frame; a phone held sideways stays compact.</summary>
+    /// <summary>The narrowest window, in dp, that gets the desktop frame (Material's medium width): a portrait tablet.</summary>
+    public const double WideWidth = 600;
+    /// <summary>
+    /// The lowest window, in dp, that gets the desktop frame on a phone-sized display, so a phone held sideways
+    /// (915×412, 851×393, 780×360 dp) stays compact although it is wider than <see cref="WideWidth"/>.
+    /// </summary>
     public const double WideHeight = 480;
-    /// <summary>A desktop-mode window dragged around the threshold must not rebuild the workbench on every step.</summary>
-    public const double Hysteresis = 40;
+    /// <summary>
+    /// The smallest side, in dp, of a display that is not a phone's own screen: a tablet's, or the external monitor
+    /// Android's desktop mode puts windows on. Phones' own screens are narrower.
+    /// </summary>
+    public const double LargeDisplay = 600;
+    /// <summary>
+    /// The lowest window, in dp, that gets the desktop frame on a <see cref="LargeDisplay"/>: a 1280×720 px
+    /// desktop-mode window at density 2 is 640×360 dp, and a tablet's split screen is short too.
+    /// </summary>
+    public const double LargeDisplayHeight = 360;
+    /// <summary>
+    /// How far, in dp, a wide window must shrink below a threshold before it turns compact, so a desktop-mode window
+    /// dragged around the threshold does not rebuild the workbench on every step.
+    /// </summary>
+    public const double Hysteresis = 32;
 
     private (bool Left, bool Right)? wideSides;
 
     /// <summary>Whether the workbench is, or is next, composed compact.</summary>
     public bool Compact { get; private set; } = compact;
 
-    /// <summary>The shell a window of this size starts with.</summary>
-    public static ShellSwitch For(double width, double height) => new(Decide(null, width, height));
+    /// <summary>The shell a window of this size, on a display whose smallest side is <paramref name="display"/> dp, starts with.</summary>
+    public static ShellSwitch For(double width, double height, double display) => new(Decide(null, width, height, display));
 
     /// <summary>
-    /// Wide when the window is at least <see cref="WideWidth"/> by <see cref="WideHeight"/> dp. A compact shell stays
-    /// until both clear the threshold by <see cref="Hysteresis"/>; an unknown size keeps the current shell.
+    /// Wide when the window is at least <see cref="WideWidth"/> dp wide and at least <see cref="WideHeight"/> dp high,
+    /// or <see cref="LargeDisplayHeight"/> dp high on a display whose smallest side (<paramref name="display"/>, in
+    /// dp; 0 when unknown) is at least <see cref="LargeDisplay"/>. So a phone on its own screen is compact in either
+    /// orientation, a tablet is wide in either, a desktop-mode window on a monitor is wide from 1280×720 px, and a
+    /// window narrower than <see cref="WideWidth"/> is compact anywhere. A wide shell stays until the window falls
+    /// below a threshold by <see cref="Hysteresis"/>; an unknown window size keeps the current shell.
     /// </summary>
-    public static bool Decide(bool? current, double width, double height)
+    public static bool Decide(bool? current, double width, double height, double display)
     {
         if (width <= 0 || height <= 0) return current ?? true;
-        var margin = current == true ? Hysteresis : 0;
-        return width < WideWidth + margin || height < WideHeight + margin;
+        var margin = current == false ? Hysteresis : 0;
+        var floor = display >= LargeDisplay ? LargeDisplayHeight : WideHeight;
+        return width < WideWidth - margin || height < floor - margin;
     }
 
     /// <summary>Follows a size change while no workbench is open, so the next one opens in the shell that fits.</summary>
-    public void Fit(double width, double height) => Compact = Decide(Compact, width, height);
+    public void Fit(double width, double height, double display) => Compact = Decide(Compact, width, height, display);
 
     /// <summary>Whether a window resized to this size needs the other shell.</summary>
-    public bool Wants(double width, double height) => Decide(Compact, width, height) != Compact;
+    public bool Wants(double width, double height, double display) => Decide(Compact, width, height, display) != Compact;
 
     /// <summary>
-    /// Whether rebuilding now would raise a question: closing the window asks about unsaved edits, and about agents
-    /// mid-turn or reported processes. A resize must not, so the swap waits until none is left.
+    /// Whether rebuilding now would raise a question: closing the window asks about unsaved edits, so the swap waits
+    /// until none is left. Agents and reported processes run on the host and survive the reopen.
     /// </summary>
     public static bool Busy(Workbench workbench) =>
-        workbench.AgentInProgress || workbench.State.Current.OwnedProcesses.Count > 0 ||
         workbench.Windows.Any(window => window.GetVisualDescendants().OfType<Editor.CodeDocumentView>().Any(view => view.HasPendingChanges));
+
+    /// <summary>
+    /// Lets the workbench close for a swap without asking to quit: the agents mid-turn and the reported processes
+    /// live on the host, and the reopened workbench finds them again.
+    /// </summary>
+    public static void Release(Workbench workbench) => workbench.ExitConfirmed = true;
 
     /// <summary>
     /// Records the swap to the other shell before the workbench closes. The phone pages hide both side panels whenever

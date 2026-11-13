@@ -3,7 +3,7 @@ namespace Tereditor.UI.Browser;
 /// <summary>Decides whether the page gets the phone shell (the Android client's drawer pages) or the desktop frame.</summary>
 internal static class PhoneLayout
 {
-    /// <summary>CSS pixels; under it a viewport is a phone. Android decides by its own, wider threshold (<c>ShellSwitch</c>).</summary>
+    /// <summary>CSS pixels; under it a viewport is a phone. Android decides by its own rule (<c>ShellSwitch</c>).</summary>
     public const double Breakpoint = 600;
     /// <summary>A desktop window dragged around the breakpoint must not rebuild the workbench on every pixel.</summary>
     public const double Hysteresis = 40;

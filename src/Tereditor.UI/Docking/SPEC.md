@@ -443,7 +443,7 @@ Workspace selection backgrounds transition over 120 ms without animating row geo
 
 ## Phone pages
 
-A compact workbench (`Workbench.Compact`, set by the Android client for windows under 840 × 480 dp) sets
+A compact workbench (`Workbench.Compact`, set by the Android client for phones and for windows under 600 dp wide) sets
 `DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
 
 - The centre keeps the whole width. There are no collapsed side rails or side separators.
