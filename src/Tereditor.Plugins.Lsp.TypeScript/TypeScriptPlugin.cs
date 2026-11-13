@@ -38,7 +38,7 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
         Repository = "https://github.com/typescript-language-server/typescript-language-server",
         Pinning = LanguageServerPinning.Lockfile,
         Runtime = "bun",
-        Dependencies = [new("bun", "Bun", "Install Bun from https://bun.sh, or pick an existing bun with Use path…")],
+        Dependencies = [new("bun", "Bun", "Get it from https://bun.sh, or pick an existing bun with Use path…")],
         HostsRuntime = true,
         NpmPackages = "typescript-language-server@6.0.2 typescript@5.9.3",
         LockFiles = Locks("package-lock.json", "package.json"),

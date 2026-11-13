@@ -39,7 +39,7 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
         Repository = "https://github.com/bash-lsp/bash-language-server",
         Pinning = LanguageServerPinning.Lockfile,
         Runtime = "bun",
-        Dependencies = [new("bun", "Bun", "Install Bun from https://bun.sh, or pick an existing bun with Use path…")],
+        Dependencies = [new("bun", "Bun", "Get it from https://bun.sh, or pick an existing bun with Use path…")],
         HostsRuntime = true,
         NpmPackages = "bash-language-server@5.8.1",
         LockFiles = Locks("package-lock.json", "package.json"),

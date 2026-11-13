@@ -44,10 +44,12 @@ internal static class LanguageDependencyChecks
     /// <summary>URLs in hint text are links to the right target, the words around them stay plain, and trailing punctuation is left out.</summary>
     private static void Links()
     {
-        var text = new Tereditor.Plugins.UI.Kit.LinkedTextBlock { Source = "Install PowerShell 7 from https://aka.ms/powershell or your package manager." };
+        var text = new Tereditor.Plugins.UI.Kit.LinkedTextBlock { Source = "Get it from https://aka.ms/powershell or your package manager." };
         var links = text.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Select(inline => (Control)inline.Child!).ToArray();
         Require(links.Length == 1 && Avalonia.Automation.AutomationProperties.GetName(links[0]) == "https://aka.ms/powershell", "The hint's URL did not become one link named by the URL.");
-        Require(text.Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text).SequenceEqual(["Install PowerShell 7 from ", " or your package manager."]), "The words around the link were not plain text.");
+        Require(text.Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text).SequenceEqual(["Get it from ", " or your package manager."]), "The words around the link were not plain text.");
+        links[0].Measure(Avalonia.Size.Infinity);
+        Require(TextBlock.GetBaselineOffset(links[0]) is > 0 and var baseline && baseline < links[0].DesiredSize.Height, "The link did not name its text baseline, so it would sit above the line.");
         Uri? opened = null;
         text.LinkClicked += (_, e) => opened = e.Url;
         links[0].RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, Source = links[0] });
@@ -142,7 +144,7 @@ internal static class LanguageDependencyChecks
             Require(Needs().Text == "Needs Go" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
                 "The Go row did not show Needs Go exactly once.");
             Console.WriteLine("PASS the Go row shows Needs Go once, with Use path… and the install hint before any start");
-            Require(Tereditor.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs Go. Install Go from https://go.dev/dl/ or your package manager.", "Needs Go")
+            Require(Tereditor.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs Go. Get it from https://go.dev/dl/ or your package manager.", "Needs Go")
                 && !Tereditor.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs Go"), "A failed start's detail repeating Needs Go was not recognised, so the row would show it twice.");
             Console.WriteLine("PASS a failed row whose detail opens with Needs Go drops the short line");
             var mine = Tool(Path.Combine(root, "ui-mine"), "go");

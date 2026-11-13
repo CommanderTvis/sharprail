@@ -38,7 +38,7 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
         RepositoryLabel = "Documentation repository",
         Pinning = LanguageServerPinning.Lockfile,
         Runtime = "bun",
-        Dependencies = [new("bun", "Bun", "Install Bun from https://bun.sh, or pick an existing bun with Use path…")],
+        Dependencies = [new("bun", "Bun", "Get it from https://bun.sh, or pick an existing bun with Use path…")],
         HostsRuntime = true,
         NpmPackages = "intelephense@1.18.5",
         LockFiles = Locks("package-lock.json", "package.json"),

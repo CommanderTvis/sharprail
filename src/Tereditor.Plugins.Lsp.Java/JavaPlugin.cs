@@ -36,7 +36,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
         Website = "https://projects.eclipse.org/projects/eclipse.jdt.ls",
         Repository = "https://github.com/eclipse-jdtls/eclipse.jdt.ls",
         Pinning = LanguageServerPinning.Archive,
-        Dependencies = [new("java", "a JDK 21 or newer", "Install a JDK 21 or newer (sdkman on macOS) and set JAVA_HOME.", HomeVariable: "JAVA_HOME")],
+        Dependencies = [new("java", "a JDK 21 or newer", "Get one (sdkman on macOS) and set JAVA_HOME.", HomeVariable: "JAVA_HOME")],
         HostsRuntime = true,
         Settings = [Setting("Project JDK home", "java.home", pathKind: "folder"), Setting("Gradle importer JDK", "java.import.gradle.java.home", pathKind: "folder"), Setting("Additional library JARs", "java.project.referencedLibraries", "lines", pathKind: "file", help: "JAR paths and glob patterns. Advanced JSON also accepts an include/exclude/sources object."), Setting("Build configuration updates", "java.configuration.updateBuildConfiguration", choices: ["automatic", "interactive", "disabled"]), Setting("Import Maven projects", "java.import.maven.enabled", "boolean"), Setting("Import Gradle projects", "java.import.gradle.enabled", "boolean")],
         IsProjectManifest = file =>

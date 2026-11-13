@@ -37,7 +37,7 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
         Website = "https://cran.r-project.org/package=languageserver",
         Repository = "https://github.com/REditorSupport/languageserver",
         Pinning = LanguageServerPinning.Partial,
-        Dependencies = [new("Rscript", "R", "Install R from https://cran.r-project.org or your package manager.")],
+        Dependencies = [new("Rscript", "R", "Get it from https://cran.r-project.org or your package manager.")],
         PinningDescription = "Managed, partially pinned: exact CRAN package version; CRAN publishes no verified hash and dependencies are resolved at install.",
         PathCapable = false,
         HostsRuntime = true,
