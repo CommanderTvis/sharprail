@@ -4,8 +4,54 @@
 #:include ../lib/Tasks.cs
 using static Tasks;
 
+const string IconDocument = "src/Tereditor.UI/tereditor.icon";
+const string IconOutput = "src/Tereditor.UI/AppIcon/compiled";
+const string IconHashFile = IconOutput + "/tereditor.icon.sha256";
+
+// A hash of the document's files (relative path and content, in path order).
+static string IconHash()
+{
+    var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+    foreach (var file in Directory.EnumerateFiles(IconDocument, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+    {
+        hash.AppendData(System.Text.Encoding.UTF8.GetBytes(Path.GetRelativePath(IconDocument, file).Replace('\\', '/') + "\n"));
+        hash.AppendData(File.ReadAllBytes(file));
+    }
+    return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+}
+
+static void VerifyIcon()
+{
+    if (!File.Exists(IconHashFile) || !File.Exists(Path.Combine(IconOutput, "Assets.car")) || !File.Exists(Path.Combine(IconOutput, "tereditor.icns")) ||
+        File.ReadAllText(IconHashFile).Trim() != IconHash())
+        throw new TaskFailure($"The compiled app icon in {IconOutput} is missing or does not match {IconDocument}; run `scripts/mise run icon:macos` (needs Xcode 26 or newer) and commit the result.");
+}
+
+// `scripts/mise run icon:macos`: compiles the Icon Composer document with actool (Xcode 26 or newer; not run in CI, whose
+// macOS 15 runner cannot run Xcode 26's actool) into the checked-in outputs.
+static int CompileIcon()
+{
+    var (versionCode, version) = Capture("xcrun", ["actool", "--version"], discardError: true);
+    var actoolMajor = System.Text.RegularExpressions.Regex.Match(version, @"short-bundle-version</key>\s*<string>(\d+)").Groups[1].Value;
+    if (versionCode != 0 || !int.TryParse(actoolMajor, out var major) || major < 26)
+        throw new TaskFailure($"The app icon needs actool from Xcode 26 or newer to compile {IconDocument}; xcrun found {(versionCode != 0 ? "no actool" : $"actool {(actoolMajor.Length > 0 ? actoolMajor : "of an unknown version")}")} (select an Xcode with xcode-select or DEVELOPER_DIR).");
+    DeleteAll(IconOutput);
+    Directory.CreateDirectory(IconOutput);
+    var partialPlist = Path.Combine("artifacts", "tereditor-icon.plist");
+    Directory.CreateDirectory("artifacts");
+    Check("xcrun", ["actool", IconDocument, "--compile", IconOutput, "--app-icon", "tereditor", "--platform", "macosx",
+        "--minimum-deployment-target", "12.0", "--standalone-icon-behavior", "all", "--enable-on-demand-resources", "NO",
+        "--output-partial-info-plist", partialPlist, "--output-format", "human-readable-text", "--errors", "--warnings"]);
+    DeleteAll(partialPlist);
+    if (!File.Exists(Path.Combine(IconOutput, "Assets.car")) || !File.Exists(Path.Combine(IconOutput, "tereditor.icns")))
+        throw new TaskFailure("actool did not write Assets.car and tereditor.icns");
+    File.WriteAllText(IconHashFile, IconHash() + "\n");
+    return 0;
+}
+
 return Guard(() =>
 {
+    if (args.Length > 0 && args[0] == "--icon") return CompileIcon();
     var rid = args.Length > 0 && args[0].Length > 0 ? args[0] : "osx-arm64";
     // Publish copies only newer files; stale outputs (for example a native library from a
     // downgraded timestamp) would otherwise survive into the package.
@@ -66,20 +112,11 @@ return Guard(() =>
         throw new TaskFailure("xcrun vtool -set-build-version failed");
     File.Move(exe + ".stamped", exe, true);
     MakeExecutable(exe);
-    // The icon: actool (Xcode 26 or newer) compiles the Icon Composer document into Assets.car, which macOS 26 draws with
-    // the system shape and Liquid Glass (CFBundleIconName), and into tereditor.icns at every size for older macOS
-    // (CFBundleIconFile), both for the executable's minimum macOS.
-    var (versionCode, version) = Capture("xcrun", ["actool", "--version"], discardError: true);
-    var actoolMajor = System.Text.RegularExpressions.Regex.Match(version, @"short-bundle-version</key>\s*<string>(\d+)").Groups[1].Value;
-    if (versionCode != 0 || !int.TryParse(actoolMajor, out var major) || major < 26)
-        throw new TaskFailure($"The app icon needs actool from Xcode 26 or newer to compile src/Tereditor.UI/tereditor.icon; xcrun found {(versionCode != 0 ? "no actool" : $"actool {(actoolMajor.Length > 0 ? actoolMajor : "of an unknown version")}")} (select an Xcode with xcode-select or DEVELOPER_DIR).");
-    var partialPlist = Path.Combine("artifacts", "tereditor-icon.plist");
-    Check("xcrun", ["actool", "src/Tereditor.UI/tereditor.icon", "--compile", resources, "--app-icon", "tereditor", "--platform", "macosx",
-        "--minimum-deployment-target", minos, "--standalone-icon-behavior", "all", "--enable-on-demand-resources", "NO",
-        "--output-partial-info-plist", partialPlist, "--output-format", "human-readable-text", "--errors", "--warnings"]);
-    DeleteAll(partialPlist);
-    if (!File.Exists(Path.Combine(resources, "Assets.car")) || !File.Exists(Path.Combine(resources, "tereditor.icns")))
-        throw new TaskFailure("actool did not write Assets.car and tereditor.icns");
+    // The icon: the compiled Icon Composer document (Assets.car, which macOS 26 draws with the system shape and Liquid Glass via
+    // CFBundleIconName, and tereditor.icns at every size for older macOS via CFBundleIconFile) is checked in, so packaging
+    // needs no actool; the hash file ties it to the document.
+    VerifyIcon();
+    foreach (var file in new[] { "Assets.car", "tereditor.icns" }) File.Copy(Path.Combine(IconOutput, file), Path.Combine(resources, file), true);
     Check("codesign", ["--force", "--deep", "--sign", "-", bundle]);
     return 0;
 });

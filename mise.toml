@@ -188,6 +188,10 @@ run = "dotnet run --file scripts/tasks/host.cs --"
 description = "Publish the app, host and checks and build artifacts/tereditor.app (osx-arm64 by default, or osx-x64)"
 run = "dotnet run --file scripts/tasks/package-macos.cs --"
 
+[tasks."icon:macos"]
+description = "Compile src/Tereditor.UI/tereditor.icon with actool (Xcode 26 or newer) into the checked-in src/Tereditor.UI/AppIcon/compiled"
+run = "dotnet run --file scripts/tasks/package-macos.cs -- --icon"
+
 [tasks."zig-deps:mirror"]
 description = "Rebuild scripts/zig-deps.lock and the Zig dependency mirror archive after a Ghostty pin change (uploads nothing)"
 run = "dotnet run --file scripts/tasks/zig-deps-mirror.cs --"
