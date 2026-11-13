@@ -4,6 +4,8 @@
 
 Keeps your CLI. Adds what's missing.
 
+The name joins TERminal and EDITOR.
+
 <img src="docs/screenshots/desktop-workbench.png" alt="The tereditor workbench: projects and worktrees on the left, an orchestrating Claude Code terminal with a task board in the centre, the file tree and Code Intelligence on the right" width="900">
 
 > [!NOTE]
