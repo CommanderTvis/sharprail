@@ -45,7 +45,8 @@ public sealed partial class ConnectWindow : Window
         error = this.FindControl<TextBlock>("ConnectError")!;
         submit = this.FindControl<Button>("ConnectSubmit")!;
         this.FindControl<ContentControl>("ConnectBrand")!.Content = Ui.Icon("brand", Ui.Accent, 40);
-        address.Text = remembered?.Address ?? "";
+        // The Playground's "this tab" is no address to connect to.
+        address.Text = remembered is { Tab: false } ? remembered.Address : "";
         token.Text = remembered?.LocalApproval == true ? "" : remembered?.Token ?? "";
         approvedToken = remembered is { LocalApproval: true, Token.Length: > 0 } ? remembered.Token : null;
         TextInputOptions.SetContentType(address, TextInputContentType.Url);

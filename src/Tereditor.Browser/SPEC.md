@@ -28,6 +28,9 @@ Browser, desktop and Android share the protobuf WebSocket RPC transport at the h
 Calls dispatch directly to host adapters with multiplexing, receive-credit flow control, cancellation,
 deadlines, structured errors and mutation replay. See Host.Protocol's spec for wire limits and lifetime.
 The Error indicator opens actual failure details and a Retry action for the current workspace restore or refresh; subscription failures remain visible while the automatic reconnect loop continues. Browser connection tokens are removed from displayed failure text. Successful connections retain Change host.
+The host address starts empty, showing only a `localhost:54123` placeholder: the page's own origin is never taken
+for a host, and only an address remembered from an earlier connection fills it in. Connect stays disabled until an
+address is entered; Open Playground needs none.
 For loopback hosts, the connect form permits a blank token and requests approval in the desktop
 app. It shows pending/cancel, denial, expiry and unsupported-host states; manual tokens remain
 available. The app approval names the page’s actual Origin and describes access to projects, files,

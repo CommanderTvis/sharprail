@@ -33,7 +33,7 @@ public sealed class BrowserSession() : IDisposable
     public void Start()
     {
         Current = this;
-        var remembered = HostEndpoint.Load(directory) ?? new HostEndpoint(BrowserInterop.Origin(), "");
+        var remembered = HostEndpoint.Load(directory);
         phone = PhoneLayout.Read(false);
         var connect = ShowConnect(remembered);
         if (remembered is { Tab: true }) connect.OpenTab();

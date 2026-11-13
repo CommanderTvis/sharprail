@@ -21,7 +21,7 @@ To serve it with a standalone host:
 TEREDITOR_TOKEN='<session token>' TEREDITOR_ROOT='/absolute/project/path' scripts/mise run browser run
 ```
 
-Open `http://localhost:54123` and enter the token. `TEREDITOR_PORT` controls the shared endpoint
+Open `http://localhost:54123` and enter that address and the token. `TEREDITOR_PORT` controls the shared endpoint
 (default 54123), used by browser, desktop and Android clients.
 `TEREDITOR_BIND` defaults to loopback. The host owns its files, Git, plugin processes, PTYs and shared state.
 
