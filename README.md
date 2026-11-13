@@ -67,19 +67,20 @@ Diagrams and option comparisons.<br><br>
 Nightly builds are on the [releases page](https://github.com/CommanderTvis/tereditor/releases/tag/nightly):
 
 - On macOS, download the disk image for Apple silicon (not notarized) or use Homebrew through the
-  [thinkrail tap](https://github.com/CommanderTvis/homebrew-thinkrail):
+  [tap](https://github.com/CommanderTvis/homebrew):
 
   ```sh
-  brew trust --tap commandertvis/thinkrail
-  brew install --cask commandertvis/thinkrail/tereditor
+  brew trust --tap commandertvis/homebrew
+  brew tap commandertvis/homebrew https://github.com/CommanderTvis/homebrew
+  brew install --cask commandertvis/homebrew/tereditor
   ```
 
-- On Windows, download the unsigned x64 or ARM64 ZIP. On x64, WinGet also works through the
-  [thinkrail source](https://github.com/CommanderTvis/winget-thinkrail):
+- On Windows, download the unsigned x64 or ARM64 ZIP. WinGet also works through the
+  [WinGet source](https://github.com/CommanderTvis/winget):
 
   ```powershell
-  winget source add --name thinkrail --arg https://winget-thinkrail.vercel.app --type Microsoft.Rest
-  winget install --id CommanderTvis.tereditor --exact --source thinkrail --scope user
+  winget source add --name thinkrail --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
+  winget install --id CommanderTvis.Tereditor --exact --source thinkrail --scope user
   ```
 
 - On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).

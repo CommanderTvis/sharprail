@@ -6,15 +6,16 @@ from source instead, see [Building](develop/building.md).
 ## macOS
 
 Download the disk image for Apple silicon. It is not notarized. Homebrew works through the
-[thinkrail tap](https://github.com/CommanderTvis/homebrew-thinkrail).
+[tap](https://github.com/CommanderTvis/homebrew).
 
 ```sh
-brew trust --tap commandertvis/thinkrail
-brew install --cask commandertvis/thinkrail/tereditor
+brew trust --tap commandertvis/homebrew
+brew tap commandertvis/homebrew https://github.com/CommanderTvis/homebrew
+brew install --cask commandertvis/homebrew/tereditor
 ```
 
 The cask always downloads the current nightly, so update it with
-`brew upgrade --cask --greedy commandertvis/thinkrail/tereditor`.
+`brew upgrade --cask --greedy commandertvis/homebrew/tereditor`.
 
 ## Windows
 
@@ -22,12 +23,12 @@ Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/Tereditor.
 `host/Tereditor.Host.Remote.exe`. Windows 10 1809 or later and Git for Windows are required. See
 [Windows](windows.md) for running a host and platform limits.
 
-On x64, WinGet also works through the [thinkrail source](https://github.com/CommanderTvis/winget-thinkrail). Add the
+WinGet also works through the [WinGet source](https://github.com/CommanderTvis/winget). Add the
 source once from an administrator terminal, then install.
 
 ```powershell
-winget source add --name thinkrail --arg https://winget-thinkrail.vercel.app --type Microsoft.Rest
-winget install --id CommanderTvis.tereditor --exact --source thinkrail --scope user
+winget source add --name thinkrail --arg https://commandertvis-winget.vercel.app --type Microsoft.Rest
+winget install --id CommanderTvis.Tereditor --exact --source thinkrail --scope user
 ```
 
 WinGet adds no command alias, so launch `client\Tereditor.UI.exe` from the install folder.
