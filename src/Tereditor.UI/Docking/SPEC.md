@@ -443,7 +443,7 @@ Workspace selection backgrounds transition over 120 ms without animating row geo
 
 ## Phone pages
 
-A compact workbench (`Workbench.Compact`, set by the Android client on phone-sized screens) sets
+A compact workbench (`Workbench.Compact`, set by the Android client for windows under 840 × 480 dp) sets
 `DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
 
 - The centre keeps the whole width. There are no collapsed side rails or side separators.
@@ -495,7 +495,8 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
 `DrawerChecks` (in `-- --shell`, and alone in `-- --drawers`) covers this headlessly, including control and
 focus persistence, finger-following, revert, interruption, Projects to Tools and hit-testing of hidden pages;
 `DrawerChecks.TabGroups` covers a three-member group's chips, chip and swipe switching, the untouched shared layout,
-hidden terminals and the activity dot. Dragging tabs between regions is not offered here.
+hidden terminals and the activity dot; `DrawerChecks.Wide` covers the Android choice between these pages and the
+desktop frame and the swap between them on a resize. Dragging tabs between regions is not offered here.
 
 Core includes the Code Intelligence tool (`lsp`, right by default), restored and moved through the same tool catalog
 and persisted frame as Files and Review. Existing presets retain their current selected tools.

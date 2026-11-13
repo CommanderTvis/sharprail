@@ -28,7 +28,9 @@ public sealed class MainActivity : AvaloniaActivity
         base.OnCreate(savedInstanceState);
         AndroidWindows.Instance.Attach(this);
         BackRequested += (_, e) => e.Handled = AndroidWindows.Instance.Back() || MoveTaskToBack(true);
-        session = new ClientSession(FilesDir!.AbsolutePath, compact: Resources!.Configuration!.SmallestScreenWidthDp < 600);
+        // The window's size, not the screen's: a desktop-mode window or a split screen gets the shell that fits it.
+        var configuration = Resources!.Configuration!;
+        session = new ClientSession(FilesDir!.AbsolutePath, ShellSwitch.For(configuration.ScreenWidthDp, configuration.ScreenHeightDp));
         session.Start();
         ReceiveShare(Intent);
     }
@@ -97,6 +99,14 @@ public sealed class MainActivity : AvaloniaActivity
         if (!Path.HasExtension(name) && resolver.GetType(uri) is { } mime &&
             global::Android.Webkit.MimeTypeMap.Singleton?.GetExtensionFromMimeType(mime) is { } extension) name += "." + extension;
         return name;
+    }
+
+    // The activity keeps itself through every size change, so this is where a resize, rotation, unfold or move to
+    // another display arrives. The soft keyboard does not change these sizes, so typing never swaps the shell.
+    public override void OnConfigurationChanged(global::Android.Content.Res.Configuration newConfig)
+    {
+        base.OnConfigurationChanged(newConfig);
+        session?.Resized(newConfig.ScreenWidthDp, newConfig.ScreenHeightDp);
     }
 
     protected override void OnResume()

@@ -41,6 +41,7 @@ internal static class ShellChecks
         DrawerChecks.Run(root);
         DrawerChecks.Pages(root);
         DrawerChecks.TabGroups(root);
+        DrawerChecks.Wide(root);
     }
 
     private static void ProjectPicker(string directory)

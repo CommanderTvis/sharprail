@@ -11,8 +11,9 @@ namespace Tereditor.UI.Android;
 /// <summary>
 /// What the activity shows: the connect screen until a host answers, then the workbench as that host's client.
 /// The address and token are remembered in the app's private files, so the next launch connects by itself.
+/// The workbench wears the phone pages or the desktop frame by the window's size, and swaps them as it changes.
 /// </summary>
-public sealed class ClientSession(string filesDirectory, bool compact) : IDisposable
+public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : IDisposable
 {
     private readonly string directory = Path.Combine(filesDirectory, ".tereditor");
     private readonly List<IDisposable> adapters = [];
@@ -23,6 +24,8 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
     private ConnectWindow? connecting;
     private DispatcherTimer? watch;
     private int unreachable;
+    private DispatcherTimer? deferred;
+    private (double Width, double Height) size;
 
     /// <summary>
     /// Whether the app is on screen. Android cuts a background app's connections, so the host is given its
@@ -104,7 +107,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         var fresh = !File.Exists(Path.Combine(directory, "profile.json"));
         var profile = new ProfileStore(directory);
         // A phone has room for the centre only: its first frame starts with the side and bottom panels hidden.
-        if (fresh && compact)
+        if (fresh && shell.Compact)
         {
             profile.Data.Windows[0].Layout = Docking.DockState.Preset("focus");
             profile.Data.Windows[0].DefaultPreset = "focus";
@@ -123,10 +126,11 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         Endpoint = endpoint;
         // Sideways scrolling is a chore under a finger: lines wrap at the screen's edge whatever the line width says.
         Tereditor.Scintilla.ScintillaEditor.WrapAlways = true;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, Touch = true, ChangeHost = ChangeHost };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = shell.Compact, Touch = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);
+        shell.Prepare(slot);
         workbench.Open(slot, slot.LastProject).Show();
         // The workbench retries a dropped host by itself; one that stays away sends the user back to the
         // connect screen, where the address can be corrected. Seconds are counted, not read from a clock,
@@ -143,8 +147,40 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         watch.Start();
     }
 
-    private void Close()
+    /// <summary>
+    /// The activity's window changed size (a rotation, a fold, a desktop-mode window resized or moved to another
+    /// display), in dp. Crossing the threshold reopens the workbench in the other shell; the layout, tabs and
+    /// documents are the profile's and the host's, so the same workspace and tab come back.
+    /// </summary>
+    public void Resized(double width, double height)
     {
+        size = (width, height);
+        if (disposed || workbench is not { } open || Endpoint is not { } endpoint || !shell.Wants(width, height)) return;
+        // Closing the window would ask about unsaved edits and running agents; a resize must not, so try again later.
+        if (ShellSwitch.Busy(open))
+        {
+            deferred ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            deferred.Tick -= RetryResize;
+            deferred.Tick += RetryResize;
+            deferred.Start();
+            return;
+        }
+        deferred?.Stop();
+        shell.Swap(open.Profile.Data.Windows[0]);
+        // The route the connect screen registered for an embedded tailnet stays: the same host is reached again.
+        Close(keepRoute: true);
+        Open(endpoint);
+    }
+
+    private void RetryResize(object? sender, EventArgs e)
+    {
+        deferred?.Stop();
+        Resized(size.Width, size.Height);
+    }
+
+    private void Close(bool keepRoute = false)
+    {
+        deferred?.Stop();
         connecting?.Close();
         connecting = null;
         watch?.Stop();
@@ -158,6 +194,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         workbench = null;
         foreach (var adapter in adapters) adapter.Dispose();
         adapters.Clear();
+        if (keepRoute) return;
         tailscaleRoute?.Dispose();
         tailscaleRoute = null;
     }

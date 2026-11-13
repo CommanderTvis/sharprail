@@ -215,6 +215,80 @@ internal static class DrawerChecks
     }
 
     /// <summary>
+    /// An Android window as wide as a tablet or a desktop-mode window on a monitor wears the desktop frame, a phone the
+    /// pages; a resize across the threshold reopens the window in the other shell on the same workspace and tab, and the
+    /// side panels the frame showed come back with it. The reopen is the one the Android session does, over the profile.
+    /// </summary>
+    internal static void Wide(string root)
+    {
+        Require(!ShellSwitch.For(1280, 720).Compact && ShellSwitch.For(400, 800).Compact, "A 1280×720 dp window must be wide and a 400×800 one compact.");
+        Require(ShellSwitch.For(915, 412).Compact && ShellSwitch.For(800, 1280).Compact && !ShellSwitch.For(840, 480).Compact,
+            "A phone held sideways and a portrait tablet must stay compact; 840×480 dp is the first wide size.");
+        Require(ShellSwitch.Decide(true, 860, 720) && !ShellSwitch.Decide(true, 880, 720) && !ShellSwitch.Decide(false, 860, 720) && ShellSwitch.Decide(false, 830, 720),
+            "A compact shell must stay until the window clears the threshold by the hysteresis.");
+
+        var directory = Path.Combine(root, "drawer-wide");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
+        E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
+        E2E.E2eWorkspace.EnableSpecPlugins(new ProfileStore(directory + "-profile").OpenState());
+        var shell = ShellSwitch.For(400, 800);
+        WorkbenchWindow Open(double width, double height)
+        {
+            // As the session does: a fresh store over the profile the closed window saved.
+            var profile = new ProfileStore(directory + "-profile");
+            shell.Prepare(profile.Data.Windows[0]);
+            var opened = new WorkbenchWindow(new ProjectServices(directory), directory, profile, E2E.E2eTerminals.Plain, compact: shell.Compact);
+            opened.Width = width; opened.Height = height;
+            opened.Show();
+            Pump(() => opened.WorkspaceMounted, "The workspace did not mount after the shell changed.");
+            return opened;
+        }
+        WorkbenchWindow Resize(WorkbenchWindow open, double width, double height)
+        {
+            Require(shell.Wants(width, height) && !ShellSwitch.Busy(open.Workbench), "A resize across the threshold must ask for the other shell.");
+            shell.Swap(open.Slot);
+            open.Close();
+            Pump(() => !open.IsVisible, "The window in the old shell did not close.");
+            return Open(width, height);
+        }
+        bool Shown(WorkbenchWindow open, string name) => open.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == name && control.IsVisible);
+
+        var window = Open(400, 800);
+        Require(Shown(window, "PageBar") && !window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftRail" or "rightRail"), "A 400×800 dp window must wear the phone pages.");
+        _ = window.OpenDocumentAsync("notes.txt");
+        var group = window.Layout.State.Center.Leaves().First();
+        Pump(() => window.Layout.Selected(group)?.Id is { } id && id.Contains("notes.txt", StringComparison.Ordinal), "The document did not open.");
+        var tab = window.Layout.Selected(group)!.Id;
+        var workspace = window.Layout.State.ActiveWorkspace;
+        Require(!shell.Wants(860, 720), "A compact window just past the threshold must not rebuild.");
+
+        window = Resize(window, 1280, 720);
+        Require(!window.Workbench.Compact && !Shown(window, "PageBar") && Shown(window, "SettingsButton"),
+            "A 1280×720 dp window must wear the desktop frame, with Settings in the top bar and no page bar.");
+        var layout = window.Layout;
+        Require(layout.State.LeftVisible && layout.State.RightVisible, "The desktop frame must show the project rail and the side tools after the phone pages.");
+        Pump(() => Named<Border>(window, "AuxiliaryRegion_left").Bounds.Width > 0 && Named<Border>(window, "AuxiliaryRegion_right").Bounds.Width > 0, "The side panels did not lay out.");
+        double Left(string name) => Named<Border>(window, name).TranslatePoint(default, window)!.Value.X;
+        Require(Left("AuxiliaryRegion_left") < Left("CenterRegion") && Left("CenterRegion") < Left("AuxiliaryRegion_right") && Named<Border>(window, "CenterRegion").Bounds.Width > 0,
+            "The frame must lay out the project rail, the centre and the side tools from left to right.");
+        group = layout.State.Center.Leaves().First();
+        Require(layout.State.ActiveWorkspace == workspace && layout.Selected(group)?.Id == tab, "The other shell must open on the same workspace and tab.");
+
+        // The frame's own choice of side panels survives a trip through the phone pages.
+        layout.Visible("right", false);
+        Dispatcher.UIThread.RunJobs();
+        Require(shell.Wants(800, 1280), "Turning to a portrait tablet must ask for the phone pages.");
+        window = Resize(window, 800, 1280);
+        Require(window.Workbench.Compact && Shown(window, "PageBar") && window.Layout.State.ActiveWorkspace == workspace &&
+            window.Layout.Selected(window.Layout.State.Center.Leaves().First())?.Id == tab, "The phone pages must open on the same workspace and tab.");
+        window = Resize(window, 1280, 800);
+        Require(window.Layout.State.LeftVisible && !window.Layout.State.RightVisible, "The desktop frame must come back with the side panels it last showed.");
+        window.Close();
+        Console.WriteLine("PASS wide shell: a wide window wears the desktop frame, a narrow one the phone pages, and a resize swaps them on the same workspace and tab");
+    }
+
+    /// <summary>
     /// The three pages are hosts that outlive a switch: the centre keeps its controls and focus while Projects shows,
     /// a held page follows the finger, an interrupted slide ends on the last page asked for, and a page off screen
     /// takes no touch.

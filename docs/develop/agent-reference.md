@@ -174,7 +174,7 @@ Run: `dotnet run --project tests/Tereditor.Checks -c Release -- <mode>`. Modes a
 | `--review-plugin` | Review plugin: legacy tool id migration, layouts, off removes the tool, Review pane retention. |
 | `--code-intelligence-plugin` | Code Intelligence plugin: off removes the language UI and leaves its dependents unavailable naming it, on restores them; no dependency cycle. |
 | `--workspace-views` | Layout keeps a workspace view only for workspaces the host lists (create/remove loop), never dropping the active one. |
-| `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
+| `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide; Android's wide/compact choice and the swap on a resize. |
 | `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
 | `--menu-layout` | Mixed icon, plain and submenu menu rows fit inside the menu padding; labels and shortcuts fit the popup at several font sizes. |

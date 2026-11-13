@@ -925,6 +925,7 @@ internal static class Program
             DrawerChecks.Run(root);
             DrawerChecks.Pages(root);
             DrawerChecks.TabGroups(root);
+            DrawerChecks.Wide(root);
             return;
         }
         if (args.SequenceEqual(["--settings-touch"]))
