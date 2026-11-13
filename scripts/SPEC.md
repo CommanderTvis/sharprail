@@ -86,7 +86,7 @@ than the host. The Android builds run on macOS or Linux and accept only `arm64-v
 `package:macos` removes the previous outputs before publishing so stale files never
 survive into the package, publishes the UI and host as NativeAOT binaries (`NativeAot.props`) and the checks
 as self-contained ReadyToRun, and keeps exactly one canonical app bundle. The bundle's icon (`tereditor.icns`) is
-built with `sips` and `iconutil` from `src/Tereditor.UI/Assets/AppIcon/macos.png` (the art inside Apple's standard transparent margin, so it matches other Dock icons), which an unbundled run (`dev`,
+built with `sips` and `iconutil` from `src/Tereditor.UI/Assets/AppIcon/macos.png` (the art cut to Apple's rounded-square shape inside its standard transparent margin, so it matches other Dock icons), which an unbundled run (`dev`,
 `native`) sets as its Dock icon at runtime instead; the Windows executable carries the same image as
 `src/Tereditor.UI/tereditor.ico`, the Android launcher icon (every build of it) is the round `src/Tereditor.Android/icon-source.png` scaled with `sips` to the
 `mipmap-*` densities in `src/Tereditor.Android/Resources`, and the Linux and browser icons are the transparent logo (`brand.png`). Replacing that
