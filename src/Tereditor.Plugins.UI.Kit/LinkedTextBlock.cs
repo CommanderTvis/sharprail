@@ -110,6 +110,14 @@ internal sealed class LinkLabel : TextBlock
 
     protected override Type StyleKeyOverride => typeof(TextBlock);
 
+    // An embedded control sits with its bottom on the line's baseline unless it names its own baseline, which lifted the link by its descent.
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        if (TextLayout.TextLines.Count > 0) SetBaselineOffset(this, TextLayout.TextLines[0].Baseline + Padding.Top);
+        return size;
+    }
+
     protected override void OnPointerEntered(PointerEventArgs e) { base.OnPointerEntered(e); TextDecorations = Avalonia.Media.TextDecorations.Underline; }
     protected override void OnPointerExited(PointerEventArgs e) { base.OnPointerExited(e); if (!IsKeyboardFocusWithin) TextDecorations = null; }
     protected override void OnPointerPressed(PointerPressedEventArgs e) { base.OnPointerPressed(e); pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed; e.Handled = pressed; }
