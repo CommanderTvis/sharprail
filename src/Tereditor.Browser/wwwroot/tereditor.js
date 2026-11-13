@@ -79,6 +79,9 @@ export function activateWindow(id) {
 export function load(key) { return (key === 'endpoint' ? sessionStorage : localStorage).getItem(`tereditor:${key}`); }
 export function save(key, value) { (key === 'endpoint' ? sessionStorage : localStorage).setItem(`tereditor:${key}`, value); }
 export function origin() { return location.origin; }
+// Imports a module beside this one. The .NET runtime keeps a failed JSHost.ImportAsync for good; a module this loaded is not
+// fetched again, and one that failed here is fetched again on the next call.
+export async function preload(path) { await import(new URL(path, import.meta.url).href); }
 export function isMac() { return /mac|iphone|ipad/i.test(navigator.userAgentData?.platform ?? navigator.platform); }
 export function openLink(url) {
   const target = new URL(url);

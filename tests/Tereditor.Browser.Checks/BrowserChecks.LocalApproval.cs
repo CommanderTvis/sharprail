@@ -27,6 +27,7 @@ internal static partial class BrowserChecks
                 Enabled = submit.IsEnabled,
                 Button = submit.Content?.ToString(),
                 Position = submit.TranslatePoint(default, window),
+                Playground = window.FindControl<Button>("ConnectTab")!.TranslatePoint(default, window),
                 Error = window.FindControl<TextBlock>("ConnectError")!.IsVisible ? window.FindControl<TextBlock>("ConnectError")!.Text : null,
                 Pending = window.FindControl<TextBlock>("ConnectProgress")!.IsVisible,
                 LocalHint = window.FindControl<TextBlock>("ConnectLocalHint")!.IsVisible

@@ -177,8 +177,12 @@ public sealed partial class ConnectWindow : Window
         else Connected?.Invoke(endpoint);
     }
 
-    /// <summary>Shows why the app is back on this screen, such as a host that stopped answering.</summary>
-    public void Report(string message) => Fail(message);
+    /// <summary>Shows why the app is back on this screen, such as a host that stopped answering, and lets the user try again.</summary>
+    public void Report(string message)
+    {
+        completed = false;
+        Fail(message);
+    }
 
     private void Abandon()
     {

@@ -26,6 +26,8 @@ internal sealed partial class TabGit : IGitBackend
     /// <summary>Loads the module, restores the saved files into the runtime's file system and starts saving them.</summary>
     public static async Task StartAsync(params string[] roots)
     {
+        // The runtime keeps a failed import for good, so the page loads the module first: a fetch that failed is tried again on the next start.
+        await BrowserInterop.Preload("tabhost.js");
         await (imported ??= JSHost.ImportAsync("tabhost", "../tabhost.js"));
         await StartScript(JsonSerializer.Serialize(roots, BrowserJson.Default.StringArray));
         GitBackends.Current = new TabGit();

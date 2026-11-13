@@ -35,6 +35,7 @@ return Guard(() =>
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/selection.mjs");
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/check.mjs");
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/local-approval.mjs");
+            MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/playground.mjs");
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/phone.mjs");
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/restty.mjs", "--hover");
             MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/restty.mjs", "--stream");

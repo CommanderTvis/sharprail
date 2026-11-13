@@ -53,6 +53,9 @@ internal static partial class BrowserInterop
     [JSImport("renderPdf", "tereditor")]
     [return: JSMarshalAs<JSType.Promise<JSType.String>>]
     internal static partial Task<string> RenderPdf(string bytes, double scale);
+    [JSImport("preload", "tereditor")]
+    [return: JSMarshalAs<JSType.Promise<JSType.Void>>]
+    internal static partial Task Preload(string path);
     [JSImport("isVisible", "tereditor")]
     internal static partial bool IsVisible();
     [JSImport("origin", "tereditor")]
