@@ -258,12 +258,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private void WireHeader()
     {
         var header = this.FindControl<Grid>("MainHeader")!;
-        header.LayoutUpdated += (_, _) => ApplyHeaderScale();
+        header.LayoutUpdated += (_, _) => { ApplyHeaderScale(); ReportCaption(); };
         ApplyChromeZoom();
         InterfaceZoom.Changed += ApplyChromeZoom;
         PropertyChanged += (_, e) => { if (e.Property == WindowStateProperty) ApplyChromeZoom(); };
         WirePinchZoom();
         Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
+        Closed += (_, _) => Ui.ThemeChanged -= ReportCaptionTheme;
         // The View menu belongs to the header's own space: a right-click on a button inside it (pickers, plugin items, Settings)
         // opens nothing, unless that control carries a menu of its own. Registered before the menu so it runs first.
         SuppressButtonMenus(header);
@@ -936,17 +937,21 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// <summary>
     /// The native title bar and traffic lights do not zoom: the strip grows with the header while its inset stays
     /// physical. Full screen hides the traffic lights, so the inset goes with them. On macOS the strip never renders
-    /// shorter than the native 40 px title bar, so below 100% the row grows to compensate for the zoom.
+    /// shorter than the native 40 px title bar, so below 100% the row grows to compensate for the zoom. An Android
+    /// desktop window's caption bar (<see cref="Caption"/>) is the same: the row is never shorter than it, and the
+    /// header keeps clear of the system's controls at both sides.
     /// </summary>
     private void ApplyChromeZoom()
     {
         var zoom = InterfaceZoom.Current;
         if (unified) { ApplyUnifiedChromeZoom(zoom); return; }
         var row = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0];
-        row.Height = new GridLength(OperatingSystem.IsMacOS() ? Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom) : LayoutRoles.TopbarRow);
+        var height = OperatingSystem.IsMacOS() ? Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom) : LayoutRoles.TopbarRow;
+        row.Height = new GridLength(captionBar is { } caption ? caption.RowHeight(zoom, height) : height);
         ExtendClientAreaTitleBarHeightHint = row.Height.Value * zoom;
         var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
-        this.FindControl<LayoutTransformControl>("HeaderZoom")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
+        this.FindControl<LayoutTransformControl>("HeaderZoom")!.Margin = captionBar is { } bar ? bar.HeaderMargin(zoom)
+            : new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
         ApplyHeaderScale();
     }
 

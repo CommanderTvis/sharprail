@@ -86,6 +86,25 @@ Contract:
   replaces the activity's content inside a frame padded by the status bar, navigation bar, display cutout and
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
+- In an Android desktop window (desktop windowing, Android 15 / API 35 and later) the desktop frame's header is the
+  window's title bar, as on a Mac. When the root is a wide workbench and the insets report a caption bar
+  (`WindowInsets.Type.captionBar()`), the activity's caption bar turns transparent
+  (`WindowInsetsController.setSystemBarsAppearance` with `APPEARANCE_TRANSPARENT_CAPTION_BAR_BACKGROUND`), the frame
+  drops the caption from its top padding, and the header takes its row: never shorter than the caption, and clear
+  of the system's controls by their bounding rects (`WindowInsets.getBoundingRects(captionBar())`, relative to the
+  window frame): a rect left of the centre line reserves room at the left (the app chip), one right of it at the
+  right (minimize, maximize, close). A rect across the centre line leaves no room, and no rects at all leave the controls' place unknown, so in
+  either case the caption stays as before.
+  `APPEARANCE_LIGHT_CAPTION_BARS` follows the header's colour (set on a light header, cleared on a dark one) and
+  follows theme changes, so the system's buttons stay readable. The system keeps the caption's touches and drags
+  the window from them, so the header's buttons and text boxes claim theirs, cut to the caption's height, with
+  `View.setSystemGestureExclusionRects` on the root's view; the header's blank space stays the system's and drags
+  the window; double-clicks there are the system's, and a right-click there may reach the system rather than
+  the header's View menu. Dialogs and Settings are still placed below the caption. Phones, full screen, the phone pages, the
+  connect screen and Android before 15 keep the caption bar above the window, untouched; a root that does not
+  draw into it clears the transparent appearance a previous one set, since the appearance belongs to the activity.
+  The margins and row height are shared code (`CaptionBar`, ShellChecks' chrome case); the platform calls, the
+  touch routing and the button colours are verified only on a device.
 - The shell follows the activity's window, not the screen (`ShellSwitch`): a window at least 600 dp wide (the
   activity configuration's `ScreenWidthDp`) and at least 480 dp high (`ScreenHeightDp`) gets the desktop frame, the
   same one the desktop app uses, with the project rail, the centre and the side tools, Settings in the top bar and no

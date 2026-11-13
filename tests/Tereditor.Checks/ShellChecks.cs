@@ -491,6 +491,29 @@ internal static class ShellChecks
         Require(window.WindowState == WindowState.Minimized, "Minimize minimizes the window.");
         window.WindowState = WindowState.Normal; Dispatcher.UIThread.RunJobs();
 
+        // An Android desktop window's header draws into the caption bar: clear of the system's controls at both sides, never
+        // shorter than the caption, and only its buttons take the caption's touches, so its blank space still drags the window.
+        Require(CaptionBar.FromPixels(0, 2560, [(2200, 2560)], 2) is null, "Without a caption bar the header stays as it is.");
+        Require(CaptionBar.FromPixels(96, 2560, [(0, 2560)], 2) is null, "A caption whose controls leave no room keeps the header below it.");
+        Require(CaptionBar.FromPixels(96, 2560, [], 2) is null, "A caption that does not say where its controls are keeps the header below it.");
+        var caption = CaptionBar.FromPixels(96, 2560, [(0, 200), (2200, 2380), (2380, 2560)], 2);
+        Require(caption == new CaptionBar(48, 100, 180), "The caption's controls reserve their room at the side they sit on, in dp.");
+        IReadOnlyList<Rect>? captionParts = null;
+        window.CaptionClaimed = parts => captionParts = parts;
+        window.Caption = caption; window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+        Require(app.Find<LayoutTransformControl>("HeaderZoom").Margin == new Thickness(100, 0, 180, 0), "The header keeps clear of the caption's controls.");
+        Require(app.Find<Grid>("WorkbenchRoot").RowDefinitions[0].Height.Value == 48, "The header row is as tall as the caption bar.");
+        var gear = app.Find<Button>("SettingsButton");
+        var gearBounds = new Rect(gear.Bounds.Size).TransformToAABB(gear.TransformToVisual(window)!.Value);
+        Require(captionParts is { Count: > 0 } && captionParts.Any(part => part.Intersects(gearBounds)) && captionParts.All(part => part.Bottom <= 48),
+            "The header's buttons take the caption's touches, within the caption.");
+        var headerBounds = new Rect(header.Bounds.Size).TransformToAABB(header.TransformToVisual(window)!.Value);
+        Require(captionParts!.Sum(part => part.Width * part.Height) < headerBounds.Width * Math.Min(48, headerBounds.Height),
+            "The header's blank space stays the system's, which drags the window.");
+        window.Caption = null; window.CaptionClaimed = null; Dispatcher.UIThread.RunJobs();
+        Require(app.Find<LayoutTransformControl>("HeaderZoom").Margin.Left == inset && app.Find<Grid>("WorkbenchRoot").RowDefinitions[0].Height.Value >= 40,
+            "Without the caption the header gets its own inset back.");
+
         bool Zoomed(double factor) => Math.Abs(window.Preferences.Zoom - factor) < 1e-9 && Math.Abs(InterfaceZoom.Current - factor) < 1e-9;
         Require(Zoomed(1), "The zoom fixture starts at 100%.");
         double LabelHeight() { window.UpdateLayout(); var label = window.FindControl<TextBlock>("ProjectLabel")!; return label.Bounds.Height * label.TransformToVisual(window)!.Value.M22; }

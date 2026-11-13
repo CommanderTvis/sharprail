@@ -59,6 +59,24 @@ internal sealed class AndroidWindows : IWindowingPlatform
         foreach (var window in windows) window.Place();
     }
 
+    // The caption bar's appearance flags the activity's window carries: none until a header draws into the caption.
+    private int captionAppearance;
+
+    /// <summary>
+    /// Makes the activity's caption bar transparent, for a header drawn into it, or gives the system back its own
+    /// background. On a light header the caption's controls draw dark. Android 15 and later; earlier systems keep theirs.
+    /// </summary>
+    internal void CaptionAppearance(bool transparent, bool light)
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(35) || Activity?.Window?.InsetsController is not { } controller) return;
+        const int Transparent = (int)global::Android.Views.WindowInsetsControllerAppearance.TransparentCaptionBarBackground;
+        const int Light = (int)global::Android.Views.WindowInsetsControllerAppearance.LightCaptionBars;
+        var flags = (transparent ? Transparent : 0) | (transparent && light ? Light : 0);
+        if (flags == captionAppearance) return;
+        captionAppearance = flags;
+        controller.SetSystemBarsAppearance(flags, Transparent | Light);
+    }
+
     /// <summary>The system Back gesture on the activity: false leaves it to the system.</summary>
     public bool Back() => Root?.Back() ?? false;
 

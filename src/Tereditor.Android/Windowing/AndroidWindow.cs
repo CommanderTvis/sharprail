@@ -312,6 +312,55 @@ internal sealed class AndroidWindow : IWindowImpl
 
     private const int SheetWidth = 640;
 
+    /// <summary>
+    /// Lets the desktop frame's header be the title bar of an Android desktop window (Android 15 and later): the caption
+    /// bar turns transparent, the header takes its height and keeps clear of the system's controls in it, and the
+    /// header's buttons take touches there while its blank space stays the system's, which drags the window. Phones,
+    /// full screen, the phone pages and every other window keep the caption bar above them. True when the header draws
+    /// into it; <paramref name="left"/> and <paramref name="right"/> are the frame's side insets, in px.
+    /// </summary>
+    private bool DrawIntoCaption(WindowInsetsCompat insets, int left, int right)
+    {
+        var workbench = topLevel as WorkbenchWindow;
+        var caption = OperatingSystem.IsAndroidVersionAtLeast(35) && workbench is { DrawsIntoCaption: true } ? Caption(insets, left, right) : null;
+        // The caption's appearance is the activity's, so a window that does not draw into it clears what one before it set.
+        if (caption is null) windows.CaptionAppearance(transparent: false, light: false);
+        if (workbench is null || caption is null && workbench.Caption is null) return caption is not null;
+        workbench.CaptionClaimed = caption is null ? null : Claim;
+        workbench.CaptionLight = caption is null ? null : light => windows.CaptionAppearance(transparent: true, light);
+        workbench.Caption = caption;
+        if (caption is null) Claim([]);
+        return caption is not null;
+    }
+
+    /// <summary>
+    /// The caption bar's height and its controls' room at each side, from the platform insets: the controls' bounding
+    /// rects are relative to the window's frame, which the view sits inside of by <paramref name="left"/> and
+    /// <paramref name="right"/> px.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("android35.0")]
+    private CaptionBar? Caption(WindowInsetsCompat insets, int left, int right)
+    {
+        if (insets.ToWindowInsets() is not { } platform) return null;
+        var type = WindowInsets.Type.CaptionBar();
+        var height = platform.GetInsets(type)!.Top;
+        if (height <= 0) return null;
+        var controls = platform.GetBoundingRects(type)!.Select(rect => (rect!.Left - left, rect.Right - left));
+        return CaptionBar.FromPixels(height, platform.Frame!.Width - left - right, controls, RenderScaling);
+    }
+
+    /// <summary>
+    /// Takes touches from the system in the parts of the caption the header's controls cover (window dips, here turned
+    /// into the view's px), so a press on a picker or the gear reaches it instead of dragging the window.
+    /// </summary>
+    private void Claim(IReadOnlyList<Rect> parts)
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(29)) return;
+        var scale = RenderScaling;
+        view.SystemGestureExclusionRects = [.. parts.Select(part => new global::Android.Graphics.Rect(
+            (int)Math.Floor(part.X * scale), (int)Math.Floor(part.Y * scale), (int)Math.Ceiling(part.Right * scale), (int)Math.Ceiling(part.Bottom * scale)))];
+    }
+
     /// <summary>Asks the window to close, as its own close button would; it may refuse.</summary>
     private void RequestClose()
     {
@@ -365,7 +414,12 @@ internal sealed class AndroidWindow : IWindowImpl
         public WindowInsetsCompat OnApplyWindowInsets(View? view, WindowInsetsCompat? insets)
         {
             var bars = insets!.GetInsets(WindowInsetsCompat.Type.SystemBars() | WindowInsetsCompat.Type.DisplayCutout() | WindowInsetsCompat.Type.Ime())!;
-            SetPadding(bars.Left, bars.Top, bars.Right, bars.Bottom);
+            // A window drawing into the caption bar of a desktop window keeps only the other insets; the system bars
+            // include the caption. Dialogs are placed clear of it either way, so none sits under the system's buttons.
+            var top = window.DrawIntoCaption(insets, bars.Left, bars.Right)
+                ? insets.GetInsets(WindowInsetsCompat.Type.StatusBars() | WindowInsetsCompat.Type.NavigationBars() | WindowInsetsCompat.Type.DisplayCutout() | WindowInsetsCompat.Type.Ime())!.Top
+                : bars.Top;
+            SetPadding(bars.Left, top, bars.Right, bars.Bottom);
             window.windows.Inset(bars.Left, bars.Top, bars.Right, bars.Bottom);
             Paint();
             return WindowInsetsCompat.Consumed!;
