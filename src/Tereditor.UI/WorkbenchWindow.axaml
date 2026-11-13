@@ -117,7 +117,8 @@
           </Border>
           <Border x:Name="BranchSegment" Classes="location-segment" Width="360" IsVisible="False">
             <!-- Two captioned blocks side by side: the branch pill, then the remote's sync state with the one action it offers. -->
-            <Grid x:Name="BranchColumns" ColumnDefinitions="Auto,Auto" VerticalAlignment="Center">
+            <!-- The remote block takes the rest of the segment, so what it shows never widens it. -->
+            <Grid x:Name="BranchColumns" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
               <Grid RowDefinitions="14,20">
                 <StackPanel Orientation="Horizontal" Spacing="4">
                   <TextBlock Classes="location-caption tr-text-metadata" Text="Branch" />
@@ -132,7 +133,8 @@
                 </Button>
               </Grid>
               <Grid x:Name="RemoteBlock" Grid.Column="1" RowDefinitions="14,20" Margin="8,0,0,0" MinWidth="200" ClipToBounds="True" IsVisible="False">
-                <TextBlock Classes="location-caption tr-text-metadata" Text="Remote" />
+                <!-- Captioned by the branch it pushes to (origin/<branch>); "Remote" only while there is none to name. -->
+                <TextBlock x:Name="RemoteCaption" Classes="location-caption tr-text-metadata" Text="Remote" />
                 <DockPanel x:Name="RemoteRow" Grid.Row="1" Height="20" Margin="8,0,0,0" VerticalAlignment="Center" />
               </Grid>
             </Grid>

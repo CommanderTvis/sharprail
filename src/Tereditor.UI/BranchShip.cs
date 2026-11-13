@@ -120,7 +120,7 @@ public sealed partial class WorkbenchWindow
 
     // The Remote block's parts are built once and only edited afterwards: a refresh never removes or re-adds a control.
     private ContentControl? remoteIcon;
-    private TextBlock? remoteState, remoteAhead, remoteBehind;
+    private TextBlock? remoteCaption, remoteState, remoteAhead, remoteBehind;
     private Button? remotePublish, remotePush, remoteSync;
     private (BranchStatus? Status, bool Busy)? shownShip;
 
@@ -139,6 +139,7 @@ public sealed partial class WorkbenchWindow
     {
         if (remoteIcon is not null) return;
         var remoteRow = this.FindControl<DockPanel>("RemoteRow")!;
+        remoteCaption = this.FindControl<TextBlock>("RemoteCaption")!;
         remoteIcon = ShipIcon("RemoteIcon", "network", Ui.Muted);
         remotePublish = ShipButton("RemotePublish", "Publish", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
         remotePush = ShipButton("RemotePush", "Push", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
@@ -170,6 +171,7 @@ public sealed partial class WorkbenchWindow
         if (status is null)
         {
             foreach (var part in RemoteParts) Put(part, Visual.IsVisibleProperty, false);
+            Put(remoteCaption!, TextBlock.TextProperty, "Remote"); Put(remoteCaption!, ToolTip.TipProperty, null);
             return;
         }
         var action = RemoteAction(status);
@@ -180,9 +182,11 @@ public sealed partial class WorkbenchWindow
         Ship(remoteSync!, action == "sync", "Sync");
         var inSync = status.HasOrigin && status.Published && status.Ahead <= 0 && status.Behind <= 0;
         var plain = !status.HasOrigin || !status.Published || inSync;
-        // The branch it pushes to always shows, so the block names its remote and not only the counts and the action.
-        var upstream = "origin/" + status.Branch;
-        Text(remoteState!, true, !status.HasOrigin ? "No remote" : !status.Published ? "Not published" : inSync ? upstream + " · in sync" : upstream, !status.HasOrigin ? Ui.Hint : Ui.Muted);
+        // The caption names the branch it pushes to, so the value row keeps its room for the state, the counts and the action.
+        var upstream = status.HasOrigin && status.Branch.Length > 0 ? "origin/" + status.Branch : null;
+        Put(remoteCaption!, TextBlock.TextProperty, upstream ?? "Remote");
+        Put(remoteCaption!, ToolTip.TipProperty, upstream is null ? null : (status.Published ? "Pushes to " : "Publishing creates ") + upstream);
+        Text(remoteState!, plain, !status.HasOrigin ? "No remote" : !status.Published ? "Not published" : "In sync", !status.HasOrigin ? Ui.Hint : Ui.Muted);
         Text(remoteAhead!, !plain && status.Ahead > 0, "↑" + status.Ahead, Ui.TextBrush);
         Text(remoteBehind!, !plain && status.Behind > 0, "↓" + status.Behind, Ui.Warning);
 

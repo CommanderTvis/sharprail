@@ -53,6 +53,7 @@ internal static class StatusRefreshChecks
                 var now = Signature(app);
                 Require(now == baseline, $"The status area changed with '{variant.Name}'/'{name}': [{baseline}] became [{now}].");
                 Require(Instances(app).SequenceEqual(instances, ReferenceComparer.Instance), $"A control was replaced with '{variant.Name}'.");
+                if (name is null) Readable(app, variant.Name, variant.Status);
             }
         app.Window.SetBranch(real.Branch);
 
@@ -88,7 +89,26 @@ internal static class StatusRefreshChecks
         Require(changes.All(change => change.StartsWith("RemoteBehind", StringComparison.Ordinal)) && changes.Count > 0, "A changed behind count wrote beyond its own cell: " + string.Join(", ", changes.Distinct()));
         Require(Signature(app) == baseline, "A changed value moved the status area.");
         app.Host.StatusMap = null;
-        Console.WriteLine("PASS status area: fixed bounds across content variants, same controls, unchanged refreshes write nothing");
+        Console.WriteLine("PASS status area: fixed bounds across content variants, same controls, unchanged refreshes write nothing; the Remote block names where it pushes");
+    }
+
+    /// <summary>
+    /// The Remote block carries its information within its fixed width: the caption names the branch it pushes to, and the state,
+    /// the counts and the action each show whole. The top bar is held to every glyph; in the rail's narrower half-column the caption
+    /// shows and may trim (the full name stays in its tooltip).
+    /// </summary>
+    private static void Readable(E2eWorkspace app, string variant, BranchStatus status)
+    {
+        static bool Whole(TextBlock text) => text.IsEffectivelyVisible && text.Bounds.Width > 0 && !text.TextLayout.TextLines.Any(line => line.HasCollapsed);
+        var caption = app.Find<TextBlock>("RemoteCaption");
+        var upstream = "origin/" + status.Branch;
+        Require(caption.Text == (status.HasOrigin ? upstream : "Remote") && (!status.HasOrigin || (ToolTip.GetTip(caption) as string)?.EndsWith(upstream, StringComparison.Ordinal) == true),
+            $"With '{variant}' the Remote caption names where it pushes: '{caption.Text}', tip '{ToolTip.GetTip(caption)}'.");
+        Require(app.Window.HasUnifiedChrome ? caption.IsEffectivelyVisible && caption.Bounds.Width > 0 : Whole(caption),
+            $"With '{variant}' the Remote caption shows the whole upstream name: {caption.Bounds}.");
+        var shown = app.Window.RemoteParts.OfType<TextBlock>().Where(text => text.IsVisible).ToArray();
+        Require(shown.Length > 0 && (app.Window.HasUnifiedChrome || shown.All(Whole)), $"With '{variant}' every Remote value shows whole: " +
+            string.Join(", ", shown.Select(text => $"{text.Name} '{text.Text}' {text.Bounds}")));
     }
 
     private sealed class ReferenceComparer : IEqualityComparer<Control>
@@ -100,7 +120,7 @@ internal static class StatusRefreshChecks
 
     private static Control[] Instances(E2eWorkspace app) =>
     [
-        app.Find<Button>("ScopeBranch"), app.Find<TextBlock>("BranchLabel"), app.Find<Grid>("RemoteBlock"), app.Find<DockPanel>("RemoteRow"),
+        app.Find<Button>("ScopeBranch"), app.Find<TextBlock>("BranchLabel"), app.Find<Grid>("RemoteBlock"), app.Find<DockPanel>("RemoteRow"), app.Find<TextBlock>("RemoteCaption"),
         .. app.Window.RemoteParts
     ];
 
