@@ -358,6 +358,27 @@ internal static class LanguagePaneNarrowChecks
 
     private const double PlainSuggestedRowBudget = 56;
 
+    /// <summary>The path line prints the whole path and trims whole middle segments to its width, keeping the last segment and the full path as tooltip.</summary>
+    private static void PathLineTrims()
+    {
+        const string path = "/Users/someone/Projects/a-rather-long-organisation-name/nested/deeper/still-deeper/the-project";
+        var line = new Tereditor.Plugins.UI.Kit.PathLine { Path = path, Width = 220 };
+        var window = new Window { Width = 300, Height = 60, Content = line };
+        window.Show();
+        try
+        {
+            window.UpdateLayout();
+            var text = line.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Name == "PathLineText");
+            var shown = text.TextLayout.TextLines.Single();
+            var printed = string.Concat(shown.TextRuns.Select(run => run.Text.ToString()));
+            Require(text.Text == path && shown.HasCollapsed && line.Bounds.Width <= 220 && printed.Contains('…') && printed.EndsWith("/the-project", StringComparison.Ordinal),
+                $"A path wider than its line must lose middle segments and keep its end, but it printed '{printed}'.");
+            Require(ToolTip.GetTip(line) as string == path, "The path line's tooltip is not the full path.");
+            Console.WriteLine("PASS the path line trims a long path's middle segments to its width and keeps the full path as tooltip");
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Rows are dense and aligned: every detail line starts at the name's left edge, Hide shares the suggested-by line, a plain suggested row fits its height budget, and the path line is the shared control.</summary>
     private static void Dense(string fixture)
     {
@@ -375,6 +396,7 @@ internal static class LanguagePaneNarrowChecks
         try
         {
             Require(pane.FindControl<Tereditor.Plugins.UI.Kit.PathLine>("Workspace") is { Path: var path } && path == root, "The pane's path line is not the shared PathLine showing the workspace.");
+            PathLineTrims();
             var servers = pane.FindControl<ListBox>("Servers")!;
             E2E.E2eWorkspace.Until(() => servers.Items.Any(item => item?.ToString() == "C / C++ (clangd)"), "The dense-layout fixture did not list clangd.");
             window.UpdateLayout();
