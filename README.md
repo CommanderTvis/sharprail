@@ -4,8 +4,6 @@
 
 Keeps your CLI. Adds what's missing.
 
-The name joins TERminal and EDITOR.
-
 <img src="docs/screenshots/desktop-workbench.png" alt="The tereditor workbench: projects and agent worktrees with their diff counts on the left, an orchestrating Claude Code terminal with its running subagents in the centre, the file tree and the Claude Code context pane on the right" width="900">
 
 > [!NOTE]
@@ -86,16 +84,16 @@ Nightly builds are on the [releases page](https://github.com/CommanderTvis/tered
 - On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).
 - On Android, install the APK, a client for a tereditor host on another machine ([Remote hosts and clients](docs/android.md)).
 
-To build from source, run:
+To build from source and run it, use one of these (or `mise run …` if you have mise):
 
 ```sh
-scripts/mise x -- dotnet run --project src/Tereditor.UI -c Release
+scripts/mise run dev     # a quick Release build
+scripts/mise run native  # a NativeAOT build tuned to this machine; needs several GB of memory
 ```
-
-[Building](docs/develop/building.md) covers the app bundle, and [Machine setup](docs/develop/setup.md) lists what to
-install per platform.
 
 ## More
 
 The [documentation index](docs/README.md) lists every page. Start with [Install](docs/install.md), [Using tereditor](docs/using.md)
 and [Agents](docs/agents.md).
+
+P.S.: The name joins TERminal and EDITOR.
