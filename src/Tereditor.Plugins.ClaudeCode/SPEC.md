@@ -314,7 +314,9 @@ entry with the fingerprint of its own inputs (the entry's inputs less the append
 file re-runs only the run that reads it; a failed bare run leaves the appended row unmeasured.
 
 The baseline is `claude -p /context --output-format json --no-session-persistence`, whose JSON carries the Markdown
-report in `result`; the host parses its tables by section title. It runs on the host that runs Claude, in the tab's
+report in `result`; the host parses its tables by section title. It stays plain `/context`: in print mode `/context all` prints the
+same report (verified on 2.1.323: same Markdown, no model call, zero cost, about 1.5 s), because `all` only expands the
+per-item breakdown the fullscreen TUI collapses. It runs on the host that runs Claude, in the tab's
 directory, with the tab process's context-shaping flags (`--append-system-prompt-file`, `--plugin-dir`, `--add-dir`,
 `--model`, `--effort`, `--mcp-config`, `--settings`, `--setting-sources`, `--system-prompt-file`, `--strict-mcp-config`;
 session and prompt arguments are dropped, so the tab's conversation is never touched) or, with no Claude in the tab,
