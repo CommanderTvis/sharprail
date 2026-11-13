@@ -35,7 +35,7 @@ Create a <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> for a 
 <tr>
 <td width="38%" valign="top">
 <b>Your PC from your phone</b><br><br>
-The Android app is a workbench for the host running on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account, because the app carries its own Tailscale node and there is no VPN app to install.<br><br>
+The Android app is a thin client for the controlling Tereditor on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account (Tailscale app not needed).<br><br>
 <a href="docs/android.md">Docs →</a>
 </td>
 <td width="62%">
@@ -88,7 +88,7 @@ To build from source and run it, use one of these (or `mise run …` if you have
 
 ```sh
 scripts/mise run dev     # a quick Release build
-scripts/mise run native  # a NativeAOT build tuned to this machine; needs several GB of memory
+scripts/mise run native  # a NativeAOT build tuned to this machine; long build
 ```
 
 ## More
