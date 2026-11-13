@@ -62,7 +62,6 @@ With `TEREDITOR_LOG=1` the server writes `.tereditor/runs/<session>.jsonl` insid
 
 ## Limits
 
-- The cloud VM is Ubuntu 24.04 on x86_64. The `:nightly` image has linux/amd64 and linux/arm64. If a tag has no image for the machine, the script stops with `has no linux/<arch> image`.
 - Docker exists in the VM, but Docker is not needed here and is not used.
 - The package on ghcr.io must be public. The script uses an anonymous token.
 - LSP on a huge repository may not finish. The first `lsp_*` call may answer `initializing`.
