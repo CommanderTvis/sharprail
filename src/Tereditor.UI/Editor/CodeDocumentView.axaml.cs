@@ -25,6 +25,18 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
     internal bool IsDisposed => disposed;
     internal bool HasPendingChanges => saving || Editor.IsModified;
     private readonly Border deletedBanner, changedBanner;
+    private readonly DetectedIndent? detectedIndent;
+    private EditorConfigIndent? editorConfig;
+
+    /// <summary>The indentation settings this buffer resolves against; setting them re-applies its effective indentation.</summary>
+    internal IndentSettings IndentSettings
+    {
+        get;
+        set { field = value; ApplyIndentation(); }
+    } = IndentSettings.Default;
+
+    /// <summary>The indentation the editor uses: .editorconfig, then the file's own clear indentation, then <see cref="IndentSettings"/>.</summary>
+    internal Indentation Indentation { get; private set; }
 
     /// <summary>The file on disk now differs from the text this buffer started from while it has unsaved edits; a banner says so until it is saved or reloaded.</summary>
     internal bool ChangedOnDisk { get => changedBanner.IsVisible; set => changedBanner.IsVisible = value; }
@@ -43,6 +55,9 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         frame.Opacity = 0;
         Editor = frame.Editor;
         Editor.IsReadOnly = file.ReadOnly;
+        detectedIndent = EditorIndentation.Detect(file.Text);
+        ApplyIndentation();
+        if (!file.ReadOnly && !Path.IsPathRooted(file.Path) && !file.Path.Contains("://", StringComparison.Ordinal)) _ = ReadEditorConfigAsync();
         deletedBanner = this.FindControl<Border>("FileDeletedOnDisk")!;
         deletedBanner.Background = Ui.Elevated; deletedBanner.BorderBrush = Ui.Danger;
         changedBanner = this.FindControl<Border>("FileChangedOnDisk")!;
@@ -99,6 +114,31 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         path = next;
         frame.Highlight(next);
         if (IsEffectivelyVisible) languageTimer.Start();
+    }
+
+    private void ApplyIndentation()
+    {
+        Indentation = EditorIndentation.Resolve(IndentSettings, detectedIndent, editorConfig);
+        Editor.UseTabs = Indentation.UseTabs; Editor.IndentSize = Indentation.Size; Editor.TabWidth = Indentation.TabWidth;
+    }
+
+    /// <summary>Reads the .editorconfig files above this file through the host, off the UI thread; a missing file is the usual case.</summary>
+    private async Task ReadEditorConfigAsync()
+    {
+        var target = path;
+        var files = await Task.Run(async () =>
+        {
+            var found = new List<(string Path, string Text)>();
+            foreach (var candidate in EditorIndentation.ConfigPaths(target))
+            {
+                try { found.Add((candidate, (await host.ReadFileAsync(candidate)).Text)); }
+                catch (Exception error) when (error is not OutOfMemoryException) { }
+            }
+            return found;
+        });
+        if (disposed || target != path) return;
+        editorConfig = EditorIndentation.Read(files, target);
+        ApplyIndentation();
     }
 
     internal void Discard() { Editor.Text = original; ChangedOnDisk = false; UpdateModified(); }

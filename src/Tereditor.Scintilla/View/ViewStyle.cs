@@ -53,6 +53,10 @@ internal sealed class ViewStyle
     public int LeftMarginWidth = 1, RightMarginWidth = 1;
     public int TabWidth = 8;
     public bool UseTabs = true;
+    /// <summary>Columns one indentation step spans; zero follows <see cref="TabWidth"/>.</summary>
+    public int Indent;
+    /// <summary>Row height as a multiple of the font's natural line height.</summary>
+    public float LineSpacing = 1;
     public bool WrapWord;
     public SKColor CaretFore = SKColors.Black;
     public int CaretPeriodMs = 500;

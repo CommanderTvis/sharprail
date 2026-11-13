@@ -156,7 +156,7 @@ Run: `dotnet run --project tests/Tereditor.Checks -c Release -- <mode>`. Modes a
 | `--workspace-delete` | Force-deleting another dirty workspace with a large build tree: UI heartbeat, the open workspace stays mounted, a switch during the deletion is prompt. |
 | `--syntax` | TextMate coverage, incremental edits, Unicode, theme changes, attachment/disposal, diff syntax styling. |
 | `--documents` | Resource renderers and file/diff body translations. |
-| `--editor`, `--markdown`, `--markdown-find`, `--markdown-images`, `--markdown-chunks` | Editor integration, source editing, Markdown rendering and search; image loading; chunked large Markdown blocks. |
+| `--editor`, `--markdown`, `--markdown-find`, `--markdown-images`, `--markdown-chunks` | Editor integration, source editing, Settings › Editor's indentation (.editorconfig, detection, settings), font family with fallback and line height in editors and diffs, Markdown rendering and search; image loading; chunked large Markdown blocks. |
 | `--agent-marks`, `--agent-launches` | Agent decorations through workspace switches and the terminal tab menu's Copy session ID; host and UI launch behavior. |
 | `--terminal-replay` | Filtering of terminal queries in recorded screens. |
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |

@@ -144,7 +144,9 @@ publish toggle automation changes without requesting another update.
   caret. Disabling following preserves independent scrolling through edits and mode changes.
   Cursor tracking does not change the source ranges reported for selections in the preview.
 - Owns, in `Tereditor.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
-  line styles).
+  line styles) and `EditorFonts`, the process-wide editor font family: empty or a family this device lacks (Skia's
+  substitute face does not count) is the bundled JetBrains Mono; every live frame switches typeface when it changes, and
+  `LineWidths.File`/`Code` scale symbol counts by the chosen font's column width.
 - Owns, in `Tereditor.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
   full-screen diagram rendering, pan and zoom). The full-screen viewer claims trackpad magnify gestures
   and clamps their scale through `ZoomGesture`.

@@ -241,7 +241,7 @@
     <DataTemplate x:Key="EditorPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Editor" Classes="settings-heading" />
-        <TextBlock Text="Display and wrapping of source files and rendered Markdown. Tab width, line numbers and the wrap columns are shared by every window and client of this host; the text size belongs to this device." Classes="settings-description" />
+        <TextBlock Text="Display, indentation and wrapping of source files, diffs and rendered Markdown. Everything here but the text size is shared by every window and client of this host; the text size belongs to this device. Terminals keep their own font." Classes="settings-description" />
         <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel Spacing="2">
@@ -254,10 +254,47 @@
         <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="Tab width" Classes="settings-label" />
-              <TextBlock Text="Columns a tab stop spans in code editors" Classes="settings-description" />
+              <TextBlock Text="Font" Classes="settings-label" />
+              <TextBlock Text="Monospace fonts on this device, or type a family name; JetBrains Mono is bundled and stands in where a font is missing" Classes="settings-description" TextWrapping="Wrap" />
+              <TextBlock x:Name="EditorFontFallback" Classes="settings-description" Foreground="{x:Static rendering:Ui.Warning}" TextWrapping="Wrap" IsVisible="False" />
+            </StackPanel>
+            <ComboBox x:Name="EditorFontFamily" Grid.Column="1" IsEditable="True" Width="220" VerticalAlignment="Center" AutomationProperties.Name="Editor font" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Line height" Classes="settings-label" />
+              <TextBlock Text="Row height in code editors and diffs, as a multiple of the font's own" Classes="settings-description" />
+            </StackPanel>
+            <NumericUpDown x:Name="EditorLineHeight" Grid.Column="1" Minimum="1" Maximum="2" Increment="0.1" FormatString="0.0" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Indent with" Classes="settings-label" />
+              <TextBlock Text="What Tab inserts in code editors" Classes="settings-description" />
+            </StackPanel>
+            <ComboBox x:Name="EditorIndentWith" Grid.Column="1" Width="120" VerticalAlignment="Center" AutomationProperties.Name="Indent with" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Indent size" Classes="settings-label" />
+              <TextBlock Text="Columns one indentation step spans; tabs display this wide" Classes="settings-description" />
             </StackPanel>
             <NumericUpDown x:Name="EditorTabWidth" Grid.Column="1" Minimum="1" Maximum="8" Increment="1" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Detect from file" Classes="settings-label" />
+              <TextBlock Text="Follow a file's own clear indentation; a .editorconfig indent_style, indent_size or tab_width wins over both" Classes="settings-description" TextWrapping="Wrap" />
+            </StackPanel>
+            <rendering:Switch x:Name="EditorDetectIndent" Grid.Column="1" Label="Detect indentation from the file" ToolTip.Tip="Detect indentation from the file" VerticalAlignment="Center" />
           </Grid>
         </Border>
         <Border Classes="settings-row">

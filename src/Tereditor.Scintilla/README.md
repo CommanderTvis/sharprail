@@ -33,6 +33,10 @@ scroll in step listen to `VerticalOffsetChanged` and call `ScrollToPixel`.
 `CaretLine` reports the one-based source line at the active end of the selection.
 `SelectRange(start, length)` selects UTF-16 offsets and reveals the caret without changing focus or text.
 `ReplaceRange(start, length, text)` changes that range as one undoable edit, retaining the save point.
+`TabWidth` sets the tab stop in columns, `IndentSize` how far Tab and Shift-Tab indent (zero follows the tab width) and
+`UseTabs` whether Tab inserts a tab character instead of spaces. `Typeface` swaps the drawing face in place, keeping text,
+selection and history. The static `LineSpacing` (1.0–2.0, like the static `TextSize`) scales every editor's rows from
+the font's natural line height, adding half the extra space above the text and half below.
 
 Colours are opaque; composite translucent theme colours before passing them. `ScintillaColors.Caret`
 overrides the caret (the foreground otherwise), and `CurrentLine` highlights the caret's line when set. The

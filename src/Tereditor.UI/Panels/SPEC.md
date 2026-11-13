@@ -209,9 +209,18 @@ could not save this change: …” inline and re-renders from host state.
   re-renders when the device appearance changes. All catalogue, resolution and pair logic comes from
   `Rendering/Themes` (see Rendering/Themes.SPEC.md). The interface font size is an app preference below.
 - Small-number fields (font sizes, tab width, group limits) are sized from the digits of their maximum plus the stepper and padding, centred, on the row's right edge.
-- Editor is one section: Editor font size (this device; separate from the interface size; pinch changes it too), Tab width
-  (1–8, default 4) and Line numbers (default on) rows, then the wrapping rows. Tab width and line numbers apply to code
-  documents; font family, line spacing and show-whitespace are not offered because the editor cannot honor them. The
+- Editor is one section: Editor font size (this device; separate from the interface size; pinch changes it too), Font,
+  Line height, Indent with, Indent size, Detect from file and Line numbers rows, then the wrapping rows. Everything but
+  the size is shared host state and follows the broadcast. Font is an editable list: “JetBrains Mono” (bundled, sent as
+  empty, the default) first, then this device's fixed-pitch families, listed off the UI thread when the page opens;
+  picking one, or typing a family and pressing Enter or leaving the field, sends it, and Escape restores the host's
+  value. A family this device lacks keeps its name in the field with a warning line, and editors draw with the bundled
+  font. Line height is 1.0–2.0 in 0.1 steps (default 1.0, the font's natural line height). Indent with is Spaces
+  (default) or Tabs; Indent size is 1–8 (default 4) and is also the tab display width; Detect from file is on by
+  default. A file editor resolves each key on its own: the `.editorconfig` files from its directory up to the
+  workspace root (`indent_style`, `indent_size`, `tab_width`; `root = true` stops), then the file's own clear
+  indentation, then these settings. Font and line height reach every file editor, diff and Markdown source live;
+  indentation applies to file editors; terminals keep their own font. Show-whitespace is not offered. The
   wrapping rows are two compact `settings-row` rows, File and Markdown, each on
   one line: name with a muted detail, a 40–240 integer field with a `symbols` suffix, and a `Limit lines` switch,
   in columns that line up across the rows. The field commits on Enter or focus loss (no Save button); an invalid

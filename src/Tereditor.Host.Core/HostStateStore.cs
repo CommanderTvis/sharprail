@@ -627,6 +627,9 @@ public sealed partial class HostStateStore : IHostStateService
 
     private static bool ValidText(string value) => !string.IsNullOrWhiteSpace(value) && !value.Contains('\0');
 
+    // Empty is the bundled font; otherwise a family name opaque to the host, as a client resolves it.
+    private static bool ValidFontFamily(string value) => value.Trim().Length <= HostSettings.MaxEditorFontFamilyLength && !value.Any(char.IsControl);
+
     private static HostState Normalize(HostState value)
     {
         var light = Clean(value.Settings.SystemLight); var dark = Clean(value.Settings.SystemDark);
@@ -646,6 +649,8 @@ public sealed partial class HostStateStore : IHostStateService
                 FileLineWidth = Width(value.Settings.FileLineWidth),
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
                 EditorTabWidth = value.Settings.EditorTabWidth is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth ? value.Settings.EditorTabWidth : 0,
+                EditorFontFamily = ValidFontFamily(value.Settings.EditorFontFamily ?? "") ? value.Settings.EditorFontFamily!.Trim() : "",
+                EditorLineHeight = value.Settings.EditorLineHeight is >= HostSettings.MinEditorLineHeight and <= HostSettings.MaxEditorLineHeight ? value.Settings.EditorLineHeight : 0,
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
                 BellFeatures = HostSettings.NormalizeBellFeatures(value.Settings.BellFeatures ?? "") is { } bell && value.Settings.BellFeatures is { Length: > 0 } ? bell : HostSettings.DefaultBellFeatures,
                 TerminalUndoCloseSeconds = Math.Clamp(value.Settings.TerminalUndoCloseSeconds, 0, HostSettings.MaxTerminalUndoCloseSeconds),
@@ -772,6 +777,11 @@ public sealed partial class HostStateStore : IHostStateService
                     "editor-tab-width" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tab) && tab is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth
                         => settings with { EditorTabWidth = tab },
                     "editor-line-numbers" when bool.TryParse(value, out var numbers) => settings with { EditorLineNumbers = numbers },
+                    "editor-indent-tabs" when bool.TryParse(value, out var tabs) => settings with { EditorIndentWithTabs = tabs },
+                    "editor-detect-indent" when bool.TryParse(value, out var detect) => settings with { EditorDetectIndent = detect },
+                    "editor-font-family" when ValidFontFamily(value) => settings with { EditorFontFamily = value.Trim() },
+                    "editor-line-height" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var height) && height is >= HostSettings.MinEditorLineHeight and <= HostSettings.MaxEditorLineHeight
+                        => settings with { EditorLineHeight = height },
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "terminal-keep-after-exit" when bool.TryParse(value, out var keep) => settings with { TerminalKeepAfterExit = keep },

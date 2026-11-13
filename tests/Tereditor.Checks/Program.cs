@@ -384,6 +384,7 @@ internal static class Program
             EditorChecks.Run();
             EditorTextChecks.Run();
             EditorWorkbenchChecks.Run(root);
+            EditorSettingsChecks.Run(root);
             E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS editor integration checks");
             return;

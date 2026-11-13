@@ -23,6 +23,11 @@
 - Open another window with ⌘⇧N. Each window keeps its own layout, while projects and settings stay in sync.
 - Choose a bundled theme, including high contrast, or follow the system with your preferred light and dark pair.
 - File-type icons are built in. Turn them on or off in Settings › Appearance.
+- Settings › Editor sets how code reads and indents in every window: the font (any monospace font on this device or a
+  typed family name; JetBrains Mono is bundled and stands in where a font is missing), the line height (1.0–2.0 times
+  the font's own), Indent with (spaces or tabs) and Indent size. Detect from file, on by default, follows a file's own
+  clear indentation, and a `.editorconfig` `indent_style`, `indent_size` or `tab_width` wins over both. Diffs use the
+  same font and line height; terminals keep their own font.
 
 ## Keymap
 

@@ -10,13 +10,13 @@ public static class LineWidths
     public static bool IsValid(int columns) => columns is >= Minimum and <= Maximum;
 
     public static double File(int width, bool bounded) =>
-        bounded ? width * Advance(Ui.CodeFont, 13) : double.PositiveInfinity;
+        bounded ? Code(width) : double.PositiveInfinity;
 
     public static double Markdown(int width, bool bounded, double fontSize) =>
         bounded ? width * Advance(Ui.InterfaceFont, fontSize) : double.PositiveInfinity;
 
     /// <summary>The width of <paramref name="columns"/> symbols in the code font, as a diff or editor lays them out.</summary>
-    public static double Code(int columns) => columns * Advance(Ui.CodeFont, 13);
+    public static double Code(int columns) => columns * Advance(Ui.CodeFont, 13) * Editor.EditorFonts.AdvanceRatio;
 
     private static double Advance(FontFamily family, double size)
     {

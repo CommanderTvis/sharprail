@@ -125,6 +125,13 @@ internal static class StateChecks
         using var accentSubscription = new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), accentPreferences, new HostState { Settings = new() { Accent = "purple" } });
         Require(accentPreferences.Accent == "purple" && new Tereditor.UI.State.Preferences().Accent.Length == 0,
             "The shared accent reaches the preferences, and the default is empty (Frog, the bundled manifests' accent).");
+        using (new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), new Tereditor.UI.State.Preferences(),
+            new HostState { Settings = new() { EditorFontFamily = "Fira Code", EditorLineHeight = 13 } }))
+            Require(Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Family == "Fira Code" && Tereditor.Scintilla.ScintillaEditor.LineSpacing == 1.3,
+                "The shared editor font family and line height reach every editor of the client.");
+        using (new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), new Tereditor.UI.State.Preferences(), new HostState()))
+            Require(Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Family.Length == 0 && Tereditor.Scintilla.ScintillaEditor.LineSpacing == 1,
+                "Unset, editors use the bundled font at its natural line height.");
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
         Directory.CreateDirectory(project);
@@ -136,6 +143,8 @@ internal static class StateChecks
             HostStateChange.Setting("accent", "#3b82f6"), HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.Setting("notifications", "false"), HostStateChange.Setting("window-decorations", "client"), HostStateChange.Setting("file-type-icons", "false"), HostStateChange.Setting("file-type-icon-style", "material"), HostStateChange.Setting("terminal-notifications", "false"), HostStateChange.Setting("bell-features", "title, system"),
             HostStateChange.Setting("vertical-tabs", "true"), HostStateChange.Setting("tabs-in-projects", "false"),
+            HostStateChange.Setting("editor-indent-tabs", "true"), HostStateChange.Setting("editor-detect-indent", "false"),
+            HostStateChange.Setting("editor-font-family", " Fira Code "), HostStateChange.Setting("editor-line-height", "15"),
             HostStateChange.Setting("custom-highlighting", """[{"Name":"Example","Scope":"source.example","Patterns":["*.example"],"Grammar":"{\"scopeName\":\"source.example\",\"patterns\":[]}"}]"""),
             HostStateChange.SavePreset("Mine", "{}"), HostStateChange.RenamePreset("Mine", "Renamed"),
             HostStateChange.OpenProject(project), HostStateChange.OpenProject(other), HostStateChange.CloseProject(other),
@@ -182,6 +191,13 @@ internal static class StateChecks
                     throw new InvalidOperationException($"The {name} host accepted the accent {bad}.");
                 }
                 catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
+            foreach (var (key, bad) in new[] { ("editor-line-height", "9"), ("editor-line-height", "21"), ("editor-line-height", "1.5"), ("editor-font-family", "Mono\nFont"), ("editor-indent-tabs", "yes") })
+                try
+                {
+                    await service.ChangeAsync([HostStateChange.Setting(key, bad)]);
+                    throw new InvalidOperationException($"The {name} host accepted {key} = {bad}.");
+                }
+                catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             try
             {
                 await service.ChangeAsync([HostStateChange.Setting("window-decorations", "wayland")]);
@@ -206,7 +222,8 @@ internal static class StateChecks
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
         var state = await local.GetStateAsync();
         Require(state.Settings.CustomHighlighting.Contains("source.example", StringComparison.Ordinal), "Custom highlighting did not persist through the host.");
-        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title" } &&
+        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title",
+                EditorIndentWithTabs: true, EditorDetectIndent: false, EditorFontFamily: "Fira Code", EditorLineHeight: 15 } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&

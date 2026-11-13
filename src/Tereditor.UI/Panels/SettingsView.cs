@@ -685,6 +685,46 @@ public sealed partial class SettingsView : UserControl
             numbers.IsChecked = preferences.EditorLineNumbers;
         };
         refreshers.Add(() => { tab.Value = preferences.EditorTabWidth; numbers.IsChecked = preferences.EditorLineNumbers; });
+        EditorFontSettings(panel);
+        var height = PageControl<NumericUpDown>(panel, "EditorLineHeight");
+        CompactSteppers(height, 24); FitDigits(height, 24); height.Width += Math.Ceiling(height.FontSize * 0.62);
+        decimal CurrentHeight() => (state.Current.Settings.EditorLineHeight is >= HostSettings.MinEditorLineHeight and <= HostSettings.MaxEditorLineHeight
+            ? state.Current.Settings.EditorLineHeight : HostSettings.DefaultEditorLineHeight) / 10m;
+        height.Value = CurrentHeight();
+        AutomationProperties.SetName(height, "Line height");
+        height.ValueChanged += (_, _) =>
+        {
+            if (height.Value is not { } value || value == CurrentHeight()) return;
+            var tenths = (int)Math.Clamp(Math.Round(value * 10), HostSettings.MinEditorLineHeight, HostSettings.MaxEditorLineHeight);
+            Share(HostStateChange.Setting("editor-line-height", tenths.ToString(CultureInfo.InvariantCulture)));
+        };
+        var indentWith = PageControl<ComboBox>(panel, "EditorIndentWith");
+        indentWith.ItemsSource = new[] { "Spaces", "Tabs" };
+        var syncingIndent = false;
+        void IndentChoice()
+        {
+            syncingIndent = true;
+            try { indentWith.SelectedIndex = state.Current.Settings.EditorIndentWithTabs ? 1 : 0; }
+            finally { syncingIndent = false; }
+        }
+        IndentChoice();
+        indentWith.SelectionChanged += (_, _) =>
+        {
+            if (syncingIndent || indentWith.SelectedIndex < 0 || (indentWith.SelectedIndex == 1) == state.Current.Settings.EditorIndentWithTabs) return;
+            Share(HostStateChange.Setting("editor-indent-tabs", Setting(indentWith.SelectedIndex == 1)));
+            // The selection follows the host, not the pick: put it back until the broadcast moves it.
+            IndentChoice();
+        };
+        var detect = PageControl<Switch>(panel, "EditorDetectIndent");
+        detect.IsChecked = state.Current.Settings.EditorDetectIndent;
+        AutomationProperties.SetName(detect, "Detect indentation from the file");
+        detect.CheckedChange += requested =>
+        {
+            if (requested == state.Current.Settings.EditorDetectIndent) return;
+            Share(HostStateChange.Setting("editor-detect-indent", Setting(requested)));
+            detect.IsChecked = state.Current.Settings.EditorDetectIndent;
+        };
+        refreshers.Add(() => { height.Value = CurrentHeight(); IndentChoice(); detect.IsChecked = state.Current.Settings.EditorDetectIndent; });
         PageControl<ContentControl>(panel, "FileLineWidthHost").Content = LineWidthControl("File",
             "Wraps source files and diffs in the editor font.",
             () => preferences.FileLineWidth, () => preferences.FileLineWidthBounded);
@@ -692,6 +732,58 @@ public sealed partial class SettingsView : UserControl
             "Wraps rendered Markdown and rendered diffs, measured in the reading font.",
             () => preferences.MarkdownLineWidth, () => preferences.MarkdownLineWidthBounded);
         return panel;
+    }
+
+    // An editable list of this device's monospace fonts: picking one, or typing a family and pressing Enter or leaving the
+    // field, sends it; the bundled font is sent as empty. The field shows the host's family until its broadcast arrives.
+    private void EditorFontSettings(Control panel)
+    {
+        var fonts = PageControl<ComboBox>(panel, "EditorFontFamily");
+        var fallback = PageControl<TextBlock>(panel, "EditorFontFallback");
+        string Current() => state.Current.Settings.EditorFontFamily is { Length: > 0 } family ? family : Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Bundled;
+        string[] families = [Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Bundled];
+        var syncing = false;
+        void Show()
+        {
+            syncing = true;
+            try
+            {
+                var current = Current();
+                var listed = families.Contains(current, StringComparer.OrdinalIgnoreCase) ? families : [.. families, current];
+                if (!ReferenceEquals(fonts.ItemsSource, listed) && !(fonts.ItemsSource is string[] shown && shown.SequenceEqual(listed))) fonts.ItemsSource = listed;
+                fonts.SelectedItem = ((string[])fonts.ItemsSource!).First(item => item.Equals(current, StringComparison.OrdinalIgnoreCase));
+                fonts.Text = current;
+            }
+            finally { syncing = false; }
+            fallback.IsVisible = Tereditor.Plugins.UI.Kit.Editor.EditorFonts.FellBack;
+            fallback.Text = $"“{state.Current.Settings.EditorFontFamily}” is not installed on this device; editors use {Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Bundled}.";
+        }
+        void Commit(string? family)
+        {
+            family = (family ?? "").Trim();
+            if (family.Equals(Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Bundled, StringComparison.OrdinalIgnoreCase)) family = "";
+            if (family.Length > HostSettings.MaxEditorFontFamilyLength || family == state.Current.Settings.EditorFontFamily) { Show(); return; }
+            Share(HostStateChange.Setting("editor-font-family", family));
+            Show();
+        }
+        Show();
+        fonts.SelectionChanged += (_, _) => { if (!syncing && fonts.SelectedItem is string picked) Commit(picked); };
+        // Tunnelling, so Enter and Escape reach the field before the combo box acts on them.
+        fonts.AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (fonts.IsDropDownOpen) return;
+            if (e.Key == Key.Enter) { Commit(fonts.Text); e.Handled = true; }
+            else if (e.Key == Key.Escape) { Show(); e.Handled = true; }
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        fonts.LostFocus += (_, _) => { if (!syncing && fonts.Text != Current()) Commit(fonts.Text); };
+        refreshers.Add(Show);
+        // Listing the installed fonts loads each face, so it runs off the UI thread; the list fills in when ready.
+        ListFonts();
+        async void ListFonts()
+        {
+            try { families = [.. await Task.Run(Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Monospace)]; Show(); }
+            catch (Exception failure) when (failure is not OutOfMemoryException) { Console.Error.WriteLine("Font list failed: " + failure.Message); }
+        }
     }
 
     // A draft input committed by Enter or when it loses focus (an invalid draft then reverts); Escape reverts it.

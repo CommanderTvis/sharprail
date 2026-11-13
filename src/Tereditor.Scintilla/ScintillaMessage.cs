@@ -35,6 +35,7 @@ internal enum ScintillaMessage : uint
     ResetElementColour = 2755,
     SetTabWidth = 2036,
     SetUseTabs = 2124,
+    SetIndent = 2122,
     SetMarginTypeN = 2240,
     MarginSetText = 2530,
     MarginSetStyle = 2532,

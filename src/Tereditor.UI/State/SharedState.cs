@@ -123,6 +123,10 @@ public sealed class SharedState : IDisposable
         Preferences.MarkdownLineWidthBounded = settings.MarkdownLineWidthBounded;
         Preferences.EditorTabWidth = settings.EditorTabWidth is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth ? settings.EditorTabWidth : HostSettings.DefaultEditorTabWidth;
         Preferences.EditorLineNumbers = settings.EditorLineNumbers;
+        // Process-wide like the text size: every file editor, diff and Markdown source follows them live.
+        Tereditor.Plugins.UI.Kit.Editor.EditorFonts.Family = settings.EditorFontFamily ?? "";
+        Tereditor.Scintilla.ScintillaEditor.LineSpacing = settings.EditorLineHeight is >= HostSettings.MinEditorLineHeight and <= HostSettings.MaxEditorLineHeight
+            ? settings.EditorLineHeight / 10.0 : Tereditor.Scintilla.ScintillaEditor.DefaultLineSpacing;
         Preferences.Accent = settings.Accent ?? "";
         if (settings.VerticalCenterTabs is { } vertical) Preferences.VerticalCenterTabs = vertical;
         if (settings.VerticalTabsInProjects is { } inProjects) Preferences.VerticalTabsInProjects = inProjects;

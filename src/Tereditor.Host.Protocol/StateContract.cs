@@ -66,6 +66,14 @@ public sealed class SettingsMessage
     [ProtoMember(33)] public string Accent { get; set; } = "";
     /// <summary>Empty, from a host that predates the guard, is the defaults.</summary>
     [ProtoMember(34)] public string TerminalMemory { get; set; } = "";
+    /// <summary>Optional, so a host that predates it reads as indenting with spaces.</summary>
+    [ProtoMember(35)] public bool EditorIndentWithTabs { get; set; }
+    /// <summary>Inverted so a host that predates the setting reads as detecting, its default.</summary>
+    [ProtoMember(36)] public bool EditorDetectIndentOff { get; set; }
+    /// <summary>Empty, from a host that predates the setting, is the bundled font.</summary>
+    [ProtoMember(37)] public string EditorFontFamily { get; set; } = "";
+    /// <summary>Zero, from a host that predates the setting, is the natural line height.</summary>
+    [ProtoMember(38)] public int EditorLineHeight { get; set; }
 }
 
 [ProtoContract]

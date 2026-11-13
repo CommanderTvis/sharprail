@@ -36,6 +36,20 @@ public sealed partial class ScintillaEditor
         set { field = Math.Clamp(value, 1, 16); document.Send(ScintillaMessage.SetTabWidth, field); InvalidateVisual(); }
     } = 4;
 
+    /// <summary>Columns one indentation step (Tab, Shift-Tab) spans; zero follows <see cref="TabWidth"/>.</summary>
+    public int IndentSize
+    {
+        get;
+        set { field = Math.Clamp(value, 0, 16); document.Send(ScintillaMessage.SetIndent, field); }
+    }
+
+    /// <summary>Whether Tab indents with a tab character instead of spaces.</summary>
+    public bool UseTabs
+    {
+        get;
+        set { field = value; document.Send(ScintillaMessage.SetUseTabs, value ? 1 : 0); }
+    }
+
     public bool ShowLineNumbers
     {
         get => lineNumbers;

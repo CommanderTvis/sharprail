@@ -31,6 +31,10 @@
     "ActiveKeymap": "",
     "EditorTabWidth": 0,
     "EditorLineNumbers": true,
+    "EditorIndentWithTabs": false,
+    "EditorDetectIndent": true,
+    "EditorFontFamily": "",
+    "EditorLineHeight": 0,
     "Accent": ""
   },
   "Presets": [

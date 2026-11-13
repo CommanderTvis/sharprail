@@ -36,8 +36,8 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
     private readonly Selection sel = new();
     private readonly ContractionState cs = new();
     private readonly ViewStyle vs = new();
-    private readonly LineShaper shaper;
-    private readonly EditView view;
+    private LineShaper shaper;
+    private EditView view;
 
     private long revision;
     private SKRect client = new(0, 0, 800, 600);
@@ -331,6 +331,9 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
                 break;
             case ScintillaMessage.SetUseTabs:
                 vs.UseTabs = w != 0;
+                break;
+            case ScintillaMessage.SetIndent:
+                vs.Indent = (int)Math.Max(0, w);
                 break;
             case ScintillaMessage.SetWrapMode:
                 if (vs.WrapWord != (w != 0))
@@ -756,8 +759,11 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
         EnsureCaretVisible();
     }
 
+    /// <summary>Columns one indentation step spans (upstream SCI_SETINDENT; zero follows the tab width).</summary>
+    private int IndentSize => vs.Indent > 0 ? vs.Indent : vs.TabWidth;
+
     private ReadOnlySpan<byte> IndentText(int column) =>
-        vs.UseTabs ? "\t"u8 : Encoding.ASCII.GetBytes(new string(' ', vs.TabWidth - column % vs.TabWidth));
+        vs.UseTabs ? "\t"u8 : Encoding.ASCII.GetBytes(new string(' ', IndentSize - column % IndentSize));
 
     /// <summary>Tab and BackTab: within a line inserts (or removes) indentation; across lines indents each line.</summary>
     private void Indent(bool forward)
@@ -796,7 +802,7 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
                 if (doc.CharAt(lineStart) == '\t')
                     remove = 1;
                 else
-                    while (remove < vs.TabWidth && lineStart + remove < doc.LineEnd(line) && doc.CharAt(lineStart + remove) == ' ')
+                    while (remove < IndentSize && lineStart + remove < doc.LineEnd(line) && doc.CharAt(lineStart + remove) == ' ')
                         remove++;
                 if (remove == 0) continue;
                 doc.DeleteChars(lineStart, remove);
@@ -1108,6 +1114,28 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
 
     // View state
 
+    public SKTypeface Typeface => shaper.Typeface;
+
+    /// <summary>Draws with another typeface, keeping text, selection and history; the old shaper is released.</summary>
+    public void SetTypeface(SKTypeface typeface)
+    {
+        if (typeface == shaper.Typeface) return;
+        var direction = shaper.Direction;
+        shaper.Dispose();
+        shaper = new LineShaper(typeface) { Direction = direction };
+        view = new EditView(shaper);
+        RefreshStyle();
+    }
+
+    /// <summary>Scales each row's height by <paramref name="spacing"/>, splitting the added space above and below the text.</summary>
+    public void SetLineSpacing(float spacing)
+    {
+        spacing = float.IsFinite(spacing) ? Math.Clamp(spacing, 1, 3) : 1;
+        if (spacing == vs.LineSpacing) return;
+        vs.LineSpacing = spacing;
+        RefreshStyle();
+    }
+
     public void SetDirection(ScintillaTextDirection direction)
     {
         shaper.Direction = direction;
@@ -1145,9 +1173,13 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
             ascent = Math.Max(ascent, MathF.Floor(metrics.Ascent));
             descent = Math.Max(descent, MathF.Floor(metrics.Descent));
         }
-        vs.Ascent = ascent;
-        vs.Descent = descent;
-        vs.LineHeight = MathF.Round(ascent + descent, MidpointRounding.AwayFromZero);
+        var natural = MathF.Round(ascent + descent, MidpointRounding.AwayFromZero);
+        // Line spacing pads each row, half above the text (moving its baseline down) and half below.
+        var extra = MathF.Round(natural * (vs.LineSpacing - 1), MidpointRounding.AwayFromZero);
+        var above = MathF.Floor(extra / 2);
+        vs.Ascent = ascent + above;
+        vs.Descent = descent + extra - above;
+        vs.LineHeight = natural + extra;
         vs.SpaceWidth = shaper.Measure(vs.Styles[ViewStyle.Default].FontSpec, " "u8);
         var widest = 0f;
         Span<byte> glyph = stackalloc byte[1];

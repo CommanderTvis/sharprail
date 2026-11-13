@@ -2360,6 +2360,18 @@ Tereditor.Host.Abstractions.HostSettings.EditorLineNumbers.get -> bool
 Tereditor.Host.Abstractions.HostSettings.EditorLineNumbers.set -> void
 Tereditor.Host.Abstractions.HostSettings.EditorTabWidth.get -> int
 Tereditor.Host.Abstractions.HostSettings.EditorTabWidth.init -> void
+const Tereditor.Host.Abstractions.HostSettings.DefaultEditorLineHeight = 10 -> int
+const Tereditor.Host.Abstractions.HostSettings.MaxEditorLineHeight = 20 -> int
+const Tereditor.Host.Abstractions.HostSettings.MinEditorLineHeight = 10 -> int
+const Tereditor.Host.Abstractions.HostSettings.MaxEditorFontFamilyLength = 200 -> int
+Tereditor.Host.Abstractions.HostSettings.EditorIndentWithTabs.get -> bool
+Tereditor.Host.Abstractions.HostSettings.EditorIndentWithTabs.init -> void
+Tereditor.Host.Abstractions.HostSettings.EditorDetectIndent.get -> bool
+Tereditor.Host.Abstractions.HostSettings.EditorDetectIndent.set -> void
+Tereditor.Host.Abstractions.HostSettings.EditorFontFamily.get -> string!
+Tereditor.Host.Abstractions.HostSettings.EditorFontFamily.set -> void
+Tereditor.Host.Abstractions.HostSettings.EditorLineHeight.get -> int
+Tereditor.Host.Abstractions.HostSettings.EditorLineHeight.init -> void
 Tereditor.Host.Abstractions.LanguageRequest.NewPath.get -> string!
 Tereditor.Host.Abstractions.LanguageRequest.NewPath.init -> void
 Tereditor.Host.Abstractions.LanguageRequest.Timeout.get -> int

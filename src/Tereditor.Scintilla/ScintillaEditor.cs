@@ -40,7 +40,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private bool disposed;
     private ScintillaColors colors = ScintillaColors.Light;
     private ScintillaColors? appliedColors;
-    private double appliedSize = DefaultTextSize;
+    private double appliedSize = DefaultTextSize, appliedSpacing = DefaultLineSpacing;
     private static nint NumberMargin(double size) => (nint)Math.Round(48 * size / DefaultTextSize);
     private void TextSized() => InvalidateVisual();
     private ScintillaTextDirection direction;
@@ -123,7 +123,29 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         }
     } = DefaultTextSize;
 
-    /// <summary>Raised when <see cref="TextSize"/> changes, a pinch in progress included.</summary>
+    public const double DefaultLineSpacing = 1, MinimumLineSpacing = 1, MaximumLineSpacing = 2;
+
+    /// <summary>Every editor's row height as a multiple of its font's natural line height, in tenths from 1 to 2.</summary>
+    public static double LineSpacing
+    {
+        get;
+        set
+        {
+            value = double.IsFinite(value) ? Math.Clamp(Math.Round(value * 10) / 10, MinimumLineSpacing, MaximumLineSpacing) : DefaultLineSpacing;
+            if (field == value) return;
+            field = value;
+            TextSizeChanged?.Invoke();
+        }
+    } = DefaultLineSpacing;
+
+    /// <summary>The typeface this editor draws with; the caller keeps ownership. Changing it keeps text, selection and history.</summary>
+    public SKTypeface Typeface
+    {
+        get => document.Typeface;
+        set { ArgumentNullException.ThrowIfNull(value); document.SetTypeface(value); ApplyWrap(Bounds.Width); InvalidateVisual(); }
+    }
+
+    /// <summary>Raised when <see cref="TextSize"/> or <see cref="LineSpacing"/> changes, a pinch in progress included.</summary>
     public static event Action? TextSizeChanged;
 
     /// <summary>Raised when a pinch settles on a size, for whoever remembers it.</summary>
@@ -289,8 +311,9 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     private void ApplyColors()
     {
-        if (appliedColors == colors && appliedSize == TextSize) return;
+        if (appliedColors == colors && appliedSize == TextSize && appliedSpacing == LineSpacing) return;
         appliedColors = colors;
+        if (appliedSpacing != LineSpacing) { appliedSpacing = LineSpacing; document.SetLineSpacing(LineSpacing); }
         if (appliedSize != TextSize)
         {
             // The number margin was sized for the text it held.

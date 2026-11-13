@@ -3568,6 +3568,10 @@ internal static class RpcCodec
         if (value.EditorLineNumbersHidden) writer.Bool(32, value.EditorLineNumbersHidden);
         if (value.Accent is { } field33) writer.String(33, field33);
         if (value.TerminalMemory is { } field34) writer.String(34, field34);
+        if (value.EditorIndentWithTabs) writer.Bool(35, value.EditorIndentWithTabs);
+        if (value.EditorDetectIndentOff) writer.Bool(36, value.EditorDetectIndentOff);
+        if (value.EditorFontFamily is { } field37) writer.String(37, field37);
+        if (value.EditorLineHeight != 0) writer.Int32(38, value.EditorLineHeight);
     }
 
     private static SettingsMessage ReadSettingsMessage(ref ProtoReader reader, SettingsMessage? value)
@@ -3609,6 +3613,10 @@ internal static class RpcCodec
                 case 32: value.EditorLineNumbersHidden = reader.Bool(); break;
                 case 33: value.Accent = reader.String(); break;
                 case 34: value.TerminalMemory = reader.String(); break;
+                case 35: value.EditorIndentWithTabs = reader.Bool(); break;
+                case 36: value.EditorDetectIndentOff = reader.Bool(); break;
+                case 37: value.EditorFontFamily = reader.String(); break;
+                case 38: value.EditorLineHeight = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }

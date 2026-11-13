@@ -3,9 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Platform;
-
-using SkiaSharp;
 
 using Tereditor.Scintilla;
 
@@ -14,12 +11,6 @@ namespace Tereditor.Plugins.UI.Kit.Editor;
 /// <summary>A Scintilla editor with the workbench's font, theme colours and auto-hiding scrollbars.</summary>
 public sealed partial class EditorFrame : UserControl
 {
-    // Shared by every editor for the application's lifetime.
-    private static readonly Lazy<SKTypeface> Typeface = new(() =>
-    {
-        using var stream = AssetLoader.Open(new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
-        return SKTypeface.FromStream(stream);
-    });
     private readonly ScrollBar vertical;
     private readonly ScrollBar horizontal;
     private bool syncingScroll;
@@ -44,7 +35,7 @@ public sealed partial class EditorFrame : UserControl
         AvaloniaXamlLoader.Load(this);
         vertical = this.FindControl<ScrollBar>("EditorVerticalScroll")!;
         horizontal = this.FindControl<ScrollBar>("EditorHorizontalScroll")!;
-        Editor = new(text, Typeface.Value) { Name = name, Colors = ThemeColors() };
+        Editor = new(text, EditorFonts.Typeface) { Name = name, Colors = ThemeColors() };
         this.FindControl<ContentControl>("EditorBody")!.Content = Editor;
         Editor.Disposed += (_, _) => { syntaxDisposed = true; DetachSyntax(); };
         Editor.ScrollChanged += (_, _) => SyncScrollBars();
@@ -60,10 +51,11 @@ public sealed partial class EditorFrame : UserControl
     };
 
     private void ApplyTheme() { Editor.Colors = ThemeColors(); ThemeApplied?.Invoke(); ApplySyntaxTheme(); }
+    private void ApplyFont() => Editor.Typeface = EditorFonts.Typeface;
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    { base.OnAttachedToVisualTree(e); ApplyTheme(); Ui.ThemeChanged += ApplyTheme; AttachSyntax(); }
+    { base.OnAttachedToVisualTree(e); ApplyTheme(); ApplyFont(); Ui.ThemeChanged += ApplyTheme; EditorFonts.Changed += ApplyFont; AttachSyntax(); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { DetachSyntax(); Ui.ThemeChanged -= ApplyTheme; base.OnDetachedFromVisualTree(e); }
+    { DetachSyntax(); Ui.ThemeChanged -= ApplyTheme; EditorFonts.Changed -= ApplyFont; base.OnDetachedFromVisualTree(e); }
 
     private void SyncScrollBars()
     {

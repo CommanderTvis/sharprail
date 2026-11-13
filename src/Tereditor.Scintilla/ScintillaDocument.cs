@@ -117,6 +117,12 @@ internal sealed class ScintillaDocument : IDisposable
 
     internal void SetDirection(ScintillaTextDirection direction) => Editor.SetDirection(direction);
 
+    internal SKTypeface Typeface => Editor.Typeface;
+
+    internal void SetTypeface(SKTypeface typeface) => Editor.SetTypeface(typeface);
+
+    internal void SetLineSpacing(double spacing) => Editor.SetLineSpacing((float)spacing);
+
     internal void Resize(double width, double height) => Editor.Resize((float)width, (float)height);
 
     internal SKPicture Record(float width, float height)
