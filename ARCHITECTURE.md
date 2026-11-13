@@ -16,7 +16,7 @@ server.
 
 This is the map of the system. Start with the [product contract](SPEC.md) for behavior, then
 follow the linked module specs for individual rules. Source-file navigation belongs in
-[the contributor guide](AGENTS.md). [History](docs/history.md) records where tereditor came from.
+[the contributor guide](AGENTS.md).
 
 ## Local and remote work
 

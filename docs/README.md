@@ -26,4 +26,3 @@
 - [Building](develop/building.md) and [Checks](develop/checks.md).
 - [Headless design](develop/headless-design.md): the plan for the container and the TOML config surface.
 - [Agent reference](develop/agent-reference.md): project map, host-change layers, check modes and artifact paths.
-- [History](history.md): where tereditor came from and how it split from ThinkRail.

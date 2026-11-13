@@ -1,7 +1,6 @@
 # tereditor status
 
-One ledger for what completion requires and what is still open. [History](docs/history.md) records where tereditor
-came from.
+One ledger for what completion requires and what is still open.
 
 - [Completion criteria](#completion-criteria): the original scope, the evidence for each requirement and its limits.
 - [Backlog](#backlog): known gaps and outstanding acceptance work.
