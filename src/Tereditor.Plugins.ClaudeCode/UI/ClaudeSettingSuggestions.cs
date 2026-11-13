@@ -7,7 +7,8 @@ namespace Tereditor.Plugins.ClaudeCode.UI;
 /// suggestions, never a restriction: a newer Claude Code may accept more, so the field still takes any string.
 /// Sources: S = https://json.schemastore.org/claude-code-settings.json (the schema Claude Code's settings reference
 /// links), M = https://code.claude.com/docs/en/model-config (model aliases, per-model effort levels),
-/// H = <c>claude --help</c> 2.1.310 (<c>--permission-mode</c> choices).
+/// H = <c>claude --help</c> 2.1.310 (<c>--permission-mode</c> choices). Keys this table lacks fall back to the
+/// closed value sets and kinds of the generated <see cref="ClaudeSettingsReference"/>.
 /// </summary>
 internal static class ClaudeSettingSuggestions
 {
@@ -63,9 +64,19 @@ internal static class ClaudeSettingSuggestions
 
     /// <summary>The known string values for <paramref name="key"/>, or null when its set is open or unknown.</summary>
     public static IReadOnlyList<string>? For(string key) =>
-        Strings.FirstOrDefault(entry => Matches(entry.Pattern, key)).Values;
+        Strings.FirstOrDefault(entry => Matches(entry.Pattern, key)).Values ?? ClaudeSettingsReference.Find(key)?.Values;
 
-    /// <summary>The shape a key is documented with: on/off for booleans, text for keys with suggestions.</summary>
+    /// <summary>
+    /// The shape a key is documented with: on/off for booleans, text for keys with suggestions, else the kind the
+    /// settings reference gives it (a list for a list of text); null for structured or unknown keys.
+    /// </summary>
     public static ValueShape? ShapeFor(string key) =>
-        Booleans.Contains(key) ? ValueShape.Switch : For(key) is not null ? ValueShape.Text : null;
+        Booleans.Contains(key) ? ValueShape.Switch : For(key) is not null ? ValueShape.Text : ClaudeSettingsReference.Find(key)?.Kind switch
+        {
+            "boolean" => ValueShape.Switch,
+            "number" => ValueShape.Number,
+            "string" => ValueShape.Text,
+            "array" => ValueShape.List,
+            _ => null
+        };
 }

@@ -41,6 +41,10 @@ public static class ClaudeValues
     {
         FileEdit file => [TemplateScope(file.Template)],
         SkillCreateEdit => SkillScopes,
+        // A documented key goes only where the reference says Claude Code reads it; a removal reaches any file, and an
+        // unknown key (or one only managed settings read) keeps every scope, since the list may be older than the CLI.
+        SettingEdit { Value: not null } setting when ClaudeSettingsReference.Find(setting.Key) is { } documented &&
+            ClaudeSettingsReference.WritableScopes(documented) is { Count: > 0 } allowed => allowed,
         _ => WritableScopes
     };
 

@@ -284,10 +284,10 @@ internal static partial class ClaudeResolver
             if (Json.ReadObject(entry.Path) is { } data) documents.Add(new(new(entry.Scope, entry.Path), data));
         return new(workspaceId, root,
             CollectContext(root, promptFiles ?? []),
-            [.. SettingsMerge.Resolve(documents).Select(entry => SettingsDocs.Url(entry.Key) is { } url ? entry with { DocsUrl = url } : entry)],
+            [.. SettingsMerge.Resolve(documents).Select(entry => ClaudeSettingsReference.Url(entry.Key) is { } url ? entry with { DocsUrl = url } : entry)],
             [.. CollectCapabilities(root, documents), .. CollectPlugins(documents), .. CollectMarketplaces(documents), .. CollectHooks(documents)],
             DetectProblems(inspected),
             inspected,
-            SettingsDocs.Keys);
+            ClaudeSettingsReference.Keys);
     }
 }

@@ -2,8 +2,8 @@
   <!-- The Claude Code plugin's contract and manifest, shared by its host and UI halves. -->
   <ItemGroup>
     <Using Include="Tereditor.Plugins.Chat" />
-    <Compile Remove="Host/**;UI/**" />
-    <None Remove="Host/**;UI/**" />
+    <Compile Remove="Host/**;UI/**;scripts/**" />
+    <None Remove="Host/**;UI/**;scripts/**" />
     <ProjectReference Include="../Tereditor.Plugins.Api/Tereditor.Plugins.Api.csproj" />
     <ProjectReference Include="../Tereditor.Plugins.Chat/Tereditor.Plugins.Chat.csproj" />
   </ItemGroup>

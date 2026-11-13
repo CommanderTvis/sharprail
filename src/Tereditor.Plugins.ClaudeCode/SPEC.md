@@ -343,6 +343,29 @@ https://json.schemastore.org/claude-code-settings.json, https://code.claude.com/
 and `claude --help` (`--permission-mode` choices). The edit review names its scopes "Your settings",
 "Project settings" and "Local project settings", each with the pane's scope chip.
 
+The documented keys come from Claude Code's settings reference, https://code.claude.com/docs/en/settings-reference,
+pinned in the generated `ClaudeSettingsReference.cs` (shared by host and UI; first generated 2026-11-13). Per key it
+keeps the anchor the page's index links to, the index's one-line summary, the files it may go in, the first clause of
+its type and default, and the closed value set when the type lists one; it also pins every heading id of the page.
+`scripts/GenerateSettingsReference.cs` refreshes it (`dotnet run --file GenerateSettingsReference.cs` from `scripts/`,
+`-- --check` to compare), reading the page's `.md` form for the text and the page itself for the heading ids, and fails
+when an index anchor has no heading. The schemastore schema is not the source: on 2026-11-13 it lacked about sixty
+documented keys. Every documented key links to `settings-reference#<anchor>` with the page's own anchor
+(`permissions.allow` → `#permissions-allow`); an unlisted nested key links to its nearest documented ancestor, an
+unknown key has no link. The checks verify each anchor against the pinned heading ids offline.
+
+The Settings tab lists the set keys (with source, shadowed values and Remove) and, after them, the documented keys no
+file sets, under "Not set · documented by Claude Code": every match while the filter has text, behind a "Show N
+documented settings that are not set" button while it is empty. A key above or below a set one is not listed
+(`permissions` while `permissions.allow` is set). Each row shows the key linked to its entry, its type (with the values
+of a closed set), its summary and its default, and Set, which opens the value composer with the editor the type implies
+(boolean → `true`/`false`, number, text with value chips, list of text) and hands the value to the same scoped review.
+A documented key is offered only in the files the reference says Claude Code reads it from ("Any file" → user, project,
+local; "User or managed" → user; "User, local, or managed" → user, local), and the host refuses others; removing a key
+reaches any file. Keys only managed settings or `~/.claude.json` read show "Managed only" or "In ~/.claude.json" instead
+of Set, and structured ones (objects, lists of objects) "Edit as a file". "Add a setting" still takes any key, an
+unknown one in any scope.
+
 Every mutation is composed, scoped to user/project/local, planned as a diff, reviewed and then
 applied with the plan's content hash. Changing scope invalidates its preview; stale files require a
 new review. Source links expose only discovered files and reveal JSON key paths in current editor

@@ -335,6 +335,7 @@ internal static class ClaudeCodeChecks
             "The value composer opens as an owned dialog and returns the edited value for review.");
         SettingValueLinks(app);
         SuggestedSettingValues(app);
+        UnsetDocumentedSettings(app);
         ScopeChoices(app);
         if (!OperatingSystem.IsWindows()) LaunchedSession(app, directory, launcher);
         if (!OperatingSystem.IsWindows()) ResumeOffers(app, directory);
@@ -474,6 +475,62 @@ internal static class ClaudeCodeChecks
         Require(flag is { Key: "alwaysThinkingEnabled", Value.ValueKind: JsonValueKind.True },
             "A documented boolean key is composed as on/off and returned as a JSON boolean.");
         Console.WriteLine("PASS Claude setting suggestions: documented values offered, custom text kept, wildcard keys, typed booleans");
+    }
+
+    /// <summary>
+    /// Searching the Settings tab lists the set keys first, then the documented keys no file sets, each linked to its own
+    /// reference entry with its type and summary; Set composes the value with the editor its type implies (a list for
+    /// permissions.deny) and hands it to the scoped review, which offers the files Claude Code reads it from.
+    /// </summary>
+    private static void UnsetDocumentedSettings(E2eWorkspace app)
+    {
+        Directory.CreateDirectory(Path.Combine(app.Root, ".claude"));
+        var local = Path.Combine(app.Root, ".claude", "settings.local.json");
+        File.WriteAllText(local, "{\"permissions\":{\"allow\":[\"Read\"]}}\n");
+        Control[] Rows() => [.. app.Window.GetLogicalDescendants().OfType<Control>().Where(control => control.Name is "ClaudeSetting" or "ClaudeUnsetSetting")];
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_settings"));
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeConfigRefresh"));
+        E2eWorkspace.Until(() => Rows().Any(row => row.Name == "ClaudeSetting" && Equals(row.Tag, "permissions.allow")));
+        Require(!Rows().Any(row => row.Name == "ClaudeUnsetSetting") &&
+            app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ClaudeSettingShowDocumented"),
+            "Without a filter the unset documented keys wait behind one button.");
+        app.Window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeSettingFilter").Text = "permissions";
+        E2eWorkspace.Until(() => Rows().Any(row => row.Name == "ClaudeUnsetSetting"));
+        var rows = Rows();
+        var firstUnset = Array.FindIndex(rows, row => row.Name == "ClaudeUnsetSetting");
+        var unsetKeys = rows.Where(row => row.Name == "ClaudeUnsetSetting").Select(row => (string)row.Tag!).ToArray();
+        Require(rows[..firstUnset].All(row => row.Name == "ClaudeSetting") && rows[firstUnset..].All(row => row.Name == "ClaudeUnsetSetting") &&
+            rows[..firstUnset].Any(row => Equals(row.Tag, "permissions.allow")) &&
+            new[] { "permissions.deny", "permissions.ask", "permissions.additionalDirectories", "permissions.disableBypassPermissionsMode" }.All(unsetKeys.Contains) &&
+            !unsetKeys.Contains("permissions.allow") && !unsetKeys.Contains("permissions"),
+            "Searching \"permissions\" lists the set keys first, then the documented keys no file sets.");
+        var deny = rows.Single(row => Equals(row.Tag, "permissions.deny"));
+        Require(deny.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ClaudeSettingDocs").Tag as string == "https://code.claude.com/docs/en/settings-reference#permissions-deny" &&
+            deny.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ClaudeUnsetType").Text!.Contains("permission rule strings", StringComparison.Ordinal) &&
+            deny.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ClaudeUnsetSummary").Text is { Length: > 0 },
+            "An unset key links to its own reference entry and shows its type and summary.");
+        app.Click(deny.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ClaudeSettingSet"));
+        E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeValueDialog")));
+        var composer = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeValueDialog"));
+        E2eWorkspace.Settle();
+        Require(composer.GetLogicalDescendants().OfType<StackPanel>().Any(control => control.Name == "ClaudeValueList") &&
+            !composer.GetLogicalDescendants().OfType<Control>().Any(control => control.Name?.StartsWith("ClaudeValueShape_", StringComparison.Ordinal) == true),
+            "Set composes a documented list key with the list editor and no shape switch.");
+        composer.GetLogicalDescendants().OfType<TextBox>().First(control => control.Name == "ClaudeValueListEntry").Text = "Read(./.env)";
+        E2eWorkspace.Settle();
+        app.Click(composer.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeValueContinue"), freshGesture: false);
+        E2eWorkspace.Until(() => Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
+        var review = Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeEditDialog"));
+        E2eWorkspace.Settle();
+        Require(review.GetLogicalDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("ClaudeEditScope_", StringComparison.Ordinal) == true) == 3,
+            "The composed value goes to the scoped review, which writes nothing until a scope's change is approved.");
+        review.Dismiss();
+        E2eWorkspace.Until(() => !Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
+        Require(!File.ReadAllText(local).Contains("deny", StringComparison.Ordinal), "Dismissing the review writes nothing.");
+        app.Window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeSettingFilter").Text = "";
+        File.Delete(local);
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_context"));
+        Console.WriteLine($"PASS Claude unset settings: {unsetKeys.Length} documented permissions keys listed after the set ones, Set composes and reviews");
     }
 
     /// <summary>
@@ -1241,6 +1298,27 @@ internal static class ClaudeCodeChecks
         Require(await joined == UsagePoll.Ok && calls == 1, "The refresh joined the running read.");
     }
 
+    /// <summary>
+    /// Every documented key links to a heading the reference page has (the pinned anchors), its own and not a slug
+    /// guessed from its name; a nested key the reference does not list links to its nearest documented ancestor.
+    /// </summary>
+    private static void DocumentedSettingsLinks()
+    {
+        Require(ClaudeSettingsReference.All.Count > 150 && ClaudeSettingsReference.All.All(entry => ClaudeSettingsReference.Anchors.Contains(entry.Anchor)) &&
+            ClaudeSettingsReference.All.All(entry => entry.Summary.Length > 0),
+            "Every documented key has a summary and an anchor the reference page has.");
+        Require(ClaudeSettingsReference.Find("permissions.allow")?.Anchor == "permissions-allow" &&
+            ClaudeSettingsReference.Url("permissions.allow") == "https://code.claude.com/docs/en/settings-reference#permissions-allow" &&
+            ClaudeSettingsReference.Url("sandbox.network.someFutureChild") == ClaudeSettingsReference.DocsUrl + "#sandbox-network" &&
+            ClaudeSettingsReference.Url("someFutureKey") is null,
+            "permissions.allow links to #permissions-allow; an unlisted nested key links to its ancestor, an unknown key to nothing.");
+        Require(ClaudeSettingsReference.Find("permissions.deny") is { Kind: "array" } && ClaudeSettingSuggestions.ShapeFor("permissions.deny") == ValueShape.List &&
+            ClaudeSettingSuggestions.ShapeFor("cleanupPeriodDays") == ValueShape.Number &&
+            ClaudeSettingSuggestions.For("permissions.disableBypassPermissionsMode") is ["disable"] &&
+            ClaudeSettingSuggestions.ShapeFor("hooks") is null,
+            "A documented key is composed with the editor its type implies; a structured one is not.");
+    }
+
     public static async Task Run(string root)
     {
         var directory = Path.Combine(root, "claude-code");
@@ -1334,6 +1412,35 @@ internal static class ClaudeCodeChecks
         using (var file = JsonDocument.Parse(File.ReadAllText(settingsPath)))
             Require(file.RootElement.GetProperty("model").GetString() == "opus" && file.RootElement.GetProperty("permissions").GetProperty("allow")[0].GetString() == "Read",
                 "Applying the approved preview preserves unrelated settings.");
+        DocumentedSettingsLinks();
+        var unset = ClaudeSettingsReference.Unset(config.Settings.Select(setting => setting.Key), "permissions").Select(entry => entry.Key).ToArray();
+        Require(new[] { "permissions.deny", "permissions.ask", "permissions.additionalDirectories", "permissions.disableBypassPermissionsMode" }.All(unset.Contains) &&
+            !unset.Contains("permissions.allow") && !unset.Contains("permissions"),
+            "Searching \"permissions\" offers the documented keys no file sets, but not a set key or the object above it.");
+        // An unset documented key is set like any other: planned for the chosen scope, applied after the preview is approved.
+        var deny = new SettingEdit("permissions.deny", JsonSerializer.SerializeToElement(new[] { "Read(./.env)" }));
+        Require(ClaudeValues.EditScopes(deny).SequenceEqual(ClaudeValues.WritableScopes), "A key every settings file reads can go in any of them.");
+        var localPath = Path.Combine(project, ".claude", "settings.local.json");
+        plan = await Call(ClaudeCodeContract.PlanEdit, new ClaudeEditRequest(project, ClaudeWritableScope.Local, deny));
+        Require(plan.Path == localPath && !File.Exists(localPath), "Planning an unset key writes nothing yet.");
+        await Call(ClaudeCodeContract.ApplyEdit, new ClaudeApplyRequest(project, ClaudeWritableScope.Local, deny, plan.BaseHash));
+        var reread = await Call(ClaudeCodeContract.ConfigGet, new WorkspaceParams(project));
+        Require(reread.Settings.SingleOrDefault(setting => setting.Key == "permissions.deny") is { Origin.Scope: ClaudeConfigScope.Local } denied &&
+            denied.Value[0].GetString() == "Read(./.env)" && denied.DocsUrl == ClaudeSettingsReference.DocsUrl + "#permissions-deny" &&
+            reread.Settings.Single(setting => setting.Key == "permissions.allow").DocsUrl == "https://code.claude.com/docs/en/settings-reference#permissions-allow",
+            "The approved key lands in the chosen scope's file and links to its own reference entry.");
+        Require(ClaudeValues.EditScopes(new SettingEdit("permissions.denyInsteadOfPrompting", JsonSerializer.SerializeToElement(true))).SequenceEqual([ClaudeWritableScope.User]) &&
+            ClaudeValues.EditScopes(new SettingEdit("permissions.denyInsteadOfPrompting")).Count == 3,
+            "A key Claude Code reads only from user settings is offered only there, while removing it reaches any file.");
+        // A key the reference does not list (newer than it) is still added through "Add a setting", in any scope.
+        var future = new SettingEdit("someFutureKey", JsonSerializer.SerializeToElement(true));
+        Require(ClaudeValues.EditScopes(future).Count == 3, "An unknown key keeps every scope.");
+        plan = await Call(ClaudeCodeContract.PlanEdit, new ClaudeEditRequest(project, ClaudeWritableScope.Local, future));
+        await Call(ClaudeCodeContract.ApplyEdit, new ClaudeApplyRequest(project, ClaudeWritableScope.Local, future, plan.BaseHash));
+        using (var file = JsonDocument.Parse(File.ReadAllText(localPath)))
+            Require(file.RootElement.GetProperty("someFutureKey").GetBoolean() && file.RootElement.GetProperty("permissions").GetProperty("deny").GetArrayLength() == 1,
+                "An unknown key is written beside the documented one.");
+        File.Delete(localPath);
         var variables = terminals.EnvironmentContributor!(terminal);
         Require(variables[ClaudeCodeContract.StatusUrlVariable].EndsWith("/plugin/claude-code/status/claude-fixture-token", StringComparison.Ordinal) &&
             File.Exists(variables[ClaudeCodeContract.PromptFileVariable]) &&

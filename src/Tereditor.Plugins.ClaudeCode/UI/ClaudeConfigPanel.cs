@@ -50,6 +50,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private TerminalTabInfo? session;
     private TerminalTabInfo? activeTab;
     private string settingsQuery = "";
+    private bool showDocumented;
     private IDisposable? watch;
     private string snapshotKey = "", reachedKey = "";
     private (Surface, string, string, string?, string, string)? rendered;
@@ -666,7 +667,23 @@ internal sealed class ClaudeConfigPanel : DockPanel
             rows.Children.Clear();
             var shown = current.Settings.Where(entry => entry.Key.Contains(settingsQuery, StringComparison.OrdinalIgnoreCase)).ToArray();
             foreach (var entry in shown) rows.Children.Add(SettingRow(entry, current.KnownSettingKeys));
-            if (shown.Length == 0) rows.Children.Add(Padded(Ui.Text("No keys match.", Ui.Muted, 13)));
+            // After the set keys, the documented ones no file sets: listed while filtering, or on request.
+            var unset = ClaudeSettingsReference.Unset(current.Settings.Select(entry => entry.Key), settingsQuery);
+            if (shown.Length == 0 && unset.Count == 0) rows.Children.Add(Padded(Ui.Text("No keys match.", Ui.Muted, 13)));
+            if (unset.Count == 0) return;
+            if (settingsQuery.Length == 0 && !showDocumented)
+            {
+                var more = Ui.Button($"Show {unset.Count} documented settings that are not set", () => { showDocumented = true; Fill(); });
+                more.Name = "ClaudeSettingShowDocumented";
+                more.Margin = new Thickness(8);
+                rows.Children.Add(more);
+                return;
+            }
+            var heading = Ui.Text("NOT SET · DOCUMENTED BY CLAUDE CODE", Ui.Hint, 10);
+            heading.Name = "ClaudeUnsetHeading";
+            heading.Margin = new Thickness(8, 12, 8, 4);
+            rows.Children.Add(heading);
+            foreach (var entry in unset) rows.Children.Add(UnsetRow(entry, current.KnownSettingKeys));
         }
         var toolbar = ScopedSetting.SettingsToolbar("Claude", settingsQuery, query => { settingsQuery = query; Fill(); },
             () => Compose("", null, current.KnownSettingKeys));
@@ -688,7 +705,71 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 ShapeFor = ClaudeSettingSuggestions.ShapeFor
             });
         if (composed is not { } result) return;
-        Edit(new(new SettingEdit(result.Key, result.Value), key.Length == 0 ? $"Add \"{result.Key}\"" : $"Change \"{result.Key}\""));
+        Edit(new(new SettingEdit(result.Key, result.Value), key.Length == 0 || value is null ? $"Add \"{result.Key}\"" : $"Change \"{result.Key}\""));
+    }
+
+    /// <summary>
+    /// A documented key no file sets: its name (linked to its reference entry), type, one-line summary and default,
+    /// and Set, which composes a value with the editor its type implies and reviews it like any other change. Keys
+    /// only managed settings or <c>~/.claude.json</c> read say so instead of offering Set.
+    /// </summary>
+    private Control UnsetRow(ClaudeDocumentedSetting entry, IReadOnlyList<string> knownKeys)
+    {
+        var row = new StackPanel { Name = "ClaudeUnsetSetting", Tag = entry.Key, Spacing = 2, Margin = new Thickness(8, 4) };
+        var head = new DockPanel();
+        var scopes = ClaudeSettingsReference.WritableScopes(entry);
+        Control action;
+        if (scopes.Count > 0 && ClaudeSettingSuggestions.ShapeFor(entry.Key) is not null)
+            action = ScopedSetting.RowAction("ClaudeSettingSet", "Set", () => Compose(entry.Key, null, knownKeys));
+        else
+        {
+            var note = Ui.Text(entry.Scope == "Global config" ? "IN ~/.claude.json" : scopes.Count == 0 ? "MANAGED ONLY" : "EDIT AS A FILE", Ui.Hint, 10);
+            note.Name = "ClaudeSettingUnsettable";
+            ToolTip.SetTip(note, entry.Scope == "Global config" ? "Claude Code reads this key from ~/.claude.json, not from a settings file"
+                : scopes.Count == 0 ? "Only managed settings, which your organization deploys, read this key"
+                : "Only text, numbers, on/off and lists of text are editable here");
+            note.VerticalAlignment = VerticalAlignment.Center;
+            action = note;
+        }
+        SetDock(action, Dock.Right);
+        head.Children.Add(action);
+        var key = new WrapPanel { Orientation = Orientation.Horizontal };
+        var docs = $"{ClaudeSettingsReference.DocsUrl}#{entry.Anchor}";
+        var keyText = ClaudeParts.Code(entry.Key, Ui.TextBrush);
+        var link = new Button
+        {
+            Name = "ClaudeSettingDocs",
+            Tag = docs,
+            Content = keyText,
+            Padding = new Thickness(0),
+            MinHeight = 0,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        link.Classes.Add("quiet");
+        link.Classes.Add("doc-link");
+        keyText.ClearValue(TextBlock.ForegroundProperty);
+        ToolTip.SetTip(link, "What this key does, in Claude Code's reference");
+        link.Click += (_, _) => TopLevel.GetTopLevel(link)?.Launcher.LaunchUriAsync(new Uri(docs));
+        key.Children.Add(link);
+        var type = Ui.Text("  " + (entry.Values is { } values && entry.Type.EndsWith("one of", StringComparison.Ordinal) ? $"{entry.Type} {string.Join(", ", values)}" : entry.Type), Ui.Hint, 11);
+        type.Name = "ClaudeUnsetType";
+        type.TextTrimming = TextTrimming.CharacterEllipsis;
+        ToolTip.SetTip(type, entry.Type);
+        key.Children.Add(type);
+        head.Children.Add(key);
+        row.Children.Add(head);
+        var summary = ClaudeParts.Wrapped(entry.Summary, Ui.Muted);
+        summary.Name = "ClaudeUnsetSummary";
+        row.Children.Add(summary);
+        if (entry.Default is { } fallback)
+        {
+            var preset = ClaudeParts.Wrapped("Default: " + fallback, Ui.Hint, 11);
+            preset.Name = "ClaudeUnsetDefault";
+            row.Children.Add(preset);
+        }
+        return new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = row };
     }
 
     private Control SettingRow(ClaudeSettingValue entry, IReadOnlyList<string> knownKeys)
