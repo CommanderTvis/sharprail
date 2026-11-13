@@ -236,13 +236,15 @@ internal static class CodexE2E
     {
         using var codex = new Codex(root, enable: false);
         var identity = JsonSerializer.SerializeToElement(new { account = new { type = "chatgpt", email = "codex@example.test", planType = "pro" }, requiresOpenaiAuth = true });
+        // The reset lies ahead of whatever today is, so the window always reads "Resets in", never "Reset since this reading".
+        var resetsAt = DateTimeOffset.UtcNow.AddHours(3).ToUnixTimeSeconds();
         JsonElement Limits(double used) => JsonSerializer.SerializeToElement(new
         {
             rateLimits = new
             {
                 limitId = "codex",
                 limitName = "Codex",
-                primary = new { usedPercent = used, windowDurationMins = 300, resetsAt = 1_800_000_000 },
+                primary = new { usedPercent = used, windowDurationMins = 300, resetsAt },
                 secondary = new { usedPercent = 80, windowDurationMins = 10080, resetsAt = (long?)null }
             }
         });
