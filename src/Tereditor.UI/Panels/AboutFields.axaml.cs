@@ -25,7 +25,7 @@ public sealed partial class AboutFields : UserControl
         Muted("AboutRuntime").Text = string.Join('\n', runtime.Select(line => $"{line.Label}: {line.Value}"));
         Muted("AboutLicense").Text = AboutInfo.License;
         Link("AboutRepository", "Source repository ↗", AboutInfo.Repository);
-        Link("AboutUpstream", "Based on ThinkRail ↗", AboutInfo.Upstream);
+        Link("AboutUpstream", "Inspired by ThinkRail ↗", AboutInfo.Upstream);
         var issue = Link("AboutIssue", "Report an issue ↗", AboutInfo.NewIssue, open: false);
         issue.Click += (_, _) => { if (TopLevel.GetTopLevel(issue) is { } top) ReportIssue(top); };
         var actions = this.FindControl<WrapPanel>("AboutActions")!;
