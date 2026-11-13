@@ -29,7 +29,7 @@ internal static class PackagedApp
         if (Environment.GetEnvironmentVariable(Variable) is not { Length: > 0 } bundle) return;
         // A macOS bundle keeps its files in Contents/MacOS; the variable names the Linux AppImage payload directly.
         var shipped = Path.Combine(bundle, "Contents", "MacOS");
-        var count = Verify(Directory.Exists(shipped) ? shipped : bundle, AppContext.BaseDirectory, "Tereditor.UI", Identity);
+        var count = Verify(Directory.Exists(shipped) ? shipped : bundle, AppContext.BaseDirectory, PackagedBinaries.AppExecutable, Identity);
         Console.WriteLine($"PASS packaged app: a NativeAOT app with no managed assemblies; its {count} shipped files are the ones under test");
     }
 

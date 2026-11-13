@@ -25,8 +25,8 @@ internal static class GcSettingsChecks
         }
         if (!OperatingSystem.IsWindows())
         {
-            if (Environment.GetEnvironmentVariable(PackagedBinaries.ClientVariable) is { Length: > 0 } client) VerifyCompiledIn(Path.Combine(client, "Tereditor.UI"));
-            if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, "Tereditor.Host.Remote"));
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.ClientVariable) is { Length: > 0 } client) VerifyCompiledIn(Path.Combine(client, PackagedBinaries.AppExecutable));
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, PackagedBinaries.HostExecutable));
         }
         IdleTrim();
         ScrollTooltips();

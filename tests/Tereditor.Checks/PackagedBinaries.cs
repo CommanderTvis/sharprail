@@ -28,6 +28,8 @@ internal static class PackagedBinaries
     internal const string ClientVariable = "TEREDITOR_PACKAGED_CLIENT";
     internal const string HeadlessVariable = "TEREDITOR_PACKAGED_HEADLESS";
     internal const string ChecksVariable = "TEREDITOR_PACKAGED_CHECKS";
+    /// <summary>The shipped app and host binaries: the packaging tasks rename them from their project names (scripts/lib/Tasks.cs).</summary>
+    internal const string AppExecutable = "tereditor", HostExecutable = "tereditor-host";
 
     private static void Require(bool value, string message)
     { if (!value) throw new InvalidOperationException("Packaged binaries: " + message); }
@@ -43,11 +45,11 @@ internal static class PackagedBinaries
             Console.WriteLine("PASS packaged tereditor-headless: a NativeAOT binary, no managed assemblies");
         }
         var checks = Environment.GetEnvironmentVariable(ChecksVariable) is { Length: > 0 } published ? published : null;
-        foreach (var (directory, executable) in new[] { (client, "Tereditor.UI"), (host, "Tereditor.Host.Remote") })
+        foreach (var (directory, executable) in new[] { (client, AppExecutable), (host, HostExecutable) })
         {
             if (directory is null) continue;
             PackagedApp.RequireNativeAot(directory, executable, PackagedApp.Identity);
-            if (checks is not null) RequireShipped(directory, checks, executable == "Tereditor.UI");
+            if (checks is not null) RequireShipped(directory, checks, executable == AppExecutable);
             if (!OperatingSystem.IsWindows()) GcSettingsChecks.VerifyCompiledIn(Path.Combine(directory, executable));
             if (OperatingSystem.IsLinux()) RequireGlibcFloor(directory, executable);
             Console.WriteLine($"PASS packaged {executable}: a NativeAOT binary" + (OperatingSystem.IsWindows() ? "" : " with the desktop GC settings compiled in") +
@@ -57,7 +59,7 @@ internal static class PackagedBinaries
         if (OperatingSystem.IsWindows()) return;
         // The shipped app is started only on Linux, where nothing else of it runs windowless; elsewhere the checks relay.
         if (client is not null && !OperatingSystem.IsLinux()) return;
-        await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, "Tereditor.UI"));
+        await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, AppExecutable));
     }
 
     /// <summary>The AppImages promise glibc 2.31: no ELF file in a Linux payload may need a glibc symbol version newer than that.</summary>
@@ -125,7 +127,7 @@ internal static class PackagedBinaries
 
     private static async Task Host(string root, string directory)
     {
-        var executable = Path.Combine(directory, OperatingSystem.IsWindows() ? "Tereditor.Host.Remote.exe" : "Tereditor.Host.Remote");
+        var executable = Path.Combine(directory, OperatingSystem.IsWindows() ? HostExecutable + ".exe" : HostExecutable);
         Require(File.Exists(executable), "no host binary at " + executable);
         var workspace = Path.Combine(root, "packaged-host λ");
         Directory.CreateDirectory(workspace);

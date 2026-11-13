@@ -19,7 +19,7 @@ There are two ways to run a host.
 
 - In the desktop app, turn on the listener in Settings › Host. Local work keeps using direct calls while it listens for
   remote clients.
-- As a standalone host, run `Tereditor.Host.Remote` without a desktop window.
+- As a standalone host, run `tereditor-host` without a desktop window.
 
 The host keeps its shared state in `TEREDITOR_STATE_DIR` (default `~/.tereditor/host`) and its terminal sessions until it
 stops.
@@ -29,8 +29,8 @@ stops.
 This example runs the host and the app on your own machine, with the same token.
 
 ```sh
-TEREDITOR_TOKEN=your-token artifacts/host/Tereditor.Host.Remote
-TEREDITOR_REMOTE=http://127.0.0.1:54123 TEREDITOR_TOKEN=your-token artifacts/tereditor.app/Contents/MacOS/Tereditor.UI
+TEREDITOR_TOKEN=your-token artifacts/host/tereditor-host
+TEREDITOR_REMOTE=http://127.0.0.1:54123 TEREDITOR_TOKEN=your-token artifacts/tereditor.app/Contents/MacOS/tereditor
 ```
 
 ### Use another machine

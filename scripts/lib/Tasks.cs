@@ -14,6 +14,22 @@ static class Tasks
 {
     public static readonly string Root = FindRoot();
 
+    /// <summary>
+    /// What the packages call the app and host binaries. The publish names them after their projects (Tereditor.UI,
+    /// Tereditor.Host.Remote), whose assembly names avares:// URIs and the Android build rely on, so the packaging tasks
+    /// rename only the shipped NativeAOT binary. The checks' PackagedBinaries names the same two.
+    /// </summary>
+    public const string AppExecutable = "tereditor", HostExecutable = "tereditor-host";
+
+    /// <summary>Renames the NativeAOT binary <paramref name="project"/> published into <paramref name="directory"/> to <paramref name="name"/>.</summary>
+    public static string RenameExecutable(string directory, string project, string name)
+    {
+        var extension = OperatingSystem.IsWindows() ? ".exe" : "";
+        var target = Path.Combine(directory, name + extension);
+        File.Move(Path.Combine(directory, project + extension), target, true);
+        return target;
+    }
+
     /// <summary>The dotnet to run builds with: DOTNET when set, else the one on PATH (the pinned SDK under mise).</summary>
     public static string Dotnet => Environment.GetEnvironmentVariable("DOTNET") is { Length: > 0 } dotnet ? dotnet : "dotnet";
 

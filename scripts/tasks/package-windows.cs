@@ -14,7 +14,7 @@ return Guard(() =>
     if (rid is not ("win-x64" or "win-arm64")) throw new TaskFailure($"Unknown RuntimeIdentifier '{rid}'; use win-x64 or win-arm64.");
     var directory = rid == "win-x64" ? "windows" : "windows-arm64";
     var output = At("artifacts", directory);
-    var running = new[] { "Tereditor.UI", "Tereditor.Host.Remote", "Tereditor.Checks" }.SelectMany(Process.GetProcessesByName).Any(process =>
+    var running = new[] { AppExecutable, HostExecutable, "Tereditor.Checks" }.SelectMany(Process.GetProcessesByName).Any(process =>
     {
         try { return process.MainModule?.FileName?.StartsWith(output + "\\", StringComparison.OrdinalIgnoreCase) == true; }
         catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException) { return false; }
@@ -29,6 +29,8 @@ return Guard(() =>
     // The client and host are NativeAOT, linked by Visual Studio's C++ linker; the checks stay a JIT program (ReadyToRun).
     Check(Dotnet, ["publish", "src/Tereditor.UI", .. publish, "-o", Path.Combine(output, "client")]);
     Check(Dotnet, ["publish", "src/Tereditor.Host.Remote", .. publish, "-o", Path.Combine(output, "host")]);
+    RenameExecutable(Path.Combine(output, "client"), "Tereditor.UI", AppExecutable);
+    RenameExecutable(Path.Combine(output, "host"), "Tereditor.Host.Remote", HostExecutable);
     Check(Dotnet, ["publish", "tests/Tereditor.Checks", .. publish, "--self-contained", "true", "-p:PublishReadyToRun=true", "-o", Path.Combine(output, "checks")]);
     foreach (var item in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md", "licenses" }) CopyInto(item, output);
     Copy(Path.Combine("docs", "windows.md"), Path.Combine(output, "WINDOWS.md"));

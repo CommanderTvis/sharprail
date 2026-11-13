@@ -157,12 +157,12 @@ async Task<Sample> Measure()
         var launchedAt = Now();
         if (mode == "remote")
         {
-            host = Launch("artifacts/host/Tereditor.Host.Remote", new(env) { ["TEREDITOR_PORT"] = port.ToString(), ["TEREDITOR_BIND"] = "127.0.0.1" }, "TEREDITOR_HOST_READY");
+            host = Launch("artifacts/host/tereditor-host", new(env) { ["TEREDITOR_PORT"] = port.ToString(), ["TEREDITOR_BIND"] = "127.0.0.1" }, "TEREDITOR_HOST_READY");
             env["TEREDITOR_REMOTE"] = "http://127.0.0.1:" + port;
             // Both runtimes are fresh. Wait for bind before connecting; host time stays in total startup.
             await host.Ready;
         }
-        client = Launch("artifacts/tereditor.app/Contents/MacOS/Tereditor.UI", env, "TEREDITOR_WORKSPACE_LAYOUT");
+        client = Launch("artifacts/tereditor.app/Contents/MacOS/tereditor", env, "TEREDITOR_WORKSPACE_LAYOUT");
         var probeInfo = new ProcessStartInfo(Path.GetFullPath(".bench/window-probe")) { RedirectStandardOutput = true, UseShellExecute = false };
         probeInfo.ArgumentList.Add(client.Child.Id.ToString());
         probe = Process.Start(probeInfo)!;

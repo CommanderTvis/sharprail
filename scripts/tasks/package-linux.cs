@@ -50,32 +50,33 @@ return Guard(() =>
     // Debug symbols and API documentation do not belong in an image users download.
     foreach (var file in Directory.EnumerateFiles(payload, "*", SearchOption.AllDirectories).Where(path => path.EndsWith(".pdb", StringComparison.Ordinal) || path.EndsWith(".xml", StringComparison.Ordinal)))
         File.Delete(file);
-    MakeExecutable($"{payload}/Tereditor.UI");
+    MakeExecutable(RenameExecutable(payload, "Tereditor.UI", AppExecutable));
     foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" }) File.Copy(file, $"{doc}/{file}", true);
     CopyInto("licenses", doc);
     File.Copy("src/Tereditor.Plugins.UI.Kit/Assets/Icons/brand.png", $"{app}/tereditor.png", true);
     File.Copy($"{app}/tereditor.png", $"{app}/.DirIcon", true);
     File.Copy($"{app}/tereditor.png", $"{app}/usr/share/icons/hicolor/96x96/apps/tereditor.png", true);
-    WriteLf($"{app}/tereditor.desktop", """
+    // StartupWMClass is the WM_CLASS Avalonia sets, the entry assembly's name, which the rename of the binary leaves alone.
+    WriteLf($"{app}/tereditor.desktop", $"""
         [Desktop Entry]
         Type=Application
         Name=tereditor
         Comment=Workbench for projects, Git worktrees, specs and agent terminals
-        Exec=Tereditor.UI
+        Exec={AppExecutable}
         Icon=tereditor
         Terminal=false
         Categories=Development;IDE;
         StartupWMClass=Tereditor.UI
 
         """);
-    WriteLf($"{app}/AppRun", """
+    WriteLf($"{app}/AppRun", $$"""
         #!/bin/sh
         here="$(dirname "$(readlink -f "$0")")"
         # .NET aborts at startup without ICU unless globalization is invariant; minimal images lack it, so fall back to invariant mode.
         if [ -z "${DOTNET_SYSTEM_GLOBALIZATION_INVARIANT:-}" ] && ! PATH="$PATH:/sbin:/usr/sbin" ldconfig -p 2>/dev/null | grep -q 'libicuuc\.so'; then
           export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
         fi
-        exec "$here/usr/lib/tereditor/Tereditor.UI" "$@"
+        exec "$here/usr/lib/tereditor/{{AppExecutable}}" "$@"
 
         """);
     MakeExecutable($"{app}/AppRun");

@@ -9,7 +9,7 @@ namespace Tereditor.Performance;
 internal sealed partial class Runner(string root, string dotnet)
 {
     public string BuildDirectory => Path.Combine(root, "artifacts/performance/build");
-    private string Ui => Path.Combine(BuildDirectory, "tereditor.app/Contents/MacOS/Tereditor.UI");
+    private string Ui => Path.Combine(BuildDirectory, "tereditor.app/Contents/MacOS/tereditor");
     private string Host => Path.Combine(BuildDirectory, "host/Tereditor.Host.Remote");
     private string Probe => Path.Combine(root, "artifacts/performance/probe");
     private static string Hash(string path) { using var file = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(file)); }

@@ -19,8 +19,8 @@ The cask always downloads the current nightly, so update it with
 
 ## Windows
 
-Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/Tereditor.UI.exe`. The standalone host is
-`host/Tereditor.Host.Remote.exe`. Windows 10 1809 or later and Git for Windows are required. See
+Download the unsigned x64 or ARM64 ZIP, extract it and launch `client/tereditor.exe`. The standalone host is
+`host/tereditor-host.exe`. Windows 10 1809 or later and Git for Windows are required. See
 [Windows](windows.md) for running a host and platform limits.
 
 WinGet also works through the [WinGet source](https://github.com/CommanderTvis/winget). Add the
@@ -31,7 +31,7 @@ winget source add --name thinkrail --arg https://commandertvis-winget.vercel.app
 winget install --id CommanderTvis.Tereditor --exact --source thinkrail --scope user
 ```
 
-WinGet adds no command alias, so launch `client\Tereditor.UI.exe` from the install folder.
+WinGet adds no command alias, so launch `client\tereditor.exe` from the install folder.
 
 ## Linux
 

@@ -17,7 +17,7 @@ settings, plugins and shells stay on the host.
 ## Requirements
 
 - Android 7.0 or later, on arm64 or x86-64.
-- A running host, either the desktop app with its listener on or `Tereditor.Host.Remote`. See
+- A running host, either the desktop app with its listener on or the standalone `tereditor-host`. See
   [Remote hosts and clients](remote.md).
 - A network the phone shares with the host. The connection uses cleartext WebSockets, so use an encrypted network such
   as Tailscale.

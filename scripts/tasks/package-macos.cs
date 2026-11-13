@@ -16,6 +16,7 @@ return Guard(() =>
     Check(Dotnet, ["restore", "Tereditor.slnx", "-p:SelfContained=true", "-p:PublishReadyToRun=true"]);
     Check(Dotnet, ["publish", "src/Tereditor.UI", "-c", "Release", "-r", rid, "--no-restore", $"-p:TereditorBuildStamp={stamp}", "-o", "artifacts/ui"]);
     Check(Dotnet, ["publish", "src/Tereditor.Host.Remote", "-c", "Release", "-r", rid, "--no-restore", "-o", "artifacts/host"]);
+    RenameExecutable("artifacts/host", "Tereditor.Host.Remote", HostExecutable);
     // The checks stay a JIT program (ReadyToRun); the packaged gate runs them beside the bundle's native libraries.
     Check(Dotnet, ["publish", "tests/Tereditor.Checks", "-c", "Release", "-r", rid, "--self-contained", "true", "--no-restore", "-p:PublishReadyToRun=true", "-o", "artifacts/checks"]);
     if (rid is not ("osx-arm64" or "osx-x64")) return 0;
@@ -49,11 +50,11 @@ return Guard(() =>
             throw new TaskFailure("sips could not scale the app icon");
     Check("iconutil", ["--convert", "icns", "--output", Path.Combine(resources, "tereditor.icns"), iconset]);
     DeleteAll(iconset);
-    WriteLf(Path.Combine(bundle, "Contents", "Info.plist"), """
+    WriteLf(Path.Combine(bundle, "Contents", "Info.plist"), $"""
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0"><dict>
-        <key>CFBundleExecutable</key><string>Tereditor.UI</string>
+        <key>CFBundleExecutable</key><string>{AppExecutable}</string>
         <key>CFBundleIdentifier</key><string>dev.thinkrail.tereditor</string>
         <key>CFBundleName</key><string>tereditor</string>
         <key>CFBundleVersion</key><string>1</string>
@@ -66,7 +67,7 @@ return Guard(() =>
         """);
     // Tahoe rounds windows by the SDK the executable was linked against: a 15.x stamp keeps the old small corner
     // radius, so the packaged executable is restamped as built with SDK 26 (the signature is redone below).
-    var exe = Path.Combine(macOS, "Tereditor.UI");
+    var exe = RenameExecutable(macOS, "Tereditor.UI", AppExecutable);
     var (_, show) = Capture("xcrun", ["vtool", "-show-build", exe]);
     var minos = show.Split('\n').Select(line => line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
         .FirstOrDefault(fields => fields.Any(field => field.Contains("minos")) && fields.Length > 1)?[1] ?? "";

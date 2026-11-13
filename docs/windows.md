@@ -10,7 +10,7 @@ The [nightly release](https://github.com/CommanderTvis/tereditor/releases/tag/ni
 
 ## Run it
 
-Extract the ZIP for your machine and run `client/Tereditor.UI.exe`. It works on local projects with a built-in host.
+Extract the ZIP for your machine and run `client/tereditor.exe`. It works on local projects with a built-in host.
 
 Shells use `pwsh.exe` when it is on `PATH`, otherwise Windows PowerShell. An executable named by `SHELL` overrides that
 choice. Shells start in the workspace and load your usual profile. Closing a terminal tab ends its shell and child
@@ -20,7 +20,7 @@ App state lives in `%USERPROFILE%\.tereditor`.
 
 ## Run a standalone host
 
-The package also has a host without a window, `host/Tereditor.Host.Remote.exe`. Open PowerShell in the extracted
+The package also has a host without a window, `host/tereditor-host.exe`. Open PowerShell in the extracted
 folder:
 
 ```powershell
@@ -28,7 +28,7 @@ $env:TEREDITOR_ROOT = 'C:\code\project'
 $env:TEREDITOR_TOKEN = 'replace-with-your-host-token'
 $env:TEREDITOR_BIND = '127.0.0.1'
 $env:TEREDITOR_PORT = '54123'
-.\host\Tereditor.Host.Remote.exe
+.\host\tereditor-host.exe
 ```
 
 To connect from another machine, bind to an address that machine can reach. The host keeps its state in
@@ -41,7 +41,7 @@ A Windows desktop app can connect to a Windows, macOS or Linux host. In a separa
 ```powershell
 $env:TEREDITOR_REMOTE = 'http://127.0.0.1:54123'
 $env:TEREDITOR_TOKEN = 'replace-with-your-host-token'
-.\client\Tereditor.UI.exe
+.\client\tereditor.exe
 ```
 
 Remove `TEREDITOR_REMOTE` to work locally again. Project paths name folders on the host, whatever the client's OS. See
