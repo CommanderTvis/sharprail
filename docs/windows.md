@@ -49,7 +49,7 @@ Remove `TEREDITOR_REMOTE` to work locally again. Project paths name folders on t
 
 ## Limits on Windows
 
-- Terminals always draw with Skia; there is no Metal renderer.
+- Terminals draw with Skia.
 - Mermaid diagrams show their source instead of a rendered diagram.
 - A terminal counts as busy while any background child process runs. Shell builtins do not count.
 - Terminal links work for absolute paths only, not relative ones.

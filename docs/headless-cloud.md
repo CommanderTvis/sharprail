@@ -62,6 +62,5 @@ With `TEREDITOR_LOG=1` the server writes `.tereditor/runs/<session>.jsonl` insid
 
 ## Limits
 
-- Docker exists in the VM, but Docker is not needed here and is not used.
 - The package on ghcr.io must be public. The script uses an anonymous token.
 - LSP on a huge repository may not finish. The first `lsp_*` call may answer `initializing`.

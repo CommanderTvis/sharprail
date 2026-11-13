@@ -102,7 +102,7 @@ Two rules follow:
 
 The Docker variant, only with the image pulled beforehand: `"command": "docker"`, `"args": ["run", "-i", "--rm", "--init", "-v", "${PWD}:/workspace", "-v", "tereditor-cache:/cache", "ghcr.io/commandertvis/tereditor:nightly"]`, and the same `alwaysLoad`.
 
-If an agent's `ToolSearch` finds nothing, the server is still connecting or has failed: run `/mcp` (or `claude mcp list`), search again, and do not start the work without the tools. Which of these happened in the report that prompted this section is not known: it was not reproduced in a real cloud session.
+If an agent's `ToolSearch` finds nothing, the server is still connecting or has failed: run `/mcp` (or `claude mcp list`), search again, and do not start the work without the tools.
 
 ## Settings
 

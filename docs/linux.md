@@ -40,7 +40,7 @@ keep the system title bar (or `=client` to force the integrated header). The var
 ## What differs from macOS
 
 - Ctrl replaces Command in the editor and shortcuts.
-- Terminals always draw with Skia; there is no Metal renderer to choose.
+- Terminals draw with Skia.
 - Mermaid diagrams show their source instead of a rendered diagram.
 - Away notifications use `notify-send` when it is installed. Clicking one does not bring the app back.
 - Show in file manager opens your file manager on the entry, and is hidden when you are connected to a remote host.
