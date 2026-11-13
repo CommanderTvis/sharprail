@@ -53,7 +53,7 @@ internal static class PlaygroundGuide
             "Files, git history and API keys are saved in this browser's storage a moment after each change, so a reload keeps them. Clearing site data deletes them, and other browsers or devices do not see them.",
             "Keys go only to the model provider you chose.",
             "The terminal is a simulated shell with git, coreutils, grep, sed, awk and jq. There is no node or npm.",
-            "Only Pi runs in a tab. Claude Code and Codex come with the desktop app and are not available here."
+            "Only Pi runs in a tab. Claude Code and Codex run on a desktop host, and a browser connected to one can use them freely."
         })
             lines.Children.Add(Wrapped(line, Ui.Muted, 13));
         return new Border { Name = "PlaygroundExplanation", Child = lines };
