@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using Tereditor.Plugins.Agent.UI;
@@ -37,7 +38,8 @@ internal sealed partial class ChatView
     }
 
     // A picker trigger in the footer: plain text (the model in the normal tone, the others muted), a small down arrow always, so they read as pickers.
-    private Button PickerButton(string kind, string label, string title, Func<Flyout, Control> content, string? secondary = null)
+    // A click opens the picker's menu, built fresh so it shows the values in force.
+    private Button PickerButton(string kind, string label, string title, Func<Button, ContextMenu> menu, string? secondary = null)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
         var text = Ui.Text(label, kind == "model" ? Ui.TextBrush : Ui.Muted, 12);
@@ -47,12 +49,7 @@ internal sealed partial class ChatView
         var chevron = Ui.Icon("arrowDown", Ui.Muted, 10);
         row.Children.Add(chevron);
         Button? button = null;
-        button = TerminalFacts.ChipButton("TerminalAgentFact_" + kind, row, title, () =>
-        {
-            var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
-            flyout.Content = content(flyout);
-            ChatPopup.Show(flyout, button!);
-        });
+        button = TerminalFacts.ChipButton("TerminalAgentFact_" + kind, row, title, () => ChatPopup.ShowMenu(menu(button!), button!));
         button.Classes.Add("plain");
         button.Background = Ui.ChipFill;
         return button;
@@ -148,115 +145,79 @@ internal sealed partial class ChatView
         return grid;
     }
 
-    private const string EffortKey = "~effort", MoreKey = "~more";
-
     /// <summary>
-    /// The model button's popup: the flagship of each family, then Effort and More models, which open their own lists in the same popup. A flagship
-    /// is the first model the CLI lists for its family; the default entry and models of no known family are under More models.
+    /// The model button's menu: the flagship of each family as radio items, then Effort, a submenu of the levels, and More models, which opens the
+    /// searchable list from the model button. A flagship is the first model the CLI lists for its family; the default entry and models of no known
+    /// family are under More models.
     /// </summary>
-    internal Control ModelMenu(ChatHeader header, Flyout flyout)
+    internal ContextMenu ModelMenu(ChatHeader header, Control anchor)
     {
-        var flagships = header.Models.Where(model => !ModelPicks.IsDefault(model) && model.Family is { Length: > 0 }).GroupBy(model => model.Family).Select(group => group.First()).ToList();
-        var choices = flagships.Select(model => new PopupChoice(model.Id, model.Label, model.Description, ModelPicks.Matches(model, header.Model))).ToList();
-        choices.Add(new PopupChoice(EffortKey, "Effort", (header.Effort ?? "default").ToLowerInvariant() + "  \u203A", false, false, true));
-        choices.Add(new PopupChoice(MoreKey, "More models", "\u203A", false, false, true));
-        Control? panel = null;
-        // The two rows open a list beside the popup, from the row itself; picking in it closes both.
-        void Child(Func<Flyout, Control> build)
+        var menu = ChatPopup.Menu("ChatModelMenu");
+        if (header.Models.Count == 0)
         {
-            var row = panel?.GetVisualDescendants().OfType<ListBox>().FirstOrDefault() is { } list ? list.ContainerFromIndex(list.SelectedIndex) : null;
-            var child = new Flyout { Placement = PlacementMode.RightEdgeAlignedTop };
-            child.Content = build(child);
-            child.Closed += (_, _) => ClosePopup(flyout);
-            ChatPopup.Show(child, row ?? panel!);
+            menu.Items.Add(Ui.Menu($"Waiting for {env.Agent.Name}\u2026", () => { }, false));
+            return menu;
         }
-        panel = ChoicePanel("ChatModelMenu", "ChatModelMenuList", "Model", choices, flyout, choice =>
+        foreach (var model in header.Models.Where(model => !ModelPicks.IsDefault(model) && model.Family is { Length: > 0 }).GroupBy(model => model.Family).Select(group => group.First()))
+            menu.Items.Add(ChatPopup.Choice("ChatModel_" + model.Id, model.Label, ModelPicks.Matches(model, header.Model), () => _ = SetModel(model.Id), model.Description));
+        menu.Items.Add(new Separator());
+        var effort = new MenuItem { Name = "ChatModelEffort", Header = ChatPopup.Labelled("Effort", (header.Effort ?? "default").ToLowerInvariant()) };
+        Avalonia.Automation.AutomationProperties.SetName(effort, "Effort");
+        foreach (var level in EffortItems(header)) effort.Items.Add(level);
+        menu.Items.Add(effort);
+        // The searchable list needs a text box, which a menu cannot hold (its keys move through the rows): it is its own popup, opened once the menu has closed.
+        menu.Items.Add(ChatPopup.Item("ChatModelMore", "More models\u2026", () => Dispatcher.UIThread.Post(() =>
         {
-            if (choice.Key == EffortKey) Child(child => EffortPanel(header, child));
-            else if (choice.Key == MoreKey) Child(child => ModelPanel(header, child));
-            else _ = SetModel(choice.Key);
-        }, choice => choice.Key is EffortKey or MoreKey);
-        return panel;
+            var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
+            flyout.Content = ModelPanel(header, flyout);
+            ChatPopup.Show(flyout, anchor);
+        }, DispatcherPriority.Background)));
+        return menu;
     }
 
-    // ThinkRail's thinking selector: the effort levels, lowercase, the current one checked, reachable by keys.
-    internal Control EffortPanel(ChatHeader header, Flyout flyout)
+    // ThinkRail's thinking selector: the effort levels, lowercase, the current one checked.
+    internal IReadOnlyList<MenuItem> EffortItems(ChatHeader header)
     {
         // The levels the current model accepts, as the CLI reports them; every level when it reports none.
         var levels = header.Models.FirstOrDefault(model => model.Id == header.Model) is { Efforts.Count: > 0 } current ? current.Efforts : env.Agent.EffortLevels;
-        return ChoicePanel("ChatEffortPicker", "ChatEffortList", "Effort",
-            [.. levels.Select(level => new PopupChoice(level, level.ToLowerInvariant(), null, header.Effort == level))], flyout, choice => _ = SetEffort(choice.Key));
+        return [.. levels.Select(level => ChatPopup.Choice("ChatEffort_" + level, level.ToLowerInvariant(), header.Effort == level, () => _ = SetEffort(level)))];
     }
 
-    /// <summary>The permission modes: each with its description as a muted second part, the current one checked.</summary>
-    internal Control ModePanel(ChatHeader header, Flyout flyout) =>
-        ChoicePanel("ChatModePicker", "ChatModeList", "Permission mode",
-            [.. ModeList(header).Select(mode => new PopupChoice(mode.Key, mode.Label, mode.Description, mode.Key == header.PermissionMode, true))], flyout, choice => _ = SetMode(choice.Key));
+    /// <summary>The permission modes as radio items, the current one checked, each with its description as the tooltip.</summary>
+    internal ContextMenu ModeMenu(ChatHeader header)
+    {
+        var menu = ChatPopup.Menu("ChatModeMenu");
+        foreach (var mode in ModeList(header))
+        {
+            var item = ChatPopup.Choice("ChatMode_" + mode.Key, mode.Label, mode.Key == header.PermissionMode, () => _ = SetMode(mode.Key));
+            if (mode.Description is { Length: > 0 } description) ToolTip.SetTip(item, description);
+            menu.Items.Add(item);
+        }
+        return menu;
+    }
 
     // The attach chip asks what to attach first: the system picker takes a file or a folder, never both.
     private async Task<string?> PickFileOrFolder(Control anchor)
     {
         var pick = new TaskCompletionSource<string?>();
         var chosen = false;
-        var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
-        flyout.Content = ChoicePanel("ChatAttachPicker", "ChatAttachList", "Attach",
-            [new PopupChoice("file", "File\u2026", null, false), new PopupChoice("folder", "Folder\u2026", null, false)], flyout, choice =>
-            {
-                chosen = true;
-                _ = Task.Run(async () => { try { pick.TrySetResult(await (choice.Key == "folder" ? env.PickFolder() : env.PickFile())); } catch (Exception error) { pick.TrySetException(error); } });
-            });
-        flyout.Closed += (_, _) => { if (!chosen) pick.TrySetResult(null); };
-        ChatPopup.Show(flyout, anchor);
+        void Choose(Func<Task<string?>> picker)
+        {
+            chosen = true;
+            _ = Task.Run(async () => { try { pick.TrySetResult(await picker()); } catch (Exception error) { pick.TrySetException(error); } });
+        }
+        var menu = AttachMenu(() => Choose(env.PickFile), () => Choose(env.PickFolder));
+        // A closed menu with no choice is a cancel; the check waits for the queue, so a choice's click that lands after the close still counts.
+        menu.Closed += (_, _) => Dispatcher.UIThread.Post(() => { if (!chosen) pick.TrySetResult(null); }, DispatcherPriority.Background);
+        ChatPopup.ShowMenu(menu, anchor);
         return await pick.Task;
     }
 
-    private sealed record PopupChoice(string Key, string Label, string? Detail, bool Current, bool DetailInTip = false, bool Submenu = false);
-
-    // The plain popup: a titled list of choices, a check on the current one, one click or Enter chooses and closes, Esc closes.
-    private Control ChoicePanel(string name, string listName, string title, IReadOnlyList<PopupChoice> choices, Flyout flyout, Action<PopupChoice> choose, Func<PopupChoice, bool>? stays = null)
+    internal static ContextMenu AttachMenu(Action file, Action folder)
     {
-        var list = ChatPopup.Rows(new ListBox { Name = listName, MinWidth = 200, MaxWidth = 440 });
-        list.ItemsSource = choices;
-        list.SelectedIndex = Math.Max(0, choices.ToList().FindIndex(choice => choice.Current));
-        list.ItemTemplate = new FuncDataTemplate<PopupChoice>((choice, _) => choice is null ? null : ChoiceRow(choice), supportsRecycling: false);
-        void Choose()
-        {
-            if (list.SelectedItem is not PopupChoice picked) return;
-            if (stays?.Invoke(picked) != true) ClosePopup(flyout);
-            choose(picked);
-        }
-        list.Tapped += (_, _) => Choose();
-        list.KeyDown += (_, e) =>
-        {
-            if (e.Key == Key.Enter) { Choose(); e.Handled = true; }
-            else if (e.Key == Key.Escape) { ClosePopup(flyout); e.Handled = true; }
-        };
-        flyout.Opened += (_, _) => list.Focus();
-        return ChatPopup.Container(name, title, list);
-    }
-
-    private static Control ChoiceRow(PopupChoice choice)
-    {
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 8, Height = ChatPopup.RowHeight };
-        var label = Ui.Text(choice.Label, Ui.TextBrush, 12);
-        label.VerticalAlignment = VerticalAlignment.Center;
-        grid.Children.Add(ChatPopup.Check(choice.Current));
-        Grid.SetColumn(label, 1);
-        grid.Children.Add(label);
-        if (choice.Detail is { Length: > 0 } tip && choice.DetailInTip) ToolTip.SetTip(grid, tip);
-        else if (choice.Detail is { Length: > 0 } detail)
-        {
-            var text = Ui.Text(detail.ReplaceLineEndings(" "), Ui.Muted, 11);
-            text.Name = "ChatPopupDetail";
-            text.MaxLines = 1;
-            text.TextWrapping = TextWrapping.NoWrap;
-            text.TextTrimming = TextTrimming.CharacterEllipsis;
-            text.VerticalAlignment = VerticalAlignment.Center;
-            if (choice.Submenu) text.HorizontalAlignment = HorizontalAlignment.Right;
-            Grid.SetColumn(text, 2);
-            grid.Children.Add(text);
-            ToolTip.SetTip(grid, detail);
-        }
-        return grid;
+        var menu = ChatPopup.Menu("ChatAttachMenu");
+        menu.Items.Add(ChatPopup.Item("ChatAttachFile", "File\u2026", file));
+        menu.Items.Add(ChatPopup.Item("ChatAttachFolder", "Folder\u2026", folder));
+        return menu;
     }
 }

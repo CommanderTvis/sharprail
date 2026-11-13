@@ -11,8 +11,9 @@ using Tereditor.Plugins.UI.Kit;
 namespace Tereditor.Plugins.Chat.UI;
 
 /// <summary>
-/// The one popup family of the chat's pickers (model, effort, permission mode, past conversations): one container with a muted header, list rows with
-/// the same insets and the same hover and selected wash, and a fixed check column that marks the current value without resizing the row.
+/// The one popup family of the chat's hand-built popups (the model search, past conversations, skills, send options, usage): one container with a muted
+/// header, list rows with the same insets and the same hover and selected wash, and a fixed check column that marks the current value without resizing
+/// the row. The plain pickers (model, effort, permission mode, attach, "+") are menus, see <see cref="Menu"/>.
 /// </summary>
 internal static class ChatPopup
 {
@@ -141,11 +142,90 @@ internal static class ChatPopup
     }
 
     private static readonly List<Flyout> shown = [];
+    private static readonly List<ContextMenu> menus = [];
 
-    /// <summary>Closes every popup this chat opened that is still showing.</summary>
+    /// <summary>Closes every popup and menu this chat opened that is still showing.</summary>
     internal static void CloseAll()
     {
         foreach (var flyout in shown.ToArray()) flyout.Hide();
+        foreach (var menu in menus.ToArray()) menu.Close();
+    }
+
+    /// <summary>
+    /// A picker menu of the chat (model, effort, permission mode, attach, "+"): the app's own <see cref="ContextMenu"/> on the elevated surface, as the
+    /// Settings theme menu draws it, so rows, submenus, check and radio marks, keyboard navigation and accessibility are the platform's.
+    /// </summary>
+    internal static ContextMenu Menu(string name)
+    {
+        var menu = new ContextMenu
+        {
+            Name = name,
+            Placement = PlacementMode.TopEdgeAlignedLeft,
+            Background = Ui.Elevated,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4),
+            Foreground = Ui.TextBrush,
+            FontFamily = Ui.InterfaceFont,
+            FontWeight = Ui.InterfaceWeight
+        };
+        menu.Resources["MenuFlyoutItemBackgroundPointerOver"] = Ui.Hover;
+        menu.Resources["MenuFlyoutItemBackgroundPressed"] = Ui.Hover;
+        menu.Resources["MenuFlyoutItemForegroundPointerOver"] = Ui.TextBrush;
+        return menu;
+    }
+
+    /// <summary>Opens a picker menu from the control it belongs to; the control holds it only while it is open, so a right click never finds a stale one.</summary>
+    internal static void ShowMenu(ContextMenu menu, Control target)
+    {
+        target.ContextMenu = menu;
+        menus.Add(menu);
+        menu.Closed += (_, _) =>
+        {
+            menus.Remove(menu);
+            if (ReferenceEquals(target.ContextMenu, menu)) target.ContextMenu = null;
+        };
+        menu.Open(target);
+    }
+
+    /// <summary>A menu row: its label, an optional muted detail after it, an optional icon, the label as its accessible name.</summary>
+    internal static MenuItem Item(string name, string label, Action run, string? detail = null, string? tip = null, Control? icon = null)
+    {
+        var item = Ui.Menu(label, run);
+        item.Name = name;
+        if (detail is { Length: > 0 }) item.Header = Labelled(label, detail);
+        if (icon is not null) item.Icon = icon;
+        if ((tip ?? detail) is { Length: > 0 } text) ToolTip.SetTip(item, text);
+        Avalonia.Automation.AutomationProperties.SetName(item, label);
+        return item;
+    }
+
+    /// <summary>One value of a picker: a radio row, checked when it is the value in force.</summary>
+    internal static MenuItem Choice(string name, string label, bool current, Action run, string? detail = null)
+    {
+        var item = Item(name, label, run, detail);
+        item.ToggleType = MenuItemToggleType.Radio;
+        item.IsChecked = current;
+        return item;
+    }
+
+    /// <summary>A row header of a label and a muted detail after it, cut to one line.</summary>
+    internal static Control Labelled(string label, string detail)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 12 };
+        row.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center });
+        var muted = Ui.Text(detail.ReplaceLineEndings(" "), Ui.Muted, 11);
+        muted.Name = "ChatMenuDetail";
+        muted.MaxWidth = 240;
+        muted.MaxLines = 1;
+        muted.TextWrapping = TextWrapping.NoWrap;
+        muted.TextTrimming = TextTrimming.CharacterEllipsis;
+        muted.VerticalAlignment = VerticalAlignment.Center;
+        muted.HorizontalAlignment = HorizontalAlignment.Right;
+        Grid.SetColumn(muted, 1);
+        row.Children.Add(muted);
+        return row;
     }
 
     /// <summary>The fixed-width check column of a row: a mark on the current value, blank space on the others. The mark is drawn, not a "✓" character: the browser build has no font that carries the glyph.</summary>

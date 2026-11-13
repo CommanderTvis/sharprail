@@ -130,12 +130,7 @@ internal sealed partial class ChatView
         attachmentRow = new WrapPanel { Name = "ChatAttachmentRow", Orientation = Orientation.Horizontal, ItemSpacing = Space.Gap, LineSpacing = Space.Gap, IsVisible = false };
         var plusContent = new Grid { Width = 16, Height = 16 };
         plusContent.Children.Add(Ui.Icon("add", Ui.Muted, 14));
-        plus = TerminalFacts.ChipButton("ChatPlus", plusContent, "Conversations, skills, commands, IDE context, MCP servers", () =>
-        {
-            var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
-            flyout.Content = BuildPlusMenu(flyout);
-            ChatPopup.Show(flyout, plus!);
-        });
+        plus = TerminalFacts.ChipButton("ChatPlus", plusContent, "Conversations, skills, commands, IDE context, MCP servers", () => ChatPopup.ShowMenu(BuildPlusMenu(), plus!));
         Avalonia.Automation.AutomationProperties.SetName(plus, "Add to the chat");
         // One small usage chip: the context pie, and a popover with the session's tokens, cost and context meter.
         pie = TerminalFacts.ChipButton("ChatContextPie", new PieGlyph(), "Session usage", ShowUsage);
@@ -1237,57 +1232,35 @@ internal sealed partial class ChatView
         public const double ControlHeight = 28;
     }
 
-    /// <summary>The "+" popup: Skills, the command menu and the MCP servers. The IDE switch is also a footer chip while there is room.</summary>
-    internal Control BuildPlusMenu(Flyout flyout)
+    /// <summary>The "+" menu: Past conversations, Skills, the command menu, the IDE switch and the MCP servers. The IDE switch is also a footer chip while there is room.</summary>
+    internal ContextMenu BuildPlusMenu()
     {
         var header = transcript.Header;
-        var rows = new StackPanel { Spacing = 2 };
-        Button Row(string name, string icon, string label, string? detail, Action run, bool? check = null, string? tip = null)
-        {
-            var line = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 8, Height = ChatPopup.RowHeight };
-            line.Children.Add(ChatPopup.Check(check == true));
-            var text = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Ui.Icon(icon, Ui.Muted, 12));
-            text.Children.Add(Ui.Text(label, Ui.TextBrush, 12));
-            Grid.SetColumn(text, 1);
-            line.Children.Add(text);
-            if (detail is { Length: > 0 })
-            {
-                var muted = Ui.Text(detail, Ui.Muted, 11);
-                muted.TextTrimming = TextTrimming.CharacterEllipsis;
-                muted.MaxLines = 1;
-                muted.VerticalAlignment = VerticalAlignment.Center;
-                Grid.SetColumn(muted, 2);
-                line.Children.Add(muted);
-            }
-            var button = new Button { Name = name, Content = line, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = ChatPopup.RowPadding, MinHeight = 0, BorderThickness = new Thickness(0) };
-            button.Classes.Add("plain");
-            button.Background = Brushes.Transparent;
-            button.Click += (_, _) => { flyout.Hide(); run(); };
-            ToolTip.SetTip(button, tip ?? (detail is { Length: > 0 } ? label + "\n" + detail : label));
-            Avalonia.Automation.AutomationProperties.SetName(button, label);
-            return button;
-        }
-        rows.Children.Add(Row("ChatSessions", "list", "Past conversations", "Resume a session", () => _ = ShowSessions()));
-        rows.Children.Add(Row("ChatSkills", "sparkling", "Skills", null, ShowSkills));
-        rows.Children.Add(Row("ChatCommandMenu", "terminal", "Command menu", "Slash commands", () =>
+        var menu = ChatPopup.Menu("ChatPlusMenu");
+        // A row runs once the menu has closed and handed focus back, so the popup it opens or the focus it moves to the input stays.
+        MenuItem Row(string name, string icon, string label, string? detail, Action run, string? tip = null) =>
+            ChatPopup.Item(name, label, () => Dispatcher.UIThread.Post(run, DispatcherPriority.Background), detail, tip ?? (detail is { Length: > 0 } ? label + "\n" + detail : label), Ui.Icon(icon, Ui.Muted, 12));
+        menu.Items.Add(Row("ChatSessions", "list", "Past conversations", "Resume a session", () => _ = ShowSessions()));
+        menu.Items.Add(Row("ChatSkills", "sparkling", "Skills", null, ShowSkills));
+        menu.Items.Add(Row("ChatCommandMenu", "terminal", "Command menu", "Slash commands", () =>
         {
             var text = input.Text ?? "";
             if (!text.StartsWith('/')) input.Text = "/" + text;
             input.Focus();
             input.CaretIndex = 1;
         }, tip: "Show command menu (/)"));
-        rows.Children.Add(Row("TerminalIdeContextToggle", "code", "IDE context", null, () => _ = ToggleIde(), ide,
-            ide ? "Stop sending IDE context to this session" : "Send IDE context to this session"));
+        // A check row: the menu draws the check where the icon would be.
+        var ideRow = ChatPopup.Item("TerminalIdeContextToggle", "IDE context", () => _ = ToggleIde(), tip: ide ? "Stop sending IDE context to this session" : "Send IDE context to this session");
+        ideRow.ToggleType = MenuItemToggleType.CheckBox;
+        ideRow.IsChecked = ide;
+        menu.Items.Add(ideRow);
         if (header is { McpServers.Count: > 0 })
         {
             var down = header.McpServers.Count(server => server.Status is not ("connected" or "ok"));
-            rows.Children.Add(Row("TerminalAgentFact_mcp", "server", "MCP servers", down > 0 ? $"{header.McpServers.Count} ({down} down)" : header.McpServers.Count.ToString(),
+            menu.Items.Add(Row("TerminalAgentFact_mcp", "server", "MCP servers", down > 0 ? $"{header.McpServers.Count} ({down} down)" : header.McpServers.Count.ToString(),
                 () => { }, tip: string.Join("\n", header.McpServers.Select(server => $"{server.Name} \u2014 {server.Status}"))));
         }
-        var panel = ChatPopup.Container("ChatPlusMenu", "Add to the chat", rows);
-        panel.MinWidth = 300;
-        return panel;
+        return menu;
     }
 
     // The levels, in the order things give way as the measured width shrinks: 1 the usage line goes, 2 the values shorten ("default effort" is

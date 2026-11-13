@@ -1199,8 +1199,8 @@ internal static class ClaudeChatUiChecks
             var note = view.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "ChatPasteNote");
             try { E2eWorkspace.Until(() => note.IsVisible); } catch (InvalidOperationException) { Console.WriteLine("paste notes: note '" + note.Text + "' visible " + note.IsVisible + " " + string.Join("|", notes) + " formats: " + string.Join(",", Avalonia.Input.Platform.ClipboardExtensions.GetDataFormatsAsync(clipboard).GetAwaiter().GetResult().Select(format => format.Identifier)) + " attachments " + view.Attachments.Count + " text '" + view.Input.Text + "'"); throw; }
             Require(note.Text!.StartsWith("Nothing to paste. The clipboard has: ", StringComparison.Ordinal) && note.Text.Contains("tereditor-test", StringComparison.Ordinal), "A paste of nothing usable says so and what the clipboard held: " + note.Text);
-            var command = view.BuildPlusMenu(new Flyout()).GetVisualDescendants().OfType<Button>().First(button => button.Name == "ChatCommandMenu");
-            Require(ToolTip.GetTip(command) as string == "Show command menu (/)" && command.GetVisualDescendants().OfType<TextBlock>().All(text => text.Text != "/"), "The command menu button is an icon with its tooltip, not a bare slash.");
+            var command = view.BuildPlusMenu().Items.OfType<MenuItem>().First(item => item.Name == "ChatCommandMenu");
+            Require(ToolTip.GetTip(command) as string == "Show command menu (/)" && command.Icon is not null && ((Panel)command.Header!).Children.OfType<TextBlock>().All(text => text.Text != "/"), "The command menu row has an icon and its tooltip, not a bare slash.");
 
             // Over the cap: refused with a message.
             view.AddPasted(new byte[ChatView.MaxAttachmentBytes + 1], "image/png");
@@ -2342,76 +2342,118 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
-    // The model, effort and permission pickers are one popup family: one container, a muted header, equal rows with a check column, one click chooses and closes.
+    // The model, effort, permission and attach pickers are menus: opened from their footer chip, the value in force a checked radio row, one click chooses and closes.
+    // More models opens the hand-built searchable list, which keeps the popup family: a container, a muted header, equal rows with a check column.
     private static void PopupFamily()
     {
         ChatMode[] modes = [new("default", "Manual", "Claude will ask for approval before making each edit"), new("acceptEdits", "Edit automatically", "Claude will edit your selected text or the whole file without asking, and a long description is cut to one line"), new("plan", "Plan", "Claude will explore the code and present a plan before editing")];
-        ChatModel[] models = [new("default", "Default (recommended)"), new("opus", "Opus 5.1") { Efforts = ["low", "medium", "high"] }, new("sonnet", "Sonnet 5.5")];
+        ChatModel[] models = [new("default", "Default (recommended)"), new("opus", "Opus 5.1") { Efforts = ["low", "medium", "high"], Family = "opus", Description = "Most capable" }, new("sonnet", "Sonnet 5.5") { Family = "sonnet" }];
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { PermissionMode = "acceptEdits", PermissionModes = modes, Model = "opus", Models = models, Effort = "medium" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var picked = "/tmp/picked-by-menu.txt";
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { PickFile = () => Task.FromResult<string?>(picked) }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         var closed = 0;
         view.PopupClosed += () => closed++;
-        var hosts = new List<Window>();
+        Window? host = null;
         try
         {
             Frame(window); Frame(window);
             var header = chat.Header;
-            var built = new List<(string Name, string Title, string Method, string Pick, Control Panel)>();
-            foreach (var (name, title, method, pick, make) in new (string, string, string, string, Func<Flyout, Control>)[]
+            ContextMenu Open(string chip)
             {
-                ("ChatModelPicker", "Model", ChatContract.SetModel.Name, "sonnet", flyout => view.ModelPanel(header, flyout)),
-                ("ChatEffortPicker", "Effort", ChatContract.SetEffort.Name, "high", flyout => view.EffortPanel(header, flyout)),
-                ("ChatModePicker", "Permission mode", ChatContract.SetPermissionMode.Name, "plan", flyout => view.ModePanel(header, flyout))
-            })
-                built.Add((name, title, method, pick, make(new Flyout())));
-            var facts = new List<(CornerRadius Radius, Thickness Padding, IBrush? Background, IBrush? Border, double Height, double CheckX, double CheckWidth)>();
-            foreach (var (name, title, method, pick, panel) in built)
-            {
-                var host = new Window { Width = 520, Height = 520, Content = new StackPanel { Children = { panel } }, Background = Ui.Surface };
-                hosts.Add(host);
-                host.Show();
-                Frame(host); Frame(host);
-                var container = (Border)panel;
-                Require(container.Name == name, name + " is the container.");
-                var label = container.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == name + "Header");
-                Require(label.Text == title && label.Foreground == Ui.Muted, $"{name} has the muted header '{title}'.");
-                var list = container.GetVisualDescendants().OfType<ListBox>().First(box => box.Name != null && box.Name.EndsWith("List", StringComparison.Ordinal));
-                var items = list.GetVisualDescendants().OfType<ListBoxItem>().Where(item => item.DataContext is not PickRow { Kind: PickRowKind.Header }).ToList();
-                Require(items.Count >= 3 && items.Select(item => Math.Round(item.Bounds.Height)).Distinct().Count() == 1, $"{name} rows are all one height ({string.Join(",", items.Select(item => item.Bounds.Height))}).");
-                var checks = items.Select(item => item.GetVisualDescendants().OfType<Border>().First(mark => mark.Name == "ChatPopupCheck")).ToList();
-                Require(checks.Count(mark => mark.Child is not null) == 1, $"{name} marks exactly the current value.");
-                var shown = checks.First(mark => mark.Child is not null);
-                var current = items[checks.IndexOf(shown)];
-                var currentLabel = current.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name != "ChatPopupCheck" && !string.IsNullOrEmpty(text.Text) && text.Text != "\u2605" && text.Text != "\u2606").Text;
-                Require(currentLabel == (name == "ChatModelPicker" ? "Opus 5.1" : name == "ChatEffortPicker" ? "medium" : "Edit automatically"), $"{name} marks the right row ('{currentLabel}').");
-                Require(checks.All(mark => Math.Abs(mark.TranslatePoint(new Point(0, 0), container)!.Value.X - shown.TranslatePoint(new Point(0, 0), container)!.Value.X) < 0.5 && mark.Bounds.Width == ChatPopup.CheckWidth), $"{name} keeps the check in one column.");
-                facts.Add((container.CornerRadius, container.Padding, container.Background, container.BorderBrush, items[0].Bounds.Height, shown.TranslatePoint(new Point(0, 0), container)!.Value.X, shown.Bounds.Width));
-                if (name == "ChatModePicker")
-                {
-                    var rows = list.GetVisualDescendants().OfType<Grid>().Where(grid => grid.Height == ChatPopup.RowHeight).ToList();
-                    Require(!list.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Name == "ChatPopupDetail") && rows.Count == modes.Length &&
-                        rows.Zip(modes).All(pair => ToolTip.GetTip(pair.First) as string == pair.Second.Description), "Each mode row shows only its name; the description is its tooltip.");
-                    Require(items.All(item => ToolTip.GetTip(item.GetVisualDescendants().OfType<Grid>().First()) is string tip && tip.Length > 10), "The full description is the tooltip.");
-                }
-                if (name == "ChatEffortPicker")
-                    Require(items.Select(item => item.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name != "ChatPopupCheck").Text).SequenceEqual(["low", "medium", "high"]), "The effort levels are lowercase labels.");
-                // One click on another row chooses it and closes the popup.
-                var pickLabel = name == "ChatModelPicker" ? "Sonnet 5.5" : name == "ChatEffortPicker" ? "high" : "Plan";
-                var target = items.First(item => item.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == pickLabel));
-                var middle = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), host)!.Value;
-                var before = closed;
-                host.MouseDown(middle, MouseButton.Left); host.MouseUp(middle, MouseButton.Left);
-                try { E2eWorkspace.Until(() => method == ChatContract.SetModel.Name ? chat.Calls.Contains(method) : chat.Sets.Contains((method, pick))); } catch (InvalidOperationException) { Console.WriteLine($"{name}: sets {string.Join(",", chat.Sets)} closed {closed - before} selected {list.SelectedItem}"); throw; }
-                Require(closed == before + 1, $"One click on {pick} chose it and closed the {title} popup.");
+                var button = view.GetVisualDescendants().OfType<Button>().First(button => button.Name == chip);
+                button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                E2eWorkspace.Until(() => button.ContextMenu is { IsOpen: true });
+                return button.ContextMenu!;
             }
-            Require(facts.Select(fact => fact.Radius).Distinct().Count() == 1 && facts.Select(fact => fact.Padding).Distinct().Count() == 1 && facts.Select(fact => fact.Background).Distinct().Count() == 1 && facts.Select(fact => fact.Border).Distinct().Count() == 1, "The three popups share one container: radius, padding, surface and border.");
-            Require(facts.Select(fact => Math.Round(fact.Height)).Distinct().Count() == 1 && facts.Select(fact => Math.Round(fact.CheckX)).Distinct().Count() == 1 && facts.Select(fact => fact.CheckWidth).Distinct().Count() == 1, $"The three popups share the row height and the check column ({string.Join("; ", facts.Select(fact => $"h {fact.Height} x {fact.CheckX} w {fact.CheckWidth}"))}).");
+            static string Label(MenuItem item) => item.Header as string ?? ((Panel)item.Header!).Children.OfType<TextBlock>().First().Text!;
+            static void Pick(MenuItem item)
+            {
+                Dispatcher.UIThread.RunJobs();
+                var top = TopLevel.GetTopLevel(item)!;
+                top.UpdateLayout();
+                var middle = item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), top)!.Value;
+                top.MouseMove(middle); top.MouseDown(middle, MouseButton.Left); top.MouseUp(middle, MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+            }
+
+            // The model menu: a flagship per family as radio rows, the current one checked, then Effort (a submenu of the levels) and More models.
+            var modelMenu = Open("TerminalAgentFact_model");
+            var rows = modelMenu.Items.OfType<MenuItem>().ToList();
+            Require(rows.Select(item => item.Name).SequenceEqual(["ChatModel_opus", "ChatModel_sonnet", "ChatModelEffort", "ChatModelMore"]) && modelMenu.Items.OfType<Separator>().Count() == 1,
+                "The model menu lists one flagship per family, then Effort and More models: " + string.Join(",", rows.Select(item => item.Name)));
+            Require(rows.Take(2).All(item => item.ToggleType == MenuItemToggleType.Radio) && rows.Single(item => item.IsChecked).Name == "ChatModel_opus" && Label(rows[0]) == "Opus 5.1",
+                "The flagships are radio rows and the model in force is checked.");
+            Require(ToolTip.GetTip(rows[0]) as string == "Most capable" && ((Panel)rows[0].Header!).Children.OfType<TextBlock>().Any(text => text.Name == "ChatMenuDetail" && text.Text == "Most capable"),
+                "A flagship's description is its muted detail and its tooltip.");
+            var effort = rows[2];
+            var levels = effort.Items.OfType<MenuItem>().ToList();
+            Require(levels.Select(Label).SequenceEqual(["low", "medium", "high"]) && levels.All(item => item.ToggleType == MenuItemToggleType.Radio) && levels.Single(item => item.IsChecked).Name == "ChatEffort_medium",
+                "Effort is a submenu of the model's levels, lowercase, the level in force checked.");
+            Require(((Panel)effort.Header!).Children.OfType<TextBlock>().Any(text => text.Text == "medium"), "The Effort row names the level in force.");
+            Pick(rows[1]);
+            E2eWorkspace.Until(() => chat.Calls.Contains(ChatContract.SetModel.Name) && !modelMenu.IsOpen);
+            Require(true, "One click on a flagship sets the model and closes the menu.");
+            chat.Push(new ChatHeaderPush(Workspace, Chat, header)); Frame(window);
+
+            modelMenu = Open("TerminalAgentFact_model");
+            effort = modelMenu.Items.OfType<MenuItem>().Single(item => item.Name == "ChatModelEffort");
+            effort.IsSubMenuOpen = true;
+            E2eWorkspace.Until(() => effort.Items.OfType<MenuItem>().All(item => TopLevel.GetTopLevel(item) is not null));
+            Pick(effort.Items.OfType<MenuItem>().Single(item => item.Name == "ChatEffort_high"));
+            E2eWorkspace.Until(() => chat.Sets.Contains((ChatContract.SetEffort.Name, "high")) && !modelMenu.IsOpen);
+            Require(true, "A level in the Effort submenu sets the effort and closes the menu.");
+
+            // The permission modes: radio rows with only the name; the description is the tooltip.
+            var modeMenu = Open("TerminalAgentFact_permission");
+            var modeRows = modeMenu.Items.OfType<MenuItem>().ToList();
+            Require(modeRows.Select(Label).SequenceEqual(modes.Select(mode => mode.Label)) && modeRows.All(item => item.ToggleType == MenuItemToggleType.Radio && item.Header is string) &&
+                modeRows.Single(item => item.IsChecked).Name == "ChatMode_acceptEdits" && modeRows.Zip(modes).All(pair => ToolTip.GetTip(pair.First) as string == pair.Second.Description),
+                "Each mode row shows only its name, the mode in force checked; the description is its tooltip.");
+            Pick(modeRows.Single(item => item.Name == "ChatMode_plan"));
+            E2eWorkspace.Until(() => chat.Sets.Contains((ChatContract.SetPermissionMode.Name, "plan")) && !modeMenu.IsOpen);
+            Require(true, "One click on a mode sets it and closes the menu.");
+
+            // Attach asks file or folder; the choice counts although the menu closes around the click.
+            var attachMenu = Open("TerminalAttachFile");
+            Require(attachMenu.Items.OfType<MenuItem>().Select(Label).SequenceEqual(["File\u2026", "Folder\u2026"]), "The attach menu offers a file or a folder.");
+            Pick(attachMenu.Items.OfType<MenuItem>().Single(item => item.Name == "ChatAttachFile"));
+            E2eWorkspace.Until(() => view.Attachments.Any(item => item.Path == picked) && !attachMenu.IsOpen);
+            Require(true, "Choosing File\u2026 runs the file picker and attaches its pick.");
+
+            // More models opens the searchable list from the model button: still the hand-built popup, one click chooses and closes it.
+            modelMenu = Open("TerminalAgentFact_model");
+            Pick(modelMenu.Items.OfType<MenuItem>().Single(item => item.Name == "ChatModelMore"));
+            E2eWorkspace.Until(() => !modelMenu.IsOpen);
+            var panel = (Border)view.ModelPanel(header, new Flyout());
+            host = new Window { Width = 520, Height = 520, Content = new StackPanel { Children = { panel } }, Background = Ui.Surface };
+            host.Show();
+            Frame(host); Frame(host);
+            Require(panel.Name == "ChatModelPicker", "The searchable list is its own container.");
+            var label = panel.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "ChatModelPickerHeader");
+            Require(label.Text == "Model" && label.Foreground == Ui.Muted, "The searchable list has the muted header 'Model'.");
+            var list = panel.GetVisualDescendants().OfType<ListBox>().First(box => box.Name == "ChatModelList");
+            var items = list.GetVisualDescendants().OfType<ListBoxItem>().Where(item => item.DataContext is not PickRow { Kind: PickRowKind.Header }).ToList();
+            Require(items.Count >= 3 && items.Select(item => Math.Round(item.Bounds.Height)).Distinct().Count() == 1, $"The model rows are all one height ({string.Join(",", items.Select(item => item.Bounds.Height))}).");
+            var checks = items.Select(item => item.GetVisualDescendants().OfType<Border>().First(mark => mark.Name == "ChatPopupCheck")).ToList();
+            Require(checks.Count(mark => mark.Child is not null) == 1, "The searchable list marks exactly the current model.");
+            var shown = checks.First(mark => mark.Child is not null);
+            var current = items[checks.IndexOf(shown)];
+            var currentLabel = current.GetVisualDescendants().OfType<TextBlock>().First(text => !string.IsNullOrEmpty(text.Text) && text.Text != "\u2605" && text.Text != "\u2606").Text;
+            Require(currentLabel == "Opus 5.1", $"The searchable list marks the right row ('{currentLabel}').");
+            Require(checks.All(mark => Math.Abs(mark.TranslatePoint(new Point(0, 0), panel)!.Value.X - shown.TranslatePoint(new Point(0, 0), panel)!.Value.X) < 0.5 && mark.Bounds.Width == ChatPopup.CheckWidth), "The searchable list keeps the check in one column.");
+            var target = items.First(item => item.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Sonnet 5.5"));
+            var middle = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), host)!.Value;
+            var before = closed;
+            var calls = chat.Calls.Count(call => call == ChatContract.SetModel.Name);
+            host.MouseDown(middle, MouseButton.Left); host.MouseUp(middle, MouseButton.Left);
+            E2eWorkspace.Until(() => chat.Calls.Count(call => call == ChatContract.SetModel.Name) > calls);
+            Require(closed == before + 1, "One click in the searchable list chose a model and closed it.");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
-        finally { foreach (var host in hosts) host.Close(); window.Close(); }
+        finally { host?.Close(); window.Close(); }
     }
 
     private static bool IsWash(IBrush? brush) =>
@@ -2452,8 +2494,8 @@ internal static class ClaudeChatUiChecks
                 var usage = ChatPopup.Frame("ChatUsagePopup", view.BuildUsagePanel());
                 var popups = new (string Name, Control Panel)[]
                 {
-                    ("model", view.ModelPanel(chat.Header, flyout)), ("effort", view.EffortPanel(chat.Header, flyout)), ("mode", view.ModePanel(chat.Header, flyout)),
-                    ("sessions", view.BuildSessions(sessions, _ => { }, now).Panel), ("skills", view.BuildSkills(flyout)), ("send", view.BuildSendOptions(flyout)), ("usage", usage), ("plus", view.BuildPlusMenu(flyout))
+                    ("model", view.ModelPanel(chat.Header, flyout)),
+                    ("sessions", view.BuildSessions(sessions, _ => { }, now).Panel), ("skills", view.BuildSkills(flyout)), ("send", view.BuildSendOptions(flyout)), ("usage", usage)
                 };
                 foreach (var (name, panel) in popups)
                 {
@@ -3129,15 +3171,15 @@ internal static class ClaudeChatUiChecks
             var shellBottom = shell.TranslatePoint(new Point(0, shell.Bounds.Height), view)!.Value.Y;
             Require(chipsTop >= listBottom && shell.Bounds.Height > 0 && chipsTop >= shellBottom - 0.5 && !view.GetVisualDescendants().OfType<Control>().Any(control => control.Name == "ChatFacts"),
                 "The pickers sit in a footer row below the box and the list; there is no separate chip line.");
-            var plusMenu = view.BuildPlusMenu(new Flyout()).GetVisualDescendants().OfType<Control>().Select(control => control.Name).ToHashSet();
+            var plusMenu = view.BuildPlusMenu().Items.OfType<MenuItem>().Select(item => item.Name).ToHashSet();
             Require(plusMenu.IsSupersetOf(["ChatSkills", "ChatCommandMenu"]) && !plusMenu.Contains("TerminalAttachFile") && ChipText(view, "ChatChips").Contains("IDE context") && view.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "TerminalAttachFile") && view.GetVisualDescendants().OfType<Control>().Any(control => control.Name == "ChatPlus") &&
                 view.GetVisualDescendants().OfType<Control>().Any(control => control.Name == "ChatHistory"),
                 "The \"+\" popup carries Skills, the command menu and the MCP servers; attach and the IDE switch are footer chips; history stays by Send.");
 
-            // The model button's popup lists a flagship per family, then Effort and More models.
+            // The model button's menu lists a flagship per family, then Effort and More models.
             var menuModels = new ChatModel[] { new("o1", "Opus 5.5") { Family = "opus" }, new("o0", "Opus 4.8") { Family = "opus" }, new("s1", "Sonnet 5.5") { Family = "sonnet" } };
-            var menuList = view.ModelMenu(chat.Header with { Models = menuModels }, new Flyout()).GetVisualDescendants().OfType<ListBox>().Single(list => list.Name == "ChatModelMenuList");
-            Require(menuList.ItemsSource is System.Collections.ICollection { Count: 4 }, "The model popup lists one flagship per family plus Effort and More models.");
+            var modelMenu = view.ModelMenu(chat.Header with { Models = menuModels }, view);
+            Require(modelMenu.Items.OfType<MenuItem>().Select(item => item.Name).SequenceEqual(["ChatModel_o1", "ChatModel_s1", "ChatModelEffort", "ChatModelMore"]), "The model menu lists one flagship per family plus Effort and More models.");
 
             // History search finds text across the transcript and scrolls to it.
             var found = ChatView.Search(transcript.AllItems().OrderBy(item => item.Seq).ToArray(), "hello", CancellationToken.None);

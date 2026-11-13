@@ -489,15 +489,15 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         var shortened = densityLevel >= 2;
         var effortLabel = header.Effort is { } known ? known : waiting ? "effort" : "default";
         var effortShown = pendingEffort is null || pendingEffort == header.Effort ? effortLabel : effortLabel + "…";
-        AddPicker(PickerButton("model", modelShown, pendingModel is null ? (header.Model ?? "Model") + " — click to switch the model or the effort (" + (header.Effort ?? "default") + ")" : "Waiting for Claude Code to confirm the model", flyout =>
-            header.Models.Count == 0 ? Ui.Text($"Waiting for {env.Agent.Name}…", Ui.Muted, 12) : ModelMenu(header, flyout), shortened || (header.Effort is null && pendingEffort is null && !waiting) ? null : effortShown));
+        AddPicker(PickerButton("model", modelShown, pendingModel is null ? (header.Model ?? "Model") + " — click to switch the model or the effort (" + (header.Effort ?? "default") + ")" : "Waiting for Claude Code to confirm the model", button => ModelMenu(header, button),
+            shortened || (header.Effort is null && pendingEffort is null && !waiting) ? null : effortShown));
         var offeredModes = ModeList(header);
         var currentMode = offeredModes.FirstOrDefault(mode => mode.Key == header.PermissionMode);
         var modeLabel = header.PermissionMode is null && waiting ? "permissions" : currentMode?.Label ?? ModeLabel(header.PermissionMode);
         var modeShown = shortened ? (header.PermissionMode is null or "default" ? "ask" : modeLabel.Split(' ')[^1].ToLowerInvariant()) : modeLabel;
         if (ChipShown("mode")) AddPicker(PickerButton("permission", pendingMode is null || pendingMode == header.PermissionMode ? modeShown : modeShown + "…",
             (currentMode?.Description ?? env.Agent.DescribeMode(header.PermissionMode ?? "default").Description) + ". Click to change, or press Shift+Tab to cycle.",
-            flyout => ModePanel(header, flyout)));
+            _ => ModeMenu(header)));
         if (header.PermissionMode == "plan") Add(TerminalFacts.FactChip("plan", "Plan mode", $"{env.Agent.Short} plans and asks before changing anything"));
         foreach (var row in ChipShown("environment") ? environmentChips ??= env.WorkspaceChips() : Array.Empty<Control>())
         {
