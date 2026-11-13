@@ -30,7 +30,7 @@ return Guard(() =>
         .Select(line => line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
         .FirstOrDefault(fields => fields.Length > 1 && fields[0] == key)?[1] ?? "";
     var (tag, asset) = (Field("tag"), Field("asset"));
-    Console.WriteLine($"Publish with: gh release create {tag} --repo {Field("repo")} --title {tag} --notes 'Zig dependency mirror (scripts/zig-deps.sh)' {work}/out/{asset}");
+    Console.WriteLine($"Publish with: gh release create {tag} --repo {Field("repo")} --prerelease --latest=false --title {tag} --notes 'Zig dependency mirror (scripts/zig-deps.sh)' {work}/out/{asset}");
     Console.WriteLine($"Then commit scripts/zig-deps.lock and remove {work}.");
     return 0;
 });
