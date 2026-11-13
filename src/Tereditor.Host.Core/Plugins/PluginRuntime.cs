@@ -622,7 +622,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         HostState? previous = null;
         try
         {
-            await foreach (var state in Seams.State.WatchAsync(lifetime.Token).ConfigureAwait(false))
+            await foreach (var state in Seams.State.WatchStoredAsync(lifetime.Token).ConfigureAwait(false))
             {
                 Suspend(previous, state);
                 if (previous is not null)

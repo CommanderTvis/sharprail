@@ -189,15 +189,14 @@ internal static class ProjectContextE2E
         reopen.GetAwaiter().GetResult();
         GoProjectHome(app);
 
-        // tereditor regression: a project whose folder was deleted closes without the confirmation.
+        // tereditor regression: a project whose folder was deleted leaves the rail on the next re-sync (window activation), unasked.
         var deleted = IsolatedGit.Repository(Path.Combine(directory, "deleted-project"));
         AddProject(app, "Open project", deleted);
         Until(() => app.Window.ProjectRoot == deleted && Listed(app, deleted));
-        app.Window.Activate();
         Directory.Delete(deleted, recursive: true);
-        CloseChoice(deleted);
+        app.Window.Activate();
         Until(() => !Listed(app, deleted));
-        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "Closing a project whose folder is gone does not ask for confirmation.");
+        Require(!Tereditor.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "A project whose folder is gone leaves the rail without asking.");
         Console.WriteLine("PASS project context actions: close/reopen retains repositories and saved tabs across clients and releases terminals");
     }
 }

@@ -499,7 +499,15 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
-    public async IAsyncEnumerable<HostState> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<HostState> WatchAsync(CancellationToken cancellationToken = default) => WatchAsync(visible: true, cancellationToken);
+
+    /// <summary>
+    /// The stored state, folders gone or not: the host's own lifecycle (plugin workspace events) must not take a folder that is
+    /// briefly missing, such as an unmounted volume, for a removed workspace and forget what belongs to it.
+    /// </summary>
+    internal IAsyncEnumerable<HostState> WatchStoredAsync(CancellationToken cancellationToken = default) => WatchAsync(visible: false, cancellationToken);
+
+    private async IAsyncEnumerable<HostState> WatchAsync(bool visible, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var channel = Channel.CreateUnbounded<HostState>(new() { SingleReader = true });
         lock (gate) { watchers.Add(channel); channel.Writer.TryWrite(state); }
@@ -510,7 +518,7 @@ public sealed partial class HostStateStore : IHostStateService
                 // Snapshots are complete; a slow watcher only needs the latest.
                 var latest = default(HostState);
                 while (channel.Reader.TryRead(out var item)) latest = item;
-                if (latest is not null) yield return Visible(latest);
+                if (latest is not null) yield return visible ? Visible(latest) : latest;
             }
         }
         finally { lock (gate) watchers.Remove(channel); }

@@ -737,7 +737,7 @@ internal static class ClaudeChatUiChecks
                 try
                 {
                     Frame(window); Frame(window);
-                    var strip = (terminal.Accessories.Background as ISolidColorBrush)?.Color;
+                    var strip = (terminal.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "TerminalAccessoriesStrip").Background as ISolidColorBrush)?.Color;
                     Require(strip == Tereditor.UI.Terminal.TerminalTheme.Colors().Background, $"{theme.Id}: the strip under the terminal is the colour the terminal paints.");
                 }
                 finally { window.Close(); }

@@ -187,15 +187,17 @@ internal static class TerminalResumeHintChecks
         // A hairline sits between the chips and the content above only while a companion is open, without moving anything.
         var chips = view.GetLogicalDescendants().OfType<StackPanel>().Single(control => control.Name == "TerminalAccessories");
         var divider = view.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "TerminalAccessoriesDivider");
+        // The chips sit inside a padded strip; the divider overlays the strip's top edge, in the same grid row.
+        var strip = view.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "TerminalAccessoriesStrip");
         chips.Children.Add(new Border { Height = 24 }); Settle();
-        var chipHeight = chips.Bounds.Height; var bodyHeight = body.Bounds.Height;
+        var chipHeight = strip.Bounds.Height; var bodyHeight = body.Bounds.Height;
         Require(!divider.IsVisible, "Without a companion the chip strip is borderless.");
         view.Companion = pane; Settle();
         Require(divider.IsVisible && ReferenceEquals(divider.Background, Tereditor.Plugins.UI.Kit.Ui.BorderBrush) && Math.Abs(divider.Bounds.Height - 1) < 0.01 &&
-            Math.Abs(divider.Bounds.Top - chips.Bounds.Top) < 0.5 && Math.Abs(chips.Bounds.Height - chipHeight) < 0.5,
-            $"An open companion shows a 1px border on the chip strip's top edge without resizing it: {divider.Bounds}, strip {chips.Bounds}.");
+            Math.Abs(divider.Bounds.Top - strip.Bounds.Top) < 0.5 && Math.Abs(strip.Bounds.Height - chipHeight) < 0.5,
+            $"An open companion shows a 1px border on the chip strip's top edge without resizing it: {divider.Bounds}, strip {strip.Bounds}.");
         view.Companion = null; Settle();
-        Require(!divider.IsVisible && Math.Abs(chips.Bounds.Height - chipHeight) < 0.5 && Math.Abs(body.Bounds.Height - bodyHeight) < 0.5, "Closing removes the border and restores the sizes.");
+        Require(!divider.IsVisible && Math.Abs(strip.Bounds.Height - chipHeight) < 0.5 && Math.Abs(body.Bounds.Height - bodyHeight) < 0.5, "Closing removes the border and restores the sizes.");
         chips.Children.Clear(); Settle();
         // The strip row above the surface: the tab's top row, a list only with several items, pressing it toggles.
         var presses = 0;

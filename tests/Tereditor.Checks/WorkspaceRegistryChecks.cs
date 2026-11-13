@@ -65,6 +65,9 @@ internal static class WorkspaceRegistryChecks
     {
         var legacy = Path.Combine(directory, "legacy-state");
         Directory.CreateDirectory(legacy);
+        // The rail hides a workspace whose folder is gone, so the parked and pinned trees exist on disk.
+        Directory.CreateDirectory(Path.Combine(directory, "parked"));
+        Directory.CreateDirectory(Path.Combine(directory, "pinned"));
         File.WriteAllText(Path.Combine(legacy, HostStateStore.FileName), System.Text.Json.JsonSerializer.Serialize(new
         {
             Settings = new { SettleIdleDays = 3 },

@@ -115,7 +115,11 @@ internal static class WorkspaceUnreadE2E
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")));
         // The row moved when the nested tab row was added: measure it again.
         rowBounds = new Rect(row.TranslatePoint(default, app.Window) ?? default, row.Bounds.Size);
-        Require(Math.Abs(Within(tabDot).Center.Y - Within(tabRow).Center.Y) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - rowBounds.Center.Y) < 1, "Each dot must be vertically centred on its own row.");
+        // Indicators centre on their title's first line (a row with a branch or subtitle below is taller than that line).
+        double FirstLineCentre(TextBlock title) => Within(title).Top + (title.Padding.Top +
+            (title.LineHeight > 0 ? title.LineHeight : title.TextLayout.TextLines.FirstOrDefault()?.Height ?? title.Bounds.Height)) / 2;
+        Require(Math.Abs(Within(tabDot).Center.Y - FirstLineCentre(tabTitle)) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - FirstLineCentre(nameBox)) < 1,
+            $"Each dot must be centred on its own title's first line: tab dot {Within(tabDot)}, title {Within(tabTitle)}; dot {Within(Dot(app, other))}, name {Within(nameBox)}.");
         WorkspaceTabsE2E.Switch(app, other);
         app.Window.Activate();
         Until(() => Mark(other) is null && !app.Workbench.Signals.Failed(Tereditor.UI.Terminal.TerminalLaunch.SessionFor(other, failedTab)));

@@ -154,7 +154,7 @@ internal static class TereditorExcludeChecks
 
         // Already ignored by .gitignore (decided by Git, not by text): reported, not rewritten.
         var ignored = Seed(E2E.IsolatedGit.Repository(Path.Combine(parent, "ignored")));
-        File.WriteAllText(Path.Combine(ignored, ".gitignore"), "# comment mentioning .tereditor\n.sharp*\n");
+        File.WriteAllText(Path.Combine(ignored, ".gitignore"), "# comment mentioning .tereditor\n.tere*\n");
         var ignoredHost = await open(ignored);
         var ignoredBefore = ExcludeText(ignored);
         log.Add("ignored " + await ignoredHost.GetTereditorDirectoryAsync());

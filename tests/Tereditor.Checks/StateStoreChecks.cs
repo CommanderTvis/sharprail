@@ -61,6 +61,7 @@ internal static class StateStoreChecks
 
         // Upstream #764: a project rename is display-only, normalised, persisted and kept across close and reopen.
         var renamed = Path.Combine(directory, "renamed-project");
+        Directory.CreateDirectory(renamed);
         await store.ChangeAsync([HostStateChange.OpenProject(renamed)]);
         var named = await store.ChangeAsync([HostStateChange.RenameProject(renamed, "  My \t  project ")]);
         Require(named.ProjectName(renamed) == "My project" && named.Projects.Contains(renamed), "A project rename collapses whitespace and keeps the path.");
