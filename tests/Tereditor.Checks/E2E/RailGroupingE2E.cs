@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -18,6 +19,12 @@ namespace Tereditor.Checks.E2E;
 internal static class RailGroupingE2E
 {
     internal static void Run(string root)
+    {
+        Grouped(root);
+        Unified(root);
+    }
+
+    private static void Grouped(string root)
     {
         using var app = OpenFixtureProject(Path.Combine(root, "rail-grouping"));
         var project = app.Window.ProjectRoot;
@@ -38,15 +45,7 @@ internal static class RailGroupingE2E
         Require(!Controls(app).OfType<Border>().Any(guide => guide.Name == "WorkspaceNestGuide" && guide.IsEffectivelyVisible), "Off, no row shows a nesting guide.");
         Console.WriteLine("PASS rail grouping: off keeps the flat list");
 
-        app.OpenSettings();
-        Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
-        var settings = app.Window.OpenSettingsViews.Single(window => window.IsVisible);
-        app.Click(Named<Button>(settings, "Settings_Projects"));
-        var toggle = Named<CheckBox>(settings, "GroupWorkspacesUnderCreator");
-        Require(toggle.IsChecked == false, "Grouping is off by default.");
-        toggle.IsChecked = true;
-        settings.Close(); Until(() => !settings.IsVisible);
-        Require(app.Window.Preferences.GroupWorkspacesUnderCreator, "The switch must change the app preference.");
+        TurnOnGrouping(app);
         Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, child, chatChild]));
         Require(Item(app, child).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Item(app, orphan).Margin.Left == Item(app, creatorWorkspace).Margin.Left &&
             Named<Border>(Item(app, child), "WorkspaceNestGuide").IsEffectivelyVisible && !Named<Border>(Item(app, orphan), "WorkspaceNestGuide").IsVisible,
@@ -104,12 +103,154 @@ internal static class RailGroupingE2E
         Until(() => app.State.Current.WorkspaceCreators.Count == 6 && Item(app, last).Margin.Left > Item(app, project).Margin.Left);
         SteadyColumns(app, project, orchestrator, [first, last], orphan);
         Console.WriteLine("PASS rail grouping: selecting a terminal or a workspace moves no row, icon, title or guide line");
+        OverflowColumns(app, project, orchestrator, [first, last]);
+        Console.WriteLine("PASS rail grouping: an overflowing or scrolled rail keeps every column of the rail that shows all its rows");
 
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
         Require(reloaded.Data.Preferences.GroupWorkspacesUnderCreator, "The preference must be stored and restored.");
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
             "The host must restore the recorded creator after a restart.");
         Console.WriteLine("PASS rail grouping: the preference and the creators are stored and restored");
+    }
+
+    /// <summary>The macOS app draws the rail in the unified chrome, under the header the top bar's controls move into: the columns hold there too.</summary>
+    private static void Unified(string root)
+    {
+        UnifiedChrome.Override = true;
+        try
+        {
+            using var unified = OpenFixtureProject(Path.Combine(root, "rail-grouping-unified"));
+            var home = unified.Window.ProjectRoot;
+            TurnOnGrouping(unified);
+            unified.Window.Layout.NewTerminal(unified.Center);
+            var creator = unified.Window.Layout.Tabs(unified.Center).Last(tab => tab.Kind == "terminal").Id;
+            unified.Window.Layout.NewTerminal(unified.Center);
+            var made = new[] { CreateWorkspaceViaDialog(unified), CreateWorkspaceViaDialog(unified) };
+            // More rows than a short window holds once a workspace's tab rows open under it.
+            for (var extra = 0; extra < 4; extra++) CreateWorkspaceViaDialog(unified);
+            foreach (var path in made) unified.State!.RecordWorkspaceCreator(path, new TerminalRef(home, creator));
+            Until(() => unified.State!.Current.WorkspaceCreators.Count == 2 && Item(unified, made[1]).Margin.Left > Item(unified, home).Margin.Left);
+            OverflowColumns(unified, home, creator, made);
+        }
+        finally { UnifiedChrome.Override = false; }
+        Console.WriteLine("PASS rail grouping: the unified rail keeps its columns when it overflows or scrolls");
+    }
+
+    /// <summary>Turns on "Group workspaces under the terminal or chat that created them" in Settings, as a user does.</summary>
+    private static void TurnOnGrouping(E2eWorkspace app)
+    {
+        app.OpenSettings();
+        Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
+        var settings = app.Window.OpenSettingsViews.Single(window => window.IsVisible);
+        app.Click(Named<Button>(settings, "Settings_Projects"));
+        var toggle = Named<CheckBox>(settings, "GroupWorkspacesUnderCreator");
+        Require(toggle.IsChecked == false, "Grouping is off by default.");
+        toggle.IsChecked = true;
+        settings.Close(); Until(() => !settings.IsVisible);
+        Require(app.Window.Preferences.GroupWorkspacesUnderCreator, "The switch must change the app preference.");
+    }
+
+    /// <summary>Opens a workspace by its rail row; for the creator's workspace, also selects the creator's tab as a click selects it.</summary>
+    private static void Choose(E2eWorkspace app, string open, string creator, string tab)
+    {
+        var live = "DockTab_" + tab.Replace(':', '_').Replace('/', '_');
+        app.Click(Select(app, open));
+        Until(() => Active(app, open));
+        if (open != creator) return;
+        // Selected as a click selects it: the tab is chosen and its pane focused, so the row wears the current look.
+        Until(() => Controls(app).Any(control => control.Name == live && control.IsEffectivelyVisible));
+        app.Click(Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Button>().First(button => button.Name == "Tab_" + live["DockTab_".Length..]));
+        Until(() => Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Border>().Any(border => border.Name == "ActiveWorkspaceTab" && border.IsVisible));
+    }
+
+    /// <summary>
+    /// A window short enough that the selected workspace's rows overflow the rail, so its scroll bar shows, keeps every column of a
+    /// window tall enough for all of them: the creator's workspace row, the tab's box edges, each child's icon, title and guide line,
+    /// the open workspace's launcher row and the rail itself, with the creator's terminal selected or a child workspace, scrolled to
+    /// the top or the end. A failure carries the scroller's and the window content's geometry, so it names the layer that moved.
+    /// </summary>
+    private static void OverflowColumns(E2eWorkspace app, string creator, string tab, string[] children)
+    {
+        var live = "DockTab_" + tab.Replace(':', '_').Replace('/', '_');
+        var scroller = Controls(app).OfType<ScrollViewer>().First(item => item.Content is StackPanel { Name: "ProjectsTree" });
+        var bar = scroller.GetVisualDescendants().OfType<ScrollBar>().First(item => item.Name == "PART_VerticalScrollBar");
+        var zoom = app.Window.FindControl<LayoutTransformControl>("ZoomRoot")!;
+        var panel = Controls(app).First(control => control.Name == "ProjectsPanel");
+        bool Overflows() => scroller.Extent.Height > scroller.Viewport.Height + 1;
+        double X(Control control) => (control.TranslatePoint(default, app.Window) ?? default).X;
+        string Geometry() => $"rail offset {scroller.Offset}, extent {scroller.Extent}, viewport {scroller.Viewport}, bounds {scroller.Bounds}, desired {scroller.DesiredSize}, " +
+            $"scroll bar shown {bar.IsVisible} at {X(bar):0.#} width {bar.Bounds.Width}; projects panel at {X(panel):0.#} {panel.Bounds}; " +
+            $"window content {zoom.Child?.Bounds} desired {zoom.Child?.DesiredSize} in {zoom.Bounds}";
+        static string Show((string Name, double X)[] items) => string.Join(", ", items.Select(item => $"{item.Name} {item.X:0.#}"));
+        (string Name, double X)[] Columns(string open)
+        {
+            var columns = RailColumns(app, tab, live, [creator, .. children]).ToList();
+            var row = Controls(app).First(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceTabPreview" && (string?)control.Tag == tab || control.Name == live));
+            columns.Add(("tab box left", X(row)));
+            columns.Add(("tab box right", X(row) + row.Bounds.Width));
+            columns.Add(("projects panel left", X(panel)));
+            columns.Add(("projects panel right", X(panel) + panel.Bounds.Width));
+            // The open workspace's launcher row (new terminal and the agents) wraps under its tabs; it must not change width either.
+            if (Controls(app).FirstOrDefault(control => control.IsEffectivelyVisible && control.Name?.StartsWith("TabStripActions_", StringComparison.Ordinal) == true &&
+                control.GetVisualAncestors().Any(ancestor => ancestor is Control { Name: "WorkspaceTabs" } host && Equals(host.Tag, open))) is { } launcher)
+            {
+                columns.Add(("launcher left", X(launcher)));
+                columns.Add(("launcher right", X(launcher) + launcher.Bounds.Width));
+            }
+            return [.. columns];
+        }
+        var height = app.Window.Height;
+        var tall = new Dictionary<string, (string Name, double X)[]>();
+        try
+        {
+            foreach (var (rows, overflow) in new[] { (1600.0, false), (420.0, true) })
+            {
+                app.Window.Height = rows;
+                Settle();
+                foreach (var open in new[] { creator, children[0] })
+                {
+                    scroller.Offset = default;
+                    Choose(app, open, creator, tab);
+                    Until(() => GuidesJoin(app, creator, tab, children[0], children[1]));
+                    Settle();
+                    var state = (open == creator ? "terminal selected" : "workspace selected") + (overflow ? ", short window" : ", tall window");
+                    if (!overflow) Require(!Overflows() && !bar.IsVisible, $"The tall window shows every rail row without a scroll bar ({state}): {Geometry()}");
+                    else if (open != creator) Require(Overflows() && bar.IsVisible, $"The short window makes the rail overflow and show its scroll bar ({state}): {Geometry()}");
+                    foreach (var end in overflow && Overflows() ? new[] { false, true } : new[] { false })
+                    {
+                        if (end)
+                        {
+                            scroller.Offset = new Vector(0, scroller.Extent.Height - scroller.Viewport.Height);
+                            Settle();
+                            Require(scroller.Offset.Y > 1, $"The rail scrolls to its end ({state}): {Geometry()}");
+                        }
+                        var where = state + (end ? ", scrolled to the end" : ", scrolled to the top");
+                        Require(Math.Abs(scroller.Offset.X) <= 0.01, $"The rail never scrolls sideways ({where}): {Geometry()}");
+                        Require(zoom.Child is { } content && Math.Abs(content.Bounds.X) <= 0.5 && Math.Abs(content.Bounds.Width - zoom.Bounds.Width) <= 0.5,
+                            $"The window content fills the window from its left edge ({where}): {Geometry()}");
+                        var columns = Columns(open);
+                        if (open != creator)
+                        {
+                            // Across selections the tab's box (a live tab or its preview), every row and the rail itself hold too;
+                            // only the launcher row belongs to the open workspace.
+                            static (string Name, double X)[] Shared((string Name, double X)[] items) => [.. items.Where(item => !item.Name.StartsWith("launcher", StringComparison.Ordinal))];
+                            var (selected, terminal) = (Shared(columns), Shared(tall[creator]));
+                            Require(selected.Length == terminal.Length && selected.Zip(terminal).All(pair => pair.First.Name == pair.Second.Name && Math.Abs(pair.First.X - pair.Second.X) <= 0.5),
+                                $"The tab's box and every rail row keep the columns they have with the terminal selected in the tall window ({where}): {Show(selected)}; expected {Show(terminal)}; {Geometry()}");
+                        }
+                        if (!overflow) { tall[open] = columns; continue; }
+                        var expected = tall[open];
+                        Require(columns.Length == expected.Length && columns.Zip(expected).All(pair => pair.First.Name == pair.Second.Name && Math.Abs(pair.First.X - pair.Second.X) <= 0.5),
+                            $"Rail rows keep their columns when the rail overflows ({where}): {Show(columns)}; expected {Show(expected)}; {Geometry()}");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            app.Window.Height = height;
+            scroller.Offset = default;
+        }
     }
 
     /// <summary>Opens an unrelated workspace, then the creator with its tab selected by a click, then a nested workspace, and requires every column to stay within half a pixel.</summary>
@@ -119,15 +260,7 @@ internal static class RailGroupingE2E
         (string Name, double X)[]? baseline = null;
         foreach (var (open, state) in new[] { (unrelated, "neither selected"), (creator, "terminal selected"), (children[0], "workspace selected") })
         {
-            app.Click(Select(app, open));
-            Until(() => Active(app, open));
-            if (open == creator)
-            {
-                // Selected as a click selects it: the tab is chosen and its pane focused, so the row wears the current look.
-                Until(() => Controls(app).Any(control => control.Name == live && control.IsEffectivelyVisible));
-                app.Click(Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Button>().First(button => button.Name == "Tab_" + live["DockTab_".Length..]));
-                Until(() => Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Border>().Any(border => border.Name == "ActiveWorkspaceTab" && border.IsVisible));
-            }
+            Choose(app, open, creator, tab);
             Until(() => GuidesJoin(app, creator, tab, children[0], children[1]));
             var columns = RailColumns(app, tab, live, [creator, .. children]);
             baseline ??= columns;
