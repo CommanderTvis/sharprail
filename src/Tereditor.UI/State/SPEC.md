@@ -8,9 +8,6 @@ parent: module-ui
 
 # State — what is shared and what is remembered
 
-Upstream: apps/web/src/store/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/navigation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 State has two owners. The host keeps values that every connected window should agree on. The app
@@ -192,7 +189,7 @@ another. Actionable toasts are never coalesced, since their actions name differe
 five evicts only the oldest actionless ones, so a receipt stays until its duration ends or the user dismisses
 it. The queue is never persisted or shared between windows.
 
-## Not yet ported
+## Not built
 
 - Pending review scroll restoration after delayed section sizing and session-local scratch drafts
   across section remounts; the current outer scroll restores its last available offset. Review authoring

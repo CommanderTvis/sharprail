@@ -8,7 +8,7 @@ parent: module-plugin-ui-kit
 
 # Core file-type icons
 
-Ports the filename rules and artwork from fork `packages/plugin-file-icons` at `40678fd30`
+Ports the filename rules and artwork of the former ThinkRail fork's file icons
 into the app's shared UI kit. File icons are core functionality, enabled by default, independent
 of plugin activation or the host's asset service. Every client carries the same embedded SVGs;
 rendering a remote workspace requires no icon RPCs. Directories keep the core folder glyph.

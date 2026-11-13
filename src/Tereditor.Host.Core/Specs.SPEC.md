@@ -7,8 +7,6 @@ parent: module-host-core
 references: [module-plugin-spec-dialect]
 ---
 
-Upstream: packages/server/src/spec/SPEC.md @ e8a751bd7 (CommanderTvis fork)
-
 The spec graph, Specs panel and all seven `spec_*` MCP tools belong to the builtin
 [spec dialect plugin](../Tereditor.Plugins.SpecDialect/SPEC.md). Core no longer has a
 `SpecCatalog`, spec records or a `ListSpecsAsync` operation. The plugin runtime composes
@@ -92,12 +90,12 @@ terminal or by Git are current on the next read. The workbench re-reads after a 
 - The host decides the `cwd` from the calling terminal's token (see the Remote SPEC); the tools read that
   workspace only.
 
-## Not yet ported
+## Not built
 
 - Exclude assistant scratch directories `.claude`, `.superpowers`, `.gsd`, `.mockups` and
   `.playwright-mcp` from traversal and the authoring path rule: their plans and generated skills may
   carry spec-shaped frontmatter but do not belong to the project's graph.
 - A full YAML parser for frontmatter (anchors, nested maps, multi-line scalars); the dialect above covers
   what specs use.
-- Case-folded path matching in the path rule for case-insensitive filesystems, and the content search and
-  query helpers of upstream's spec tools, which serve agents.
+- Case-folded path matching in the path rule for case-insensitive filesystems, and content search and
+  query helpers for agents.

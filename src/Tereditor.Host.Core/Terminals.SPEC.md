@@ -8,9 +8,6 @@ parent: module-host-core
 
 # Terminals — host-owned PTY sessions
 
-Upstream: packages/server/src/terminal/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/subprocess/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 Host-owned shells rooted in a workspace, one per terminal tab, and the recent output replayed when a
@@ -514,11 +511,11 @@ signals. `MemoryTerminalCatalog` has no shells and reports `NotSupportedExceptio
   the live environment and overrides, a missing program, a clamped budget, and Git's prompt-free
   environment and three timeout messages.
 
-## Not yet ported
+## Not built
 
 - An accepted-input activity signal carrying the owning workspace to the host lifecycle. Input that
   actually reaches the PTY counts; displaced, exited or otherwise ignored writes must not reactivate
-  a workspace (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-yet-ported)).
+  a workspace (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-built)).
 - Windows shells (PowerShell / cmd selection, its Settings picker and the per-shell start guidance). The
   host is POSIX only and a Windows PTY cannot be verified on the machines this port is built on.
 - A streaming variant of the bounded child runner that relays output while the child runs, closing the

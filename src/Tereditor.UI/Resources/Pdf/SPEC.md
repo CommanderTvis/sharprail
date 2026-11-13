@@ -11,8 +11,6 @@ parent: group-clients
 
 # PDF Preview — core PDF resource viewing
 
-Upstream: packages/plugin-pdf-preview/SPEC.md @ ab23be7cf (CommanderTvis fork)
-
 ## Responsibility
 
 Renders `.pdf` files opened from the Files tree or anywhere else a file opens: each page rasterized at the zoom it
@@ -110,7 +108,7 @@ minimal one-page fixture generated with correct offsets for each text:
   pages during reduced zoom and after raster replacement; image and selection bounds stay aligned;
 - the engine: page size and text, a character's box from the top left, rasterizing at a scale, and a non-PDF
   refused with a reason;
-- the fork's `pdf-preview.spec.ts` through embedded and real WebSocket RPC hosts: the page rasterizes, zooming in rasterizes it
+- the PDF preview scenario through embedded and real WebSocket RPC hosts: the page rasterizes, zooming in rasterizes it
   larger and reset returns to 100%, a pointer drag across the line selects "ThinkRail PDF", the toolbar shows and
   no Markdown chrome does; a rewrite, a delete-and-rename and a Reload each show the new text without reopening the
   tab;

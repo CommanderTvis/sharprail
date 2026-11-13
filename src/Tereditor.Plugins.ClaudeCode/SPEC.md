@@ -11,8 +11,7 @@ tags: [plugins, claude-code]
 
 # Claude Code
 
-Port source: `6401ccae8`, `packages/plugin-claude-code/SPEC.md` and its host/web modules in
-CommanderTvis's ThinkRail fork. This plugin integrates the external Claude Code terminal program;
+Originally ported from the former ThinkRail fork's Claude Code plugin. This plugin integrates the external Claude Code terminal program;
 it does not provide Pi execution. A launch is presented either as that terminal program or, in chat mode (below), as a conversation over the CLI's own headless protocol; other AI chat components are not restricted and are added as their own plugins. It is disabled by default.
 
 ## Boundary
@@ -591,11 +590,11 @@ spec-amendment documents, `asking-user-questions`, `spec-graph`, `writing-specs`
 `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr` with its
 phase documents, and `add-highlighting`.
 The highlighting skill prepares importable TextMate JSON grammars and filename patterns
-for Settings › Highlighting without modifying tereditor's state files. Five more are the fork's
-`packages/pi-thinkrail-workflow/skills` at `3b7c7d589`; the routing, brainstorming and question skills
+for Settings › Highlighting without modifying tereditor's state files. Five more are adapted from
+the former ThinkRail fork's workflow skills; the routing, brainstorming and question skills
 are JetBrains ThinkRail's at `be06fb019` (its design interview with the bug branch, explicit rejected
 alternatives and promotion into durable specs), and `spec-graph` is its `packages/spec-graph` skill.
-Upstream ships them to pi only, so delivery to
+ThinkRail shipped them to pi only, so delivery to
 this CLI is tereditor's own. Their single source is `src/Tereditor.Plugins.Agent.Skills`, staged into
 the plugin at build and shared with the Codex plugin; neither plugin references the other.
 
@@ -621,11 +620,11 @@ round trip addressed to one app client, the tab tools' reply words, a file refer
 agent newline mode removal and retained accessory identity. `--notifications` drives the real UI half
 with injected status pushes and a recording notifier: blocked, done and failed notify while unfocused;
 a focused app, a continuation Stop, an interrupted run and answered attention do not. It also runs the host halves of
-the fork's `claude-config.spec.ts` mutation cases through the plan/apply methods the pane's composers
+the configuration mutation scenarios through the plan/apply methods the pane's composers
 call (an `@`-import at depth one, an MCP server added to `.mcp.json` then denied locally, a skill,
 hook and plugin written to the project with a plugin move and marketplace add previewed and run
 through a recording CLI, connectors parsed from `claude mcp list`, a local override shadowing a
-user value) and both `claude-launcher.spec.ts` cases through the real launcher, menu and settings. The native terminal probe checks
+user value) and both launcher scenarios through the real launcher, menu and settings. The native terminal probe checks
 agent fallback, default, kitty and modifyOtherKeys input bytes. Hook scripts have
 their own shell checks. The integrated `--plugins` runner includes these checks.
 
@@ -633,7 +632,7 @@ The terminal chip cases check that the model and effort facts come from the hook
 exactly `/model` (or `/effort`) plus Enter once, focuses the terminal, never types a selection and does nothing while
 the session is Running. They do not exercise a live Claude Code.
 
-Still required for the full port: complete source-by-source parity audit, the remaining IDE action
+Still required: the remaining IDE action
 and failure cases, the pane-driven halves of the configuration cases (composer dialogs and their narrow-pane
 layout, source links after unsaved edits, account/usage and the MCP health row), the review
 round trip over MCP, the terminal facts cases and sealing

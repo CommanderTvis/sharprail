@@ -8,8 +8,6 @@ parent: group-host
 
 # Host wire contracts
 
-Upstream: packages/contracts/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The client↔host wire spine for remote hosts: the single source of truth for the
@@ -182,7 +180,7 @@ project: local adapters call Core directly, with no serialization.
   client validates nothing it could not also receive from a peer of another
   version.
 
-## Not yet ported
+## Not built
 
 - Pushed invalidations beyond host state and the lifecycle stream: a worktree
   file-change nudge (`workspace.fsChanged`) and a host update notice.

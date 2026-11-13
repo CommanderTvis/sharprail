@@ -9,10 +9,6 @@ depends-on: [module-host-abstractions]
 
 # Host core
 
-Upstream: packages/shared/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/host/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The host owns the work that continues independently of a window: files, Git, workspaces, shared
@@ -126,7 +122,7 @@ Invalid input is rejected atomically; Core never tokenizes text.
   owning app stops; closing a project ends all its workspace shells, including detached sessions.
   Disposing a terminal view only detaches it.
 
-## Not yet ported
+## Not built
 
 - Login-shell `PATH` and `SSH_AUTH_SOCK` repair for a host launched from Finder, launchd or a service
   manager. On Unix, always probe the login shell once with an OS-base `PATH`, rather than guessing
@@ -134,7 +130,7 @@ Invalid input is rejected atomically; Core never tokenizes text.
   activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
   the inherited `PATH` untouched on failure.
 - Import the remaining login-shell environment once at startup for GUI-launched hosts without `TERM`, and only for
-  a launcher that opts in (the fork's `resolveShellEnv: true`, passed by its dev, CLI and desktop launchers). An
+  a launcher that opts in. An
   embedder or test that does not opt in keeps the environment it was given: with the import on by default a
   test process copied the developer's login environment, provider API keys included, and later suites spent
   real tokens. tereditor's launchers would opt in the same way, and the host should read `${VAR}` references in

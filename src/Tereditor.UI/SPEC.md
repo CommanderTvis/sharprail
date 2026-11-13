@@ -8,11 +8,6 @@ parent: group-clients
 
 # The workbench — application and windows
 
-Upstream: apps/web/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: apps/desktop/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/resources/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The workbench is where you navigate projects, read documents, review changes and use terminals.
@@ -294,7 +289,7 @@ host state: it shows what the window already knows and calls the same methods as
   remembered per project in the profile), Reopen, or Delete remote branch. While the branch and origin differ the
   step stays with the sync state. Merge follows the provider's mergeability, never approvals. The status is read when the branch
   changes, at most every 15 seconds on Git refreshes, after every action, and every 20 seconds while checks run.
-  Not ported: Fix with agent and Ask agent to integrate (embedded chat is not ported yet), description sources,
+  Not ported: Fix with agent and Ask agent to integrate (embedded chat is not built yet), description sources,
   PR templates and Generate with agent, Merge locally, split-button menus (each step is one
   button) and the branch card's Checks and Review rows.
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
@@ -378,7 +373,7 @@ The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because i
 dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
 a hit keeps its file open scrolled to that line. With no active workspace the chord does nothing. On macOS alone, Cmd+, (no other
 modifier) opens Settings, the Preferences chord every Mac app has; Windows and Linux have no such convention,
-so Ctrl+, stays free for whatever else wants it (the fork now binds it there; see Not yet ported). A modal dialog already open receives the chord instead.
+so Ctrl+, stays free for whatever else wants it (see Not built). A modal dialog already open receives the chord instead.
 Arrangement commands beyond these belong to the docking menus and keyboard handling in `Docking`.
 
 Mod+= (or Mod++), Mod+- and Mod+0 zoom the whole interface like a browser's page zoom: they step one
@@ -462,7 +457,7 @@ follow the typed Latin letter and fall back to the key's physical position when 
 
 ## Away notifications
 
-Adapted from the fork's `apps/web/src/notifications`: a derived consumer of what agent plugins report,
+Adapted from the former ThinkRail fork's notifications: a derived consumer of what agent plugins report,
 adding only what a client alone knows: focus, a collection window, the system channel and the click.
 
 - Plugins ask through `IPluginUIContext.NotifyAttention` when a terminal's agent is blocked, finishes or
@@ -567,14 +562,14 @@ hiding moves focus to the rail entry and showing focuses the pane's header. Its 
 (`DockState.HomeProjectsVisible`, `HomeProjectsWidth`) are window-local and independent of the
 workspace frame's left side.
 
-## Not yet ported
+## Not built
 
 - Showing Project Home's Projects pane restores focus to the pane header, not yet to the last tree
   control, active row or first tree control inside it.
 - Away notifications off macOS, reading the system's permission state (a denied permission drops
-  notifications silently; Settings only points at the system's settings), and the fork's chooser when
-  several terminals ask at once.
-- The branch card's Remote and review rows (REMOTE and PULL REQUEST are ported, the latter by the repo hosting plugin; see Location bar). The card has no
+  notifications silently; Settings only points at the system's settings), and a chooser when several
+  terminals ask at once.
+- The branch card's Remote and review rows (REMOTE and PULL REQUEST are built, the latter by the repo hosting plugin; see Location bar). The card has no
   separate Based on row.
 - A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote
   host cannot confirm that a workspace folder still exists before a history step opens it.

@@ -8,10 +8,6 @@ parent: group-host
 
 # Host abstractions — the public host surface
 
-Upstream: packages/shared/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/host/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin roster and agent record
-
 ## Responsibility
 
 `HostSettings.VerticalCenterTabs` and `VerticalTabsInProjects` share the tab-strip mode between desktop,
@@ -131,7 +127,7 @@ second list of declarations.
   parity verified in `tests/Tereditor.Checks`.
 - Size limits that both sides must agree on (`FileLimits`) are defined once here.
 
-## Not yet ported
+## Not built
 
 - A partial interface keeps `IProjectServices` one contract across files; the operations added since
   `HostProtocol.Current` was last raised (path inspection, pre-warm, spec graph, durable-spec query) have

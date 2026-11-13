@@ -8,9 +8,6 @@ parent: module-ui
 
 # Workbench panels: Projects, Files (All | Changed), Specs, Review and Welcome
 
-Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The feature views a `WorkbenchWindow` builds for its docking surface, in the partial files
@@ -650,17 +647,17 @@ disappearance shows.
 - Menus opened from a hidden trigger are placed against the trigger, not the pointer, so keyboard and pointer
   paths agree.
 
-## Not yet ported
+## Not built
 
 - Scroll-offset restoration across file/diff renderer detach and attach for delayed content. An
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
   switching away first saves that pending offset rather than the temporary clamped value. The rendered
   Markdown view and its source save their position in the tab's renderer view state; the pending-offset
-  rule and the other views are not ported.
+  rule and the other views are not built.
 - The Changes tree shows a folder's `+N −M` aggregate only while the folder is collapsed (an expanded folder's
   children already carry the counts); the folder rows always show it. Project and Changes tree rows also still
-  use a fixed 28px height rather than the 22px side-pane row role the fork's tree rows share.
-- CI status beside the pull request chip; it has no upstream source.
+  use a fixed 28px height rather than the 22px side-pane row role.
+- CI status beside the pull request chip.
 - In pull request setup guidance: a Run action that executes a command in a new workspace terminal, git's
   own error text for a push that could not authenticate (the host reports only that it did) with the
   host-key hint derived from it, and host-platform commands for a remote host.

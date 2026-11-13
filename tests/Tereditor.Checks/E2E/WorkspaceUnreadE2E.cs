@@ -13,7 +13,7 @@ using static Tereditor.Checks.E2E.WorkspaceFixture;
 namespace Tereditor.Checks.E2E;
 
 /// <summary>
-/// Upstream #770 on tereditor's unread model (STATUS A18): an agent result in a workspace the user is not looking at
+/// Upstream #770 on tereditor's unread model: an agent result in a workspace the user is not looking at
 /// leaves it unread in host state for every window; seeing it in a focused window reads it; the workspace menu marks it
 /// unread (held while shown) or read, and Mark as read keeps a waiting agent's mark.
 /// </summary>

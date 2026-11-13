@@ -7,9 +7,6 @@ parent: group-plugins-workbench
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 ---
 
-Upstream: packages/plugin-spec-dialect/SPEC.md @ e8a751bd7 (CommanderTvis fork)
-Upstream: packages/spec-graph/{core,tools}/SPEC.md @ 0304a543e
-
 # Specs — browse and maintain a document graph
 
 ## Responsibility

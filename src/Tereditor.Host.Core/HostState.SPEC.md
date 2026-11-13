@@ -8,10 +8,6 @@ parent: module-host-core
 
 # Host state — projects, settings and persistence
 
-Upstream: packages/server/src/projects/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/settings/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/persistence/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The shared `vertical-tabs` and `tabs-in-projects` settings control the centre tab-strip mode for all clients.
@@ -107,7 +103,7 @@ name clears the label. `HostState.ProjectName` is the shown name. Remote clients
 
 ## Unread workspaces
 
-Ported from ThinkRail #770 onto tereditor's own unread model (the STATUS A18 gap). Upstream keeps per-chat completion
+Ported from ThinkRail #770 onto tereditor's own unread model. ThinkRail kept per-chat completion
 receipts; tereditor has no embedded chat, so the unit is the workspace and the sources are the agent terminals.
 `UnreadWorkspaces` maps a workspace path to the strongest reason it is unread: `blocked` (an agent waits for input),
 `failed`, `done`, or `manual` (marked by hand); a weaker reason never replaces a stronger one. It is persisted, sent to
@@ -209,11 +205,11 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   rejected on change.
 - Separate processes that share a directory are not coordinated; the last writer wins.
 
-## Not yet ported
+## Not built
 
 - A `NotGit` refusal of a non-repository. tereditor opens a plain folder as a workspace on purpose (the
   startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
-  needs the product decision upstream made; inspection already gives a client the classification, and the
+  needs a product decision; inspection already gives a client the classification, and the
   code already survives the local and remote adapters.
 
 The first agent title may fill an unnamed generated managed workspace label through the workspace

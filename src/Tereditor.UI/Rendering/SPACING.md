@@ -1,7 +1,5 @@
 # Spacing system
 
-Upstream: apps/web/src/styles/SPACING.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 Spacing is one numeric vocabulary. When a design says "spacing 8", the implementation writes `8` as a
 `Spacing`, `Margin` or `Padding` value and it lays out as 8 device-independent pixels: one value, one name.
 Avalonia lengths are already logical pixels, so the upstream `--spacing: 1px` base needs no translation; a
@@ -66,7 +64,7 @@ those values in those files and fails on an entry that no longer matches anythin
   label box.
 - `Docking/DockGroups.cs` `6, 0, 0, 0`: the close-button and modified-dot reserve in fixed-height tab chrome.
 
-## Not yet ported
+## Not built
 
 - Grid gutter columns and rows written inside `ColumnDefinitions`/`RowDefinitions` strings mix rhythm with
   sizing in one literal and are not read by the guard.

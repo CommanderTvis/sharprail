@@ -10,11 +10,11 @@ tags: [v1, plugins, blueprint]
 
 ## Goal
 
-Port the fork's `packages/plugin-blueprint` at `b2a6c75a6`. A blueprint is a Markdown
+Originally ported from the former ThinkRail fork's Blueprint plugin. A blueprint is a Markdown
 file at the workspace root, `BLUEPRINT.md`, whose real design decisions render as
 editable controls. Its author is an interactive Claude Code or Codex terminal beside the
 document. The host writes reader changes and tells that author to reconcile the rest.
-Pi remains outside tereditor's scope, and a bundled AI chat is not ported yet. Their contract vocabulary
+Pi remains outside tereditor's scope, and a bundled AI chat is not built yet. Their contract vocabulary
 can be read from old records, but authoring starts a visible Claude Code or Codex terminal.
 
 ## Boundary

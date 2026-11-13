@@ -8,9 +8,6 @@ parent: module-host-core
 
 # Git — runner, scopes, status and diffs
 
-Upstream: packages/server/src/git/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/changes/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 Absolute paths returned by Git are normalized using the host's filesystem rules.
@@ -239,7 +236,7 @@ operations travel over WebSocket RPC; a host that predates them reports no statu
 - `DiffSides` carries a SHA-256 per side (null when the side is absent) and the commit the original side
   was read at (null for the index, an unborn `HEAD` or an absent side). Hashes cover the raw bytes.
 
-## Not yet ported
+## Not built
 
 - Prefetching a base other than the default when it is picked in the Create workspace dialog (the
   default is prefetched as the dialog opens, and creation fetches whichever base was chosen).

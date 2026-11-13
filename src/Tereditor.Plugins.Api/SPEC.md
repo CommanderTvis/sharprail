@@ -11,9 +11,6 @@ tags: [plugins]
 
 # Plugin API — the contract between the host, the app, and a plugin
 
-Upstream: packages/plugin-api/SPEC.md @ 4737df6d (CommanderTvis fork)
-Upstream: plugin-adoption.md @ 4737df6d (CommanderTvis fork)
-
 Plugins add features to tereditor without building them into every host and window. A plugin can
 provide host operations, terminal integrations, settings and UI surfaces. It has a manifest plus
 a host half, a UI half, or both. Builtin plugins are compiled into the app and the remote host, and
@@ -811,14 +808,14 @@ an action can be withheld per target and worded for what it would act on; core r
 
 W20 has no counterpart in the fork's plugin API: its Claude Code plugin calls the browser's `Notification`
 directly, which a .NET plugin cannot. The plugin states what happened (terminal, headline, body, and an optional
-`StillNeeded` predicate); core owns every decision the fork's `apps/web/src/notifications` module owns: the
+`StillNeeded` predicate); core owns every notification decision: the
 host's master toggle, the focused-window rule, the collection window, delivery, and routing the click back to
 the terminal's workspace and tab ([the app runtime](../Tereditor.UI/Plugins/SPEC.md)).
 
 W17 is unoccupied in this commit; core's generic glyph is the fallback when no plugin answers. The
 `DocumentLinkSlot` is consulted the same way when a rendered document's link is followed.
 
-The fork's chat parts are not ported yet: chat companion hosts, `openChat`, tool renderers and the
+Chat parts are not built: chat companion hosts, `openChat`, tool renderers and the
 `writtenPathGroup` slot all serve AI chat components, which tereditor does not restrict and takes up
 as plugins.
 

@@ -9,8 +9,6 @@ depends-on: [module-plugin-api, module-host-abstractions, submodule-host-state, 
 
 # Plugins — the host-side plugin runtime
 
-Upstream: packages/server/src/plugins/SPEC.md @ 4737df6d (CommanderTvis fork)
-
 ## Responsibility
 
 Turns the builtin plugin host halves (`BuiltinPlugins.All`) and the external plugins it discovers
@@ -408,14 +406,14 @@ Activation-scoped `ExternalFiles` providers supply exact absolute paths per work
 access. `ProjectServices` routes a permitted absolute path through its ordinary text read and compare-and-swap
 save without depending on any plugin id.
 
-## Not yet ported
+## Not built
 
 - Agent extensions and skills from a plugin's `pi` block, and the agent tool surface: tereditor has no
   in-process agent.
 - Workspace auto-naming hints.
 - `WorkspaceUpdated` for a branch switch: the host learns of workspace changes only from the published
   workspace lists and labels, so it fires on creation, removal and relabelling.
-- Serving a plugin's static assets on its HTTP route, as the fork did for its web bundle; the app reads assets
+- Serving a plugin's static assets on its HTTP route; the app reads assets
   through `ReadFileAsync` instead.
 - Loading an external plugin's host half, in process or isolated: a plugin with one is listed and refused.
 

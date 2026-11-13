@@ -39,9 +39,7 @@ carry the detailed contracts; reading source code is not required to follow this
 
 ## Design reference
 
-Reference: Thinkrail's apps/web/src/shell/layout/SPEC.md and its Balanced
-workspace, original-workspace.png, SettingsDialog, MarkdownPreview and project
-dialogs. The current Balanced layout is the visual target. AI controls are
+The current Balanced layout is the visual target. AI controls are
 excluded. The macOS editor integration adds Scintilla with a custom Skia renderer; tab, toolbar and
 pane chrome needed for visual and docking fidelity remains in scope.
 Keep the same C# host architecture; the app and the remote host ship as NativeAOT binaries.
@@ -51,10 +49,9 @@ Keep the same C# host architecture; the app and the remote host ship as NativeAO
 AI chat components are not restricted: chat tabs, composer, history, message
 rendering, agent and provider integration and chat-specific settings such as the
 chat line measure are in scope. Today only the Claude Code plugin's chat mode over
-stream-json exists (see its SPEC); others are ported as plugins when taken up, and
-upstream chat behavior that is not ported yet is a gap, not a non-goal. Upstream
-behavior that exists only for Monaco internals rather than editing itself is not
-ported; where chat shares a layout with supported content, keep the layout
+stream-json exists (see its SPEC); others are added as plugins when taken up.
+Behavior that exists only for Monaco internals rather than editing itself is not
+built; where chat shares a layout with supported content, keep the layout
 contract.
 
 ## Git comparisons
@@ -333,7 +330,7 @@ No commits, pushes, Pi or AI integration.
 
 ### Settings and appearance
 
-Settings: Thinkrail dialog proportions and styling, live appearance, separate file
+Settings: dialog proportions and styling, live appearance, separate file
 and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
 Save or Enter), layout presets and limits,
 custom layout capture/reset and project preferences.
@@ -473,8 +470,6 @@ line-width preference. The choice is per tab, survives tab switches, and is not
 persisted across reload. Mode switches retain both views; disk reloads preserve
 mode, source editor identity and scroll position. Closing the tab disposes both views.
 Source and diff views remain read-only. See [Rendering/SPEC.md](src/Tereditor.UI/Rendering/SPEC.md).
-The Markdown source and path-truncation wording follows JetBrains/thinkrail's
-`apps/web/src/panels/SPEC.md` at `be804a563`, with the platform adaptations above.
 ` ```mermaid ` fences render on macOS and Android through Merman's native library (the browser
 through its WASM build) as vector diagrams
 themed from the current appearance tokens, with a full-screen pan/zoom view; other

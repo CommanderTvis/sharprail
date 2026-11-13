@@ -9,8 +9,6 @@ depends-on: [submodule-host-git, submodule-host-state]
 
 # Workspaces — Git worktrees
 
-Upstream: packages/server/src/workspaces/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 A workspace is the working folder for files and terminals within a project. The Default workspace
@@ -254,7 +252,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
 - A missing restored workspace falls back to its Project Home, a missing project to the Welcome, and a
   workspace removed elsewhere returns a window showing it to Project Home with a notice.
 
-## Not yet ported
+## Not built
 
 - Renaming an already named managed workspace branch; later label renames stay independent of Git.
 - A host terminal catalog that consumes `InitialTerminalPending`: the first terminal is still reserved in

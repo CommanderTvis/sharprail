@@ -8,10 +8,6 @@ parent: module-host-core
 
 # Files — workspace reads, saves and change notification
 
-Upstream: packages/server/src/fs/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/watch/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/trash/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 Read directories and files inside a workspace root, save edited text back safely, and tell the
@@ -257,15 +253,15 @@ watcher must prove actual API interception before native counts are accepted.
 The pre-warm cap remains eight idle roots; logical subscription count never substitutes for underlying
 watcher count when checking resource return.
 
-## Not yet ported
+## Not built
 
 - A watcher-start notification for the workspace activity lifecycle, before repository-metadata events
   can arrive, including pre-warm admission and recreation. It seeds or compares the retained HEAD SHA
-  baseline (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-yet-ported)); registration failure must
+  baseline (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-built)); registration failure must
   dispose the new watcher set rather than leave a partially admitted entry.
 - A periodic identity check for a root replaced while its only subscribers stay attached and no client
   subscribes or pre-warms; today such a watcher heals on the next of those or on a watcher error.
-- A readiness answer for a subscription (upstream's `startupNudge`); the registration rescan covers it.
+- A readiness answer for a subscription; the registration rescan covers it.
 
 Terminal file references additionally admit exact existing paths resolved by a host-owned terminal
 for its workspace. This uses the same external-file read/save lifecycle as plugin configuration

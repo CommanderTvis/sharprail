@@ -8,12 +8,6 @@ parent: module-ui
 
 # Terminal — terminal tabs in the UI
 
-Upstream: packages/server/src/terminal/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/layout/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/store/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The client side of host-owned shells: the terminal tab body (`TerminalView`), the backend seam that
@@ -515,7 +509,7 @@ It verifies zero local HTTP requests, shell retention, input, resize, takeover a
 `--texture-fallback` forces software composition and requires automatic Skia
 fallback while preserving the local/remote shell and its exit status.
 
-## Not yet ported
+## Not built
 
 - `TerminalKeyEncoding.AgentNewline`: the bridge has no key-encoding switch, so `SetKeyEncoding` is a no-op and
   Shift+Return keeps Ghostty's own encoding.

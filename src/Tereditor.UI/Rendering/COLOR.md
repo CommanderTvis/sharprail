@@ -1,7 +1,5 @@
 # Colour system
 
-Upstream: apps/web/src/styles/COLOR.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 Colour arrives in two layers, and a control may only ever name the second one.
 
 ```
@@ -122,7 +120,7 @@ a control lives, and fails on:
 
 `Ui.cs` and `Themes.cs` are the only exempt files: one computes tints, the other decodes the palette.
 
-## Not yet ported
+## Not built
 
 - The editor chrome roles for features the Scintilla control does not have: secondary matches of the
   selection (`editorSelection` @ 20%), the active find match (`warning` @ 40%), widget shadows (`text` @ 20%),

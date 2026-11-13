@@ -8,11 +8,10 @@ parent: group-plugins-agents
 
 # Codex builtin
 
-Ports fork `packages/plugin-codex` at `177abd30c`, with hook report fields refreshed against
-fork tip `1c7c90a5a` (workspace naming and its prompt/last-message report fields were removed), and
-session-scoped context and launch instructions from fork tip `867bffea5` (wire version 3).
+Originally ported from the former ThinkRail fork's Codex plugin (wire version 3; workspace naming and its
+prompt/last-message report fields are removed).
 Disabled by default. Host and UI communicate only through plugin contracts. Pi subscription
-invitation is excluded by the tereditor product contract; a Codex chat component is not ported yet.
+invitation is excluded by the tereditor product contract; a Codex chat component is not built yet.
 
 ## Acceptance contract
 
@@ -125,9 +124,9 @@ invitation is excluded by the tereditor product contract; a Codex chat component
   `writing-specs`, `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr`
   and `add-highlighting` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
   user's skills; there is no session-scoped skill root to point a launch at, so every Codex session sees
-  them while the plugin is active. The text is the fork's `packages/pi-thinkrail-workflow/skills` and JetBrains ThinkRail's
+  them while the plugin is active. The text is the former ThinkRail fork's workflow skills and JetBrains ThinkRail's
   workflow and spec-graph skills as adapted in `src/Tereditor.Plugins.Agent.Skills`, the one source shared with Claude Code (see that
-  plugin's spec for the adaptation); the fork ships skills to pi only. `<stateDir>/codex/skills.tereditor-default`
+  plugin's spec for the adaptation); the fork shipped skills to pi only. `<stateDir>/codex/skills.tereditor-default`
   holds a SHA-256 stamp per installed file. A file matching its stamp is tereditor's: refreshed when the
   shipped text changes, restored when missing, removed when no longer shipped. An edited file is the
   user's and is never overwritten or removed, and a skill directory whose `SKILL.md` tereditor never wrote

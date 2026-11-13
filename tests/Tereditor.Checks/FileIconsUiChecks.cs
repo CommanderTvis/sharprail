@@ -40,7 +40,7 @@ internal static partial class FileIconsChecks
             if (source is not null)
             {
                 IsolatedGit.Run(workspace, "init", "-b", "main");
-                IsolatedGit.Run(workspace, "fetch", "--no-tags", "--depth=1", source, "refs/remotes/origin/claude-code-integration-plugin-api");
+                IsolatedGit.Run(workspace, "fetch", "--no-tags", "--depth=1", source, "HEAD");
                 IsolatedGit.Run(workspace, "checkout", "-B", "main", "FETCH_HEAD");
             }
             File.WriteAllText(Path.Combine(workspace, "README.md"), "# Icon fixture\n");
@@ -203,7 +203,7 @@ internal static partial class FileIconsChecks
             Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "ChangesTree"));
             Loaded(app.Find<TreeView>("ChangesTree"), "python");
         }
-        else Console.WriteLine("SKIP file-icons change rows: set TEREDITOR_TEST_GIT_SOURCE to an existing fork clone.");
+        else Console.WriteLine("SKIP file-icons change rows: set TEREDITOR_TEST_GIT_SOURCE to an existing clone.");
 
         app.ShowTool("files");
         app.Window.ShowSettings("Appearance");

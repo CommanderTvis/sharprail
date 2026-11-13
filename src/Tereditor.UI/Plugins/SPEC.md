@@ -10,10 +10,6 @@ parent: module-ui
 
 # Plugins — the app-side plugin runtime
 
-Upstream: apps/web/src/plugins/SPEC.md @ 4737df6d (CommanderTvis fork)
-Upstream: apps/web/src/plugins/loader/SPEC.md @ 4737df6d (CommanderTvis fork)
-Upstream: apps/web/src/plugins/registry/SPEC.md @ 4737df6d (CommanderTvis fork)
-
 ## Responsibility
 
 Owns the edge between two parts. The registry is the state a plugin's UI half fills in and the workbench,
@@ -315,7 +311,7 @@ to keyed workspace snapshots, derives availability and title from the terminal's
 revisions and reports the exact rendered revision through the plugin adapter. Its frames and shared
 drawing controls are compiled XAML; no app dependency is introduced into the plugin.
 
-## Not yet ported
+## Not built
 
 - Chat companion hosts, chat tool renderers, `openChat` and the `writtenPathGroup` slot: chat is excluded.
 - Editor selections from the Scintilla editor: the control exposes no selection event yet. The Markdown preview and

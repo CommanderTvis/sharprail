@@ -11,8 +11,8 @@ tags: [v1, plugins]
 ## Responsibility
 
 Owns the Git Graph side tool: the project's branches drawn as commit history, paged and lane-laid-out
-in the right rail. This ports CommanderTvis's fork commit `e91aef250`, with the current fork's
-`packages/plugin-branch-graph` as reference. Enabled by default, no dependencies, wire version 1.
+in the right rail. Originally ported from the former ThinkRail fork.
+Enabled by default, no dependencies, wire version 1.
 The manifest declares `graph`, label Git Graph, icon `git-branch`, right side and `RequiresGit`.
 The host and UI assemblies reference only their plugin API entry and shared contract; the UI also uses the kit.
 
@@ -84,9 +84,8 @@ deleted from the graph.
 Parser and lane checks translate the fork's fixtures: control stripping, fields, page cropping, worktree pairing,
 straight/branched/merged/orphan histories, lane caps and carried pages.
 
-Set `TEREDITOR_TEST_GIT_SOURCE` to the fork clone containing
-`refs/remotes/origin/claude-code-integration-plugin-api` for real Git checks. These fetch existing history
-and create refs/worktrees in an isolated fixture; they create no commits and never alter signing configuration.
+Set `TEREDITOR_TEST_GIT_SOURCE` to a local clone of this repository for real Git checks. These fetch its `HEAD`
+history (at least 451 commits) and create refs/worktrees in an isolated fixture; they create no commits and never alter signing configuration.
 Local and WebSocket RPC host checks cover pagination, refs, worktrees, patches and errors. UI checks cover windowing,
 shared gutters, copying, Changes scope and paging through both host modes. Independent local and
 WebSocket RPC fixtures cover View changes for multi-file, root and empty commits, kept-tab reuse, committed
@@ -98,5 +97,5 @@ window), project-switch reset, empty history and a failed read that recovers; th
 The UI checks also cover Git-only
 ref refresh with retained focus/menu, disable into a dormant tool tab, re-enable/remount and Gitless withholding.
 
-Still required for the full port: in-flight lifecycle races,
+Still required: in-flight lifecycle races,
 native appearance, published output and full-suite verification.

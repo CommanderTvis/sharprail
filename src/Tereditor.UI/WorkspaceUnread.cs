@@ -6,7 +6,7 @@ using Tereditor.Plugins.Api;
 namespace Tereditor.UI;
 
 /// <summary>
-/// The unread model (ThinkRail #770, STATUS A18): a workspace whose agent finished, failed or waits for input while the
+/// The unread model (ThinkRail #770): a workspace whose agent finished, failed or waits for input while the
 /// user was not looking at it is unread in host state, shared by every window and client and kept across restarts.
 /// Seeing it in a focused window marks it read; the workspace menu marks it unread or read by hand.
 /// </summary>

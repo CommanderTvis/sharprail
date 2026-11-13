@@ -8,8 +8,6 @@ parent: group-host
 
 # Host client adapters
 
-Upstream: apps/web/src/transport/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The UI's only route to a host. Each host abstraction has two implementations of
@@ -135,7 +133,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - One channel per adapter; ordering is per WebSocket RPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.
 
-## Not yet ported
+## Not built
 
 - Gates for the operations added since `HostProtocol.Current` was last raised. The one gate in use is
   `HostProtocol.ChangeWritePath`: the diff's revert and undo controls consult

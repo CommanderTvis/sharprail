@@ -10,8 +10,6 @@ tags: [plugins]
 
 # Visualize — a terminal agent's live drawing surface, as a builtin plugin
 
-Upstream: packages/plugin-visualize/SPEC.md @ 0304a543e (CommanderTvis fork)
-
 ## Responsibility
 
 Give an agent in a tereditor terminal a place to draw. The `visualize` MCP tool takes the schema ThinkRail's pi

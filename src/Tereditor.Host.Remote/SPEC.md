@@ -8,10 +8,6 @@ parent: group-host
 
 # Remote host server
 
-Upstream: packages/server/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/auth/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
-
 ## Responsibility
 
 Serves the host over the wire: a Kestrel HTTP/1.1 WebSockets server exposing the Protocol
@@ -196,7 +192,7 @@ Git metadata invalidation and rescan requests. They end on client cancellation o
   exceptions stay internal errors. A `HostException` from the project or state service additionally
   names its code in the `x-tereditor-error-code` trailer.
 
-## Not yet ported
+## Not built
 
 - Host HTTP endpoints for worktree files used by relative Markdown images.
 - A bounded, idempotent shutdown that settles work and disposes sockets, PTYs and

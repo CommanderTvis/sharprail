@@ -1,7 +1,5 @@
 # Typography system
 
-Upstream: apps/web/src/styles/TYPOGRAPHY.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 `Rendering/Design/typography.json` is the single authored source of typography. Families, weights, sizes,
 line heights, letter spacings and the semantic text styles all live there; the C# the kit ships
 (`src/Tereditor.Plugins.UI.Kit/Generated/Typography.g.cs`) is generated from it by

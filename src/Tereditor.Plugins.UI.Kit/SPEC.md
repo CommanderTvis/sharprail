@@ -9,8 +9,6 @@ tags: [ui, plugins]
 
 # Plugin UI kit — the shared controls
 
-Upstream: packages/plugin-ui/SPEC.md @ 4737df6d (CommanderTvis fork)
-
 ## Responsibility
 
 The primitives, Markdown renderer, code editor frame and diagram view every plugin's UI half needs, moved out
@@ -70,7 +68,7 @@ once its read has landed (`MenuFillProbe`).
 
 ## Quiet scrollbars
 
-Adapted from upstream `apps/web/src/components/SPEC.md` (`QuietScrollArea`, `styles/global.css`). The same
+Adapted from ThinkRail's quiet scroll area. The same
 stylesheet replaces Fluent's scrollbar presentation for every `ScrollBar` in the app and its plugins: a 6px
 transparent track with no arrow buttons, a thumb that is transparent at rest, the border colour while its
 `ScrollViewer` carries intent, and the muted text colour under the pointer or while dragged. Intent is
@@ -288,7 +286,7 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 | `./editor`: `MonacoEditor`, `monacoSetup`, `editorFont`, `editorWrapping` | `Editor.EditorFrame` over `Tereditor.Scintilla`; `CodeDocumentView`, which binds host saving, stays in the app |
 | `./editor`: review gutter and widgets | absent: tereditor has no review commenting |
 | `./visualization`: `MermaidView`, `PanZoomView`, `renderMermaid`, `zoomGesture` | `Visualization.MermaidRenderer`, `MermaidDialog` |
-| `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent for now: the fork's visualize tool card is an AI chat surface not ported yet |
+| `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent for now: the visualize tool card is an AI chat surface not built yet |
 | `ToolFileLink` | absent: a chat tool card's file link |
 | `ScopedSetting`, `SettingValueDialog`, `SettingsToolbar` | shared configuration rows, typed value composer, `ScopedSetting.SettingsToolbar` |
 

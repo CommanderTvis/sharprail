@@ -8,8 +8,6 @@ parent: module-ui
 
 # Panels: Settings and shared dialogs
 
-Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The modal surfaces the workbench opens: the Settings overlay (`SettingsView.axaml` / `.cs`, a control shown in the workbench's `OverlayHost`), the shared
@@ -261,9 +259,9 @@ could not save this change: …” inline and re-renders from host state.
 - A plugin section shows the plugin's own control under its label; when the plugin leaves, an open section falls
   back to Plugins.
 
-## Not yet ported
+## Not built
 
-- The fork's Settings redesign (Settings redesign, #710). The rail is not grouped into Agent, Interface and
+- A Settings redesign. The rail is not grouped into Agent, Interface and
   System, and pages keep their own control shapes rather than shared row, group, segmented-control and notice
   primitives. Free-text values (Editor line widths) commit on Enter or blur with no Save button: a valid, changed value is saved
   once, an invalid draft is marked and never sent, and Escape reverts the draft before it dismisses the window. Appearance has no Theme mode

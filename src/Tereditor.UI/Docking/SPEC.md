@@ -8,13 +8,6 @@ parent: module-ui
 
 # Docking — window-local workbench frame
 
-Upstream: apps/web/src/shell/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/layout/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/layoutIntents/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/layoutState/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/navigation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The workbench engine of one window: the frame and per-workspace view model (`LayoutState.cs`), legal
@@ -379,7 +372,7 @@ refresh rereads changes. Identical diffs keep their editor controls and selectio
 content uses the diff's existing in-place refresh. Lazy offscreen eviction waits for a valid laid-out
 viewport rather than treating a newly attached tab's transient geometry as offscreen.
 
-## Not yet ported
+## Not built
 
 - Keeping panel groups and mounted bodies in place through fold, visibility and topology changes,
   applying committed geometry without rebuilding surviving chrome. Workspace identity must fence

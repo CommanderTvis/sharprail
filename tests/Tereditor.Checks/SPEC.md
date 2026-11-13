@@ -8,16 +8,12 @@ parent: group-platform
 
 # Headless checks and E2E translations
 
-Upstream: e2e/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The system gate for tereditor's host/UI integration: boot real hosts (direct local
 and Kestrel WebSocket RPC remote), seed real Git and profile fixtures, drive the Avalonia
 workbench through real headless pointer and keyboard input, and leave nothing
-machine-global behind. `STATUS.md` (E2E porting inventory) is the inventory of which upstream scenarios are
-translated and how browser concepts map to Avalonia; this spec holds the harness
-contract, not that list.
+machine-global behind. This spec holds the harness contract.
 
 ## Execution model
 
@@ -345,8 +341,7 @@ assertion: workspace flows start a dozen Git processes, which a loaded machine o
 well past ten seconds. Wait bounds in the headless checks read `Awake.Now`, a clock that stands still
 while the machine sleeps, so a suspended run does not resume with every wait already expired. Before handoff, every app-affecting change runs
 the full argument-free gate, with `TEREDITOR_TEST_GIT_SOURCE` set when Git or
-layout history is affected, and formatting verification. Translated upstream
-coverage stays recorded in `STATUS.md`, separate from tereditor-only regression checks.
+layout history is affected, and formatting verification.
 Skia terminal checks render real pixels and encode real headless input, verify
 a host PTY surviving a view restart, and exercise Settings choice persistence.
 Incremental rendering must match a full repaint after erasure, cursor movement
@@ -633,9 +628,9 @@ overflow) and inert links (resolution inside the worktree, every escaping and ma
 rendered document where only the followable link is a control). `--link` at launch and the mouse's
 back and forward buttons are not asserted.
 
-## Not yet ported
+## Not built
 
-- The upstream tool-rail journeys: pane clusters and their distinct join/create drop targets,
+- Tool-rail journeys: pane clusters and their distinct join/create drop targets,
   independent terminal groups, dimmed unplaced tools, remembered terminal selection across folding and
   reload, linked collapsed regions, focus without activation, and workspace switches during a drag.
   Shape-change probes must retain the same document, terminal, Projects and Changes controls through
@@ -644,9 +639,7 @@ back and forward buttons are not asserted.
   destinations and workspace switches during every resize gesture. Assert live rollback, unchanged
   persistence, retained controls, reload and a subsequent working resize, beyond the cancellation notice.
   Project Home and Welcome also need the left rail/header geometry, visibility chords and focus endpoints
-  checked across a workspace round trip, with no right or bottom rail there. The upstream bottom-fold
-  contract now occupies no body space and restores through the edge rail or `Ctrl+F6`; existing native
-  translations still assert the earlier 27px fold.
+  checked across a workspace round trip, with no right or bottom rail there.
 - Fixture commits outside `E2E/IsolatedGit.cs`: `ChangeChecks`, `ContentChecks`, the seed commits of
   `PullRequestChecks`, `E2E/ChangesFixture.cs` and callers of the static `IsolatedGit.Repository` without an
   `IsolatedGit` in scope still commit under the developer's global Git configuration. Where that signs
@@ -723,7 +716,7 @@ A pass belongs to the tested source tree, runtime, adapter and fixture. Compilin
 not device/browser acceptance; a source check is not a packaged check. Reused byte-identical slices
 retain their existing evidence, but interrupted lanes and skipped platform branches never count as
 passes. Record new durable scope or limits in the owning spec and dated task outcomes in context-log.md;
-keep translated-case coverage and current cross-module gates in STATUS.md.
+keep current cross-module gates in STATUS.md.
 
 Current unresolved acceptance is consolidated in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
 

@@ -16,8 +16,7 @@ server.
 
 This is the map of the system. Start with the [product contract](SPEC.md) for behavior, then
 follow the linked module specs for individual rules. Source-file navigation belongs in
-[the contributor guide](AGENTS.md). Upstream provenance is recorded in [STATUS.md](STATUS.md#upstream-tracking)
-(architecture.md, including the fork's plugin rings and Decision 17 at 4737df6d).
+[the contributor guide](AGENTS.md). [History](docs/history.md) records where tereditor came from.
 
 ## Local and remote work
 

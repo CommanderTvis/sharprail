@@ -8,13 +8,6 @@ parent: module-ui
 
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: packages/ui/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/lib/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Upstream: apps/web/src/resources/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Typography contract: apps/web/src/styles/TYPOGRAPHY.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 The dependency-light shared layer every workbench surface builds on: the theme brushes and control
@@ -268,7 +261,7 @@ commit rows in the scope menu append it to the short SHA and author.
 - Nothing here catches workbench errors on behalf of a panel; failures surface through the workbench's own
   reporting.
 
-## Not yet ported
+## Not built
 
 - Per-renderer natural-height capabilities for continuous review. Source and Markdown diffs grow with their content;
   other rendered sections use a bounded viewport rather than format-specific sizing contracts.
@@ -281,10 +274,8 @@ commit rows in the scope menu append it to the short SHA and author.
 - Painting every find match rather than selecting the current one.
 - A user-chosen code font and its ligatures across the editor, terminals, diagrams and code blocks.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
-  manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
-  grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
-  equivalent must keep expensive highlighting off the dispatcher and reject stale results.
-- The fork's single notice look (its NOTIFICATIONS design, #730). Toasts and inline notices share a neutral
+  manifest-driven syntax palette. Highlighting must stay off the dispatcher and reject stale results.
+- A single notice look. Toasts and inline notices share a neutral
   elevated fill whatever the severity; severity is only the one-pixel muted border and the icon colour, with
   one line glyph per info, success, warning and error, and a fourth `warning` severity next to the existing
   three. Body text keeps the default colour. A notice is a single row (icon, message, actions) or, when it has a

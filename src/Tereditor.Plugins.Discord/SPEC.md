@@ -11,8 +11,6 @@ tags: [plugins, discord]
 
 # Discord — Rich Presence as a builtin plugin
 
-Upstream: packages/plugin-discord/SPEC.md @ eb382d75e (CommanderTvis fork)
-
 ## Responsibility
 
 Speaks Discord's local IPC protocol to publish what project and file the user has open on their Discord
@@ -108,7 +106,7 @@ The host half references only the contract and `Tereditor.Plugins.Api.Host`; the
 - the fork's `lifecycle.test.ts`, against a fake Discord on a real Unix socket: a failed first attempt reports
   `Unavailable`, a socket appearing within the retry floor is not noticed, and a settings change clears the
   floor so the next status connects;
-- the fork's `discord.spec.ts` against the app with its in-process and remote hosts and a fake Discord: off by default,
+- the Discord scenario against the app with its in-process and remote hosts and a fake Discord: off by default,
   enabled from Settings › Plugins, the default application id is a snowflake, the open project reaches
   Discord's `SET_ACTIVITY`, clearing the id silences it, an invalid id is kept in the field but never stored,
   a valid one survives reopening and is persisted, and a blocked project stays blocked.

@@ -8,8 +8,6 @@ parent: module-ui
 
 # Themes: bundled manifest catalogue and application
 
-Upstream: apps/web/src/themes/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 `Themes.cs` loads and validates the bundled declarative theme manifests at startup, owns the resulting
@@ -136,9 +134,9 @@ Users cannot add themes except through a source change. Runtime registration, ex
 discovery, external theme formats, OS contrast following and schedule UI are out of scope; if runtime themes
 ever arrive, the seam is a validated registration path in front of the same catalogue.
 
-## Not yet ported
+## Not built
 
 - Consumption of the manifest's `syntax` palette; `Themes.Parse` validates and carries it
-  (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
+  (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. The target is one syntax scope map for both Markdown code blocks and the file editor: the
   editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the
   editor's own default stays usable rather than painting a wrong one.

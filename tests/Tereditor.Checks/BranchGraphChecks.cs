@@ -47,7 +47,7 @@ internal static class BranchGraphChecks
         var repo = Repository(root);
         Directory.CreateDirectory(repo);
         Git(repo, "init", "-b", "main");
-        Git(repo, "fetch", "--no-tags", "--depth=600", source, "refs/remotes/origin/claude-code-integration-plugin-api");
+        Git(repo, "fetch", "--no-tags", "--depth=600", source, "HEAD");
         Git(repo, "checkout", "-B", "main", "FETCH_HEAD");
         Git(repo, "branch", "feature-one", "main~2");
         Git(repo, "branch", "a-branch-name-long-enough-to-shove-the-row-sideways-and-then-some", "main");

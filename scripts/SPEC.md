@@ -8,8 +8,6 @@ parent: group-platform
 
 # Repository scripts
 
-Upstream: scripts/SPEC.md (revision: [STATUS.md](../STATUS.md#upstream-tracking))
-
 ## Responsibility
 
 Repository-wide tooling that does not belong to one project: installing the

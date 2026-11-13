@@ -11,14 +11,12 @@ tags: [plugins, central, governance]
 
 # Air Gateway — Codex and Claude Code through JetBrains Central
 
-Upstream: central-integration.md, packages/shared/src/jbcentral.ts (adapter), packages/server/src/auth/jbcentral.ts
-(lifecycle), apps/web/src/panels/JetBrainsAiCard.tsx (card) and e2e/fixtures/bin/central (fixture) @ the fork's
-`central-access-api` line. The fork routes Central into `pi` through one extension file; pi is out of scope here, so
-this plugin keeps the fork's detection, sign-in, proxy, update and access-source behaviour and replaces the pi
-extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. omp, which
+Adapted from the former ThinkRail fork's JetBrains Central integration. The fork routed Central into `pi`
+through one extension file; pi is out of scope here, so this plugin keeps the fork's detection, sign-in, proxy,
+update and access-source behaviour and replaces the pi extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. omp, which
 `central run` (1.13.0) cannot start, gets Central's Pi wire through its environment (see Mechanism).
 
-Air Gateway was called Air Governance until JetBrains renamed the product; the plugin id `air-governance` is migrated to `air-gateway` when host state loads (HostState.SPEC.md), and the fork's and STATUS.md's older entries keep the old name.
+Air Gateway was called Air Governance until JetBrains renamed the product; the plugin id `air-governance` is migrated to `air-gateway` when host state loads (HostState.SPEC.md), and older history keeps the old name.
 
 ## Responsibility
 
