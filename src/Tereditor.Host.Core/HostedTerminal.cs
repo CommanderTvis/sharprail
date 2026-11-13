@@ -23,6 +23,9 @@ internal sealed class HostedTerminal
     private string? client;
     private int? exitCode;
     private (int Columns, int Rows) grid;
+    // Notices shown while the shell ran a command, shown again once that command ends: a full-screen program repaints over them.
+    private readonly List<string> notices = [];
+    internal const int MaxNotices = 8;
 
     internal ITerminalProcess Process { get; }
 
@@ -82,12 +85,21 @@ internal sealed class HostedTerminal
                             space = current?.WaitForSpace(chunk.Length);
                             if (space is null)
                             {
-                                recorder.Push(chunk.Span);
-                                shell.Push(chunk.Span);
+                                var read = notices.Count > 0 ? shell.PushUntilReturn(chunk.Span) : -1;
+                                var returned = read >= 0 && !shell.CommandRunning;
+                                if (returned) Repeat(chunk.Span, read);
+                                else
+                                {
+                                    recorder.Push(chunk.Span);
+                                    if (read < 0) shell.Push(chunk.Span);
+                                }
                                 if (TitleChanged is not null && titles.Scan(chunk.Span, out var title)) QueueTitle(title);
                                 if (promptChanged) { promptChanged = false; changed = shell.Status; foreground = shell.Foreground; }
-                                current?.Deliver(chunk, recorder.Position, grid);
-                                foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
+                                if (!returned)
+                                {
+                                    current?.Deliver(chunk, recorder.Position, grid);
+                                    foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
+                                }
                                 break;
                             }
                         }
@@ -115,20 +127,44 @@ internal sealed class HostedTerminal
     /// Shows a line of the host's own in the terminal, as if the program had printed it: recorded for replay and delivered to every
     /// attachment. It is output only; nothing reaches the shell's input.
     /// </summary>
-    internal void Announce(string text)
+    /// <remarks>
+    /// With <paramref name="repeat"/>, a notice that arrives while the shell runs a command is shown again right after that command
+    /// ends, before the shell draws its next prompt, so a program that repaints its screen (an agent's interface) cannot hide it.
+    /// That needs the shell integration's marks; without them the notice is shown once.
+    /// </remarks>
+    internal void Announce(string text, bool repeat = false)
     {
-        var chunk = TerminalChunk.Copy(System.Text.Encoding.UTF8.GetBytes("\r\n\x1b[33m" + text + "\x1b[0m\r\n"));
+        lock (gate)
+        {
+            if (exitCode is not null) return;
+            Emit(System.Text.Encoding.UTF8.GetBytes("\r\n\x1b[33m" + text + "\x1b[0m\r\n"), parse: true);
+            if (repeat && shell.CommandRunning && notices.Count < MaxNotices) notices.Add(text);
+        }
+    }
+
+    // Under the output lock: the shell's command ended inside this chunk after its first `read` bytes, which the shell state has read.
+    // Those bytes go out, then the waiting notices, then the rest, so the notices sit between the program's last output and the prompt.
+    private void Repeat(ReadOnlySpan<byte> chunk, int read)
+    {
+        Emit(chunk[..read], parse: false);
+        var text = string.Concat(notices.Select(notice => "\x1b[33m" + notice + "\x1b[0m\r\n"));
+        notices.Clear();
+        Emit(System.Text.Encoding.UTF8.GetBytes("\r\n" + text), parse: true);
+        Emit(chunk[read..], parse: true);
+    }
+
+    // Records output of the host's own and delivers it to every attachment.
+    private void Emit(ReadOnlySpan<byte> data, bool parse)
+    {
+        if (data.IsEmpty) return;
+        var chunk = TerminalChunk.Copy(data);
         try
         {
-            lock (gate)
-            {
-                if (exitCode is not null) return;
-                recorder.Push(chunk.Span);
-                shell.Push(chunk.Span);
-                // A holder that stopped reading is already at capacity: the notice stays in the recording but is not queued to it.
-                try { current?.Deliver(chunk, recorder.Position, grid); } catch (InvalidOperationException) { }
-                foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
-            }
+            recorder.Push(chunk.Span);
+            if (parse) shell.Push(chunk.Span);
+            // A holder that stopped reading is already at capacity: the output stays in the recording but is not queued to it.
+            try { current?.Deliver(chunk, recorder.Position, grid); } catch (InvalidOperationException) { }
+            foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
         }
         finally { chunk.Release(); }
     }

@@ -36,10 +36,21 @@ internal sealed class TerminalShellState
 
     internal TerminalShellStatus Status => new(Phase, Directory, LastExitCode) { Commands = [.. commands], Marked = Marked };
 
-    internal void Push(ReadOnlySpan<byte> chunk)
+    /// <summary>Whether the shell runs a command: between its own C mark and the D that ends it.</summary>
+    internal bool CommandRunning => shellRunning;
+
+    internal void Push(ReadOnlySpan<byte> chunk) => PushUntilReturn(chunk, false);
+
+    /// <summary>
+    /// Reads <paramref name="chunk"/> and, when <paramref name="stop"/> is set, stops right after the mark that ends the shell's command
+    /// (its D, before it draws the next prompt). Returns how many bytes were read; the caller pushes the rest afterwards.
+    /// </summary>
+    internal int PushUntilReturn(ReadOnlySpan<byte> chunk, bool stop = true)
     {
-        foreach (var value in chunk)
+        for (var index = 0; index < chunk.Length; index++)
         {
+            var value = chunk[index];
+            var running = shellRunning;
             position++;
             switch (scan)
             {
@@ -62,7 +73,9 @@ internal sealed class TerminalShellState
                     else { scan = value == (byte)']' ? Scan.Osc : Scan.Text; sequence.Clear(); overflow = false; }
                     break;
             }
+            if (stop && running && !shellRunning) return index + 1;
         }
+        return chunk.Length;
     }
 
     private void Complete()

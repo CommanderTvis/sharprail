@@ -28,7 +28,8 @@ internal sealed class NativeGuardSampler : IGuardSampler, IGuardKiller
     public IReadOnlyList<GuardedProcess> Tree(int shellPid) =>
     [
         .. ProcessEntries.Members(table, shellPid, OperatingSystem.IsLinux()).Select(entry => (Entry: entry, Bytes: ProcessEntries.Bytes(entry.Pid)))
-            .Where(item => item.Bytes is not null).Select(item => new GuardedProcess(item.Entry.Pid, item.Entry.Name, item.Bytes!.Value, item.Entry.Started))
+            .Where(item => item.Bytes is not null).Select(item => new GuardedProcess(item.Entry.Pid, item.Entry.Name, item.Bytes!.Value, item.Entry.Started,
+                item.Entry.Ppid, TerminalMemoryGuard.AgentOf(item.Entry.Name, ProcessEntries.ExecutablePath(item.Entry.Pid))))
     ];
 
     public void Terminate(GuardedProcess process)
@@ -107,6 +108,23 @@ internal static class ProcessEntries
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or Win32Exception or FormatException or IndexOutOfRangeException) { return null; }
     }
 
+    /// <summary>A process's executable (macOS <c>proc_pidpath</c>, Linux /proc exe link), or null where it cannot be read.</summary>
+    internal static string? ExecutablePath(int pid)
+    {
+        try
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                var buffer = new byte[4096];
+                var length = ProcessPath(pid, buffer, (uint)buffer.Length);
+                return length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null;
+            }
+            if (OperatingSystem.IsLinux()) return new FileInfo($"/proc/{pid}/exe").LinkTarget;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or DllNotFoundException or EntryPointNotFoundException) { }
+        return null;
+    }
+
     // proc_bsdinfo: pid at 12, ppid at 16, comm[16] at 48, name[32] at 64, e_tdev at 108, start seconds at 120; 136 bytes.
     private const int BsdInfo = 3, BsdInfoSize = 136, NoDevice = -1;
 
@@ -182,6 +200,9 @@ internal static class ProcessEntries
 
     [DllImport(Libproc, EntryPoint = "proc_listallpids")]
     private static extern int ListAllPids([Out] int[] buffer, int size);
+
+    [DllImport(Libproc, EntryPoint = "proc_pidpath")]
+    private static extern int ProcessPath(int pid, [Out] byte[] buffer, uint size);
 
     [DllImport(Libproc, EntryPoint = "proc_pidinfo")]
     private static extern int ProcessInfo(int pid, int flavor, ulong argument, [Out] byte[] buffer, int size);

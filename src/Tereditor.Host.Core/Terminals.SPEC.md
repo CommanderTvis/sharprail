@@ -258,20 +258,35 @@ Escalation, never silent. Each terminal is in one of four states.
 2. Warned. From 80% of the limit the terminal gets a warning naming it and its largest process ("Terminal in app uses 7.9 GB of 8 GB:
    node"), once per crossing: the warning clears only below 70%, so a program hovering near the line does not repeat itself.
 3. Terminating. Above the limit the guard sends a stop request (SIGTERM; on Windows a close request) to the single largest process
-   below the shell and shows "tereditor stopped node (4242) at 9.2 GB: terminal memory limit 8 GB". The process has the grace period.
+   below the shell (see Which process) and shows "tereditor memory guard: stopped node (pid 4242, 9.2 GB) because this terminal uses
+   9.5 GB, over its limit of 8 GB". The process has the grace period.
    If it is gone and the terminal is under the limit, the terminal is Ok again.
 4. Killing. After the grace period a process still running is killed (SIGKILL, on Windows terminated). On the next sample, if the terminal
-   is still over its limit, everything below the shell except protected programs is killed, children first, and the terminal says so.
+   is still over its limit, everything below the shell except protected programs and agents is killed, children first, and the terminal
+   says so. An agent is killed here only when it alone is over the limit.
 
 The shell and its PTY always survive, so the user keeps the terminal and its scrollback. Every step is written into the terminal as a
 line of output (it never reaches the shell's input), is sent to the host's clients as a notification, and is kept in a short list of
-recent events that the Processes pane shows with each terminal's memory against its limit. Android and browser clients show the notice
+recent events that the Processes pane shows with each terminal's memory against its limit. Each line starts with "tereditor memory
+guard:" and names the process, its pid, its memory and the reason, so the user can tell the guard ended it and not a crash.
+
+A line written while a program holds the terminal can be painted over at once: an agent's or editor's interface redraws its part of the
+screen, and a program on the alternate screen takes its screen away when it exits. So every stop and kill is written again right after
+the command running in the terminal ends, between the program's last output and the next prompt, where it stays in the scrollback. This
+uses the shell integration's command-end mark (OSC 133 D), which tereditor's zsh and bash integration print; a shell without it gets
+the first line only. When the guard ended an agent's subprocess and the agent keeps running, that second line comes only when the user
+leaves the agent; until then the notification and the Processes pane carry it. Android and browser clients show the notice
 and the notification and do nothing else. Program notifications switched off in Settings silence the desktop notification but not the
 line in the terminal or the Processes pane.
 
-Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp) is passed over for the largest
-other process, because the agent is what the user is working with; it is chosen only when nothing else is left or when it alone is at
-least twice as large as everything else. A protected program is never ended: if it is the largest, the terminal is only warned, once.
+Which process. The largest one is chosen, never the shell. A recognised agent (Claude Code, Codex, omp) is what the user is working
+with, so when it is the largest the guard ends its heaviest subprocess instead (a build, a test run, a language server it started), then,
+when it has none, the heaviest other program in the terminal. The agent itself is ended only as a last resort: nothing else is left to
+end and it alone is over the per-terminal limit, so no subprocess could bring the terminal back under. An agent under that limit with
+nothing else to end is only warned about, once, whatever the reason (also the total limit and system pressure). Agents are recognised by
+name and by executable path, since a native Claude Code runs as a binary named after its version (`…/claude/versions/2.1.3`); one started
+through a generic runtime (an npm install runs as `node`) is not recognised. A protected program is never ended: if it is the largest,
+the terminal is only warned, once.
 Before the kill the guard checks the process is still the one it sampled (same start and name), so a reused pid is never hit.
 
 What the guard cannot do, honestly.

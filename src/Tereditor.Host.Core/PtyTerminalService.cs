@@ -466,12 +466,13 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         return directory is null ? "A terminal" : "Terminal in " + Path.GetFileName(directory.TrimEnd('/', '\\'));
     }
 
-    // The notice goes to the terminal itself and, as a notification, to every client that watches the host's signals.
+    // The notice goes to the terminal itself and, as a notification, to every client that watches the host's signals. A stop or kill
+    // is shown again when the command running in the terminal ends, since the program on screen may repaint over the first line.
     private void AnnounceGuardEvent(GuardEvent guard)
     {
         HostedTerminal? hosted;
         lock (gate) sessions.TryGetValue(guard.Session, out hosted);
-        hosted?.Announce(guard.Text);
+        hosted?.Announce(guard.Text, repeat: guard.Kind is GuardEventKind.Stopped or GuardEventKind.Killed or GuardEventKind.TreeKilled);
         signals.Publish(new(guard.Session, TerminalSignalKind.Notification) { Title = "Terminal memory", Body = guard.Text });
     }
 

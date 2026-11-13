@@ -32,7 +32,7 @@ internal static class TerminalMemoryGuardChecks
         internal void Set(int shell, params GuardedProcess[] processes) => Trees[shell] = [.. processes];
     }
 
-    private static GuardedProcess P(int pid, string name, double gigabytes) => new(pid, name, (long)(gigabytes * Gb), 1);
+    private static GuardedProcess P(int pid, string name, double gigabytes, int parent = 10, string? agent = null) => new(pid, name, (long)(gigabytes * Gb), 1, parent, agent);
 
     private static (TerminalMemoryGuard Guard, Fake Fake, List<GuardEvent> Events, Func<TimeSpan> Now, Action<TimeSpan> Advance) Make(TerminalMemoryLimits limits)
     {
@@ -144,12 +144,13 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(10, "zsh", 9.5), P(11, "node", 9.2), P(12, "git", 0.5));
             guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11"]), "The largest descendant, not the shell, is asked to stop: " + string.Join(",", fake.Signals));
-            Require(events[0].Text == "tereditor stopped node (11) at 9.2 GB: terminal memory limit 8 GB", "The notice text: " + events[0].Text);
+            Require(events[0].Text == "tereditor memory guard: stopped node (pid 11, 9.2 GB) because this terminal uses 9.7 GB, over its limit of 8 GB", "The notice text: " + events[0].Text);
             Require(guard.UsageOf("s")!.Value.State == GuardState.Terminating, "The terminal is Terminating.");
             advance(TimeSpan.FromSeconds(9)); guard.Tick(targets);
             Require(fake.Signals.Count == 1, "Nothing more happens within the grace period.");
             advance(TimeSpan.FromSeconds(2)); guard.Tick(targets);
             Require(fake.Signals.SequenceEqual(["TERM 11", "KILL 11"]) && events[1].Kind == GuardEventKind.Killed && guard.UsageOf("s")!.Value.State == GuardState.Killing, "After the grace the process is killed: " + string.Join(",", fake.Signals));
+            Require(events[1].Text.StartsWith("tereditor memory guard: killed node (pid 11, 9.2 GB) because it did not stop within 10 s and this terminal uses", StringComparison.Ordinal), "The kill notice says who and why: " + events[1].Text);
             guard.Tick(targets);
             Require(guard.UsageOf("s")!.Value.State == GuardState.Ok && fake.Signals.Count == 2, "Once under the limit the terminal is Ok and the rest is left alone.");
         }
@@ -181,21 +182,50 @@ internal static class TerminalMemoryGuardChecks
             guard.Tick(targets); guard.Tick(targets); advance(TimeSpan.FromMinutes(5)); guard.Tick(targets);
             Require(fake.Signals.Count == 0 && events is [{ Kind: GuardEventKind.Protected }], "A protected program is never ended and the warning is not repeated: " + string.Join(",", fake.Signals));
         }
-        // Agents: passed over for the largest other process, ended only when alone or at least twice as large.
+        // Agents: the agent's heaviest subprocess is stopped, before any other program and never the agent while one is left.
         {
-            var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
+            var (guard, fake, events, _, _) = Make(Limits(perTerminalMb: 4096));
             GuardTarget[] targets = [new("s", "t", 10)];
-            fake.Set(10, P(11, "claude", 5), P(12, "node", 3));
+            fake.Set(10, P(11, "claude", 5), P(12, "python", 2), P(13, "cargo", 0.5, parent: 11), P(14, "rustc", 1, parent: 13));
             guard.Tick(targets);
-            Require(fake.Signals.SequenceEqual(["TERM 12"]), "The agent is passed over for the largest other process: " + string.Join(",", fake.Signals));
+            Require(fake.Signals.SequenceEqual(["TERM 14"]), "The agent's heaviest descendant is stopped, not the agent or an unrelated program: " + string.Join(",", fake.Signals));
+            Require(events[0].Text.StartsWith("tereditor memory guard: stopped rustc (pid 14, 1 GB) because", StringComparison.Ordinal), "The notice names the subprocess: " + events[0].Text);
         }
         {
             var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
             GuardTarget[] targets = [new("s", "t", 10)];
-            fake.Set(10, P(11, "claude", 7), P(12, "node", 3));
+            fake.Set(10, P(11, "claude", 7), P(12, "node", 0.5, parent: 11));
             guard.Tick(targets);
-            Require(fake.Signals.SequenceEqual(["TERM 11"]), "An agent far larger than anything else is ended: " + string.Join(",", fake.Signals));
+            Require(fake.Signals.SequenceEqual(["TERM 12"]), "An agent far larger than its subprocess is still passed over while a subprocess is left: " + string.Join(",", fake.Signals));
         }
+        // Last resort: an agent alone over the limit is ended; a native Claude Code is recognised by its version-named binary.
+        {
+            var (guard, fake, events, _, _) = Make(Limits(perTerminalMb: 4096));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "2.1.323", 5, agent: "claude"));
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 11"]) && events[0].Text.StartsWith("tereditor memory guard: stopped claude (pid 11, 5 GB)", StringComparison.Ordinal), "An agent alone over the limit is ended, named as the user knows it: " + string.Join(",", events.Select(e => e.Text)));
+        }
+        // An agent under the limit by itself with nothing else to end is only warned about, once.
+        {
+            var (guard, fake, events, _, _) = Make(Limits(perTerminalMb: 4096, protect: ["postgres"]));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "claude", 3.5), P(12, "postgres", 1));
+            guard.Tick(targets); guard.Tick(targets);
+            Require(fake.Signals.Count == 0 && events is [{ Kind: GuardEventKind.Protected }] && events[0].Text.Contains("claude is an agent", StringComparison.Ordinal), "An agent under the limit is not ended: " + string.Join("|", events.Select(e => e.Text)));
+        }
+        // The tree kill spares an agent that is under the limit by itself.
+        {
+            var (guard, fake, events, _, advance) = Make(Limits(perTerminalMb: 4096));
+            GuardTarget[] targets = [new("s", "t", 10)];
+            fake.Set(10, P(11, "claude", 3), P(12, "node", 3, parent: 11), P(13, "cc", 2, parent: 11));
+            guard.Tick(targets);
+            advance(TimeSpan.FromSeconds(11)); guard.Tick(targets);
+            guard.Tick(targets);
+            Require(fake.Signals.SequenceEqual(["TERM 12", "KILL 12", "KILL 13"]) && events.Last() is { Kind: GuardEventKind.TreeKilled } last && last.Text.Contains("sparing claude", StringComparison.Ordinal), "The agent survives the tree kill: " + string.Join(",", fake.Signals) + " " + events.Last().Text);
+        }
+        Require(TerminalMemoryGuard.AgentOf("2.1.323", "/Users/u/.local/share/claude/versions/2.1.323") == "claude" && TerminalMemoryGuard.AgentOf("codex", null) == "codex"
+            && TerminalMemoryGuard.AgentOf("node", "/usr/local/bin/node") is null && TerminalMemoryGuard.AgentOf("x", "/home/u/.local/share/claude/versions/2.0.1 (deleted)") == "claude", "Agents are recognised by name or executable path.");
         // The host's own pid and a pid below another terminal are never victims of this terminal.
         {
             var (guard, fake, _, _, _) = Make(Limits(perTerminalMb: 4096));
@@ -210,7 +240,7 @@ internal static class TerminalMemoryGuardChecks
             fake.Set(10, P(11, "node", 4));
             fake.Set(20, P(21, "java", 5));
             guard.Tick(targets);
-            Require(fake.Signals.SequenceEqual(["TERM 21"]) && events[0].Text.EndsWith("total terminal memory limit 8 GB", StringComparison.Ordinal), "The biggest terminal's biggest process is stopped: " + string.Join(",", fake.Signals));
+            Require(fake.Signals.SequenceEqual(["TERM 21"]) && events[0].Text.EndsWith("all terminals use 9 GB, over their total limit of 8 GB", StringComparison.Ordinal), "The biggest terminal's biggest process is stopped: " + string.Join(",", fake.Signals));
         }
         // System memory pressure: only a terminal using at least half its limit is touched.
         {
@@ -222,7 +252,7 @@ internal static class TerminalMemoryGuardChecks
             Require(fake.Signals.Count == 0, "Pressure alone does not end a small program.");
             fake.Set(10, P(11, "node", 5));
             guard.Tick(targets);
-            Require(fake.Signals.SequenceEqual(["TERM 11"]) && events.Last().Text.EndsWith("system memory pressure", StringComparison.Ordinal), "Pressure ends the biggest offender: " + string.Join(",", events.Select(e => e.Text)));
+            Require(fake.Signals.SequenceEqual(["TERM 11"]) && events.Last().Text.EndsWith("the system is under memory pressure", StringComparison.Ordinal), "Pressure ends the biggest offender: " + string.Join(",", events.Select(e => e.Text)));
         }
         // Off: nothing is sampled or ended.
         {
@@ -281,7 +311,7 @@ internal static class TerminalMemoryGuardChecks
                 guard.Tick([new("real", "Real", shell.Id)]);
                 await Task.Delay(100);
             }
-            Require(events[0].Text.StartsWith("tereditor stopped perl (", StringComparison.Ordinal) && events[0].Text.EndsWith("terminal memory limit 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
+            Require(events[0].Text.StartsWith("tereditor memory guard: stopped perl (pid ", StringComparison.Ordinal) && events[0].Text.EndsWith("over its limit of 0.1 GB", StringComparison.Ordinal), "The notice names the child: " + events[0].Text);
             while (sampler.Tree(shell.Id).Any(process => process.Name == "perl") && DateTime.UtcNow < deadline) { guard.Tick([new("real", "Real", shell.Id)]); sampler.Refresh(); await Task.Delay(100); }
             sampler.Refresh();
             Require(sampler.Tree(shell.Id).All(process => process.Name != "perl"), "The runaway child is still running.");
@@ -316,8 +346,11 @@ internal static class TerminalMemoryGuardChecks
                     await Task.Delay(50);
                 }
             }
-            await attached.WriteAsync(Encoding.UTF8.GetBytes($"{perl} -e '$x = \"a\" x (300 << 20); sleep 60' &\r"));
-            await Await("tereditor stopped perl (", "the stop notice in the terminal");
+            // The shell integration's marks around a foreground command, as zsh and bash print them: the notice is shown when the guard
+            // acts and again after the command ends, before the next prompt.
+            await attached.WriteAsync(Encoding.UTF8.GetBytes($"printf '\\033]133;C\\007'; {perl} -e '$x = \"a\" x (300 << 20); sleep 60'; printf '\\033]133;D;0\\007'\r"));
+            await Await("tereditor memory guard: stopped perl (pid ", "the stop notice in the terminal");
+            await Await("\u001b]133;D;0\u0007\r\n\u001b[33mtereditor memory guard: stopped perl (pid ", "the stop notice repeated after the command ended");
             await attached.WriteAsync(Encoding.UTF8.GetBytes("echo SHELL_ALIVE_$((6*7))\r"));
             await Await("SHELL_ALIVE_42", "the shell to answer after the guard acted");
             Require(pty.MemoryGuard!.Events().Any(e => e.Kind == GuardEventKind.Stopped), "The Processes pane has no event for the stop.");

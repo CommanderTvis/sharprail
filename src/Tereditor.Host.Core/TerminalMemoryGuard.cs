@@ -2,8 +2,11 @@ using System.Globalization;
 
 namespace Tereditor.Host.Core;
 
-/// <summary>One process of a terminal's tree. <see cref="Started"/> tells a reused pid from the process it replaced.</summary>
-internal readonly record struct GuardedProcess(int Pid, string Name, long Bytes, long Started);
+/// <summary>
+/// One process of a terminal's tree. <see cref="Started"/> tells a reused pid from the process it replaced. <see cref="Agent"/> is the
+/// agent's name when the sampler recognised one by its executable (a native Claude Code runs as a binary named after its version).
+/// </summary>
+internal readonly record struct GuardedProcess(int Pid, string Name, long Bytes, long Started, int Parent = 0, string? Agent = null);
 
 /// <summary>Where the guard reads: the real process table in the host, fakes in the checks.</summary>
 internal interface IGuardSampler
@@ -80,6 +83,22 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         lock (gate) return [.. events];
     }
 
+    /// <summary>The agent a process is, by its executable path (<c>…/claude/versions/2.1.3</c> or <c>…/codex</c>) or its name; null for any other program.</summary>
+    internal static string? AgentOf(string name, string? path)
+    {
+        if (AgentNames.FirstOrDefault(agent => agent.Equals(name, StringComparison.OrdinalIgnoreCase)) is { } named) return named;
+        if (string.IsNullOrEmpty(path)) return null;
+        var parts = path.Split('/', '\\');
+        var file = Path.GetFileNameWithoutExtension(parts[^1]);
+        if (AgentNames.FirstOrDefault(agent => agent.Equals(file, StringComparison.OrdinalIgnoreCase)) is { } executable) return executable;
+        return parts.Length >= 3 && parts[^2] == "versions" ? AgentNames.FirstOrDefault(agent => agent.Equals(parts[^3], StringComparison.OrdinalIgnoreCase)) : null;
+    }
+
+    private static string? AgentOf(GuardedProcess process) => process.Agent ?? AgentOf(process.Name, null);
+
+    // An agent is named as the user knows it, not by its version-numbered binary.
+    private static string Shown(GuardedProcess process) => AgentOf(process) ?? process.Name;
+
     internal static string Size(long bytes) => (bytes / (double)(1L << 30)).ToString(bytes >= 10L << 30 ? "0" : "0.#", CultureInfo.InvariantCulture) + " GB";
 
     internal void Tick(IReadOnlyList<GuardTarget> targets)
@@ -118,9 +137,9 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
             {
                 var (target, tree) = trees[i];
                 string? reason = null;
-                if (sums[i] > perTerminal) reason = $"terminal memory limit {Size(perTerminal)}";
-                else if (i == biggest && overTotal) reason = $"total terminal memory limit {Size(setting.TotalBytes(physical))}";
-                else if (i == biggest && pressure) reason = "system memory pressure";
+                if (sums[i] > perTerminal) reason = $"this terminal uses {Size(sums[i])}, over its limit of {Size(perTerminal)}";
+                else if (i == biggest && overTotal) reason = $"all terminals use {Size(sums.Sum())}, over their total limit of {Size(setting.TotalBytes(physical))}";
+                else if (i == biggest && pressure) reason = "the system is under memory pressure";
                 Step(target, tree, sums[i], perTerminal, reason, setting);
             }
     }
@@ -130,7 +149,7 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
         if (!watches.TryGetValue(target.Session, out var watch)) watches[target.Session] = watch = new();
         var now = Clock();
         var over = reason is not null;
-        var largest = tree.Length == 0 ? "" : tree.MaxBy(process => process.Bytes).Name;
+        var largest = tree.Length == 0 ? "" : Shown(tree.MaxBy(process => process.Bytes));
         watch.Usage = new(bytes, limit, watch.State, largest);
         switch (watch.State)
         {
@@ -142,26 +161,29 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     if (!alive) { Settle(watch); goto default; }
                     var victim = tree.First(process => Same(process, watch.Victim));
                     killer.Kill(victim);
-                    Raise(target, GuardEventKind.Killed, $"tereditor killed {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: it did not stop within {setting.GraceSeconds} s ({reason})");
+                    Raise(target, GuardEventKind.Killed, $"tereditor memory guard: killed {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because it did not stop within {setting.GraceSeconds} s and {reason}");
                     watch.State = GuardState.Killing;
                     break;
                 }
             case GuardState.Killing:
                 {
                     if (!over) { Settle(watch); break; }
-                    var rest = tree.Where(process => !setting.Protects(process.Name)).ToArray();
+                    // An agent is spared unless it alone is over the limit: ending its subprocesses brings the terminal back under.
+                    var rest = tree.Where(process => !setting.Protects(process.Name) && (AgentOf(process) is null || process.Bytes > limit)).ToArray();
                     // Children first, so a parent cannot restart what was just ended.
                     foreach (var process in rest.OrderByDescending(process => process.Pid)) killer.Kill(process);
-                    Raise(target, GuardEventKind.TreeKilled, $"tereditor killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}): the terminal stayed over its limit ({reason})");
+                    var spared = tree.Length > rest.Length ? $", sparing {string.Join(", ", tree.Except(rest).Select(Shown).Distinct())}" : "";
+                    if (rest.Length > 0)
+                        Raise(target, GuardEventKind.TreeKilled, $"tereditor memory guard: killed everything below the shell ({rest.Length} processes, {Size(rest.Sum(process => process.Bytes))}{spared}) because {reason} after its largest process was killed");
                     Settle(watch);
                     break;
                 }
             default:
                 {
-                    if (over && Victim(tree, setting) is { } victim)
+                    if (over && Victim(tree, setting, limit) is { } victim)
                     {
                         killer.Terminate(victim);
-                        Raise(target, GuardEventKind.Stopped, $"tereditor stopped {victim.Name} ({victim.Pid}) at {Size(victim.Bytes)}: {reason}");
+                        Raise(target, GuardEventKind.Stopped, $"tereditor memory guard: stopped {Shown(victim)} (pid {victim.Pid}, {Size(victim.Bytes)}) because {reason}");
                         watch.State = GuardState.Terminating;
                         watch.Victim = victim;
                         watch.Deadline = now + TimeSpan.FromSeconds(setting.GraceSeconds);
@@ -169,12 +191,13 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
                     }
                     else if (over)
                     {
-                        // The biggest process is protected (or nothing is left to end): only warn, once per episode.
+                        // The biggest process is protected, or an agent with nothing else to end: only warn, once per episode.
                         watch.State = GuardState.Warned;
                         if (!watch.ProtectedReported)
                         {
                             watch.ProtectedReported = true;
-                            Raise(target, GuardEventKind.Protected, $"{target.Name} uses {Size(bytes)}, over its limit ({reason}), but {largest} is protected: tereditor will not stop it");
+                            var why = AgentOf(tree.MaxBy(process => process.Bytes)) is null ? "is protected" : "is an agent with no subprocess to stop and is under the limit by itself";
+                            Raise(target, GuardEventKind.Protected, $"tereditor memory guard: {target.Name} is over its limit ({reason}), but {largest} {why}, so tereditor will not stop it");
                         }
                     }
                     else if (bytes >= limit * WarnAt && watch.State == GuardState.Ok)
@@ -199,18 +222,32 @@ internal sealed class TerminalMemoryGuard(IGuardSampler sampler, IGuardKiller ki
     private static bool Same(GuardedProcess left, GuardedProcess right) => left.Pid == right.Pid && left.Started == right.Started && left.Name == right.Name;
 
     /// <summary>
-    /// The process to end: the largest one, unless it is protected (then none). A known agent is passed over for the largest other
-    /// process, and ended only when nothing else is left or it is at least twice as large as everything else.
+    /// The process to end: the largest one, unless it is protected (then none). A known agent is what the user works with, so it is
+    /// passed over for its heaviest subprocess (a build, a test run, a language server), then for the heaviest other program; it is
+    /// ended only as a last resort, when nothing else is left to end and it alone is over the per-terminal <paramref name="limit"/>.
     /// </summary>
-    internal static GuardedProcess? Victim(IReadOnlyList<GuardedProcess> tree, TerminalMemoryLimits setting)
+    internal static GuardedProcess? Victim(IReadOnlyList<GuardedProcess> tree, TerminalMemoryLimits setting, long limit)
     {
         if (tree.Count == 0) return null;
-        var largest = tree.OrderByDescending(process => process.Bytes).ThenBy(process => process.Pid).First();
+        var ordered = tree.OrderByDescending(process => process.Bytes).ThenBy(process => process.Pid).ToArray();
+        var largest = ordered[0];
         if (setting.Protects(largest.Name)) return null;
-        if (!AgentNames.Contains(largest.Name, StringComparer.OrdinalIgnoreCase)) return largest;
-        var others = tree.Where(process => !AgentNames.Contains(process.Name, StringComparer.OrdinalIgnoreCase) && !setting.Protects(process.Name))
-            .OrderByDescending(process => process.Bytes).ThenBy(process => process.Pid).ToArray();
-        return others.Length == 0 || largest.Bytes >= 2 * others[0].Bytes ? largest : others[0];
+        if (AgentOf(largest) is null) return largest;
+        var below = Descendants(tree, largest.Pid);
+        var endable = ordered.Where(process => AgentOf(process) is null && !setting.Protects(process.Name)).ToArray();
+        return endable.Where(process => below.Contains(process.Pid)).Concat(endable).Cast<GuardedProcess?>().FirstOrDefault()
+            ?? (largest.Bytes > limit ? largest : null);
+    }
+
+    private static HashSet<int> Descendants(IReadOnlyList<GuardedProcess> tree, int pid)
+    {
+        var children = tree.ToLookup(process => process.Parent);
+        var found = new HashSet<int>();
+        var queue = new Queue<int>([pid]);
+        while (queue.Count > 0)
+            foreach (var child in children[queue.Dequeue()])
+                if (found.Add(child.Pid)) queue.Enqueue(child.Pid);
+        return found;
     }
 
     private void Raise(GuardTarget target, GuardEventKind kind, string text)
