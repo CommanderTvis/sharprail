@@ -228,21 +228,13 @@ internal static class TerminalChromeChecks
         Require(!app.Window.Layout.Tabs(side.Id).Any(tab => tab.Kind == "terminal"), "The Specs group must start without a terminal.");
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + side.Id),
             "The Specs view must not show a terminal opener.");
-        // Tools and terminals use separate panes: New terminal from a tool pane opens a terminal pane directly below it.
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddToGroup_" + side.Id),
             "Pane headers must not show an add button.");
         var add = app.Find<Grid>("GroupHeader_" + side.Id);
         add.ContextMenu!.Open(add); Until(() => add.ContextMenu!.IsOpen);
-        add.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "NewTerminalBelow_" + side.Id).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        Require(!add.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("New terminal", StringComparison.Ordinal)),
+            "A tool pane menu must not create terminals.");
         add.ContextMenu.Close();
-        var right = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList();
-        var below = right[right.FindIndex(group => group.Id == side.Id) + 1];
-        Until(() => app.Window.Layout.Tabs(below.Id).Count(tab => tab.Kind == "terminal") == 1);
-        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + below.Id),
-            "A side terminal pane must not show a terminal opener.");
-        Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal") &&
-            app.Window.Layout.Tabs(side.Id).All(tab => tab.IsTool),
-            "The side menu must create terminals in a terminal pane of its own side.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
         app.ContextAction(app.Find<Button>("Tab_plugin_review_review"), "Close");
         add = app.Find<Grid>("GroupHeader_" + side.Id);
@@ -251,6 +243,6 @@ internal static class TerminalChromeChecks
         Require(entries.Any(item => Equals(item.Header, "Show Review")) && !entries.Any(item => Equals(item.Header, "Show Projects")),
             "A side menu must offer only its own side's hidden tools.");
         add.ContextMenu.Close();
-        Console.WriteLine("PASS upstream layout.spec.ts: the side group menu shows tools for its own side and opens terminals in that group");
+        Console.WriteLine("PASS upstream layout.spec.ts: the side group menu shows tools for its own side and creates no terminal");
     }
 }

@@ -175,8 +175,7 @@ Only a tool tab is held to the tool catalogue when it is selected: a plugin docu
 reads like a plugin tool id and is always selectable.
 
 Adding or removing entries in the tool catalogue leaves existing tabs and their focus intact when
-their displayed metadata is unchanged. Side group header menus (right-click) lead with Show <tool> entries for hidden tools and, on a tool pane,
-New terminal pane below; opening the menu reads the current catalogue and excludes tools already placed anywhere
+their displayed metadata is unchanged. Side group header menus (right-click) lead with Show <tool> entries for hidden tools; opening the menu reads the current catalogue and excludes tools already placed anywhere
 in the frame. The header menu opens only from the header's own space: a right-click on a header button (new
 terminal, agent launchers, search, hide, remove) opens no menu. A change to metadata of a displayed tool refreshes its chrome.
 
@@ -204,8 +203,8 @@ predicate; a workspace opens without an implicit terminal. A persisted layout th
 has a mixed pane migrates the same way when it is loaded (`MigrateLegacyTools`), and the mixed-order anchors
 (`WorkspaceView.BeforeToolByTabId`) are accepted and discarded.
 
-New terminal from a tool pane ("New terminal pane below" in its add menu) creates a tool-free pane directly
-below it and places the terminal there. A center group adds to itself; a side terminal or empty pane offers no New terminal, and terminals reach it by drag or menu move. Showing an empty region only
+Only center groups create terminals; nothing in a side area offers New terminal, and terminals reach a side pane
+by drag, Move to pane or Split. A new terminal aimed at a tool pane programmatically lands in a tool-free pane directly below it. Showing an empty region only
 offers creation: nothing starts a shell until a terminal tab is selected in a visible pane.
 
 ## Edge rails
@@ -223,7 +222,7 @@ from its pane as its menu's Close does; a terminal pane's entry navigates and ne
 unchanged projection keeps the rail controls mounted.
 
 A side tool pane shows a plain 32px header instead of a tab strip: the selected tool's icon and title, which is
-a drag handle for that tool, then an add menu (hidden tools of that side, New terminal pane below) and Hide.
+a drag handle for that tool, then an add menu (hidden tools of that side) and Hide.
 Terminal and empty side panes keep their strip with Hide in place of the fold button. Hide folds the pane onto
 its rail and moves focus to its entry; unfolding from the rail returns focus to the pane. A folded pane's rail
 entry is its focus endpoint for Ctrl+F6. Mod+1 hides or shows the left side the same way.

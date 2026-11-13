@@ -475,7 +475,7 @@ public sealed partial class DockSurface
         actions.Children.Add(overflow);
         if (!group.Folded)
         {
-            // Only the centre opens terminals from its strip; a side pane gets one through its tool pane's add menu or a drag.
+            // Only the centre opens terminals; a side pane gets one by drag or menu move.
             if (NewTerminals && group.Region == "center")
             {
                 var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
@@ -640,7 +640,7 @@ public sealed partial class DockSurface
     private IEnumerable<DockToolInfo> HiddenTools(DockGroup group) => (Session.View.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) > 0 ? [] :
         Session.Tools.Where(tool => tool.Region == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id)));
 
-    // The header menu's add entries: hidden tools of the group's region and, for a tool pane, a terminal pane below.
+    // The header menu's add entries: hidden tools of the group's region. Side areas never create terminals.
     private IEnumerable<MenuItem> AddItems(DockGroup group)
     {
         foreach (var tool in HiddenTools(group))
@@ -648,12 +648,6 @@ public sealed partial class DockSurface
             var item = Ui.Menu("Show " + tool.Title, () => Session.RestoreTool(tool.Id, group.Id));
             item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
             yield return item;
-        }
-        if (NewTerminals && Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
-        {
-            var below = Ui.Menu("New terminal pane below", () => { Session.NewTerminal(tools.Id); FocusGroup(Session.View.FocusedGroup, focusContent: true); }, CanCreate(tools));
-            below.Name = "NewTerminalBelow_" + group.Id;
-            yield return below;
         }
     }
 

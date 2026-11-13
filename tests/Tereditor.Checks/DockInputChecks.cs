@@ -203,8 +203,8 @@ internal static class DockInputChecks
             Dispatcher.UIThread.RunJobs();
             Require(add.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Name).Where(name => name?.StartsWith("ShowTool_", StringComparison.Ordinal) == true)
                 .SequenceEqual(Hidden().Select(tool => "ShowTool_" + tool.Id.Replace(':', '_'))) &&
-                add.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Name == "NewTerminalBelow_" + group.Id) == group.Tools.Count > 0,
-                "The header menu offers the current catalogue without duplicating already-placed singleton tools, and a tool pane a terminal pane below.");
+                !add.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("New terminal", StringComparison.Ordinal)),
+                "The header menu offers the current catalogue without duplicating already-placed singleton tools, and never a new terminal.");
             add.ContextMenu.Close();
         }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
