@@ -345,7 +345,7 @@ internal static class ShellChecks
             Shows(file, "Close Tab", WindowShortcuts.Close) && Shows(file, "Close Window", new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift)) &&
             Shows(file, "Save", new KeyGesture(Key.S, KeyModifiers.Meta)) &&
             Shows(edit, "Find", new KeyGesture(Key.F, KeyModifiers.Meta)) && Shows(edit, "Undo Close Tab", WindowShortcuts.UndoClose.Gesture) && Shows(edit, "Go to Declaration", new KeyGesture(Key.B, KeyModifiers.Meta)) &&
-            Shows(edit, "Find Usages", new KeyGesture(Key.F7, KeyModifiers.Alt)) && Shows(edit, "Go to Implementation", null) &&
+            Shows(edit, "Find Usages", new KeyGesture(Key.F7, KeyModifiers.Alt)) && Shows(edit, "Go to Implementation", new KeyGesture(Key.B, KeyModifiers.Meta | KeyModifiers.Alt)) &&
             Shows(view, "Zoom In", WindowShortcuts.ZoomIn.Gesture) && Shows(view, "Zoom Out", WindowShortcuts.ZoomOut.Gesture) && Shows(view, "Actual Size", WindowShortcuts.ZoomReset.Gesture),
             "Menu items show the window's own chords.");
         var closeWindow = new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift);

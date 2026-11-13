@@ -209,9 +209,10 @@ internal static partial class FileIconsChecks
         app.Window.ShowSettings("Appearance");
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
-        var styles = settings.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "FileTypeIconChoices");
-        void Pick(string name) => styles.SelectedIndex = Array.IndexOf(new[] { "plain", "colored", "material", "none" }, name);
-        Until(() => styles.IsEnabled);
+        // Every host settings change rebuilds the Appearance page, so the dropdown is looked up afresh for each pick.
+        ComboBox Styles() => settings.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "FileTypeIconChoices");
+        void Pick(string name) => Styles().SelectedIndex = Array.IndexOf(new[] { "plain", "colored", "material", "none" }, name);
+        Until(() => Styles().IsEnabled);
         Require(app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: true, FileTypeIconStyle: "" }, "Core file-type icons are on and plain by default.");
         Pick("none");
         Until(() => !app.Workbench.State.Current.Settings.FileTypeIconsEnabled);

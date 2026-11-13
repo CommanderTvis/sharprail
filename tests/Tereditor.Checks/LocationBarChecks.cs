@@ -59,7 +59,9 @@ internal static class LocationBarChecks
         Require(Label(app, "ProjectLabel") == "sample-project", "Project Home names the project.");
         var captions = app.Find<Tereditor.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["Project", "Branch", "Remote"]), "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
+        // The Remote block's caption names the branch it pushes to and reads "Remote" only while there is none to name.
+        Require(captions.SequenceEqual(["Project", "Branch"]) && Label(app, "RemoteCaption") == "Remote",
+            "Each segment, and the Branch segment's Remote block, carries its sentence-case caption.");
         Require(new[] { "ProjectSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
         Require(new[] { "ProjectChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),

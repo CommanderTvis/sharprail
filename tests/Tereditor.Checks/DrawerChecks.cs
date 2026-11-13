@@ -49,7 +49,10 @@ internal static class DrawerChecks
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
         E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
-        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
+        var profile = new ProfileStore(directory + "-profile");
+        // Review is off by default, and these phone workspaces open on its Git tool.
+        E2E.E2eWorkspace.EnableSpecPlugins(profile.OpenState());
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, profile, E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
         Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The compact Git workspace did not mount.");
@@ -222,7 +225,10 @@ internal static class DrawerChecks
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
         E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
-        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
+        var profile = new ProfileStore(directory + "-profile");
+        // Review is off by default, and these phone workspaces open on its Git tool.
+        E2E.E2eWorkspace.EnableSpecPlugins(profile.OpenState());
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, profile, E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
         Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The compact Git workspace did not mount.");
@@ -342,7 +348,10 @@ internal static class DrawerChecks
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
         E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
         var terminals = new E2E.E2eTerminals();
-        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), terminals.Factory, compact: true);
+        var profile = new ProfileStore(directory + "-profile");
+        // Review is off by default, and these phone workspaces open on its Git tool.
+        E2E.E2eWorkspace.EnableSpecPlugins(profile.OpenState());
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, profile, terminals.Factory, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
         Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The compact Git workspace did not mount.");
