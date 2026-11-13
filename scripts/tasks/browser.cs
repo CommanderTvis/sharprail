@@ -8,9 +8,13 @@ return Guard(() =>
     EnsureWorkload("wasm-experimental", "Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm", "--skip-manifest-update");
     var configuration = Env("TEREDITOR_CONFIGURATION") ?? "Release";
     void Dotnet_(params string[] arguments) => Check(Dotnet, arguments);
-    // The Playwright tools (node, pnpm) are the browser mise environment's pins, not on PATH on a plain runner.
-    void MiseBrowser(string directory, params string[] command) =>
-        Check("sh", [At("scripts", "mise"), "x", "--", .. command], directory, new Dictionary<string, string> { ["MISE_ENV"] = "browser" });
+    // Node and pnpm are the browser mise environment's pins, not on PATH on a plain runner: every Node script runs through here.
+    void MiseBrowser(string directory, params string[] command)
+    {
+        var env = new Dictionary<string, string> { ["MISE_ENV"] = "browser" };
+        if (OperatingSystem.IsWindows()) Check(At("scripts", "mise.cmd"), ["x", "--", .. command], directory, env);
+        else Check("sh", [At("scripts", "mise"), "x", "--", .. command], directory, env);
+    }
     switch (args.Length > 0 ? args[0] : "build")
     {
         case "build":
@@ -22,12 +26,12 @@ return Guard(() =>
         case "check" when OperatingSystem.IsWindows():
             Dotnet_("build", "src/Tereditor.Host.Remote", "-c", configuration, "-m:2");
             Dotnet_("build", "src/Tereditor.Browser", "-c", configuration, "-m:2", "-p:BrowserChecks=true");
-            Check("pnpm", ["exec", "playwright", "install", "chromium"], "src/Tereditor.Browser");
-            Check("node", [Path.Combine("tests", "Tereditor.Browser.Checks", "check.mjs")]);
+            MiseBrowser("src/Tereditor.Browser", "pnpm", "exec", "playwright", "install", "chromium");
+            MiseBrowser(Root, "node", Path.Combine("tests", "Tereditor.Browser.Checks", "check.mjs"));
             return 0;
         case "check":
-            Check("node", ["tests/Tereditor.Browser.Checks/compression.mjs"]);
-            Check("node", ["tests/Tereditor.Browser.Checks/tailscale.mjs"]);
+            Dotnet_("run", "--file", "tests/Tereditor.Browser.Checks/compression.cs", "--", Dotnet);
+            MiseBrowser(Root, "node", "tests/Tereditor.Browser.Checks/tailscale.mjs");
             Dotnet_("build", "tests/Tereditor.Checks", "-c", configuration, "-m:2");
             Dotnet_("build", "src/Tereditor.Browser", "-c", configuration, "-m:2", "-p:BrowserChecks=true");
             // pnpm is the mise pin (not on PATH on a plain runner); Linux also needs Chromium's system libraries (apt, via sudo).

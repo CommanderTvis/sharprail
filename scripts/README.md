@@ -61,7 +61,7 @@ Binaryen through mise (`scripts/tool`), and need Git and a macOS or Linux build 
 | --- | --- |
 | `scripts/mise run browser build` | Build into `src/Tereditor.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
 | `scripts/mise run browser publish` | Publish the browser bundle into `artifacts/browser`. |
-| `scripts/mise run browser check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. |
+| `scripts/mise run browser check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. It first runs the compression checks in C# (`tests/Tereditor.Browser.Checks/compression.cs`) and `tailscale.mjs`; every Node script runs on the browser environment's pinned Node (`MISE_ENV=browser`), never a `node` from PATH. |
 
 ### Remote host for desktop or Android clients
 

@@ -82,7 +82,7 @@ Compression runs after Release Build and Publish, including the `browser` task's
 are reused from a content-addressed cache under `$TEREDITOR_CACHE_DIR/browser-compression`, even when the SDK
 regenerates the bundle. Quality 11 Brotli adds initial bundling time and disk space, with no request-time
 compression work. Separate static servers must configure sidecar negotiation themselves.
-Run `node tests/Tereditor.Browser.Checks/compression.mjs` for the bundler regression checks.
+Run `dotnet run --file tests/Tereditor.Browser.Checks/compression.cs` for the bundler regression checks; `scripts/mise run browser check` runs them first.
 
 After building the test-only bundle, `node tests/Tereditor.Browser.Checks/restty.mjs --prose`
 checks the 646 KB prose first-frame budget and exact scroll extents. This optional performance

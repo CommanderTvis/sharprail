@@ -658,7 +658,7 @@ pruning, the lazy-download state machine over a fake store (check without downlo
 failure and retry, cached revisit, missing module), peer resolution and login-URL filtering, and discovery, pairing and
 authenticated WebSocket RPC carried over dialed streams (the browser's tailnet route) against the real listeners,
 including that a failed registered dial never falls back to ordinary sockets. `scripts/mise run browser check` adds
-`tests/Tereditor.Browser.Checks/tailscale.mjs`: the IndexedDB-backed node state through a fake backend (ordered
+`tests/Tereditor.Browser.Checks/tailscale.mjs`, run on the browser environment's pinned Node: the IndexedDB-backed node state through a fake backend (ordered
 write-through, reload, sign-out wipe) and the Cache Storage download with fake fetch (progress, cancel, truncation,
 versioning).
 
