@@ -236,6 +236,20 @@
             <NumericUpDown x:Name="InterfaceSize" Grid.Column="1" Minimum="10" Maximum="24" Increment="1" />
           </Grid>
         </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Zoom" Classes="settings-label" />
+              <TextBlock Text="Scales the whole interface on this device. The phone layout keeps its own zoom, apart from the desktop layout." Classes="settings-description" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <Button x:Name="InterfaceZoomOut" Content="−" MinWidth="32" HorizontalContentAlignment="Center" AutomationProperties.Name="Zoom out" />
+              <TextBlock x:Name="InterfaceZoomValue" MinWidth="44" TextAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="Zoom" />
+              <Button x:Name="InterfaceZoomIn" Content="+" MinWidth="32" HorizontalContentAlignment="Center" AutomationProperties.Name="Zoom in" />
+              <Button x:Name="InterfaceZoomReset" Content="Reset" AutomationProperties.Name="Reset zoom" />
+            </StackPanel>
+          </Grid>
+        </Border>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="EditorPage">

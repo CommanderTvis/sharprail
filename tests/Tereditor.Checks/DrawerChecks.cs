@@ -294,6 +294,13 @@ internal static class DrawerChecks
         group = layout.State.Center.Leaves().First();
         Require(layout.State.ActiveWorkspace == workspace && layout.Selected(group)?.Id == tab, "The other shell must open on the same workspace and tab.");
 
+        // Zoom belongs to the device's profile, never to the host, and each shell keeps its own:
+        // a keyboard zoom in the desktop frame must not strand the phone pages, which have no keyboard to undo it.
+        Require(!Preferences.Shared.Contains(nameof(Preferences.Zoom)) && !Preferences.Shared.Contains(nameof(Preferences.CompactZoom)),
+            "The interface zoom must stay on the device: the host never shares it.");
+        window.Zoom(1);
+        Require(window.Preferences.Zoom == 1.1 && Tereditor.Plugins.UI.Kit.InterfaceZoom.Current == 1.1 && window.Preferences.CompactZoom == 1,
+            "A zoom in the desktop frame must change the frame's zoom only.");
         // The frame's own choice of side panels survives a trip through the phone pages.
         layout.Visible("right", false);
         Dispatcher.UIThread.RunJobs();
@@ -301,10 +308,36 @@ internal static class DrawerChecks
         window = Resize(window, 400, 800);
         Require(window.Workbench.Compact && Shown(window, "PageBar") && window.Layout.State.ActiveWorkspace == workspace &&
             window.Layout.Selected(window.Layout.State.Center.Leaves().First())?.Id == tab, "The phone pages must open on the same workspace and tab.");
+        Require(Tereditor.Plugins.UI.Kit.InterfaceZoom.Current == 1 && window.Preferences.CompactZoom == 1 && window.Preferences.Zoom == 1.1,
+            "The phone pages must open at their own zoom, not the desktop frame's.");
+        // The phone's Settings steps and resets the zoom with buttons, through the same command as the keyboard.
+        var settings = new SettingsView(window, () => { }) { Width = 400, Height = 600 };
+        window.ShowInOverlay(settings);
+        Dispatcher.UIThread.RunJobs();
+        Button ZoomButton(string name) => settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name);
+        var zoomValue = settings.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "InterfaceZoomValue");
+        Require(zoomValue.Text == "100%", $"The phone's Settings must show the phone's zoom: {zoomValue.Text}.");
+        ZoomButton("InterfaceZoomIn").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        ZoomButton("InterfaceZoomIn").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(window.Preferences.CompactZoom == 1.25 && Tereditor.Plugins.UI.Kit.InterfaceZoom.Current == 1.25 && zoomValue.Text == "125%" && window.Preferences.Zoom == 1.1,
+            $"Zoom in must step the phone's zoom only: {window.Preferences.CompactZoom}, {zoomValue.Text}.");
+        ZoomButton("InterfaceZoomOut").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(window.Preferences.CompactZoom == 1.1 && zoomValue.Text == "110%", "Zoom out must step the phone's zoom down.");
+        ZoomButton("InterfaceZoomReset").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(window.Preferences.CompactZoom == 1 && Tereditor.Plugins.UI.Kit.InterfaceZoom.Current == 1 && zoomValue.Text == "100%" && window.Preferences.Zoom == 1.1,
+            "Reset must bring the phone back to 100% and leave the desktop frame's zoom alone.");
+        ZoomButton("InterfaceZoomIn").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        ZoomButton("InterfaceZoomIn").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        settings.Close();
+        Dispatcher.UIThread.RunJobs();
         window = Resize(window, 1280, 800);
         Require(window.Layout.State.LeftVisible && !window.Layout.State.RightVisible, "The desktop frame must come back with the side panels it last showed.");
+        Require(Tereditor.Plugins.UI.Kit.InterfaceZoom.Current == 1.1 && window.Preferences.Zoom == 1.1 && window.Preferences.CompactZoom == 1.25,
+            "The desktop frame must come back at its own zoom, and the phone's must persist.");
+        // The zoom is process-wide; later modes start at 100%.
+        window.Zoom(0);
         window.Close();
-        Console.WriteLine("PASS wide shell: a wide window wears the desktop frame, a narrow one the phone pages, and a resize swaps them on the same workspace and tab");
+        Console.WriteLine("PASS wide shell: a wide window wears the desktop frame, a narrow one the phone pages, and a resize swaps them on the same workspace and tab, each with its own zoom");
     }
 
     /// <summary>

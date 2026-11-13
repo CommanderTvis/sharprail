@@ -65,7 +65,7 @@ public sealed partial class SettingsView : UserControl
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
         Closed += (_, _) =>
         {
-            lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; state.HandshakeChanged -= CapabilitiesChanged;
+            lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; InterfaceZoom.Changed -= ShowZoom; state.Changed -= SharedChanged; state.HandshakeChanged -= CapabilitiesChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
             Tereditor.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
 #if !ANDROID && !BROWSER
@@ -73,6 +73,7 @@ public sealed partial class SettingsView : UserControl
 #endif
         };
         Ui.ThemeChanged += SystemThemeChanged;
+        InterfaceZoom.Changed += ShowZoom;
         Tereditor.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
         state.Changed += SharedChanged;
         state.HandshakeChanged += CapabilitiesChanged;
@@ -530,9 +531,22 @@ public sealed partial class SettingsView : UserControl
         CompactSteppers(size, 24); FitDigits(size, 24);
         size.Value = (decimal)state.Preferences.FontSize;
         size.ValueChanged += (_, _) => { if (size.Value is not null) { state.Preferences.FontSize = (double)size.Value; Save(); } };
+        // The window's own zoom command, so a phone without a keyboard can undo a zoom; the value follows chords and pinches too.
+        zoomValue = PageControl<TextBlock>(panel, "InterfaceZoomValue");
+        ShowZoom();
+        PageControl<Button>(panel, "InterfaceZoomOut").Click += (_, _) => window.Zoom(-1);
+        PageControl<Button>(panel, "InterfaceZoomIn").Click += (_, _) => window.Zoom(1);
+        PageControl<Button>(panel, "InterfaceZoomReset").Click += (_, _) => window.Zoom(0);
         foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
             PageControl<StackPanel>(panel, name).IsEnabled = !themeChanging;
         return panel;
+    }
+
+    private TextBlock? zoomValue;
+
+    private void ShowZoom()
+    {
+        if (zoomValue is not null) zoomValue.Text = Math.Round(InterfaceZoom.Current * 100).ToString(CultureInfo.InvariantCulture) + "%";
     }
 
     /// <summary>The accent palette and the custom colour, a host setting: the app itself is the preview, so a choice applies to open windows at once.</summary>

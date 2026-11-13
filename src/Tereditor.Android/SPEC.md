@@ -127,7 +127,10 @@ Contract:
   on the host, and the swap closes the workbench without asking to quit. The phone pages hide both side
   panels whenever the current page shows, so the side panels the desktop frame showed are remembered for the session
   and restored with it; a frame with none remembered and both hidden shows both. Scroll positions are not carried
-  across the swap. `DrawerChecks.Wide` covers the decision and the reopen headlessly.
+  across the swap. Each shell keeps its own interface zoom in the device's profile, so a Ctrl+= zoom made in the
+  desktop frame does not follow the window onto the phone pages, and the frame gets its zoom back after the trip.
+  The phone has no keyboard, so Settings › Appearance has a Zoom row (−, value, +, Reset) on the same command.
+  `DrawerChecks.Wide` covers the decision, the reopen and the zoom headlessly.
 - On every Android screen centre tabs live in Projects, under their workspace (as on every client):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
   for them. Split groups list their tabs there too. A terminal listed there that this device never opened wears the

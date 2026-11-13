@@ -61,6 +61,16 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or IOException or InvalidOperationException) { return null; }
     }
 
+    /// <summary>
+    /// The page zoom of this window's shell: the phone pages keep their own, apart from the desktop frame's, so a zoom
+    /// made with a keyboard in one never strands the other (the device's profile holds both; the host holds neither).
+    /// </summary>
+    internal double ShellZoom
+    {
+        get => workbench.Compact ? Preferences.CompactZoom : Preferences.Zoom;
+        private set { if (workbench.Compact) Preferences.CompactZoom = value; else Preferences.Zoom = value; }
+    }
+
     private void WirePinchZoom()
     {
         // Bubbling: content that claims the gesture (a diagram viewer) keeps it.
@@ -76,12 +86,12 @@ public sealed partial class WorkbenchWindow
     public void PinchZoom(double delta)
     {
         if (!double.IsFinite(delta)) return;
-        if (pinchStart is null) { pinchStart = Preferences.Zoom; pinchScale = 1; }
+        if (pinchStart is null) { pinchStart = ShellZoom; pinchScale = 1; }
         pinchScale += delta;
         pinchEnd.Stop(); pinchEnd.Start();
         var factor = InterfaceZoom.ForGesture(pinchStart.Value, pinchScale);
-        if (factor == Preferences.Zoom) return;
-        Preferences.Zoom = factor;
+        if (factor == ShellZoom) return;
+        ShellZoom = factor;
         if (Application.Current is { } app) InterfaceZoom.Apply(app, factor);
     }
 }

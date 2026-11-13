@@ -395,14 +395,17 @@ are taken on the way down (tunnelling), so they zoom the app whatever has focus,
 the window's other chords bubble, so a focused control that claims them keeps them. Chords match on the layout's
 key, except that a key-down with no key on the Equal physical key is the plus key: Avalonia.Android maps no key for
 a hardware keyboard's `=` (KEYCODE_EQUALS), so Ctrl+= and Ctrl+Shift+= arrive that way there (a chat's own zoom
-chords read it the same way).
+chords read it the same way). Settings › Appearance has a Zoom row (−, the factor, +, Reset) that runs the same command,
+for a touch screen with no keyboard. The factor is the device's own (profile, never host state). A compact workbench
+(the phone pages on Android and in a phone browser) keeps a second factor, so a swap between the phone pages and the
+desktop frame restores each shell's zoom instead of carrying one into the other.
 
 A trackpad pinch drives the same factor continuously. Avalonia reports magnification as deltas with no
 phases, so a gesture starts at the first delta after 250ms of quiet: the factor is captured there and the
 accumulated scale is applied against that baseline, bounded to 50%–200%, so updates never compound. The
 factor may rest between the steps (a persisted factor is clamped, not snapped) and the chords step to the
 adjacent factor from wherever it rests. The profile is saved once, when the gesture ends. The handler
-bubbles, so content that claims the gesture keeps it, and pinch writes the one zoom preference. A terminal claims
+bubbles, so content that claims the gesture keeps it, and pinch writes the window shell's zoom preference. A terminal claims
 pinches and Control/Command-wheel over its surface for its own font size ([Terminal/SPEC.md](Terminal/SPEC.md#font-size)).
 
 ## Locations, history and links

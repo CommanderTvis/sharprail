@@ -207,7 +207,9 @@ could not save this change: …” inline and re-renders from host state.
   take their real disabled state, painted from the disabled roles, until the request settles, so rapid
   complete-pair writes cannot overwrite one another with stale sibling slots. The page
   re-renders when the device appearance changes. All catalogue, resolution and pair logic comes from
-  `Rendering/Themes` (see Rendering/Themes.SPEC.md). The interface font size is an app preference below.
+  `Rendering/Themes` (see Rendering/Themes.SPEC.md). The interface font size is an app preference below. A Zoom
+  row (−, the factor, +, Reset) steps and resets this device's page zoom with the window's zoom command; on the phone
+  pages it is the phone's own zoom.
 - Small-number fields (font sizes, tab width, group limits) are sized from the digits of their maximum plus the stepper and padding, centred, on the row's right edge.
 - Editor is one section: Editor font size (this device; separate from the interface size; pinch changes it too), Font,
   Line height, Indent with, Indent size, Detect from file and Line numbers rows, then the wrapping rows. Everything but

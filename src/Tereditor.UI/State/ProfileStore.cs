@@ -29,8 +29,10 @@ public sealed class Preferences
     public double FontSize { get; set; } = 14;
     /// <summary>The editors' text size, set by pinching one of them.</summary>
     public double CodeFontSize { get; set; } = Tereditor.Scintilla.ScintillaEditor.DefaultTextSize;
-    /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
+    /// <summary>Browser-style page zoom of every desktop-frame window on this device; Mod+=, Mod+- and Mod+0 step it.</summary>
     public double Zoom { get; set; } = 1;
+    /// <summary>The page zoom of the phone pages (a compact workbench), kept apart so a swap between the shells keeps each one's.</summary>
+    public double CompactZoom { get; set; } = 1;
     public bool ChangesSingle { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = OperatingSystem.IsMacOS() ? Terminal.TerminalRenderers.Texture : Terminal.TerminalRenderers.Skia;
@@ -222,6 +224,7 @@ public sealed class ProfileStore
             if (!double.IsFinite(Data.Preferences.CodeFontSize) || Data.Preferences.CodeFontSize is < Tereditor.Scintilla.ScintillaEditor.MinimumTextSize or > Tereditor.Scintilla.ScintillaEditor.MaximumTextSize)
                 Data.Preferences.CodeFontSize = Tereditor.Scintilla.ScintillaEditor.DefaultTextSize;
             Data.Preferences.Zoom = InterfaceZoom.Normalize(Data.Preferences.Zoom);
+            Data.Preferences.CompactZoom = InterfaceZoom.Normalize(Data.Preferences.CompactZoom);
             Data.Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(Data.Preferences.VerticalCenterTabsWidth);
             if (Data.Preferences.DefaultPaneDirection is not ("horizontal" or "vertical")) Data.Preferences.DefaultPaneDirection = "horizontal";
             if (!LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = LineWidths.FileDefault;

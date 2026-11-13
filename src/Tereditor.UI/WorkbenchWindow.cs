@@ -897,7 +897,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private void ApplyAppearance()
     {
-        if (Application.Current is { } app) InterfaceZoom.Apply(app, Preferences.Zoom);
+        if (Application.Current is { } app) InterfaceZoom.Apply(app, ShellZoom);
         ApplyTheme();
         var previous = Ui.FontSize; Ui.FontSize = Preferences.FontSize;
         foreach (var label in root.GetLogicalDescendants().OfType<TextBlock>().Where(label => label.FontSize == previous && !label.Classes.Contains("dock-tab-title")))
@@ -924,12 +924,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         surface.RefreshContents();
     }
 
-    /// <summary>Steps the app's page zoom like a browser: Mod+= and Mod+- to the adjacent factor, Mod+0 back to 100%.</summary>
-    private void Zoom(int step)
+    /// <summary>
+    /// Steps the app's page zoom like a browser: Mod+= and Mod+- to the adjacent factor, Mod+0 back to 100%.
+    /// The phone pages' Settings steps it with the same command.
+    /// </summary>
+    internal void Zoom(int step)
     {
-        var factor = InterfaceZoom.Next(Preferences.Zoom, step);
-        if (factor == Preferences.Zoom) return;
-        Preferences.Zoom = factor;
+        var factor = InterfaceZoom.Next(ShellZoom, step);
+        if (factor == ShellZoom) return;
+        ShellZoom = factor;
         if (Application.Current is { } app) InterfaceZoom.Apply(app, factor);
         SaveProfile();
     }

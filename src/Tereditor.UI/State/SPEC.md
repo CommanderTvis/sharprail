@@ -57,7 +57,7 @@ window and client converges on the same values and a control keeps showing the h
 There is no optimistic write, pending queue or rollback. A rejected change is reported in the window that
 made it.
 
-Profile state (`profile.json`) holds interface size, page zoom, hidden-files visibility, the terminal renderer,
+Profile state (`profile.json`) holds interface size, page zoom (one for the desktop frame, one for the phone pages), hidden-files visibility, the terminal renderer,
 rail expansion, per-workspace
 Git target/scope/selected commit, and one entry per open window: its frame (including its workspace
 views), its default preset and its last location. Frame, default preset and group limits are window-local
