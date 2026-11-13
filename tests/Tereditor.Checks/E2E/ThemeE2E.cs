@@ -39,7 +39,7 @@ internal static class ThemeE2E
             dark.Colors["selectionForeground"] is null && dark.Ansi.Count == 16 && dark.Ansi[1] == Color.Parse("#cd3131"),
             "Manifest colours, eight-digit alpha and nullable foregrounds must parse exactly.");
         Require(contrast.Label == "High Contrast Light" && contrast.IsLight && contrast.IsHighContrast &&
-            contrast["selectionForeground"] == Colors.White && contrast["accent"] == Color.Parse("#125c19"),
+            contrast["selectionForeground"] == Colors.White && contrast["accent"] == Color.Parse("#164f58"),
             "High-contrast manifests must carry their appearance, contrast and selected-text foreground.");
         var pair = Themes.DerivePair("high-contrast-dark");
         Require(pair.Dark == "high-contrast-dark" && pair.Light == "high-contrast-light" &&
@@ -259,8 +259,11 @@ internal static class ThemeE2E
             var scale = app.Window.RenderScaling;
             var middle = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, 4), app.Window)!.Value;
             var edge = marker.TranslatePoint(new Point(marker.Bounds.Width / 2, marker.Bounds.Height / 2), app.Window)!.Value;
-            Require(Pixel(frame, middle, scale) == Ui.Over(Ui.PrimarySoft.Color, Ui.Sidebar.Color) && Pixel(frame, edge, scale) == highContrast["accent"],
-                $"The selected tab in {group} must paint its surface and edge marker.");
+            var surface = Pixel(frame, middle, scale);
+            var expectedSurface = Ui.Over(Ui.PrimarySoft.Color, Ui.Sidebar.Color);
+            // The compositor rounds the translucent blend itself, so a surface may differ from the exact blend by one level per channel.
+            Require(Math.Abs(surface.R - expectedSurface.R) <= 1 && Math.Abs(surface.G - expectedSurface.G) <= 1 && Math.Abs(surface.B - expectedSurface.B) <= 1 && Pixel(frame, edge, scale) == highContrast["accent"],
+                $"The selected tab in {group} must paint its surface and edge marker: surface={surface}/{expectedSurface}, edge={Pixel(frame, edge, scale)}/{highContrast["accent"]}.");
         }
         settings = OpenFixed(app);
         app.Click(Option(settings, "Theme_" + original.Id));

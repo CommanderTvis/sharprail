@@ -7,9 +7,9 @@
 	"appearance": "light",
 	"contrast": "normal",
 	"colors": {
-		"accent": "#246b47",
-		"accentHover": "#1e593b",
-		"accentSolid": "#246b47",
+		"accent": "#285f67",
+		"accentHover": "#214f56",
+		"accentSolid": "#285f67",
 		"onAccent": "#ffffff",
 		"bubbleAccent": "#515961",
 		"background": "#ffffff",

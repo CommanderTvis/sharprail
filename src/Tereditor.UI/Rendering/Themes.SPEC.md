@@ -19,7 +19,7 @@ and same-appearance fallback. Adding a theme means adding one `Assets/Themes/*.t
 rebuilding: no code, contract, style or check changes.
 
 Six manifests ship: the standard Dark and Light (the configured default and its pair), Minimal Dark and
-Minimal Light (quiet neutral surfaces, a restrained green accent and a neutral `bubbleAccent`, sharing the
+Minimal Light (quiet neutral surfaces, a restrained Frog accent and a neutral `bubbleAccent`, sharing the
 standard pair's syntax and terminal palettes), and the two High Contrast palettes with their stricter
 accessibility contract. Minimal is a palette a user picks in Appearance and nothing more: every theme
 renders the same roles. What a palette cannot express through the manifest keys is a product decision for
@@ -82,14 +82,16 @@ than a label.
 
 ## Accent colour
 
-The user's accent is one more host setting (`accent`, empty by default: the theme's own accent). It is an
+The user's accent is one more host setting (`accent`, empty by default: Frog, the accent every bundled manifest carries). It is an
 opaque id to the host, validated only for shape (a curated slug or a custom `#rrggbb`). `Accents.cs` owns its
-meaning: a curated palette (frog, the app icon's cyan, listed first; then green, blue, purple, pink, red, orange,
+meaning: a curated palette (frog, the app icon's cyan, the default and listed first; then green, blue, purple, pink, red, orange,
 yellow, graphite) and custom hex colours; Teal was merged into its near twin Frog, so a stored `teal` reads as
 `frog`. `Accents.Apply` returns the theme with exactly four keys replaced (`accent`, `accentSolid`, `accentHover`,
 `onAccent`), cached per theme and accent so `Ui.Apply` recognises it; every role, tint, Fluent
-accent and baking consumer then follows with no control knowing about it. Green is the bundled accent, so the
-default is the manifest itself. Each accent keeps its hue and saturation (scaled by the theme's own accent
+accent and baking consumer then follows with no control knowing about it. Frog is the bundled accent, so the
+default (an empty or `frog` setting) is the manifest itself. Green, the accent the manifests carried before Frog,
+is a curated entry that pins those earlier colours per bundled theme (a theme it does not name is solved like the
+others); a stored `green` therefore stays Green, and only users who never chose an accent moved to Frog. Each accent keeps its hue and saturation (scaled by the theme's own accent
 saturation so Minimal stays quiet; custom colours keep theirs) and each theme solves the lightness: the text
 accent meets the theme's text floor on every resting surface and on `hover`, the solid fill is chosen with a
 black or white label that clears 4.5 on both fills, and the hover fill stays distinguishable from the solid fill.

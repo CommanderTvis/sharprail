@@ -124,7 +124,7 @@ internal static class StateChecks
         var accentPreferences = new Tereditor.UI.State.Preferences();
         using var accentSubscription = new Tereditor.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), accentPreferences, new HostState { Settings = new() { Accent = "purple" } });
         Require(accentPreferences.Accent == "purple" && new Tereditor.UI.State.Preferences().Accent.Length == 0,
-            "The shared accent reaches the preferences, and the default is the theme's own accent.");
+            "The shared accent reaches the preferences, and the default is empty (Frog, the bundled manifests' accent).");
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
         Directory.CreateDirectory(project);

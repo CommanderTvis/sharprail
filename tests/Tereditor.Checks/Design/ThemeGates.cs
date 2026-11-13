@@ -32,10 +32,10 @@ internal static class ThemeGates
         if (Tereditor.UI.Rendering.Accents.Curated[0].Id != "frog") failures.Add("Frog, the app icon's colour, must be the first accent in the picker.");
         foreach (var theme in Themes.All)
         {
-            if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, "teal"), Tereditor.UI.Rendering.Accents.Apply(theme, "frog")))
-                failures.Add($"{theme.Id}: a stored teal accent must read as frog.");
-            if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, "green"), theme))
-                failures.Add($"{theme.Id}: green, the bundled accent, must stay the default.");
+            if (ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, "green"), theme))
+                failures.Add($"{theme.Id}: green is a chosen accent, not the manifest.");
+            if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, "frog"), theme) || !ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, "teal"), theme))
+                failures.Add($"{theme.Id}: frog, the bundled accent, must be the manifest itself.");
             if (!ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, Tereditor.UI.Rendering.Accents.DefaultId), theme) || !ReferenceEquals(Tereditor.UI.Rendering.Accents.Apply(theme, ""), theme))
                 failures.Add($"{theme.Id}: the default accent must be the manifest itself.");
             foreach (var accent in Tereditor.UI.Rendering.Accents.Curated.Select(choice => choice.Id).Concat(CustomAccents))

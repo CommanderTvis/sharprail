@@ -7,27 +7,39 @@ using Tereditor.Plugins.UI.Kit;
 
 namespace Tereditor.UI.Rendering;
 
-/// <summary>One curated accent: a hue and saturation, whose lightness each theme solves for.</summary>
-public sealed record AccentChoice(string Id, string Label, double Hue, double Saturation);
+/// <summary>
+/// One curated accent: a hue and saturation, whose lightness each theme solves for. <c>Fixed</c> pins the four accent roles
+/// (<c>accent</c>, <c>accentSolid</c>, <c>accentHover</c>, <c>onAccent</c>) of the bundled themes it names; any other theme is solved.
+/// </summary>
+public sealed record AccentChoice(string Id, string Label, double Hue, double Saturation, IReadOnlyDictionary<string, string[]>? Fixed = null);
 
 /// <summary>
 /// The user's accent colour. A theme manifest supplies the accent roles (<c>accent</c>, <c>accentSolid</c>, <c>accentHover</c>,
 /// <c>onAccent</c>); a chosen accent replaces exactly those four keys and leaves the manifest otherwise whole, so every role,
 /// tint and baking consumer follows through <c>Ui.Apply</c> with no control knowing the accent exists. The default accent is
-/// the manifest itself, unchanged.
+/// Frog, which the bundled manifests carry themselves, so the default is the manifest unchanged.
 /// </summary>
 public static partial class Accents
 {
-    public const string DefaultId = "green";
+    public const string DefaultId = "frog";
 
     /// <summary>
-    /// Green is the bundled theme accents themselves; the rest keep their hue and take the lightness each theme can legibly hold.
-    /// Frog, the app icon's cyan, comes first; the order is only the picker's, green stays the default.
+    /// Frog, the app icon's cyan, is the default and comes first: the bundled manifests carry its roles. Green keeps the colours
+    /// the manifests carried before Frog (<c>Fixed</c>); the rest keep their hue and take the lightness each theme can legibly hold.
     /// </summary>
     public static IReadOnlyList<AccentChoice> Curated { get; } =
     [
-        new("frog", "Frog", 188, 0.9),
-        new(DefaultId, "Green", 100, 1),
+        new(DefaultId, "Frog", 188, 0.9),
+        new("green", "Green", 100, 1, new Dictionary<string, string[]>
+        {
+            // accent, accentSolid, accentHover, onAccent
+            ["dark"] = ["#8dff4f", "#8dff4f", "#59d915", "#0a0a0a"],
+            ["high-contrast-dark"] = ["#8dff4f", "#8dff4f", "#59d915", "#000000"],
+            ["high-contrast-light"] = ["#125c19", "#8dff4f", "#59d915", "#000000"],
+            ["light"] = ["#2a7314", "#8dff4f", "#59d915", "#000000"],
+            ["minimal-dark"] = ["#a2d7b7", "#a2d7b7", "#b8e2c8", "#14291f"],
+            ["minimal-light"] = ["#246b47", "#246b47", "#1e593b", "#ffffff"]
+        }),
         new("blue", "Blue", 215, 1),
         new("purple", "Purple", 265, 0.9),
         new("pink", "Pink", 330, 0.9),
@@ -59,8 +71,9 @@ public static partial class Accents
     /// <summary>The curated entry, a custom colour as a one-off entry, or null for an unknown or default value.</summary>
     private static AccentChoice? Resolve(string? accent)
     {
-        if (string.IsNullOrEmpty(accent) || accent == DefaultId) return null;
+        if (string.IsNullOrEmpty(accent)) return null;
         accent = Canonical(accent);
+        if (accent == DefaultId) return null;
         if (Curated.FirstOrDefault(choice => choice.Id == accent) is { } curated) return curated;
         if (ParseCustom(accent) is not { } hex) return null;
         var (hue, saturation, _) = ToHsl(Color.Parse(hex));
@@ -92,6 +105,17 @@ public static partial class Accents
 
     private static ThemeManifest Derive(ThemeManifest theme, AccentChoice choice, bool custom)
     {
+        if (choice.Fixed?.GetValueOrDefault(theme.Id) is { } roles)
+        {
+            var pinned = new Dictionary<string, Color?>(theme.Colors)
+            {
+                ["accent"] = Color.Parse(roles[0]),
+                ["accentSolid"] = Color.Parse(roles[1]),
+                ["accentHover"] = Color.Parse(roles[2]),
+                ["onAccent"] = Color.Parse(roles[3])
+            };
+            return theme with { Colors = pinned };
+        }
         var high = theme.IsHighContrast;
         var surfaces = Resting.Select(key => theme[key]).ToArray();
         var hover = theme["hover"];
