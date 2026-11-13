@@ -144,6 +144,9 @@ internal static class ChatPopup
     private static readonly List<Flyout> shown = [];
     private static readonly List<ContextMenu> menus = [];
 
+    /// <summary>The flyouts this chat opened that are still showing; the checks look here, as a flyout lives outside the view's tree.</summary>
+    internal static IReadOnlyList<Flyout> Shown => shown;
+
     /// <summary>Closes every popup and menu this chat opened that is still showing.</summary>
     internal static void CloseAll()
     {

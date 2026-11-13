@@ -2416,6 +2416,35 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => chat.Sets.Contains((ChatContract.SetPermissionMode.Name, "plan")) && !modeMenu.IsOpen);
             Require(true, "One click on a mode sets it and closes the menu.");
 
+            // The keys are the menu's own: Esc closes it, the arrows move and Enter chooses.
+            void Press(ContextMenu menu, Key key, PhysicalKey physical)
+            {
+                Dispatcher.UIThread.RunJobs();
+                TopLevel.GetTopLevel(menu.Items.OfType<MenuItem>().First())!.KeyPress(key, RawInputModifiers.None, physical, null);
+                Dispatcher.UIThread.RunJobs();
+            }
+            chat.Push(new ChatHeaderPush(Workspace, Chat, header)); Frame(window);
+            modeMenu = Open("TerminalAgentFact_permission");
+            Press(modeMenu, Key.Escape, PhysicalKey.Escape);
+            E2eWorkspace.Until(() => !modeMenu.IsOpen);
+            Require(true, "Esc closes a picker menu.");
+            modeMenu = Open("TerminalAgentFact_permission");
+            var keyedSets = chat.Sets.Count(set => set.Method == ChatContract.SetPermissionMode.Name);
+            Press(modeMenu, Key.Down, PhysicalKey.ArrowDown);
+            Press(modeMenu, Key.Enter, PhysicalKey.Enter);
+            try { E2eWorkspace.Until(() => chat.Sets.Count(set => set.Method == ChatContract.SetPermissionMode.Name) > keyedSets && !modeMenu.IsOpen); }
+            catch (InvalidOperationException) { Console.WriteLine($"mode menu by keys: open {modeMenu.IsOpen} focus {TopLevel.GetTopLevel(modeMenu.Items.OfType<MenuItem>().First())?.FocusManager?.GetFocusedElement()} sets {string.Join(",", chat.Sets)}"); throw; }
+            Require(true, "Down and Enter choose a mode in the menu without the pointer.");
+
+            // A "+" row runs once the menu has closed: the command menu puts a slash in the input and leaves the focus there.
+            view.Input.Text = "";
+            var plusMenu = Open("ChatPlus");
+            Pick(plusMenu.Items.OfType<MenuItem>().Single(item => item.Name == "ChatCommandMenu"));
+            E2eWorkspace.Until(() => !plusMenu.IsOpen && view.Input.Text == "/" && view.Input.IsFocused);
+            Require(true, "The command menu row starts a slash command in the focused input.");
+            view.Input.Text = "";
+            Frame(window);
+
             // Attach asks file or folder; the choice counts although the menu closes around the click.
             var attachMenu = Open("TerminalAttachFile");
             Require(attachMenu.Items.OfType<MenuItem>().Select(Label).SequenceEqual(["File\u2026", "Folder\u2026"]), "The attach menu offers a file or a folder.");
@@ -2426,7 +2455,9 @@ internal static class ClaudeChatUiChecks
             // More models opens the searchable list from the model button: still the hand-built popup, one click chooses and closes it.
             modelMenu = Open("TerminalAgentFact_model");
             Pick(modelMenu.Items.OfType<MenuItem>().Single(item => item.Name == "ChatModelMore"));
-            E2eWorkspace.Until(() => !modelMenu.IsOpen);
+            E2eWorkspace.Until(() => !modelMenu.IsOpen && ChatPopup.Shown.Any(flyout => flyout.Content is Border { Name: "ChatModelPicker" } && flyout.IsOpen));
+            Require(true, "More models opens the searchable list once the menu has closed.");
+            ChatPopup.CloseAll();
             var panel = (Border)view.ModelPanel(header, new Flyout());
             host = new Window { Width = 520, Height = 520, Content = new StackPanel { Children = { panel } }, Background = Ui.Surface };
             host.Show();
