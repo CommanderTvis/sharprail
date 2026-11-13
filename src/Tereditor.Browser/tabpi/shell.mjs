@@ -100,7 +100,7 @@ const GIT_USAGE = [
   '  init, clone <https-url> [dir], status [-s], add <path…|.|-A>, rm <path…>, commit [-a] -m <message>,',
   '  log [-n <count>] [--oneline], diff, show, branch [<name>], checkout|switch [-b] <branch>,',
   '  fetch, pull, push [<remote>] [<branch>], remote [-v], config <key> [<value>], rev-parse.',
-  'Network goes through the tab’s CORS proxy; push and private pulls read GIT_USERNAME and GIT_TOKEN from the',
+  'Push and private pulls read GIT_USERNAME and GIT_TOKEN from the',
   'environment (export GIT_TOKEN=… first).'
 ].join('\n');
 

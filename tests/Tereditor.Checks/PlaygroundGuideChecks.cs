@@ -40,6 +40,10 @@ internal static class PlaygroundGuideChecks
         foreach (var part in new[] { "No server and no account", "saved in this browser's storage", "Only Pi runs in a tab", "no node or npm" })
             Require(texts.Any(text => text.Contains(part, StringComparison.Ordinal)), "The explanation says: " + part);
         foreach (var step in new[] { "1.", "2.", "3." }) Require(texts.Contains(step), "The card lists step " + step);
+        Require(!texts.Any(text => text.Contains("CORS", StringComparison.Ordinal)), "The card leaves the CORS proxy to developers.");
+        var placeholder = Named<StackPanel>(app.Window, "WorkspacePlaceholder");
+        var items = placeholder.Children.ToList();
+        Require(items.FindIndex(item => item.Name == "PlaygroundGuide") > items.FindIndex(item => item is Button), "The guide sits under the workspace and its Open file button.");
         var clone = Named<Button>(app.Window, "PlaygroundGuideClone");
         Require(Named<Button>(app.Window, "PlaygroundGuideClaudeCredits") is not null && Named<Button>(app.Window, "PlaygroundGuideGoogleCredits") is not null, "Both credit links are there.");
         app.Click(clone);

@@ -662,8 +662,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 VerticalAlignment = VerticalAlignment.Center
             };
             var isDefault = workspaceRoot == projectRoot;
-            if (isDefault && workbench.PlaygroundGuide)
-                empty.Children.Add(Panels.PlaygroundGuide.Create(CloneProject, () => ShowSettings("Model providers"), url => OpenLink(url)));
             empty.Children.Add(Ui.Text(isDefault ? "DEFAULT WORKSPACE" : "WORKSPACE READY", size: 12));
             empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : WorkspaceName(workspaceRoot), Ui.TextBrush));
             readyBranch = Ui.Text("");
@@ -676,7 +674,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             foreach (var label in empty.Children.OfType<TextBlock>())
                 label.HorizontalAlignment = HorizontalAlignment.Center;
             var open = Ui.Button("Open file", () => RevealFiles(), "fileText"); open.HorizontalAlignment = HorizontalAlignment.Center;
-            empty.Children.Add(open); return empty;
+            empty.Children.Add(open);
+            if (isDefault && workbench.PlaygroundGuide)
+                empty.Children.Add(Panels.PlaygroundGuide.Create(CloneProject, () => ShowSettings("Model providers"), url => OpenLink(url)));
+            return empty;
         }
         if (tab.IsTool)
         {
