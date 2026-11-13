@@ -155,6 +155,8 @@ public sealed class ClientSession(string filesDirectory, ShellSwitch shell) : ID
     public void Resized(double width, double height)
     {
         size = (width, height);
+        // Behind the connect screen there is nothing to rebuild; the workbench it opens takes the shell that fits.
+        if (workbench is null) { shell.Fit(width, height); return; }
         if (disposed || workbench is not { } open || Endpoint is not { } endpoint || !shell.Wants(width, height)) return;
         // Closing the window would ask about unsaved edits and running agents; a resize must not, so try again later.
         if (ShellSwitch.Busy(open))

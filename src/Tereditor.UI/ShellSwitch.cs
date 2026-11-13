@@ -37,6 +37,9 @@ public sealed class ShellSwitch(bool compact)
         return width < WideWidth + margin || height < WideHeight + margin;
     }
 
+    /// <summary>Follows a size change while no workbench is open, so the next one opens in the shell that fits.</summary>
+    public void Fit(double width, double height) => Compact = Decide(Compact, width, height);
+
     /// <summary>Whether a window resized to this size needs the other shell.</summary>
     public bool Wants(double width, double height) => Decide(Compact, width, height) != Compact;
 

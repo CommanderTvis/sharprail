@@ -226,6 +226,9 @@ internal static class DrawerChecks
             "A phone held sideways and a portrait tablet must stay compact; 840×480 dp is the first wide size.");
         Require(ShellSwitch.Decide(true, 860, 720) && !ShellSwitch.Decide(true, 880, 720) && !ShellSwitch.Decide(false, 860, 720) && ShellSwitch.Decide(false, 830, 720),
             "A compact shell must stay until the window clears the threshold by the hysteresis.");
+        var waiting = ShellSwitch.For(400, 800);
+        waiting.Fit(1280, 720);
+        Require(!waiting.Compact, "A resize while no workbench is open must choose the shell the next one opens in.");
 
         var directory = Path.Combine(root, "drawer-wide");
         Directory.CreateDirectory(directory);
