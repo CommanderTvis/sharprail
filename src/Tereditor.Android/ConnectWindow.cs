@@ -48,6 +48,7 @@ public sealed partial class ConnectWindow : Window
         token = this.FindControl<TextBox>("ConnectToken")!;
         error = this.FindControl<TextBlock>("ConnectError")!;
         submit = this.FindControl<Button>("ConnectSubmit")!;
+        this.FindControl<ContentControl>("ConnectBrand")!.Content = Ui.Icon("brand", Ui.Accent, 40);
         address.Text = remembered?.Address ?? "";
         token.Text = remembered?.Token ?? "";
         TextInputOptions.SetContentType(address, TextInputContentType.Url);

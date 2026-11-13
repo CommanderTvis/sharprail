@@ -37,6 +37,7 @@ internal static class IconChecks
             Require(icon.OpacityMask is DrawingBrush { Drawing: DrawingGroup drawing } && drawing.Children.OfType<GeometryDrawing>().First().Geometry?.Bounds == new Rect(0, 0, 24, 24), name + " lost vector geometry or its full viewbox.");
             Require(ReferenceEquals(icon.OpacityMask, ((Border)Ui.Icon(name, Brushes.Blue, 31)).OpacityMask), name + " caches size or tint variants instead of shared geometry.");
         }
+        Require(((Border)Ui.Icon("brand")).Background is ImageBrush, "The brand icon is shown in its own colours.");
         foreach (var name in new[] { "discuss", "gitBranch", "server", "fileDiff", "alertImportant" })
             foreach (var size in new[] { 15.5, 22.25 })
                 foreach (var scale in new[] { 1d, 2, 3 })

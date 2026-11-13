@@ -85,7 +85,10 @@ than the host. The Android builds run on macOS or Linux and accept only `arm64-v
 
 `package:macos` removes the previous outputs before publishing so stale files never
 survive into the package, publishes the UI and host as NativeAOT binaries (`NativeAot.props`) and the checks
-as self-contained ReadyToRun, and keeps exactly one canonical app bundle. Replacing that
+as self-contained ReadyToRun, and keeps exactly one canonical app bundle. The bundle's icon (`tereditor.icns`) is
+built with `sips` and `iconutil` from `src/Tereditor.UI/Assets/AppIcon/macos.png`, which an unbundled run (`dev`,
+`native`) sets as its Dock icon at runtime instead; the Windows executable carries the same image as
+`src/Tereditor.UI/tereditor.ico`, and the Linux, browser and Android icons are the transparent logo (`brand.png`). Replacing that
 bundle while the app runs is the caller's responsibility to rule out first.
 Windows and Linux packaging and the profiling publisher publish the same NativeAOT binaries. Linux links them
 with the pinned Zig against glibc 2.31 (`scripts/aot-linux-cc.sh`), from a Linux or macOS host; the process-group

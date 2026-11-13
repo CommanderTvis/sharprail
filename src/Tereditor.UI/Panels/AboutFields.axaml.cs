@@ -18,6 +18,7 @@ public sealed partial class AboutFields : UserControl
     {
         AvaloniaXamlLoader.Load(this);
         Details = AboutInfo.Details(version, runtime);
+        this.FindControl<ContentControl>("AboutBrand")!.Content = Ui.Icon("brand", Ui.Accent, 48);
         this.FindControl<TextBlock>("AboutName")!.Text = AboutInfo.Name;
         Muted("AboutVersion").Text = "Version " + version;
         this.FindControl<TextBlock>("AboutDescription")!.Text = AboutInfo.Description;

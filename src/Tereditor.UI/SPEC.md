@@ -585,7 +585,7 @@ workspace frame's left side.
 
 ## About
 
-The About screen (`AboutInfo`, `Panels/AboutFields`) shows the name, version, one-line description, runtime lines
+The About screen (`AboutInfo`, `Panels/AboutFields`) shows the brand icon, name, version, one-line description, runtime lines
 (runtime, OS and architecture, Avalonia, renderer), the repository, ThinkRail and Report an issue (new-issue page) links, a license summary, Third-party notices
 and Copy details (version and runtime lines as plain text). It reads assembly attributes and the runtime only, with no network,
 telemetry or UI-thread I/O; Third-party notices looks for the shipped `THIRD-PARTY-NOTICES.md` on a worker and falls back to the

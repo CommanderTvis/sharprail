@@ -136,7 +136,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WirePlugins();
         ApplyAppearance(); appearanceFontSize = Preferences.FontSize;
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
-        Opened += async (_, _) => { StartupPhases.Mark("window-opened"); MacWindowChrome.Apply(this); await StartAsync(); };
+        Opened += async (_, _) => { StartupPhases.Mark("window-opened"); MacWindowChrome.Apply(this); MacDockIcon.Apply(); await StartAsync(); };
         Activated += (_, _) => { if (WorkspaceMounted) { RefreshProjectWorkspaces(); MarkShownWorkspaceRead(); } };
         Closed += (_, _) =>
         {

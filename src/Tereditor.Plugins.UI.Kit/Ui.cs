@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
@@ -137,19 +138,25 @@ public static partial class Ui
         return Color.FromRgb(Mix(color.R, background.R), Mix(color.G, background.G), Mix(color.B, background.B));
     }
 
+    /// <param name="color">The tint; ignored for <c>brand</c>, the app's logo, which shows in its own colours.</param>
     public static Control Icon(string name, IBrush? color = null, double size = 16)
     {
         if (!Icons.TryGetValue(name, out var mask))
         {
-            using var stream = AssetLoader.Open(new Uri($"avares://Tereditor.Plugins.UI.Kit/Assets/Icons/{name}.svg"));
-            var svg = XDocument.Load(stream).Root!;
-            var drawing = new DrawingGroup();
-            drawing.Children.Add(new GeometryDrawing { Brush = Brushes.Transparent, Geometry = new RectangleGeometry(new Rect(0, 0, 24, 24)) });
-            foreach (var path in svg.Elements().Where(element => element.Name.LocalName == "path"))
-                drawing.Children.Add(new GeometryDrawing { Brush = Brushes.White, Geometry = Geometry.Parse("F1 " + path.Attribute("d")!.Value) });
-            mask = new DrawingBrush { Drawing = drawing, Stretch = Stretch.Fill };
+            using var stream = AssetLoader.Open(new Uri($"avares://Tereditor.Plugins.UI.Kit/Assets/Icons/{name}.{(name == "brand" ? "png" : "svg")}"));
+            if (name == "brand") mask = new ImageBrush(new Bitmap(stream)) { Stretch = Stretch.Uniform };
+            else
+            {
+                var svg = XDocument.Load(stream).Root!;
+                var drawing = new DrawingGroup();
+                drawing.Children.Add(new GeometryDrawing { Brush = Brushes.Transparent, Geometry = new RectangleGeometry(new Rect(0, 0, 24, 24)) });
+                foreach (var path in svg.Elements().Where(element => element.Name.LocalName == "path"))
+                    drawing.Children.Add(new GeometryDrawing { Brush = Brushes.White, Geometry = Geometry.Parse("F1 " + path.Attribute("d")!.Value) });
+                mask = new DrawingBrush { Drawing = drawing, Stretch = Stretch.Fill };
+            }
             Icons[name] = mask;
         }
+        if (name == "brand") return new Border { Width = size, Height = size, Background = mask, VerticalAlignment = VerticalAlignment.Center };
         return new Border
         {
             Width = size,

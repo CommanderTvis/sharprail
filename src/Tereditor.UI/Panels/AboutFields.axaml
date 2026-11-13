@@ -3,6 +3,7 @@
              x:Class="Tereditor.UI.Panels.AboutFields">
   <StackPanel Spacing="12">
     <StackPanel Orientation="Horizontal" Spacing="12">
+      <ContentControl x:Name="AboutBrand" VerticalAlignment="Center" />
       <StackPanel VerticalAlignment="Center">
         <TextBlock x:Name="AboutName" FontSize="18" FontWeight="SemiBold" />
         <TextBlock x:Name="AboutVersion" FontSize="12" />

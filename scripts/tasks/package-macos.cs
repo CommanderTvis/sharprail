@@ -39,6 +39,16 @@ return Guard(() =>
     foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" }) File.Copy(file, Path.Combine(resources, file), true);
     CopyInto("licenses", resources);
     foreach (var file in new[] { "Geist-OFL.txt", "JetBrainsMono-OFL.txt" }) File.Copy(Path.Combine("src", "Tereditor.Plugins.UI.Kit", "Assets", "Fonts", file), Path.Combine(resources, file), true);
+    // The icon: an iconset scaled from the source image (686 px, so no 512@2x, which would only be upscaled), packed by iconutil.
+    var iconset = Path.Combine("artifacts", "tereditor.iconset");
+    DeleteAll(iconset);
+    Directory.CreateDirectory(iconset);
+    foreach (var (name, size) in new[] { ("16x16", 16), ("16x16@2x", 32), ("32x32", 32), ("32x32@2x", 64), ("128x128", 128),
+                 ("128x128@2x", 256), ("256x256", 256), ("256x256@2x", 512), ("512x512", 512) })
+        if (Capture("sips", ["-z", $"{size}", $"{size}", "src/Tereditor.UI/Assets/AppIcon/macos.png", "--out", Path.Combine(iconset, $"icon_{name}.png")]).Code != 0)
+            throw new TaskFailure("sips could not scale the app icon");
+    Check("iconutil", ["--convert", "icns", "--output", Path.Combine(resources, "tereditor.icns"), iconset]);
+    DeleteAll(iconset);
     WriteLf(Path.Combine(bundle, "Contents", "Info.plist"), """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -49,6 +59,7 @@ return Guard(() =>
         <key>CFBundleVersion</key><string>1</string>
         <key>CFBundleShortVersionString</key><string>0.2.0</string>
         <key>CFBundlePackageType</key><string>APPL</string>
+        <key>CFBundleIconFile</key><string>tereditor</string>
         <key>NSHighResolutionCapable</key><true/>
         </dict></plist>
 
