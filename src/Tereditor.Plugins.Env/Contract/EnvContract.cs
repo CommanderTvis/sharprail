@@ -9,8 +9,8 @@ public sealed record EnvSettings;
 /// <summary>Names the workspace whose applied environments are wanted.</summary>
 public sealed record EnvChipsQuery(string WorkspaceId);
 
-/// <summary>One applied environment: the chip's text and its tooltip.</summary>
-public sealed record EnvChip(string Label, string? Detail);
+/// <summary>One applied environment: the chip's text, its tooltip and the plugin whose step applied it (null from a host that predates it).</summary>
+public sealed record EnvChip(string Label, string? Detail, string? PluginId = null);
 
 /// <summary>The environments applied to a workspace's terminals, in the order the steps ran; empty when none applies.</summary>
 public sealed record EnvChipsChanged(string WorkspaceId, IReadOnlyList<EnvChip> Chips);

@@ -76,6 +76,7 @@ public sealed partial class WorkbenchWindow
         var canRevert = state.Supports(HostProtocol.ChangeWritePath);
         foreach (var view in documentContent.Values.OfType<Rendering.DiffView>()) view.CanRevert = canRevert;
         foreach (var pane in documentContent.Values.OfType<ChangesReviewPane>()) pane.SetCanRevert(canRevert);
+        foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.ChipChoiceSupported = state.Supports(HostProtocol.TerminalHiddenChips);
         if (handshake is null || handshake.ProtocolVersion == HostProtocol.Current) return;
         Console.Error.WriteLine($"Host protocol {handshake.ProtocolVersion} ({handshake.HostVersion}) differs from this app's {HostProtocol.Current}.");
         ShowNotification(handshake.ProtocolVersion > HostProtocol.Current

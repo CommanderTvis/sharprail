@@ -173,6 +173,9 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   `macos-option-as-alt`) makes the macOS Option key an Alt (ESC prefix) in terminals instead of composing characters. `bell-features` is a comma-separated subset of
   `system`, `attention` and `title`, or `none`, stored in that canonical order; the default `attention,title` is Ghostty's
   `bell-features` default. An empty wire value, from a host that predates it, and an unknown loaded value read as the default.
+  `terminal-hidden-chips` is the comma-separated ids of the terminal chips the user hid (`model`, `env/env-mise`), opaque to the
+  host and stored distinct in ordinal order; empty, the default and what a host that predates it sends, hides none. An id that
+  is longer than 128 characters or holds a control character rejects the change; such a loaded value reads as empty.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;
   unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
   object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.

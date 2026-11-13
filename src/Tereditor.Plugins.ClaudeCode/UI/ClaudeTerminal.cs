@@ -129,10 +129,14 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
 
     internal static IReadOnlyList<string> RowOrder(IEnumerable<string> present) => [.. ChipOrder.Where(present.ToHashSet().Contains)];
 
+    // Every chip the row can show, present now or not, for the strip's chip menu.
+    private static readonly IReadOnlyList<TerminalChipKind> ChipKinds = TerminalFacts.Kinds(ChipOrder);
+
     // The row rebuilds only when what it shows changes.
     private void Refresh()
     {
         var claude = RunsClaude;
+        SetValue(TerminalChips.KindsProperty, claude ? ChipKinds : null);
         launchNotice.IsVisible = claude && Agent(context.Host())?.LaunchedByUi == false;
         terminal.SetKeyEncoding(claude ? TerminalKeyEncoding.AgentNewline : TerminalKeyEncoding.Default);
         if (claude && store.IdeContext(terminal.WorkspaceId, terminal.TabKey) is null) store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, true);
@@ -181,7 +185,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         foreach (var name in RowOrder(chips.Keys))
         {
             chips[name].Margin = Chips.Gap;
-            facts.Children.Add(chips[name]);
+            facts.Children.Add(TerminalChips.Tag(chips[name], name));
         }
     }
 }

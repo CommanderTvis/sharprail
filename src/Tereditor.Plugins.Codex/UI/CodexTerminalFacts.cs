@@ -115,8 +115,12 @@ public sealed class CodexTerminalFacts : ContentControl
             ide, state?.Status);
         if (signature == shown) return;
         shown = signature;
+        SetValue(TerminalChips.KindsProperty, isCodex ? ChipKinds : null);
         Content = isCodex ? Row(state, ide) : null;
     }
+
+    // Every chip the row can show, present now or not, for the strip's chip menu; the model chip carries the effort too.
+    private static readonly IReadOnlyList<TerminalChipKind> ChipKinds = TerminalFacts.Kinds("model", "usage", "plan", "ide", "attach");
 
     private Control Row(CodexSessionState? state, bool ide)
     {
@@ -129,7 +133,8 @@ public sealed class CodexTerminalFacts : ContentControl
         {
             var slot = row.FindControl<ContentControl>(name)!;
             if (chip is null) facts.Children.Remove(slot);
-            else slot.Content = chip;
+            // The slot carries the chip's gap, so it is what the strip hides.
+            else TerminalChips.Tag(slot, name.ToLowerInvariant()).Content = chip;
         }
         // One chip for model and effort: it shows what Codex last reported and a click only opens its own /model picker, where both are chosen.
         // Codex reports nothing until its first hook, so the chip stays reachable under a neutral label until then.

@@ -19,7 +19,7 @@ public sealed class EnvHost : PluginHostModule
         });
         context.OnWorkspaceEnvironment((workspace, facts) =>
         {
-            var next = new EnvChipsChanged(workspace, [.. facts.Select(fact => new EnvChip(fact.Label, fact.Detail))]);
+            var next = new EnvChipsChanged(workspace, [.. facts.Select(fact => new EnvChip(fact.Label, fact.Detail, fact.PluginId))]);
             lock (gate)
             {
                 if (known.TryGetValue(workspace, out var previous) && previous.Chips.SequenceEqual(next.Chips)) return;

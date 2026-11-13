@@ -873,6 +873,15 @@ internal static class CodexE2E
             tip.Contains("as last reported by Codex's hooks", StringComparison.Ordinal), "the chip says what a click does and that it is not a live read");
         Require(Chip().GetLogicalAncestors().Any(ancestor => ancestor.GetType().Name == "CodexTerminalRow"), "the accessory row is a compiled frame");
 
+        // The strip's gear lists the row's chip kinds, and the shared setting hides one in the real workbench.
+        var view = Chip().GetLogicalAncestors().OfType<Tereditor.UI.Terminal.TerminalView>().First();
+        E2eWorkspace.Until(() => view.ChipSettings.IsVisible);
+        Require(new[] { "model", "usage", "plan", "ide", "attach" }.All(id => view.ChipKinds().Any(kind => kind.Id == id)), "the gear lists every Codex chip kind");
+        _ = codex.App.Workbench.State.ChangeAsync(HostStateChange.Setting("terminal-hidden-chips", "model"));
+        E2eWorkspace.Until(() => Find("model") is null);
+        _ = codex.App.Workbench.State.ChangeAsync(HostStateChange.Setting("terminal-hidden-chips", ""));
+        E2eWorkspace.Until(() => Find("model") is not null);
+
         terminal.Run($"stty raw -echo; {Self()} --fake-codex-input; stty sane");
         E2eWorkspace.Until(() => ScreenOf(terminal).Contains("codex command input ready", StringComparison.Ordinal));
         var chip = Chip();

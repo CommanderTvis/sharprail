@@ -9,7 +9,10 @@ namespace Tereditor.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 21;
+    public const int Current = 22;
+
+    /// <summary>The terminal chips the user hid (<c>terminal-hidden-chips</c>). A host below it rejects the setting, so a client offers no chip choice there.</summary>
+    public const int TerminalHiddenChips = 22;
 
     /// <summary>The <c>hidden</c> file-type icon style: no icon beside file and folder names. A host below it rejects the style, so a client does not offer it.</summary>
     public const int FileTypeIconsHidden = 20;

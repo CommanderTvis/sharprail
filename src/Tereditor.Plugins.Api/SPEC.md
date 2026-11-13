@@ -765,7 +765,7 @@ to pi.
 | W8 | decorate a tab with an icon or adornment (`TabDecoration`) | the tab icon switch in `DockGroups` |
 | W9 | register an agent launcher, and enumerate registered launchers (`Launcher`, `Launchers`, `OnLaunchersChanged`) | the create-workspace flow starts no agent |
 | W10 | contribute a workspace-level or project-level action (`WorkspaceAction` with `WorkspaceScopedActionRegistration` or `ProjectScopedActionRegistration`) | the workspace's start actions are fixed; a project-scoped one renders on Project Home |
-| W11 | contribute a terminal accessory row that can write, read the buffer tail, set key encoding (`TerminalAccessory`) | `TerminalView` owns the Ghostty view |
+| W11 | contribute a terminal accessory row that can write, read the buffer tail, set key encoding (`TerminalAccessory`); a row tags each chip with `TerminalChips.IdProperty` and declares its kinds with `TerminalChips.KindsProperty`, or the strip's gear cannot hide them | `TerminalView` owns the Ghostty view |
 | W12 | observe editor events; open (optionally bypassing every viewer, `Raw`), close, list, check, save editors; report a selection into the editor-event stream (`Editors`) | no editor events exist |
 | W13 | open or select a terminal tab, enter a project's Default workspace, ask for a file or folder (`OpenTerminalAsync`, `EnterDefaultWorkspaceAsync`, `PickFileAsync`) | layout and navigation calls private to `WorkbenchWindow` |
 | W14 | read a worktree file's bytes, observe its revision, keep the workspace watched (`ReadFileAsync`, `FileRevision`, `ObserveFileRevision`, `WatchWorkspaceAsync`) | `IProjectServices.ReadContentBytesAsync` per window; `WorkspaceWatcher` is private |

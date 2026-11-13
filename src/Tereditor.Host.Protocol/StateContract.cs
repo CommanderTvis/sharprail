@@ -74,6 +74,8 @@ public sealed class SettingsMessage
     [ProtoMember(37)] public string EditorFontFamily { get; set; } = "";
     /// <summary>Zero, from a host that predates the setting, is the natural line height.</summary>
     [ProtoMember(38)] public int EditorLineHeight { get; set; }
+    /// <summary>Empty, from a host that predates the setting, shows every terminal chip.</summary>
+    [ProtoMember(39)] public string TerminalHiddenChips { get; set; } = "";
 }
 
 [ProtoContract]

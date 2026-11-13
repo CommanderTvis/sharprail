@@ -39,16 +39,21 @@ internal sealed class EnvChipsRow : WrapPanel
 
     private void Apply(EnvChipsChanged payload)
     {
-        var signature = string.Join("\n", payload.Chips.Select(chip => chip.Label + "\t" + chip.Detail));
+        var signature = string.Join("\n", payload.Chips.Select(chip => chip.Label + "\t" + chip.Detail + "\t" + chip.PluginId));
         if (signature == shown) return;
         shown = signature;
         Children.Clear();
+        // Each environment is its own chip kind in the strip's chip menu, keyed by the plugin whose step applied it.
+        var kinds = new List<TerminalChipKind>();
         foreach (var chip in payload.Chips)
         {
-            var control = TerminalFacts.FactChip("env", chip.Label, string.IsNullOrEmpty(chip.Detail) ? chip.Label : chip.Detail);
+            var id = EnvContract.Id + "/" + (chip.PluginId ?? chip.Label);
+            var control = TerminalChips.Tag(TerminalFacts.FactChip("env", chip.Label, string.IsNullOrEmpty(chip.Detail) ? chip.Label : chip.Detail), id);
             control.Margin = Chips.Gap;
             Children.Add(control);
+            if (kinds.All(kind => kind.Id != id)) kinds.Add(new(id, chip.Label));
         }
+        SetValue(TerminalChips.KindsProperty, kinds);
         IsVisible = Children.Count > 0;
     }
 }

@@ -95,3 +95,5 @@ const Tereditor.Plugins.Agent.UI.PromptGuard.NotAtPromptNotice = "Not at the pro
 const Tereditor.Plugins.Agent.UI.PromptGuard.TailLines = 24 -> int
 static Tereditor.Plugins.Agent.UI.PromptGuard.Classify(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> Tereditor.Plugins.Agent.UI.PromptState
 static Tereditor.Plugins.Agent.UI.PromptGuard.MayTypeAsync(System.Func<int, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!>! readTail, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Tereditor.Plugins.Agent.UI.PromptState>! classify, System.Func<bool>! stillCurrent, System.Action<string!>! refuse) -> System.Threading.Tasks.Task<bool>!
+static Tereditor.Plugins.Agent.UI.TerminalFacts.Kinds(params System.Collections.Generic.IEnumerable<string!>! ids) -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.TerminalChipKind!>!
+static readonly Tereditor.Plugins.Agent.UI.TerminalFacts.ChipKinds -> System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.TerminalChipKind!>!

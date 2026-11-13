@@ -86,9 +86,11 @@ public sealed partial class TerminalView : UserControl, IDisposable
         accessoriesStrip = this.FindControl<Border>("TerminalAccessoriesStrip")!;
         detachedBar = this.FindControl<Border>("TerminalDetached")!;
         exitedBar = this.FindControl<Control>("TerminalExited")!;
-        Accessories.SizeChanged += (_, _) =>
+        var chipStrip = this.FindControl<Grid>("TerminalChipStrip")!;
+        ChipSettings = WireChipSettings(this.FindControl<ContentControl>("TerminalChipSettingsSlot")!);
+        chipStrip.SizeChanged += (_, _) =>
         {
-            accessoriesStrip.Padding = Accessories.Bounds.Height > 0 ? new Thickness(0, 2 * LayoutRoles.ChipGap, 0, LayoutRoles.ChipGap) : default;
+            accessoriesStrip.Padding = chipStrip.Bounds.Height > 0 ? new Thickness(0, 2 * LayoutRoles.ChipGap, 0, LayoutRoles.ChipGap) : default;
             LayoutCompanion();
         };
         SizeChanged += (_, _) => LayoutCompanion();

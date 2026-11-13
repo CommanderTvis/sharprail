@@ -1312,6 +1312,7 @@ virtual Tereditor.Host.Abstractions.WorktreeInfo.PrintMembers(System.Text.String
 const Tereditor.Host.Abstractions.HostProtocol.FileTypeIcons = 7 -> int
 const Tereditor.Host.Abstractions.HostProtocol.FileTypeIconStyle = 14 -> int
 const Tereditor.Host.Abstractions.HostProtocol.FileTypeIconsHidden = 20 -> int
+const Tereditor.Host.Abstractions.HostProtocol.TerminalHiddenChips = 22 -> int
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconStyle.get -> string!
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconStyle.set -> void
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconsEnabled.get -> bool
@@ -2202,7 +2203,7 @@ Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
 Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.set -> void
 Tereditor.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Host.Abstractions.KeymapPreset!>!
 Tereditor.Host.Abstractions.HostState.KeymapPresets.init -> void
-const Tereditor.Host.Abstractions.HostProtocol.Current = 21 -> int
+const Tereditor.Host.Abstractions.HostProtocol.Current = 22 -> int
 const Tereditor.Host.Abstractions.HostProtocol.IsolatedSurfaces = 19 -> int
 const Tereditor.Host.Abstractions.HostProtocol.Keymaps = 18 -> int
 static Tereditor.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> Tereditor.Host.Abstractions.HostStateChange!
@@ -2450,3 +2451,6 @@ Tereditor.Host.Abstractions.TerminalGuardNotice.Terminal.init -> void
 Tereditor.Host.Abstractions.TerminalGuardNotice.Text.get -> string!
 Tereditor.Host.Abstractions.TerminalGuardNotice.Text.init -> void
 Tereditor.Host.Abstractions.TerminalGuardNotice.TerminalGuardNotice(Tereditor.Plugins.Api.TerminalRef! Terminal, string! Text, System.Collections.Generic.IReadOnlyList<string!>! Lines, int Count, long Sequence) -> void
+Tereditor.Host.Abstractions.HostSettings.TerminalHiddenChips.get -> string!
+Tereditor.Host.Abstractions.HostSettings.TerminalHiddenChips.set -> void
+static Tereditor.Host.Abstractions.HostSettings.NormalizeTerminalHiddenChips(string! value) -> string?

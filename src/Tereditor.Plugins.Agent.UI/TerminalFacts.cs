@@ -26,6 +26,19 @@ public sealed record TerminalTodo(string Content, TerminalTodoStatus Status, str
 /// </summary>
 public static class TerminalFacts
 {
+    /// <summary>
+    /// The chip kinds agent terminals share, under the ids the strip's chip menu stores: one id per meaning, whichever agent
+    /// shows it, so hiding the model chip hides it in every agent's row.
+    /// </summary>
+    public static readonly IReadOnlyList<TerminalChipKind> ChipKinds =
+    [
+        new("cwd", "Folder"), new("model", "Model"), new("effort", "Effort"), new("ide", "IDE context"), new("chrome", "Chrome"),
+        new("plan", "Plan"), new("usage", "Token usage"), new("advisor", "Advisor"), new("attach", "Attach file")
+    ];
+
+    /// <summary>The shared chip kinds with these ids, in the order given.</summary>
+    public static IReadOnlyList<TerminalChipKind> Kinds(params IEnumerable<string> ids) => [.. ids.Select(id => ChipKinds.First(kind => kind.Id == id))];
+
     /// <summary>A directory, written in full as the terminal shows it, whose middle, not its identifying end, is what a long path loses.</summary>
     public static string? CwdLabel(string? cwd) => Tereditor.Plugins.UI.Kit.PathLine.Label(cwd);
 

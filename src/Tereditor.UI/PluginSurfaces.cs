@@ -114,6 +114,15 @@ public sealed partial class WorkbenchWindow
     private void HostStateChanged(HostState previous, HostState next)
     {
         if (!previous.Projects.SequenceEqual(next.Projects)) ResolveRailDefaults();
+        if (previous.Settings.TerminalHiddenChips != next.Settings.TerminalHiddenChips)
+            foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.ShowChips(Terminal.TerminalView.HiddenChipIds(next.Settings.TerminalHiddenChips));
+    }
+
+    // The chips hidden in one terminal are hidden in all: the set is a host setting every client shares.
+    private async void SaveHiddenChips(IReadOnlyList<string> hidden)
+    {
+        if (await ShareAsync(HostStateChange.Setting("terminal-hidden-chips", string.Join(",", hidden)))) return;
+        foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.ShowChips(Terminal.TerminalView.HiddenChipIds(state.Current.Settings.TerminalHiddenChips));
     }
 
     /// <summary>
@@ -506,6 +515,7 @@ public sealed partial class WorkbenchWindow
     private void AttachPluginTerminal(Terminal.TerminalView terminal)
     {
         if (!terminal.FileDropWired) { WireTerminalFileDrop(terminal); terminal.FileDropWired = true; }
+        if (!terminal.ChipsWired) { terminal.SaveHiddenChips = SaveHiddenChips; terminal.ChipsWired = true; }
         var tabKey = terminal.Launch.TabKey;
         var workspace = terminal.Launch.WorkspaceRoot;
         foreach (var child in terminal.Accessories.Children.Where(child =>
@@ -525,6 +535,8 @@ public sealed partial class WorkbenchWindow
             control.Tag = accessory;
             terminal.Accessories.Children.Add(control);
         }
+        terminal.ChipChoiceSupported = state.Supports(HostProtocol.TerminalHiddenChips);
+        terminal.ShowChips(Terminal.TerminalView.HiddenChipIds(state.Current.Settings.TerminalHiddenChips));
         var open = slot.Companions.GetValueOrDefault(workspace + "\n" + tabKey);
         var shown = open is null ? null : available.FirstOrDefault(row => row.PluginId + ":" + row.Value.Kind == open);
         if (shown is null) terminal.Companion = null;

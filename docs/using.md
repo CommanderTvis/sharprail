@@ -15,7 +15,7 @@
 - Claude Code and Codex can create and remove their own worktrees too. See [Agents](agents.md).
 - Settings › Projects can list a workspace an agent created under the terminal or chat that created it (off by default).
 - New worktrees start with your mise, direnv and Python environments applied. Chips under each terminal show what was
-  applied.
+  applied. The gear at the end of the chips chooses which chips show, in every terminal.
 
 ## Layout
 

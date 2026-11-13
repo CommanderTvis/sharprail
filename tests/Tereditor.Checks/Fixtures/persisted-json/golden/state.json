@@ -36,6 +36,7 @@
     "EditorFontFamily": "",
     "EditorLineHeight": 0,
     "Accent": "",
+    "TerminalHiddenChips": "",
     "SettleIdleDays": 14,
     "FutureSetting": {
       "nested": [

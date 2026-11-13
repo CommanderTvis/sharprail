@@ -25,6 +25,8 @@ plugins are its dependents, each providing one step. It owns:
 - Chips: under each terminal, one chip per step that reported, in the order the steps ran, hidden while none applies.
   A chip reads like `mise`, `direnv`, `venv`, `pyenv 3.12.1`, `node 20.11.1`, `JDK 21.0.2-tem`; its tooltip holds what the
   step said and `Sets <variables>`. The step supplies the chip data (label, detail, variables it set); `Env` merges them.
+  Each chip carries the id of the plugin whose step applied it and is the strip's chip kind `env/<pluginId>` (listed by its
+  label), so the terminal's gear menu can hide, say, the mise chip alone.
 
 It does not spawn processes or read project files: the steps do, through the host. The mechanism stays in
 Host.Core, because terminals need the environment before plugin UI loads (startup performance): the host runs the

@@ -28,6 +28,16 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view.
 
+A gear chip ("Choose chips") trails the accessory rows, bottom-aligned at the strip's right edge beside the last row. It opens
+a menu with one check row per chip kind the terminal's rows can show, present now or not (each row declares its kinds and tags
+its chips with `TerminalChips`), then Show all. Unchecking a kind hides it at once in this terminal and, through the
+`terminal-hidden-chips` host setting every client shares, in every terminal; Show all clears the set. The setting stores hidden
+ids, so a kind no one hid, a new one included, shows. Agent chips share ids across agents (`cwd`, `model`, `effort`, `ide`,
+`chrome`, `plan`, `usage`, `advisor`, `attach`); a plugin's own chip is `pluginId/chipId`, such as `env/env-mise` for the
+mise environment. The strip hides a chip with a style on the rows, so a row's rebuild cannot bring it back. The gear itself
+cannot be hidden: with every chip hidden the strip keeps one row, the gear's. A terminal whose rows declare no kind (a plain
+shell with no environment) shows no gear and no strip. Neither does a terminal of a host below protocol 22, which cannot keep the choice. `--case terminal-chips` covers it against a real `TerminalView`.
+
 `ReadScreen(true)` blanks faint cells where the renderer knows them. The Skia renderer answers from the visible rows'
 cells (`GhosttySkiaView.ReadViewport`, no scrollback) with faint cells blanked, plus an inverse cell directly before a
 faint one (an agent's cursor on a placeholder's first glyph). The texture renderer, the browser and the default

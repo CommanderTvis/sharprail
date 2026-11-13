@@ -680,6 +680,7 @@ public sealed partial class HostStateStore : IHostStateService
                 ThemeMode = value.Settings.ThemeMode is "fixed" ? "fixed" : "system",
                 Theme = Clean(value.Settings.Theme),
                 Accent = ValidAccent(Clean(value.Settings.Accent)) ? Clean(value.Settings.Accent) : "",
+                TerminalHiddenChips = HostSettings.NormalizeTerminalHiddenChips(value.Settings.TerminalHiddenChips ?? "") ?? "",
                 SystemLight = light,
                 SystemDark = dark,
                 FileLineWidth = Width(value.Settings.FileLineWidth),
@@ -810,6 +811,7 @@ public sealed partial class HostStateStore : IHostStateService
                 {
                     "theme" when ValidText(value) => settings with { Theme = value.Trim() },
                     "accent" when ValidAccent(value) => settings with { Accent = value },
+                    "terminal-hidden-chips" when HostSettings.NormalizeTerminalHiddenChips(value) is { } hidden => settings with { TerminalHiddenChips = hidden },
                     "theme-mode" when value is "fixed" or "system" => settings with { ThemeMode = value },
                     "system-light" when ValidText(value) => settings with { SystemLight = value.Trim() },
                     "system-dark" when ValidText(value) => settings with { SystemDark = value.Trim() },

@@ -191,6 +191,7 @@ internal static class UiChecks
         Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
         Gate.Case("ChangesBranchSwitchChecks", () => ChangesBranchSwitchChecks.Run(root + "-branch-switch"));
         Gate.Case("TerminalResumeHintChecks", TerminalResumeHintChecks.Run);
+        Gate.Case("terminal-chips", TerminalChipChecks.Run);
         Gate.Case("ChangesReviewChecks", () => ChangesReviewChecks.Run(root));
         Gate.Case("DiffVirtualizationChecks", DiffVirtualizationChecks.Run);
         Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");

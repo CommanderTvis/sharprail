@@ -142,6 +142,7 @@ internal static class StateChecks
             HostStateChange.Setting("system-light", "light"), HostStateChange.Setting("system-dark", "high-contrast-dark"),
             HostStateChange.Setting("accent", "#3b82f6"), HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.Setting("notifications", "false"), HostStateChange.Setting("window-decorations", "client"), HostStateChange.Setting("file-type-icons", "false"), HostStateChange.Setting("file-type-icon-style", "material"), HostStateChange.Setting("terminal-notifications", "false"), HostStateChange.Setting("bell-features", "title, system"),
+            HostStateChange.Setting("terminal-hidden-chips", "model, env/env-mise,model"),
             HostStateChange.Setting("vertical-tabs", "true"), HostStateChange.Setting("tabs-in-projects", "false"),
             HostStateChange.Setting("editor-indent-tabs", "true"), HostStateChange.Setting("editor-detect-indent", "false"),
             HostStateChange.Setting("editor-font-family", " Fira Code "), HostStateChange.Setting("editor-line-height", "15"),
@@ -200,6 +201,12 @@ internal static class StateChecks
                 catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
             try
             {
+                await service.ChangeAsync([HostStateChange.Setting("terminal-hidden-chips", "model,bad\u0001id")]);
+                throw new InvalidOperationException($"The {name} host accepted a hidden chip id with a control character.");
+            }
+            catch (Exception error) when (error is ArgumentException or Tereditor.Host.Protocol.RpcException) { }
+            try
+            {
                 await service.ChangeAsync([HostStateChange.Setting("window-decorations", "wayland")]);
                 throw new InvalidOperationException($"The {name} host accepted an unknown window decorations value.");
             }
@@ -225,10 +232,12 @@ internal static class StateChecks
         Require(state.Settings is
         {
             Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title",
-            EditorIndentWithTabs: true, EditorDetectIndent: false, EditorFontFamily: "Fira Code", EditorLineHeight: 15
+            EditorIndentWithTabs: true, EditorDetectIndent: false, EditorFontFamily: "Fira Code", EditorLineHeight: 15, TerminalHiddenChips: "env/env-mise,model"
         } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
+        Require(new HostStateStore(localDirectory).Current.Settings.TerminalHiddenChips == "env/env-mise,model" && new HostSettings().TerminalHiddenChips.Length == 0,
+            "The hidden terminal chips persist as distinct ids in order, and a fresh host hides none.");
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&
             state.PluginPaths.Single().EndsWith("state-plugins", StringComparison.Ordinal) && state.Platform is not null,
             "Plugin namespaces merge member by member, roots replace, and the host names its platform.");

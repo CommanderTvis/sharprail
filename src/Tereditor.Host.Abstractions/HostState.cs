@@ -79,6 +79,11 @@ public sealed record HostSettings
     public int EditorLineHeight { get; init; }
     /// <summary>The accent colour: a curated id or a custom <c>#rrggbb</c>, opaque to the host; empty is the theme's own accent.</summary>
     public string Accent { get; set; } = "";
+    /// <summary>
+    /// The terminal chips the user hid, as comma-separated chip ids (<c>model</c>, <c>env/env-mise</c>), opaque to the host;
+    /// empty shows every chip, and a chip whose id is not listed, a new kind included, shows.
+    /// </summary>
+    public string TerminalHiddenChips { get; set; } = "";
 
     public const int DefaultEditorTabWidth = 4, MinEditorTabWidth = 1, MaxEditorTabWidth = 8;
     public const int DefaultEditorLineHeight = 10, MinEditorLineHeight = 10, MaxEditorLineHeight = 20, MaxEditorFontFamilyLength = 200;
@@ -92,6 +97,14 @@ public sealed record HostSettings
         if (named is ["none"] || named.Length == 0) return "none";
         if (named.Any(name => !BellFeatureNames.Contains(name))) return null;
         return string.Join(",", BellFeatureNames.Where(named.Contains));
+    }
+
+    /// <summary>A hidden-chips list in canonical form (distinct ids in ordinal order), or null when an id is empty, too long or holds a comma or control character.</summary>
+    public static string? NormalizeTerminalHiddenChips(string value)
+    {
+        var ids = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ids.Any(id => id.Length > 128 || id.Any(char.IsControl))) return null;
+        return string.Join(",", ids.Distinct().Order(StringComparer.Ordinal));
     }
 
     /// <summary>Whether this bell feature is on.</summary>

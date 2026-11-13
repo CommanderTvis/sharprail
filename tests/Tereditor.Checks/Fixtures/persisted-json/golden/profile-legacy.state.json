@@ -35,7 +35,8 @@
     "EditorDetectIndent": true,
     "EditorFontFamily": "",
     "EditorLineHeight": 0,
-    "Accent": ""
+    "Accent": "",
+    "TerminalHiddenChips": ""
   },
   "Presets": [
     {

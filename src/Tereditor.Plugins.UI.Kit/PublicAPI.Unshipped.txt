@@ -686,3 +686,21 @@ static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent -> Ava
 static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.SourceProperty -> Avalonia.StyledProperty<string?>!
 static Tereditor.Plugins.UI.Kit.LinkedTextBlock.Split(string? text) -> System.Collections.Generic.IReadOnlyList<(string! Text, System.Uri? Url)>!
 Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor() -> void
+override Tereditor.Plugins.UI.Kit.TerminalChipKind.Equals(object? obj) -> bool
+override Tereditor.Plugins.UI.Kit.TerminalChipKind.GetHashCode() -> int
+override Tereditor.Plugins.UI.Kit.TerminalChipKind.ToString() -> string!
+Tereditor.Plugins.UI.Kit.TerminalChipKind
+Tereditor.Plugins.UI.Kit.TerminalChipKind.<Clone>$() -> Tereditor.Plugins.UI.Kit.TerminalChipKind!
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Deconstruct(out string! Id, out string! Label) -> void
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Equals(Tereditor.Plugins.UI.Kit.TerminalChipKind? other) -> bool
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Id.get -> string!
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Id.init -> void
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Label.get -> string!
+Tereditor.Plugins.UI.Kit.TerminalChipKind.Label.init -> void
+Tereditor.Plugins.UI.Kit.TerminalChipKind.TerminalChipKind(string! Id, string! Label) -> void
+static Tereditor.Plugins.UI.Kit.TerminalChipKind.operator !=(Tereditor.Plugins.UI.Kit.TerminalChipKind? left, Tereditor.Plugins.UI.Kit.TerminalChipKind? right) -> bool
+static Tereditor.Plugins.UI.Kit.TerminalChipKind.operator ==(Tereditor.Plugins.UI.Kit.TerminalChipKind? left, Tereditor.Plugins.UI.Kit.TerminalChipKind? right) -> bool
+Tereditor.Plugins.UI.Kit.TerminalChips
+static Tereditor.Plugins.UI.Kit.TerminalChips.Tag<T>(T! control, string! id) -> T!
+static readonly Tereditor.Plugins.UI.Kit.TerminalChips.IdProperty -> Avalonia.AttachedProperty<string?>!
+static readonly Tereditor.Plugins.UI.Kit.TerminalChips.KindsProperty -> Avalonia.AttachedProperty<System.Collections.Generic.IReadOnlyList<Tereditor.Plugins.UI.Kit.TerminalChipKind!>?>!
