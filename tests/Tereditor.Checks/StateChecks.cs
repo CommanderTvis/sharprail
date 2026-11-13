@@ -222,8 +222,11 @@ internal static class StateChecks
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
         var state = await local.GetStateAsync();
         Require(state.Settings.CustomHighlighting.Contains("source.example", StringComparison.Ordinal), "Custom highlighting did not persist through the host.");
-        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title",
-                EditorIndentWithTabs: true, EditorDetectIndent: false, EditorFontFamily: "Fira Code", EditorLineHeight: 15 } &&
+        Require(state.Settings is
+        {
+            Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", Accent: "#3b82f6", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false, FileTypeIconsEnabled: false, FileTypeIconStyle: "material", WindowDecorations: "client", TerminalNotificationsEnabled: false, BellFeatures: "system,title",
+            EditorIndentWithTabs: true, EditorDetectIndent: false, EditorFontFamily: "Fira Code", EditorLineHeight: 15
+        } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&
