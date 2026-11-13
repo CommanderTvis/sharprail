@@ -6,7 +6,7 @@ Keeps your CLI. Adds what's missing.
 
 The name joins TERminal and EDITOR.
 
-<img src="docs/screenshots/desktop-workbench.png" alt="The tereditor workbench: projects and worktrees on the left, an orchestrating Claude Code terminal with a task board in the centre, the file tree and Code Intelligence on the right" width="900">
+<img src="docs/screenshots/desktop-workbench.png" alt="The tereditor workbench: projects and agent worktrees with their diff counts on the left, an orchestrating Claude Code terminal with its running subagents in the centre, the file tree and the Claude Code context pane on the right" width="900">
 
 > [!NOTE]
 > tereditor is a prototype. The desktop app targets macOS first, and Windows, Linux and Android builds ship too.
