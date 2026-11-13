@@ -57,6 +57,7 @@ internal static class GhosttySkiaChecks
         CheckPlaceholderCells();
         CheckUrls();
         CheckUrlHover();
+        CheckHiddenTerminalsHoldNoSurface();
         CheckRightClickOpensNoMenu();
         CheckHighlightedLinkRightClick();
         CheckFileLinks();
@@ -147,6 +148,52 @@ internal static class GhosttySkiaChecks
             Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing the modifier left stale underlines.");
         }
         finally { window.Close(); Pump(); }
+    }
+
+    // Only the terminal on screen owns a framebuffer surface: hidden ones hold none, a hidden one gives its surface back after
+    // the grace period, showing it again repaints it identically, and resizing keeps one surface at the pane's size.
+    internal static void CheckHiddenTerminalsHoldNoSurface()
+    {
+        var views = Enumerable.Range(0, 3).Select(index => new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14, ReleaseDelay = TimeSpan.FromMilliseconds(100) }).ToArray();
+        var host = new Grid();
+        foreach (var view in views) { view.IsVisible = view == views[0]; host.Children.Add(view); view.Write("\e[?25lhello hidden terminals"u8); }
+        var window = new Window { Width = 300, Height = 200, Content = host };
+        var baseline = GhosttySkiaView.LiveSurfaceCount;
+        window.Show(); Pump();
+        try
+        {
+            Until(() => views[0].HoldsSurface, "the visible terminal draws");
+            Require(views.Count(view => view.HoldsSurface) == 1 && GhosttySkiaView.LiveSurfaceCount == baseline + 1, "with three terminals and one visible exactly one must hold a surface.");
+            using var before = window.CaptureRenderedFrame()!;
+            var bytes = GhosttySkiaView.LiveSurfaceBytes;
+            Require(bytes > 0, "the surface must have a size.");
+            views[0].IsVisible = false; Pump();
+            Until(() => !views[0].HoldsSurface, "a hidden terminal gives its surface back after the grace period");
+            Require(GhosttySkiaView.LiveSurfaceCount == baseline && GhosttySkiaView.LiveSurfaceBytes == 0, "no terminal on screen must leave no surface.");
+            views[0].IsVisible = true; Pump();
+            Until(() => views[0].HoldsSurface, "showing the terminal again recreates its surface");
+            Require(GhosttySkiaView.LiveSurfaceCount == baseline + 1 && GhosttySkiaView.LiveSurfaceBytes == bytes, "showing again must hold one surface of the same size.");
+            using var after = window.CaptureRenderedFrame()!;
+            Require(Pixels(before).SequenceEqual(Pixels(after)), "a recreated surface must repaint the same pixels at once.");
+            // Switching away detaches the view: the same release applies.
+            host.Children.Remove(views[0]);
+            Until(() => !views[0].HoldsSurface, "a detached terminal gives its surface back");
+            host.Children.Add(views[0]); Pump();
+            Until(() => views[0].HoldsSurface, "reattaching recreates the surface");
+            // Resizing replaces the surface, never adds one.
+            for (var step = 0; step < 6; step++)
+            {
+                window.Width = 300 + 20 * (step + 1); window.Height = 200 + 10 * (step + 1); Pump(); Pump();
+                Require(GhosttySkiaView.LiveSurfaceCount == baseline + 1, $"resize step {step} must keep exactly one surface, got {GhosttySkiaView.LiveSurfaceCount - baseline}.");
+            }
+        }
+        finally
+        {
+            window.Close(); Pump();
+            foreach (var view in views) view.Dispose();
+        }
+        Require(GhosttySkiaView.LiveSurfaceCount == baseline, "disposing the terminals must leave no surface.");
+        Console.WriteLine("PASS hidden terminals hold no surface: three terminals with one visible held 1 surface, hiding or detaching released it after the grace period, showing repainted identically, six resizes kept one, and disposal left none");
     }
 
     // A plain right-click opens no menu anywhere: a program tracking the mouse gets it, otherwise it is ignored.

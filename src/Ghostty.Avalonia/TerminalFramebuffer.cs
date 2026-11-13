@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Avalonia;
 
 using SkiaSharp;
@@ -61,7 +63,40 @@ internal sealed class TerminalFramebuffer : IDisposable
     private long[] versions = [];
     private bool disposed;
     private bool gpuBacked;
+    private long lastDraw;
+    private static int liveSurfaces;
+    private static long liveBytes;
     internal bool IsGpuBacked { get { lock (gate) return gpuBacked; } }
+
+    /// <summary>Framebuffer surfaces alive in the process, and their pixel bytes: a hidden terminal must hold none.</summary>
+    internal static int LiveSurfaces => Volatile.Read(ref liveSurfaces);
+    internal static long LiveBytes => Interlocked.Read(ref liveBytes);
+
+    /// <summary>Whether this framebuffer holds a surface now.</summary>
+    internal bool HoldsSurface { get { lock (gate) return surface is not null; } }
+
+    /// <summary>How long since the last draw; zero when it never drew.</summary>
+    internal TimeSpan IdleFor { get { lock (gate) return lastDraw == 0 ? TimeSpan.Zero : Stopwatch.GetElapsedTime(lastDraw); } }
+
+    /// <summary>
+    /// Gives the surface back (a hidden terminal needs none). The row pictures stay with the view, so the next draw recreates the
+    /// surface at the pane's size and repaints every row at once, with no blank frame.
+    /// </summary>
+    internal void Release()
+    {
+        lock (gate) Free();
+    }
+
+    // Under the gate.
+    private void Free()
+    {
+        if (surface is null) return;
+        Interlocked.Add(ref liveBytes, -(long)info.BytesSize);
+        Interlocked.Decrement(ref liveSurfaces);
+        surface.Dispose();
+        surface = null;
+        versions = [];
+    }
 
     internal void Draw(SKCanvas canvas, GRContext? gpu, Rect bounds, double nextScale, TerminalRowPicture[] rows)
     {
@@ -72,12 +107,15 @@ internal sealed class TerminalFramebuffer : IDisposable
                 Math.Max(1, (int)Math.Ceiling(bounds.Height * nextScale)), SKColorType.Bgra8888, SKAlphaType.Premul);
             if (surface is null || next != info || context != gpu || scale != nextScale || versions.Length != rows.Length)
             {
-                surface?.Dispose();
+                Free();
                 surface = gpu is null ? SKSurface.Create(next) : SKSurface.Create(gpu, false, next);
                 gpuBacked = gpu is not null && surface is not null;
                 surface ??= SKSurface.Create(next);
                 info = next; context = gpu; scale = nextScale; versions = new long[rows.Length];
+                Interlocked.Increment(ref liveSurfaces);
+                Interlocked.Add(ref liveBytes, info.BytesSize);
             }
+            lastDraw = Stopwatch.GetTimestamp();
             if (surface is null) throw new InvalidOperationException("Could not allocate the terminal framebuffer.");
             var target = surface.Canvas;
             target.Save();
@@ -109,6 +147,6 @@ internal sealed class TerminalFramebuffer : IDisposable
 
     public void Dispose()
     {
-        lock (gate) { disposed = true; surface?.Dispose(); surface = null; }
+        lock (gate) { disposed = true; Free(); }
     }
 }

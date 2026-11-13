@@ -39,6 +39,22 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     /// <summary>Failed-command badges the latest render drew, for checks.</summary>
     internal int BadgesDrawn { get; private set; }
     internal bool IsGpuBacked => framebuffer.IsGpuBacked;
+
+    // A terminal nobody sees owns no pixels: once it has been hidden (or detached, or its window minimised) for this long its
+    // framebuffer surface goes back, and the next draw repaints every row from the retained row pictures. The terminal state
+    // stays in libghostty-vt and keeps parsing output meanwhile.
+    internal static readonly TimeSpan DefaultReleaseDelay = TimeSpan.FromSeconds(5);
+    private readonly Timer releaseTimer;
+    private TimeSpan releaseDelay = DefaultReleaseDelay;
+    private bool releaseRunning;
+    internal TimeSpan ReleaseDelay { get => releaseDelay; set { releaseDelay = value; if (releaseRunning) StartRelease(); } }
+    private void StartRelease() { releaseRunning = true; releaseTimer.Change(releaseDelay, releaseDelay); }
+    private void StopRelease() { releaseRunning = false; releaseTimer.Change(Timeout.Infinite, Timeout.Infinite); }
+    /// <summary>Whether this view holds a framebuffer surface now.</summary>
+    internal bool HoldsSurface => framebuffer.HoldsSurface;
+    /// <summary>Framebuffer surfaces alive in the process, and their pixel bytes.</summary>
+    internal static int LiveSurfaceCount => TerminalFramebuffer.LiveSurfaces;
+    internal static long LiveSurfaceBytes => TerminalFramebuffer.LiveBytes;
     private bool stale = true, snapshotNeeded = true, cursorOn = true, disposed;
     private Frame last;
     private readonly bool batchAscii = OperatingSystem.IsBrowser();
@@ -47,6 +63,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         Focusable = true;
         ClipToBounds = true;
+        releaseTimer = new(_ => Dispatcher.UIThread.Post(ReleaseIfHidden), null, Timeout.Infinite, Timeout.Infinite);
         Cursor = new Cursor(StandardCursorType.Ibeam);
         vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply, OperatingSystem.IsMacOS() ? null : text => _ = CopyAsync(text));
         vt.SetColors(colors);
@@ -259,6 +276,19 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         base.OnAttachedToVisualTree(e);
         if (TopLevel.GetTopLevel(this) is Window window) { stateWatched = window; window.PropertyChanged += WindowChanged; }
+        StartRelease();
+    }
+
+    // Ticks while attached (an ancestor hidden or a minimised window raises no event on this view) and, once detached, until
+    // the surface is given back.
+    private void ReleaseIfHidden()
+    {
+        if (disposed) return;
+        var attached = TopLevel.GetTopLevel(this) is not null;
+        var hidden = !attached || !IsEffectivelyVisible || stateWatched is Window { WindowState: WindowState.Minimized };
+        if (!hidden) return;
+        if (framebuffer.HoldsSurface && framebuffer.IdleFor >= ReleaseDelay) framebuffer.Release();
+        if (!attached && !framebuffer.HoldsSurface) StopRelease();
     }
 
     // Maximize and full screen are single jumps, not a gesture.
@@ -566,6 +596,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         if (stateWatched is Window window) window.PropertyChanged -= WindowChanged;
         stateWatched = null;
+        StartRelease();
         blink.Stop();
         highlights?.Clear();
         base.OnDetachedFromVisualTree(e);
@@ -578,12 +609,14 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         fileHover?.Dispose();
         highlights?.Dispose();
         blink.Stop();
+        StopRelease();
         settle.Dispose();
         vt.Dispose();
         fonts?.Dispose();
         foreach (var row in rows) row.Release();
         rows = [];
         framebuffer.Dispose();
+        releaseTimer.Dispose();
     }
 
     private sealed class RowOperation : ICustomDrawOperation

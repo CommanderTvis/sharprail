@@ -479,6 +479,13 @@ internal static class Program
             Console.WriteLine("PASS project closure checks");
             return;
         }
+        if (args.SequenceEqual(["--terminal-surfaces"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            GhosttySkiaChecks.CheckHiddenTerminalsHoldNoSurface();
+            return;
+        }
         if (args.SequenceEqual(["--terminal-badges"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
