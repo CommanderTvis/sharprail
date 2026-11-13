@@ -683,3 +683,4 @@ Tereditor.Plugins.UI.Kit.LinkedTextBlock.Source.set -> void
 static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.LinkClickedEvent -> Avalonia.Interactivity.RoutedEvent<Tereditor.Plugins.UI.Kit.LinkClickedEventArgs!>!
 static readonly Tereditor.Plugins.UI.Kit.LinkedTextBlock.SourceProperty -> Avalonia.StyledProperty<string?>!
 static Tereditor.Plugins.UI.Kit.LinkedTextBlock.Split(string? text) -> System.Collections.Generic.IReadOnlyList<(string! Text, System.Uri? Url)>!
+Tereditor.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor() -> void

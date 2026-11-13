@@ -18,6 +18,11 @@ public sealed class FrontmatterEditor : UserControl
     private readonly Action<IReadOnlyList<FrontmatterProperty>> commit;
     private readonly Func<string, IEnumerable<string>?> suggest;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct FrontmatterEditor with its arguments.", true)]
+    public FrontmatterEditor() => throw new System.NotSupportedException("FrontmatterEditor needs its constructor arguments.");
+
     /// <param name="suggestions">Values offered for a key (never constraining); defaults to the spec vocabulary for <c>status</c> and <c>type</c>.</param>
     public FrontmatterEditor(FrontmatterBlock block, Action<IReadOnlyList<FrontmatterProperty>> commit, Func<string, IEnumerable<string>?>? suggestions = null)
     {
