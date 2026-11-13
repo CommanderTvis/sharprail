@@ -23,7 +23,8 @@ return Guard(() =>
     };
     var rid = $"{system}-{architecture}";
     var output = At("artifacts", "native");
-    var executable = Path.Combine(output, OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : "Tereditor.UI");
+    // macOS names an unbundled app in the Dock after its executable, so there it carries the packages' name.
+    var executable = Path.Combine(output, OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : OperatingSystem.IsMacOS() ? AppExecutable : "Tereditor.UI");
     // Same locked restore as the packages (it also fetches the ILCompiler pack); the publish then reuses it.
     string[] restore = ["restore", "Tereditor.slnx", "-p:SelfContained=true", "-p:PublishReadyToRun=true"];
     // NativeAot.props already sets PublishAot and trimming; this adds what is specific to this build: code for this CPU's
@@ -39,6 +40,7 @@ return Guard(() =>
     }
     Check(Dotnet, restore);
     Check(Dotnet, publish);
+    if (OperatingSystem.IsMacOS()) RenameExecutable(output, "Tereditor.UI", AppExecutable);
     if (noRun)
     {
         Console.WriteLine(executable);
