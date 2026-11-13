@@ -44,6 +44,7 @@ internal static class ClaudeContextChecks
         |------|--------|--------|
         | mcp__docs__create | docs | 256 |
         | mcp__docs__read | docs | 324 |
+        | mcp__docs__update | docs | 1.4k |
         | mcp__notes__find | notes | 91 |
 
         ### Memory Files
@@ -76,10 +77,14 @@ internal static class ClaudeContextChecks
         Require(parsed is { Model: "claude-opus-5-5", Used: 16_600, Window: 1_000_000 } && parsed.Categories.Count == 11 &&
             parsed.Categories[3] == new ClaudeContextCategory("MCP server instructions", 717, 0.1) && parsed.Categories[^1].Tokens == 33_000,
             "The /context report's header and category table parse in Claude Code's order.");
-        Require(parsed!.McpTools.Count == 3 && parsed.McpTools[0] == new ClaudeContextItem("mcp__docs__create", "docs", 256) &&
+        Require(parsed!.McpTools.Count == 4 && parsed.McpTools[0] == new ClaudeContextItem("mcp__docs__create", "docs", 256) &&
             parsed.MemoryFiles.Single() == new ClaudeContextItem("/home/user/.claude/CLAUDE.md", "User", 2_200) &&
             parsed.Skills.Select(skill => skill.Tokens).SequenceEqual([150L, 20, 480]),
             "MCP tools, memory files and skills parse with approximate counts (~, <) read as numbers.");
+        // /context's tool table lists every MCP tool, deferred ones included (checked against Claude Code 2.1.325), so
+        // it sums to the "MCP tools" category plus "MCP tools (deferred)", not to the loaded category alone.
+        Require(parsed.McpTools.Sum(tool => tool.Tokens) == parsed.Categories.Where(category => category.Name.StartsWith("MCP tools", StringComparison.Ordinal)).Sum(category => category.Tokens),
+            "The MCP tool table covers loaded and deferred tools alike.");
         Require(ContextReport.ParseJson("{\"result\":\"Unknown command\"}") is null && ContextReport.ParseJson("not json") is null,
             "Output without a context report is refused, not misread.");
 
@@ -236,9 +241,17 @@ internal static class ClaudeContextChecks
             "The baseline rows are the categories a fresh session pays for, the system prompt without the appended file. Got: " +
             string.Join(", ", rows.Select(row => row.Key + "=" + row.Tokens)));
         var mcp = rows.Single(row => row.Key == "mcp-tools");
-        Require(mcp.Children.Select(server => server.Label).SequenceEqual(["docs", "notes"]) && mcp.Children[0].Tokens == 580 &&
-            mcp.Children[0].Children.Select(tool => tool.Label).SequenceEqual(["read", "create"]),
+        Require(mcp.Children.Select(server => server.Label).SequenceEqual(["docs", "notes"]) && mcp.Children[0].Tokens == 1_980 &&
+            mcp.Children[0].Children.Select(tool => tool.Label).SequenceEqual(["update", "read", "create"]),
             "MCP tools open into servers, heaviest first with subtotals, and each server into its tools without the prefix.");
+        // The row counts what loads at start; a server's subtotal includes its deferred tools, so it says "if loaded".
+        Require(mcp.Tokens == 671 && mcp.Children.All(server => server.Suffix == " if loaded" && server.Tip is not null) &&
+            mcp.Tip?.Contains("1.4k tokens", StringComparison.Ordinal) == true,
+            "With deferred MCP tools, servers read \"if loaded\" and the MCP tools row names the deferred total.");
+        var undeferred = Fixture() with { Categories = [.. Fixture().Categories.Where(category => category.Name != "MCP tools (deferred)")] };
+        Require(ClaudeConfigPanel.BaselineRows(undeferred, null).Single(row => row.Key == "mcp-tools").Children.All(server => server.Suffix == "" && server.Tip is null),
+            "Without deferred MCP tools a server's subtotal is plain.");
+        BaselineLineLayout();
         Require(rows.Single(row => row.Key == "skills").Children.Select(skill => skill.Label).SequenceEqual(["dataviz", "example:review", "tidy"]),
             "Skills open into each skill, heaviest first.");
 
@@ -300,5 +313,38 @@ internal static class ClaudeContextChecks
         }
         finally { headingHost.Close(); }
         Console.WriteLine("PASS Claude Code context UI: baseline rows, MCP and skill parts, freshness note, inline error, token units");
+    }
+
+    // A long row name trims with an ellipsis before the chevron and the count; the chevron follows a name that fits,
+    // and the count keeps its column at the right edge, in a narrow pane and a wide one.
+    private static void BaselineLineLayout()
+    {
+        var tool = new ClaudeConfigPanel.BaselineEntry("mcp-tools/long/tool", "tool", "code", 300, []);
+        var server = new ClaudeConfigPanel.BaselineEntry("mcp-tools/long", "plugin_tereditor_tereditor_with_a_long_name", "server", 11_100, [tool], Suffix: " if loaded");
+        var line = ClaudeConfigPanel.BaselineLine(server, depth: 1, open: false);
+        var host = new Window { Width = 280, Height = 60, Content = new StackPanel { Children = { line } } };
+        host.Show();
+        try
+        {
+            var name = line.GetLogicalDescendants().OfType<TextBlock>().Single(block => block.Name == "ClaudeContextName");
+            var chevron = line.GetLogicalDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(path => path.Name == "ClaudeContextChevron");
+            var count = line.GetLogicalDescendants().OfType<TokenAmount>().Single();
+            double Left(Visual visual) => visual.TranslatePoint(default, line)!.Value.X;
+            foreach (var width in new[] { 280.0, 900 })
+            {
+                host.Width = width;
+                E2eWorkspace.Settle();
+                var nameRight = Left(name) + name.Bounds.Width;
+                var trimmed = name.TextLayout.TextLines.Any(text => text.HasCollapsed);
+                Require(nameRight <= Left(chevron) + 0.5 && Left(chevron) + chevron.Bounds.Width <= Left(count) + 0.5 &&
+                    Math.Abs(Left(count) + count.Bounds.Width - line.Bounds.Width) < 1 && count.Bounds.Width >= count.DesiredSize.Width - 0.5,
+                    $"At {width}px the name ends left of the chevron, the chevron left of the count, and the count keeps the right edge whole. " +
+                    $"Name right {nameRight}, chevron {Left(chevron)}..{Left(chevron) + chevron.Bounds.Width}, count {Left(count)}, line {line.Bounds.Width}.");
+                Require(width < 400 ? trimmed : !trimmed && Left(chevron) - nameRight < 8,
+                    $"At {width}px a long name {(width < 400 ? "trims with an ellipsis" : "shows whole, the chevron right after it")}.");
+            }
+            Require(Equals(ToolTip.GetTip(name), server.Label), "A row's name has its full text in a tooltip.");
+        }
+        finally { host.Close(); }
     }
 }

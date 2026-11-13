@@ -424,7 +424,8 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return text;
     }
 
-    internal sealed record BaselineEntry(string Key, string Label, string Icon, long Tokens, IReadOnlyList<BaselineEntry> Children, string? Tip = null);
+    // Suffix follows the count, as " if loaded" on a server whose tools /context counts whether loaded or deferred.
+    internal sealed record BaselineEntry(string Key, string Label, string Icon, long Tokens, IReadOnlyList<BaselineEntry> Children, string? Tip = null, string Suffix = "");
 
     // Rows the user opened, by key, so a re-render keeps them open.
     private readonly HashSet<string> expandedRows = [];
@@ -434,6 +435,9 @@ internal sealed class ClaudeConfigPanel : DockPanel
     internal static List<BaselineEntry> BaselineRows(ClaudeContextBreakdown breakdown, long? claudePrompt)
     {
         var rows = new List<BaselineEntry>();
+        // The "MCP tools" category counts the tools loaded at start; /context's tool table lists every tool, deferred
+        // ones included, so a server's subtotal is what all its tools would cost and can exceed the category.
+        var deferredMcp = breakdown.Categories.FirstOrDefault(category => category.Name == "MCP tools (deferred)")?.Tokens ?? 0;
         foreach (var category in breakdown.Categories)
         {
             var name = category.Name;
@@ -449,7 +453,10 @@ internal sealed class ClaudeConfigPanel : DockPanel
                         new BaselineEntry("mcp-tools/" + server.Key, server.Key, "server", server.Sum(tool => tool.Tokens),
                             [.. server.OrderByDescending(tool => tool.Tokens).Select(tool => new BaselineEntry("mcp-tools/" + server.Key + "/" + tool.Name,
                                 tool.Name.StartsWith("mcp__" + server.Key + "__", StringComparison.Ordinal) ? tool.Name[(server.Key.Length + 7)..] : tool.Name,
-                                "code", tool.Tokens, [], tool.Name))]))]),
+                                "code", tool.Tokens, [], tool.Name))],
+                            deferredMcp > 0 ? "What all of this server's tools cost if loaded. Deferred tools load only when Claude searches for them." : null,
+                            deferredMcp > 0 ? " if loaded" : ""))],
+                    deferredMcp > 0 ? $"Tools loaded at start. Deferred tools take {ClaudeContextUsageView.Tokens(deferredMcp)} tokens more: they load only when Claude searches for them." : null),
                 "MCP server instructions" => new("mcp-instructions", "MCP server instructions", "book", category.Tokens, []),
                 "Skills" => new("skills", "Skills", "sparkling", category.Tokens,
                     [.. breakdown.Skills.OrderByDescending(skill => skill.Tokens).Select(skill => new BaselineEntry("skills/" + skill.Name, skill.Name, "sparkling", skill.Tokens, [], skill.Source))]),
@@ -463,14 +470,38 @@ internal sealed class ClaudeConfigPanel : DockPanel
     // chevron after its name and opens them below it, indented a step.
     private void AddBaselineRow(Panel list, BaselineEntry entry, int depth)
     {
-        var line = new DockPanel { Name = "ClaudeContextBaseline", Tag = entry.Key, Margin = new Thickness(8 + depth * 16, 4, 8, 4), Background = Brushes.Transparent };
-        line.Children.Add(SizeColumn(Measure(entry.Tokens, Ui.Muted)));
         var open = expandedRows.Contains(entry.Key);
+        var line = BaselineLine(entry, depth, open);
+        list.Children.Add(line);
+        if (entry.Children.Count == 0) return;
+        var parts = new StackPanel { Name = "ClaudeContextBaselineParts", Tag = entry.Key, IsVisible = open };
+        foreach (var child in entry.Children) AddBaselineRow(parts, child, depth + 1);
+        list.Children.Add(parts);
+        line.PointerPressed += (_, args) =>
+        {
+            if (!args.GetCurrentPoint(line).Properties.IsLeftButtonPressed) return;
+            var nowOpen = !parts.IsVisible;
+            if (nowOpen) expandedRows.Add(entry.Key); else expandedRows.Remove(entry.Key);
+            parts.IsVisible = nowOpen;
+            ((Avalonia.Controls.Shapes.Path)((Panel)line.Children[^1]).Children[0]).Data = Geometry.Parse(nowOpen ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11");
+            args.Handled = true;
+        };
+    }
+
+    // One row's line. The name trims with an ellipsis (its tooltip has it whole) so it never runs under the chevron
+    // or the count: the chevron docks right inside a left-aligned panel, so it follows a short name and holds its
+    // place at the end of the name's room when the name is long.
+    internal static DockPanel BaselineLine(BaselineEntry entry, int depth, bool open)
+    {
+        var line = new DockPanel { Name = "ClaudeContextBaseline", Tag = entry.Key, Margin = new Thickness(8 + depth * 16, 4, 8, 4), Background = Brushes.Transparent };
+        line.Children.Add(SizeColumn(Measure(entry.Tokens, Ui.Muted, entry.Suffix)));
         var glyph = Ui.Icon(entry.Icon, Ui.Hint, 14);
         glyph.Margin = new Thickness(0, 0, 8, 0);
         glyph.VerticalAlignment = VerticalAlignment.Center;
         SetDock(glyph, Dock.Left);
         line.Children.Add(glyph);
+        var title = Title(entry.Label);
+        ToolTip.SetTip(title.Children[0], entry.Label);
         if (entry.Children.Count > 0)
         {
             var chevron = new Avalonia.Controls.Shapes.Path
@@ -485,27 +516,12 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 VerticalAlignment = VerticalAlignment.Center
             };
             line.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
-            var named = new StackPanel { Orientation = Orientation.Horizontal };
-            named.Children.Add(Title(entry.Label));
-            named.Children.Add(chevron);
-            line.Children.Add(named);
+            SetDock(chevron, Dock.Right);
+            line.Children.Add(new DockPanel { Name = "ClaudeContextNamed", HorizontalAlignment = HorizontalAlignment.Left, Children = { chevron, title } });
         }
-        else line.Children.Add(Title(entry.Label));
+        else line.Children.Add(title);
         if (entry.Tip is not null) ToolTip.SetTip(line, entry.Tip);
-        list.Children.Add(line);
-        if (entry.Children.Count == 0) return;
-        var parts = new StackPanel { Name = "ClaudeContextBaselineParts", Tag = entry.Key, IsVisible = open };
-        foreach (var child in entry.Children) AddBaselineRow(parts, child, depth + 1);
-        list.Children.Add(parts);
-        line.PointerPressed += (_, args) =>
-        {
-            if (!args.GetCurrentPoint(line).Properties.IsLeftButtonPressed) return;
-            var nowOpen = !parts.IsVisible;
-            if (nowOpen) expandedRows.Add(entry.Key); else expandedRows.Remove(entry.Key);
-            parts.IsVisible = nowOpen;
-            ((Avalonia.Controls.Shapes.Path)((Panel)line.Children[^1]).Children[^1]).Data = Geometry.Parse(nowOpen ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11");
-            args.Handled = true;
-        };
+        return line;
     }
 
     private Control ContextSurface(IReadOnlyList<ClaudeContextLayer> layers)

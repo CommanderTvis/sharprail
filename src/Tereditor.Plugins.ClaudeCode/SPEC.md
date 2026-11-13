@@ -295,7 +295,10 @@ dash), files `/context` lists that the resolver does not (nested instructions, r
 tereditor's instructions entry (the appended prompt file; never a separate file row), then Claude Code's own system prompt (less the appended file), built-in tools, MCP
 tools, MCP server instructions and skills; deferred tools, the `/context` message itself, free space and the
 autocompact reserve are not rows. MCP tools open, in the table's own row style with a chevron, into servers (heaviest
-first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
+first, with subtotals) and each server into its tools; Skills open into each skill. `/context`'s tool table lists every
+MCP tool, deferred ones included, while its "MCP tools" category counts only those loaded at start, so when tools are
+deferred a server's subtotal reads "N tokens if loaded" and the MCP tools row's tooltip names the deferred total. A row's
+name trims with an ellipsis (whole in its tooltip) before the chevron and the count, which keep their place. The header totals the rows as
 "N tokens in new session". Every amount says "1 token" for one and abbreviates to "tok"/"toks" where the row is
 narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "Measured 5m ago" (the same `ClaudeParts.Ago` phrasing as the account usage reading, the absolute time in the tooltip), that it is measuring, or why it
 failed, with Retry. Before a baseline exists rows show an ellipsis.
