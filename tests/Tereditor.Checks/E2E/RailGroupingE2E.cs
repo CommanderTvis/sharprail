@@ -87,11 +87,73 @@ internal static class RailGroupingE2E
         }
         Console.WriteLine("PASS rail grouping: sibling guide lines form one line from the icon, with the creator's workspace open or not");
 
+        // Selection changes colours only: with the creator's terminal selected, a nested workspace selected or neither, every row keeps its columns.
+        SteadyColumns(app, creatorWorkspace, terminal, [child, second], project);
+        // The same for a terminal in the project's Default workspace that created two workspaces.
+        app.Click(Select(app, project));
+        Until(() => Active(app, project));
+        app.Window.Layout.NewTerminal(app.Center);
+        var orchestrator = app.Window.Layout.Tabs(app.Center).Last(tab => tab.Kind == "terminal").Id;
+        // The creator is not the last tab, and the rail is narrow enough to shorten titles.
+        app.Window.Layout.NewTerminal(app.Center);
+        app.Window.Layout.Geometry(state => state.LeftWidth = .12);
+        var first = CreateWorkspaceViaDialog(app);
+        var last = CreateWorkspaceViaDialog(app);
+        app.State.RecordWorkspaceCreator(first, new TerminalRef(project, orchestrator));
+        app.State.RecordWorkspaceCreator(last, new TerminalRef(project, orchestrator));
+        Until(() => app.State.Current.WorkspaceCreators.Count == 6 && Item(app, last).Margin.Left > Item(app, project).Margin.Left);
+        SteadyColumns(app, project, orchestrator, [first, last], orphan);
+        Console.WriteLine("PASS rail grouping: selecting a terminal or a workspace moves no row, icon, title or guide line");
+
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
         Require(reloaded.Data.Preferences.GroupWorkspacesUnderCreator, "The preference must be stored and restored.");
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
             "The host must restore the recorded creator after a restart.");
         Console.WriteLine("PASS rail grouping: the preference and the creators are stored and restored");
+    }
+
+    /// <summary>Opens an unrelated workspace, then the creator with its tab selected by a click, then a nested workspace, and requires every column to stay within half a pixel.</summary>
+    private static void SteadyColumns(E2eWorkspace app, string creator, string tab, string[] children, string unrelated)
+    {
+        var live = "DockTab_" + tab.Replace(':', '_').Replace('/', '_');
+        (string Name, double X)[]? baseline = null;
+        foreach (var (open, state) in new[] { (unrelated, "neither selected"), (creator, "terminal selected"), (children[0], "workspace selected") })
+        {
+            app.Click(Select(app, open));
+            Until(() => Active(app, open));
+            if (open == creator)
+            {
+                // Selected as a click selects it: the tab is chosen and its pane focused, so the row wears the current look.
+                Until(() => Controls(app).Any(control => control.Name == live && control.IsEffectivelyVisible));
+                app.Click(Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Button>().First(button => button.Name == "Tab_" + live["DockTab_".Length..]));
+                Until(() => Controls(app).First(control => control.Name == live).GetVisualDescendants().OfType<Border>().Any(border => border.Name == "ActiveWorkspaceTab" && border.IsVisible));
+            }
+            Until(() => GuidesJoin(app, creator, tab, children[0], children[1]));
+            var columns = RailColumns(app, tab, live, [creator, .. children]);
+            baseline ??= columns;
+            static string Show((string Name, double X)[] items) => string.Join(", ", items.Select(item => $"{item.Name} {item.X:0.#}"));
+            Require(columns.Length == baseline.Length && columns.Zip(baseline).All(pair => pair.First.Name == pair.Second.Name && Math.Abs(pair.First.X - pair.Second.X) <= 0.5),
+                $"Rail rows keep their columns whichever row is selected ({state}): {Show(columns)}; expected {Show(baseline)}");
+        }
+    }
+
+    /// <summary>The window X of the creator tab's icon and title and of each workspace's icon, title and guide line.</summary>
+    private static (string Name, double X)[] RailColumns(E2eWorkspace app, string tab, string live, string[] workspaces)
+    {
+        double X(Control control) => (control.TranslatePoint(default, app.Window) ?? default).X;
+        static Control Role(Control row, RowRole role) => row.GetVisualDescendants().OfType<MarkedRow>().First().Children.First(child => child.GetValue(MarkedRow.RoleProperty) == role);
+        var row = Controls(app).First(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceTabPreview" && (string?)control.Tag == tab || control.Name == live));
+        var columns = new List<(string, double)> { ("tab icon", X(Role(row, RowRole.Leading))), ("tab title", X(Role(row, RowRole.Title))) };
+        foreach (var path in workspaces)
+        {
+            var item = Item(app, path);
+            var name = Path.GetFileName(path);
+            columns.Add((name + " icon", X(Role(item, RowRole.Leading))));
+            columns.Add((name + " title", X(Role(item, RowRole.Title))));
+            var guide = Named<Border>(item, "WorkspaceNestGuide");
+            if (guide.IsEffectivelyVisible) columns.Add((name + " guide", X(guide)));
+        }
+        return [.. columns];
     }
 
     /// <summary>Whether two children of one tab have guides that start at the tab's icon and touch, with no gap between the rows.</summary>
