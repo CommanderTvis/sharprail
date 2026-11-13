@@ -58,7 +58,7 @@ The script runs once per environment and its result is cached as a filesystem sn
 
 ## The call log
 
-With `TEREDITOR_LOG=1` the server writes `.tereditor/runs/<session>.jsonl` inside the VM. The VM is thrown away, and there is no way to download a file from it. Instead, ask Claude to print the file at the end, or to commit it on the session's branch (add `.tereditor/runs/` to `.git/info/exclude` first otherwise, and force-add it). Both are your own convention, not a tereditor feature. A log is lost if the session ends without one of them.
+With `TEREDITOR_LOG=1` the server writes `.tereditor/runs/<session>.jsonl` inside the VM. The VM is discarded when the session ends, so to keep the log, ask Claude to print it at the end or to commit it on the session's branch.
 
 ## Limits
 
