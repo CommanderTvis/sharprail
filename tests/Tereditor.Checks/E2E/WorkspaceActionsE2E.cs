@@ -24,6 +24,7 @@ internal static class WorkspaceActionsE2E
         DefaultMenu(Path.Combine(root, "actions-default"));
         RightClick(Path.Combine(root, "actions-right-click"));
         KeyboardMenu(Path.Combine(root, "actions-keyboard"));
+        OpenChanges(Path.Combine(root, "actions-open-changes"));
     }
 
     private static void OpenIn(string directory)
@@ -168,5 +169,32 @@ internal static class WorkspaceActionsE2E
         Require(MenuEntry(menu, "WorkspaceRename") is not null && MenuEntry(menu, "WorkspaceRemove") is not null && MenuEntry(menu, "WorkspaceCopyPath") is not null, "Shift+F10 on the focused row opens the full workspace menu.");
         CloseMenu(menu);
         Console.WriteLine("PASS workspace actions: the row has no three-dots button; Shift+F10 on the focused row opens its menu");
+    }
+
+    private static void OpenChanges(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var workspace = CreateWorkspaceViaDialog(app);
+        File.AppendAllText(Path.Combine(workspace, "README.md"), "An edit to review.\n");
+        bool Badged() => app.Window.GetLogicalDescendants().OfType<Grid>().Where(item => item.Name == "WorkspaceItem" && Equals(item.Tag, workspace))
+            .SelectMany(item => item.GetLogicalDescendants().OfType<StackPanel>()).Any(panel => panel.Name == "WorkspaceDiffStats" && panel.IsVisible);
+        Until(Badged);
+        app.Click(Select(app, app.Root));
+        Until(() => Active(app, app.Root));
+        Settle(300);
+
+        var clean = OpenWorkspaceMenu(app, app.Root);
+        var entries = clean.Items.OfType<MenuItem>().ToArray();
+        var index = Array.FindIndex(entries, item => item.Name == "WorkspaceOpenChanges");
+        Require(index > 0 && entries[index - 1].Name == "WorkspaceOpenIn" && Equals(entries[index].Header, "Open changes"), "Open changes follows Open in.");
+        Require(!entries[index].IsEnabled, "A workspace without changes offers Open changes disabled.");
+        CloseMenu(clean);
+
+        var dirty = OpenWorkspaceMenu(app, workspace);
+        Require(MenuEntry(dirty, "WorkspaceOpenChanges") is { IsEnabled: true }, "Another workspace with changes offers Open changes.");
+        Choose(app, dirty, "WorkspaceOpenChanges");
+        Until(() => Active(app, workspace) && app.Window.Layout.Selected(app.Center) is { Kind: "changes", Scope: "all" or "branch" } &&
+            app.Window.GetLogicalDescendants().OfType<Tereditor.UI.ChangesReviewPane>().Any(pane => pane.DiffFor("README.md") is not null));
+        Console.WriteLine("PASS workspace menu: Open changes switches to that workspace and opens its changes review; without changes it is disabled");
     }
 }

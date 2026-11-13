@@ -106,7 +106,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   belongs to Changes.
 - Right-click, or the menu key or Shift+F10 on the focused row, opens the workspace menu (rows have no three-dots button): Copy absolute path (first, with the CopyAbsolutePath icon), Copy link (enabled for the active workspace only), “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
-  found” rows), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
+  found” rows), Open changes (switches to that workspace, sets its Changes scope to All changes and opens the
+  scrolling all-files review; disabled while the rail's change totals show none, and, for the open workspace,
+  Git lists no changed file), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
   managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from tereditor, whose
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.

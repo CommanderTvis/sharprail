@@ -591,6 +591,13 @@ public sealed partial class WorkbenchWindow
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);
         menu.Items.Add(openIn);
+        // The rail's change totals tell every workspace's changes; the open one also counts files Git does not track yet.
+        var changes = Ui.Menu("Open changes", () => _ = OpenWorkspaceChangesAsync(worktree));
+        changes.Name = "WorkspaceOpenChanges";
+        void ScopeChanges() => changes.IsEnabled = workspaceStats.GetValueOrDefault(worktree.Path) is { Added: > 0 } or { Removed: > 0 } ||
+            !atHome && worktree.Path == workspaceRoot && git.Changes.Count > 0;
+        ScopeChanges(); menu.Opening += (_, _) => ScopeChanges(); menu.Opened += (_, _) => ScopeChanges();
+        menu.Items.Add(changes);
         var copyName = Ui.Menu("Copy name", () => _ = CopyTextAsync(WorkspaceName(worktree.Path)));
         copyName.Name = "WorkspaceCopyName";
         menu.Items.Add(copyName);

@@ -30,6 +30,16 @@ public sealed partial class WorkbenchWindow
         Layout.Open(tab, true, destination);
     }
 
+    /// <summary>A workspace menu's Open changes: that workspace's All changes review, switching to it first.</summary>
+    private async Task OpenWorkspaceChangesAsync(WorkspaceRecord worktree)
+    {
+        if (!WorkspaceMounted || atHome || worktree.Path != workspaceRoot) await OpenWorkspaceAsync(worktree.Path, worktree.ProjectRoot != projectRoot);
+        if (!WorkspaceMounted || atHome || worktree.Path != workspaceRoot) return;
+        selectedCommit = null; changeScope = "All changes"; SaveGitSelection();
+        _ = RefreshGitAsync(projectRequest);
+        Layout.Open(ChangesTab(), true);
+    }
+
     private void OpenChanges(GitChange change)
     {
         var request = BeginNavigation();
