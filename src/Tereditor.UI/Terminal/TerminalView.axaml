@@ -34,7 +34,7 @@
           </StackPanel>
           <TextBlock x:Name="TerminalGuardNoticeText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
         </DockPanel>
-        <StackPanel x:Name="TerminalGuardNoticeLines" IsVisible="False" Spacing="2" Margin="0,0,0,6" />
+        <StackPanel x:Name="TerminalGuardNoticeLines" IsVisible="False" Spacing="2" Margin="0,0,0,8" />
       </StackPanel>
     </Border>
     </StackPanel>

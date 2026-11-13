@@ -383,9 +383,9 @@ internal static class PluginsSettingsScrollChecks
         {
             var manifests = Tereditor.Host.Core.Plugins.BuiltinPlugins.All.Select(item => item.Manifest).ToArray();
             var panel = new StackPanel();
-            // The user wants Air Gateway without an icon anywhere, so it is the one builtin allowed to declare none.
-            const string Iconless = "air-gateway";
-            var icons = manifests.Where(manifest => manifest.Id != Iconless).Select(manifest =>
+            // The user wants Air Gateway and Air Context without an icon anywhere, so they are the builtins allowed to declare none.
+            string[] iconless = ["air-gateway", "air-context"];
+            var icons = manifests.Where(manifest => !iconless.Contains(manifest.Id)).Select(manifest =>
             {
                 var entry = new PluginRosterEntry(manifest.Id, manifest.Label, manifest.Icon, manifest.Version, manifest.WireVersion, PluginOrigin.Builtin, PluginStatus.Active) { Assets = manifest.Assets };
                 var icon = PluginIcons.Resolve(entry.Icon, entry, null, 16);
@@ -406,10 +406,12 @@ internal static class PluginsSettingsScrollChecks
             var github = manifests.Single(manifest => manifest.Id == "github");
             Require(github.Icon == "asset:github.svg" && github.Assets is { } githubAssets && File.Exists(Path.Combine(AppContext.BaseDirectory, "plugins", "github", githubAssets, "github.svg")),
                 "GitHub must declare its mark and ship it with the host.");
-            var air = manifests.Single(manifest => manifest.Id == Iconless);
-            var airMark = PluginIcons.Resolve(air.Icon, null, Ui.Muted);
-            Require(air.Icon.Length == 0 && air.Assets is null && !airMark.GetVisualDescendants().OfType<Image>().Any() && airMark is Border { Width: 16, Height: 16 },
-                "Air Gateway declares no icon, and its Settings row and Plugins card keep an empty slot of the icon size.");
+            foreach (var air in manifests.Where(manifest => iconless.Contains(manifest.Id)))
+            {
+                var airMark = PluginIcons.Resolve(air.Icon, null, Ui.Muted);
+                Require(air.Icon.Length == 0 && air.Assets is null && !airMark.GetVisualDescendants().OfType<Image>().Any() && airMark is Border { Width: 16, Height: 16 },
+                    $"{air.Label} declares no icon, and its Settings row and Plugins card keep an empty slot of the icon size.");
+            }
             foreach (var (manifest, host) in Tereditor.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries.Where(entry => entry.Host is Tereditor.Plugins.Api.Host.LanguageServerPlugin))
             {
                 var server = (Tereditor.Plugins.Api.Host.LanguageServerPlugin)host!;
