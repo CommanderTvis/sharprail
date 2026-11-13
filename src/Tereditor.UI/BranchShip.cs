@@ -140,7 +140,7 @@ public sealed partial class WorkbenchWindow
         if (remoteIcon is not null) return;
         var remoteRow = this.FindControl<DockPanel>("RemoteRow")!;
         remoteCaption = this.FindControl<TextBlock>("RemoteCaption")!;
-        remoteIcon = ShipIcon("RemoteIcon", "network", Ui.Muted);
+        remoteIcon = ShipIcon("RemoteIcon", "cloud", Ui.Muted);
         remotePublish = ShipButton("RemotePublish", "Publish", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
         remotePush = ShipButton("RemotePush", "Push", () => { if (branchStatus is { } status) _ = PushBranchAsync(status); });
         remoteSync = ShipButton("RemoteSync", "Sync", () => { if (branchStatus is { } status) _ = SyncBranchAsync(status); });

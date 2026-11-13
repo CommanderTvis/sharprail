@@ -29,7 +29,7 @@ internal static class IconChecks
     {
         var root = new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Icons/");
         var assets = AssetLoader.GetAssets(root, null).Where(uri => uri.AbsolutePath.EndsWith(".svg", StringComparison.Ordinal)).ToArray();
-        Require(assets.Length == 80, "Every existing glyph alias plus Host's server, the terminal bell and the Chrome mark must have a vector asset.");
+        Require(assets.Length == 81, "Every existing glyph alias plus Host's server, the terminal bell, the git Remote block's cloud and the Chrome mark must have a vector asset.");
         foreach (var uri in assets)
         {
             var name = Path.GetFileNameWithoutExtension(uri.AbsolutePath);
