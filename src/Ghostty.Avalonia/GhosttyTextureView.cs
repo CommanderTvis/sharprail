@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SkiaSharp;
 
@@ -41,7 +42,15 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     // Ghostty gives back a hidden or detached surface's GPU targets once it has stayed so this long; a quick tab flip
     // finds them untouched. Reclaiming keeps the grid, the PTY and the last presented frame.
     internal static readonly TimeSpan DefaultReclaimDelay = TimeSpan.FromSeconds(5);
+    // A surface hidden this long also lets go of its last presented frame, the one pane-sized texture it still held, so a
+    // terminal nobody looks at owns no GPU memory. Showing it again draws a fresh frame; until that completes (a few
+    // milliseconds) the view paints nothing, so only a terminal left alone this long can show a blank frame, never a quick flip.
+    internal static readonly TimeSpan DefaultDropDelay = TimeSpan.FromSeconds(30);
     private readonly DispatcherTimer reclaimTimer = new() { Interval = DefaultReclaimDelay };
+    private readonly DispatcherTimer dropTimer = new() { Interval = DefaultDropDelay };
+    /// <summary>Times the last presented frame was let go (a hide shorter than the delay never counts).</summary>
+    internal int Drops { get; private set; }
+    internal TimeSpan DropDelay { get => dropTimer.Interval; set => dropTimer.Interval = value; }
     private bool occluded;
     /// <summary>Times the native reclaim was requested (a hide shorter than the delay never counts).</summary>
     internal int Reclaims { get; private set; }
@@ -68,6 +77,13 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             if (disposed || !occluded) return;
             Reclaims++;
             Native.Reclaim(terminal.Handle);
+        };
+        dropTimer.Tick += (_, _) =>
+        {
+            dropTimer.Stop();
+            if (disposed || !occluded) return;
+            Drops++;
+            Native.Drop(source);
         };
         frameReady = NotifyFrame;
         frameNotified = FrameNotified;
@@ -137,6 +153,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         settle.ApplyNext();
         Resize();
         lock (frameLock) active = true;
+        WatchAncestors();
         shown = true;
         Volatile.Write(ref notificationPending, 0);
         highlightDirty = true;
@@ -146,14 +163,37 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         InvalidateVisual();
     }
 
+    // A view hidden through an ancestor (another workspace's tabs, a collapsed drawer) stays attached, so its own flag never
+    // changes: the ancestors' flags are watched while attached, and the view is occluded when any of them hides it.
+    private readonly List<Visual> watchedAncestors = [];
+
+    private void WatchAncestors()
+    {
+        UnwatchAncestors();
+        foreach (var ancestor in this.GetVisualAncestors()) { ancestor.PropertyChanged += AncestorChanged; watchedAncestors.Add(ancestor); }
+    }
+
+    private void UnwatchAncestors()
+    {
+        foreach (var ancestor in watchedAncestors) ancestor.PropertyChanged -= AncestorChanged;
+        watchedAncestors.Clear();
+    }
+
+    private void AncestorChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != IsVisibleProperty || !active || disposed) return;
+        var hidden = !IsVisible || watchedAncestors.Any(ancestor => !ancestor.IsVisible);
+        if (hidden != occluded) SetOccluded(hidden);
+    }
+
     // Occlusion pauses Ghostty's drawing; staying occluded past the delay frees its GPU targets, and showing the view
     // again cancels that or redraws at the unchanged size (the last frame stays presentable meanwhile).
     private void SetOccluded(bool hidden)
     {
         if (disposed) return;
         occluded = hidden;
-        if (hidden) reclaimTimer.Start();
-        else reclaimTimer.Stop();
+        if (hidden) { reclaimTimer.Start(); dropTimer.Start(); }
+        else { reclaimTimer.Stop(); dropTimer.Stop(); }
         Native.Visible(terminal.Handle, !hidden);
     }
 
@@ -276,7 +316,11 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     // Maximize and full screen are single jumps, not a gesture.
     private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property == Window.WindowStateProperty) settle.ApplyNext();
+        if (e.Property != Window.WindowStateProperty) return;
+        settle.ApplyNext();
+        // A minimised window shows no terminal: occlude it like a hidden one, and show it again when the window returns.
+        if (active && !disposed && sender is Window window && (window.WindowState == WindowState.Minimized || !IsEffectivelyVisible) != occluded)
+            SetOccluded(!occluded);
     }
 
     private void ScalingChanged(object? sender, EventArgs e) { settle.ApplyNext(); Resize(); }
@@ -334,6 +378,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         highlights?.Clear();
         ClearHighlights();
         lock (frameLock) active = false;
+        UnwatchAncestors();
         if (!disposed) Native.Notify(source, null);
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;
         if (topLevel is Window window) window.PropertyChanged -= WindowChanged;
@@ -353,6 +398,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             highlights?.Dispose();
             highlightTimer.Stop();
             reclaimTimer.Stop();
+            dropTimer.Stop();
             active = false;
             Native.Stop(source);
             Native.Release(source);

@@ -381,7 +381,16 @@ composition has a frame. Grid, PTY size (no SIGWINCH), scrollback, screen and cu
 while hidden is parsed as usual and shows after the next draw, and a hidden view posts no frame notifications. Reclaim is
 idempotent and runs only while the surface is occluded. `--native-surface-memory` measures it (8 terminals at 1400x900:
 IOSurface 523 MB visible, 252 MB with 7 hidden past the delay, 523 MB when shown again) and checks the properties above.
-An ancestor hidden while the view stays attached does not occlude it. The latest completed target and in-flight readers remain bounded by Ghostty's
+A view also follows its ancestors' `IsVisible` flags while attached (another workspace's tabs, a collapsed drawer hide a
+terminal that way and never detach it), and a minimised window occludes it, so a terminal nobody looks at is always
+occluded and Ghostty frees its whole swap chain. The one texture it still holds is the last presented frame, kept so a quick
+tab flip shows content at once; after 30 seconds hidden (`DefaultDropDelay`, `gav_texture_drop`) the view lets that go too, so a
+terminal left alone owns no GPU memory. Showing it again draws a fresh frame, and until that completes (a few milliseconds) the
+view paints nothing: only a terminal hidden for 30 seconds or more can show one blank frame, a quick flip never does.
+To verify in the running app (the checks that open windows are not run by agents): restart `mise run native`, open six
+terminals in different workspaces or projects, view one, wait 35 seconds, then run `footprint <pid>` (or `vmmap -summary <pid>`)
+and compare "owned unmapped (graphics)" and IOSurface with the same state before this change (about 35 MB per kept terminal frame).
+`--native-surface-memory` measures the same properties with a fixed set of views (steps c4 to c7). The latest completed target and in-flight readers remain bounded by Ghostty's
 three render targets. Resize, remount and disposal must release old targets. The native Ghostty build preserves enlarged scrollback
 page allocations when recycling them, without reducing retained history limits.
 Reusing the latest target must leave a completed frame available to the compositor

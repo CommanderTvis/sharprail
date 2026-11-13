@@ -72,6 +72,32 @@ internal static partial class NativeSurfaceMemoryMeasure
                 await Record($"{size} c3 7 shown again");
                 for (var index = 0; index < views.Count; index++)
                     Require(views[index].ReadScreen().Contains($"shown again {index} 3", StringComparison.Ordinal), $"Terminal {index} lost content across reclaim.");
+                // Hidden through an ancestor (another workspace's tabs, a collapsed drawer), the views stay attached and visible
+                // themselves; they must still be occluded, free their targets and, after the drop delay, their last frame.
+                var holder = new Panel();
+                foreach (var view in views.Skip(1)) { panel.Children.Remove(view); holder.Children.Add(view); }
+                panel.Children.Add(holder);
+                foreach (var view in views.Skip(1)) { view.ReclaimDelay = TimeSpan.FromSeconds(1); view.DropDelay = TimeSpan.FromHours(1); }
+                await Task.Delay(500);
+                await Record($"{size} c4 7 shown, in a holder");
+                holder.IsVisible = false;
+                await Record($"{size} c5 7 hidden by ancestor");
+                foreach (var view in views.Skip(1)) view.DropDelay = TimeSpan.FromSeconds(1);
+                await Record($"{size} c6 7 hidden, last frame dropped");
+                Require(views.Skip(1).All(view => view.Drops == 1), "Terminals hidden through an ancestor did not drop their last frame once.");
+                var dropped = rows[^1];
+                Require(dropped.Surface < rows[^3].Surface * 0.4, $"Dropping left {dropped.Surface:0.0} MB of IOSurface of {rows[^3].Surface:0.0} MB.");
+                holder.IsVisible = true;
+                for (var round = 0; round < 4; round++)
+                {
+                    for (var index = 0; index < views.Count; index++) views[index].WriteOutput(Encoding.UTF8.GetBytes($"back again {index} {round}\r\n"));
+                    await Task.Delay(300);
+                }
+                await Record($"{size} c7 7 shown again");
+                for (var index = 0; index < views.Count; index++)
+                    Require(views[index].ReadScreen().Contains($"back again {index} 3", StringComparison.Ordinal), $"Terminal {index} lost content across the drop.");
+                foreach (var view in views.Skip(1)) { holder.Children.Remove(view); panel.Children.Add(view); }
+                panel.Children.Remove(holder);
                 if (width != Sizes[0].Width) continue;
                 foreach (var view in views.Skip(1)) view.IsVisible = false;
                 foreach (var view in views.Skip(1)) panel.Children.Remove(view);

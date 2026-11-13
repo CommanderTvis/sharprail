@@ -35,6 +35,7 @@ void gav_texture_notify(void *frames, gav_texture_callback callback);
 void *gav_texture_acquire(void *frames, int32_t *width, int32_t *height, void **lease);
 void gav_texture_return(void *lease);
 void gav_texture_stop(void *frames);
+void gav_texture_drop(void *frames);
 int32_t gav_texture_retained_count(void *frames);
 void gav_texture_release(void *surface);
 void gav_texture_resize(void *view, double width, double height, double scale);

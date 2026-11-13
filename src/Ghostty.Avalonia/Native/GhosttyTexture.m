@@ -131,4 +131,14 @@ void gav_texture_stop(void *pointer) {
     [frames.condition unlock];
 }
 
+// Lets go of the last presented frame, the one texture a hidden surface still holds. A reader that has it leased keeps it alive
+// until it returns the lease; the next completed frame replaces it.
+void gav_texture_drop(void *pointer) {
+    GAVTextureFrames *frames = (__bridge GAVTextureFrames *)pointer;
+    [frames.condition lock];
+    frames.latest = nil;
+    [frames.condition broadcast];
+    [frames.condition unlock];
+}
+
 void gav_texture_release(void *handle) { if (handle) CFRelease(handle); }

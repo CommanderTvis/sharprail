@@ -186,6 +186,10 @@ thread before releasing callback state; it does not close the caller's PTY.
 occluded, replaces the swap chain's targets other than the last presented one with 1x1 targets. The next draws recreate
 them at the surface size, so no grid, PTY or terminal state changes. `GhosttyTextureView` occludes a hidden or detached
 view and requests the reclaim after five seconds (`DefaultReclaimDelay`), cancelling it on show.
+The view occludes itself when it, any ancestor (`IsVisible` flags are watched while attached) or its window (minimised) hides it,
+not only when it detaches. Ghostty then releases its whole swap chain; after `DefaultDropDelay` (30 s) hidden the view also
+calls `gav_texture_drop`, which lets go of the last presented frame (`GhosttyTexture.m`), the one pane-sized texture a hidden
+surface still held. The next visible draw presents a new frame; until then nothing is painted.
 
 `ExternalIo.patch` adds this backend to pinned Ghostty and exposes its existing
 locked output parser through the C ABI. It creates no subprocess, socket or RPC
