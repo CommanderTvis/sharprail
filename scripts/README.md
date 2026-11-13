@@ -30,7 +30,7 @@ The Release build uses the memory settings in `DesktopGc.props` and the idle mem
 scripts/mise run native
 ```
 
-Publishes the desktop app as NativeAOT for this machine (OS, architecture and CPU: `IlcInstructionSet=native`, optimisation preference Speed) into `artifacts/native` and runs it; additional arguments go to the app, and the environment is the same as `run dev`. `--no-run` only publishes and prints the executable's path, `--print` prints the commands without running them. The compile takes minutes and several GB of memory and deliberately bypasses the agent queue: agents never run it.
+Publishes the desktop app as NativeAOT for this machine (OS, architecture and CPU: `IlcInstructionSet=native`, optimisation preference Speed) into `artifacts/native` and runs it (on macOS from `artifacts/native/tereditor.app`, so the Dock shows the bundle's icon in the system's icon style); additional arguments go to the app, and the environment is the same as `run dev`. `--no-run` only publishes and prints the executable's path, `--print` prints the commands without running them. The compile takes minutes and several GB of memory and deliberately bypasses the agent queue: agents never run it.
 
 ### Browser
 

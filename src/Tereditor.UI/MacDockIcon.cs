@@ -5,8 +5,9 @@ using Avalonia.Platform;
 namespace Tereditor.UI;
 
 /// <summary>
-/// An app started outside a bundle (<c>run dev</c>, <c>run native</c>) has no bundle icon, so macOS shows a generic one in the
-/// Dock; this gives it the app icon at runtime. A bundled app keeps the icon its bundle names.
+/// An app started outside a bundle (<c>run dev</c>) has no bundle icon, so macOS shows a generic one in the Dock; this gives
+/// it the app icon at runtime. A bundled app (the package, <c>run native</c> on macOS) keeps the icon its bundle names, the
+/// compiled asset catalog that macOS draws in the user's icon style, which a picture set here would replace.
 /// </summary>
 public static class MacDockIcon
 {

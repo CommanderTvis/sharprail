@@ -177,7 +177,7 @@ description = "Build the desktop app from source and run it in Release (TEREDITO
 run = "dotnet run --file scripts/tasks/dev.cs --"
 
 [tasks.native]
-description = "Publish the desktop app as NativeAOT tuned to this machine's CPU (IlcInstructionSet=native) into artifacts/native and run it (--no-run to only publish, --print to show the commands); not queued, uses several GB"
+description = "Publish the desktop app as NativeAOT tuned to this machine's CPU (IlcInstructionSet=native) into artifacts/native and run it, on macOS as artifacts/native/tereditor.app (--no-run to only publish, --print to show the commands); not queued, uses several GB"
 run = "dotnet run --file scripts/tasks/native.cs --"
 
 [tasks.host]

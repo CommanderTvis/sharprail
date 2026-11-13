@@ -1,6 +1,8 @@
 #!/usr/bin/env dotnet
 // `scripts/mise run native [--no-run] [--print] [app arguments]`: publishes the desktop app as NativeAOT for this machine's OS,
 // architecture and CPU (IlcInstructionSet=native, optimisation preference Speed) into artifacts/native, then starts it.
+// On macOS it then wraps the output in artifacts/native/tereditor.app and starts the executable inside it, so the Dock and
+// Finder take the bundle's compiled icon (and with it the system's icon styles) and the terminal keeps the app's output.
 // --no-run publishes and prints the executable's path; --print only prints the commands it would run. Anything else goes to the app.
 // This is the user's own build: it does not go through the agent compile queue, and agents never run it.
 #:include ../lib/Tasks.cs
@@ -23,8 +25,10 @@ return Guard(() =>
     };
     var rid = $"{system}-{architecture}";
     var output = At("artifacts", "native");
-    // macOS names an unbundled app in the Dock after its executable, so there it carries the packages' name.
-    var executable = Path.Combine(output, OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : OperatingSystem.IsMacOS() ? AppExecutable : "Tereditor.UI");
+    // macOS runs it from an app bundle laid out like the package's (same identifier, so settings and state stay where they are).
+    var bundle = Path.Combine(output, "tereditor.app");
+    var executable = OperatingSystem.IsMacOS() ? Path.Combine(bundle, "Contents", "MacOS", AppExecutable)
+        : Path.Combine(output, OperatingSystem.IsWindows() ? "Tereditor.UI.exe" : "Tereditor.UI");
     // Same locked restore as the packages (it also fetches the ILCompiler pack); the publish then reuses it.
     string[] restore = ["restore", "Tereditor.slnx", "-p:SelfContained=true", "-p:PublishReadyToRun=true"];
     // NativeAot.props already sets PublishAot and trimming; this adds what is specific to this build: code for this CPU's
@@ -35,12 +39,19 @@ return Guard(() =>
     {
         Console.WriteLine($"{Dotnet} {string.Join(' ', restore)}");
         Console.WriteLine($"{Dotnet} {string.Join(' ', publish)}");
+        if (OperatingSystem.IsMacOS()) Console.WriteLine($"(lay out {bundle} around the output)\ncodesign --force --deep --sign - {bundle}");
         Console.WriteLine(noRun ? "(no run)" : $"{executable} {string.Join(' ', appArgs)}".TrimEnd());
         return 0;
     }
     Check(Dotnet, restore);
     Check(Dotnet, publish);
-    if (OperatingSystem.IsMacOS()) RenameExecutable(output, "Tereditor.UI", AppExecutable);
+    if (OperatingSystem.IsMacOS())
+    {
+        // The restamp in the layout breaks the linker's ad-hoc signature, and Apple silicon runs no unsigned code.
+        DeleteAll(Path.Combine(output, AppExecutable)); // left in the output by runs from before the bundle
+        LayOutMacBundle(output, bundle);
+        Check("codesign", ["--force", "--deep", "--sign", "-", bundle]);
+    }
     if (noRun)
     {
         Console.WriteLine(executable);

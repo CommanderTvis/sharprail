@@ -30,6 +30,88 @@ static class Tasks
         return target;
     }
 
+    /// <summary>The app icon's Icon Composer document and its compiled outputs, checked in (`scripts/mise run icon:macos`).</summary>
+    public const string IconDocument = "src/Tereditor.UI/tereditor.icon", IconOutput = "src/Tereditor.UI/AppIcon/compiled",
+        IconHashFile = IconOutput + "/tereditor.icon.sha256";
+
+    /// <summary>A hash of the icon document's files (relative path and content, in path order).</summary>
+    public static string IconHash()
+    {
+        var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        foreach (var file in Directory.EnumerateFiles(IconDocument, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(Path.GetRelativePath(IconDocument, file).Replace('\\', '/') + "\n"));
+            hash.AppendData(File.ReadAllBytes(file));
+        }
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    public static void VerifyIcon()
+    {
+        if (!File.Exists(IconHashFile) || !File.Exists(Path.Combine(IconOutput, "Assets.car")) || !File.Exists(Path.Combine(IconOutput, "tereditor.icns")) ||
+            File.ReadAllText(IconHashFile).Trim() != IconHash())
+            throw new TaskFailure($"The compiled app icon in {IconOutput} is missing or does not match {IconDocument}; run `scripts/mise run icon:macos` (needs Xcode 26 or newer) and commit the result.");
+    }
+
+    /// <summary>
+    /// Lays out a macOS app bundle at <paramref name="bundle"/> (removed first) around the UI's publish output
+    /// <paramref name="published"/>: the executable and its native libraries in Contents/MacOS, terminfo and the built-in
+    /// plugins in Contents/Resources, the Info.plist, and the compiled icon. The executable is renamed to
+    /// <see cref="AppExecutable"/> and restamped as built with SDK 26, which breaks its signature: the caller signs the
+    /// bundle once it has added its own files. Returns the Resources directory.
+    /// </summary>
+    public static string LayOutMacBundle(string published, string bundle)
+    {
+        DeleteAll(bundle);
+        var macOS = Path.Combine(bundle, "Contents", "MacOS");
+        var resources = Path.Combine(bundle, "Contents", "Resources");
+        Directory.CreateDirectory(macOS);
+        Directory.CreateDirectory(resources);
+        // The shell glob this replaced skipped names that start with a dot; a bundle kept inside the output stays out.
+        foreach (var item in Directory.EnumerateFileSystemEntries(published).Where(path => !Path.GetFileName(path).StartsWith('.') && !path.EndsWith(".app", StringComparison.Ordinal)))
+        {
+            var name = Path.GetFileName(item);
+            if (name is "terminfo" or "plugins")
+            {
+                Copy(item, Path.Combine(resources, name));
+                if (name == "plugins") File.CreateSymbolicLink(Path.Combine(macOS, "plugins"), "../Resources/plugins");
+            }
+            else CopyInto(item, macOS);
+        }
+        WriteLf(Path.Combine(bundle, "Contents", "Info.plist"), $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0"><dict>
+            <key>CFBundleExecutable</key><string>{AppExecutable}</string>
+            <key>CFBundleIdentifier</key><string>dev.thinkrail.tereditor</string>
+            <key>CFBundleName</key><string>tereditor</string>
+            <key>CFBundleVersion</key><string>1</string>
+            <key>CFBundleShortVersionString</key><string>0.2.0</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleIconFile</key><string>tereditor</string>
+            <key>CFBundleIconName</key><string>tereditor</string>
+            <key>NSHighResolutionCapable</key><true/>
+            </dict></plist>
+
+            """);
+        // Tahoe rounds windows by the SDK the executable was linked against: a 15.x stamp keeps the old small corner
+        // radius, so the executable is restamped as built with SDK 26 (the caller redoes the signature).
+        var exe = File.Exists(Path.Combine(macOS, "Tereditor.UI")) ? RenameExecutable(macOS, "Tereditor.UI", AppExecutable) : Path.Combine(macOS, AppExecutable);
+        var (_, show) = Capture("xcrun", ["vtool", "-show-build", exe]);
+        var minos = show.Split('\n').Select(line => line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
+            .FirstOrDefault(fields => fields.Any(field => field.Contains("minos")) && fields.Length > 1)?[1] ?? "";
+        if (Capture("xcrun", ["vtool", "-set-build-version", "macos", minos, "26.0", "-replace", "-output", exe + ".stamped", exe], discardError: true).Code != 0)
+            throw new TaskFailure("xcrun vtool -set-build-version failed");
+        File.Move(exe + ".stamped", exe, true);
+        MakeExecutable(exe);
+        // The icon: the compiled Icon Composer document (Assets.car, which macOS 26 draws with the system shape, Liquid Glass and
+        // the user's icon style via CFBundleIconName, and tereditor.icns at every size for older macOS via CFBundleIconFile) is
+        // checked in, so a bundle needs no actool; the hash file ties it to the document.
+        VerifyIcon();
+        foreach (var file in new[] { "Assets.car", "tereditor.icns" }) File.Copy(Path.Combine(IconOutput, file), Path.Combine(resources, file), true);
+        return resources;
+    }
+
     /// <summary>The dotnet to run builds with: DOTNET when set, else the one on PATH (the pinned SDK under mise).</summary>
     public static string Dotnet => Environment.GetEnvironmentVariable("DOTNET") is { Length: > 0 } dotnet ? dotnet : "dotnet";
 

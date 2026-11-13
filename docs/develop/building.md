@@ -24,7 +24,7 @@ open artifacts/tereditor.app
 scripts/mise run native
 ```
 
-Publishes the desktop app as NativeAOT with `IlcInstructionSet=native` and `OptimizationPreference=Speed` into `artifacts/native` and runs it (`--no-run` publishes only, `--print` shows the commands). The binary is tied to this machine's CPU and may not start on another one. The publish is slow compared with `mise run dev` and uses several GB of memory, and it does not go through `queue-heavy`; use it only for profiling or for daily use of an optimised build. Agents never run it.
+Publishes the desktop app as NativeAOT with `IlcInstructionSet=native` and `OptimizationPreference=Speed` into `artifacts/native` and runs it, on macOS from the bundle `artifacts/native/tereditor.app` so the Dock shows the app icon in the system's icon style (`--no-run` publishes only, `--print` shows the commands). The binary is tied to this machine's CPU and may not start on another one. The publish is slow compared with `mise run dev` and uses several GB of memory, and it does not go through `queue-heavy`; use it only for profiling or for daily use of an optimised build. Agents never run it.
 
 ## Memory
 
