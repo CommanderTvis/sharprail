@@ -193,12 +193,12 @@ internal static class AwayNotificationChecks
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         Switch Toggle() => settings.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "NotificationsEnabled");
-        Require(Toggle().IsChecked, "Settings shows notifications on by default.");
+        Require(Toggle().IsChecked == true, "Settings shows notifications on by default.");
         app.Click(Toggle(), freshGesture: false);
-        Until(() => !app.State.Current.Settings.NotificationsEnabled && !Toggle().IsChecked);
+        Until(() => !app.State.Current.Settings.NotificationsEnabled && Toggle().IsChecked == false);
         Require(notifier.PermissionRequests == 0, "Turning notifications off asks the system for nothing.");
         app.Click(Toggle(), freshGesture: false);
-        Until(() => app.State.Current.Settings.NotificationsEnabled && Toggle().IsChecked);
+        Until(() => app.State.Current.Settings.NotificationsEnabled && Toggle().IsChecked == true);
         Require(notifier.PermissionRequests == 1, "Turning notifications on asks the system for permission while the user is present.");
         settings.Close();
 

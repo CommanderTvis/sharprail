@@ -24,7 +24,7 @@ internal static class SwitchChecks
         var changes = fixture.Changes;
         var control = fixture.FindControl<Switch>("FeatureSwitch")!;
         var convenience = new Switch("Convenience switch", true, changes.Add);
-        Require(convenience.Label == "Convenience switch" && convenience.IsChecked && changes.Count == 0,
+        Require(convenience.Label == "Convenience switch" && convenience.IsChecked == true && changes.Count == 0,
             "The convenience constructor initializes controlled state without requesting a change.");
         var window = new Window
         {
@@ -38,8 +38,8 @@ internal static class SwitchChecks
             Settle();
             var peer = ControlAutomationPeer.CreatePeerForElement(control)!;
             var toggle = peer.GetProvider<IToggleProvider>()!;
-            Require(peer.GetName() == "Enable feature" && peer.GetAutomationControlType() == AutomationControlType.CheckBox &&
-                toggle.ToggleState == ToggleState.Off, "The switch exposes its accessible label and unchecked state.");
+            Require(peer.GetName() == "Enable feature" && peer.GetAutomationControlType() == AutomationControlType.Button &&
+                toggle.ToggleState == ToggleState.Off, "The switch keeps ToggleSwitch's own peer with its accessible label and unchecked state.");
             Require(!control.GetVisualDescendants().OfType<TextBlock>().Any(), "The switch has no visible On/Off text.");
             Require(control.Bounds.Size == new Size(40, 24), "The switch retains the fork's target dimensions.");
             var track = control.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "Track");
@@ -56,7 +56,15 @@ internal static class SwitchChecks
                 Settle();
             }
             Click();
-            Require(changes.SequenceEqual([true]) && !control.IsChecked, "One mouse activation requests the next controlled state once.");
+            Require(changes.SequenceEqual([true]) && control.IsChecked == false, "One mouse activation requests the next controlled state once.");
+            var drag = control.TranslatePoint(new Point(10, 12), window)!.Value;
+            window.MouseDown(drag, MouseButton.Left);
+            window.MouseMove(drag + new Point(12, 0), RawInputModifiers.LeftMouseButton);
+            window.MouseUp(drag + new Point(12, 0), MouseButton.Left);
+            Settle();
+            Require(control.IsChecked == false && thumb.TranslatePoint(default, track)!.Value.X == 2 && changes.SequenceEqual([true, true]),
+                "Dragging the thumb only requests the next state; it never moves the owner's state itself.");
+            changes.RemoveAt(1);
             var automationChanges = 0;
             peer.PropertyChanged += (_, _) => automationChanges++;
             control.IsChecked = true;
@@ -71,10 +79,10 @@ internal static class SwitchChecks
             Settle();
             Require(changes.SequenceEqual([true, false]), "Space requests the next state once.");
             toggle.Toggle();
-            Require(changes.SequenceEqual([true, false, false]) && control.IsChecked, "Automation requests the controlled next state once.");
+            Require(changes.SequenceEqual([true, false, false]) && control.IsChecked == true, "Automation requests the controlled next state once.");
             control.IsEnabled = false;
             Click();
-            toggle.Toggle();
+            Require(Throws(toggle.Toggle), "Automation refuses to toggle a disabled switch.");
             Require(changes.Count == 3, "Disabled mouse and automation activation make no request.");
             foreach (var palette in Themes.All)
             {
@@ -102,5 +110,11 @@ internal static class SwitchChecks
             window.Close();
             Ui.Apply(theme);
         }
+    }
+
+    private static bool Throws(Action action)
+    {
+        try { action(); return false; }
+        catch (Avalonia.Automation.ElementNotEnabledException) { return true; }
     }
 }

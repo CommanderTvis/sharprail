@@ -82,11 +82,12 @@ both axes are clipped only the vertical curtains show. Terminals keep Ghostty's 
 
 ## Boundary
 
-The fork's shared `Switch` exposes a label and controlled checked state without visible On/Off text.
-Its compiled template keeps a 40×24 target, 36×20 track and 16×16 thumb. Mouse, keyboard and
-automation activation request the next value exactly once; the caller updates the checked value.
-Disabled switches and handled click events make no request. Automation reports the label and toggle
-state. Checked, unchecked, hover, focus and disabled colors follow the shared theme brushes.
+The fork's shared `Switch` is Avalonia's `ToggleSwitch` with a label and controlled checked state,
+without visible On/Off text. Its compiled template keeps a 40×24 target, 36×20 track and 16×16 thumb.
+Mouse, keyboard and automation activation request the next value exactly once instead of flipping it;
+the caller updates the checked value. Dragging the thumb is a click, never a state change of its own.
+Disabled switches and handled click events make no request. ToggleSwitch's own automation peer reports
+the label and toggle state. Checked, unchecked, hover, focus and disabled colors follow the shared theme brushes.
 The parameterless constructor, bindable label/state and change-request event support compiled plugin
 layouts; the convenience constructor supplies the same contract from code. Programmatic state updates
 publish toggle automation changes without requesting another update.
@@ -95,8 +96,8 @@ publish toggle automation changes without requesting another update.
   - Shared theme brushes, interface and code fonts, live theme updates, colour composition
     and primitive controls. All consumers use the same palette and control factories.
   - Semantic typography and layout roles are generated from the app’s authored design files.
-  - `Switch`, the controlled boolean primitive with a compiled target/track/thumb template and
-    native toggle automation. Browser transition/reduced-motion behavior and native appearance
+  - `Switch`, the controlled boolean primitive: a `ToggleSwitch` with a compiled target/track/thumb
+    template and ToggleSwitch's own toggle automation. Browser transition/reduced-motion behavior and native appearance
     remain to be audited against the fork.
   - `DialogWindow` (compiled XAML card shared by every dialog), owned by a `Window` rather than a
     `WorkbenchWindow`. Choice toggles use an accent outline and subtle primary fill for selection,

@@ -1,18 +1,17 @@
 using Avalonia;
 using Avalonia.Automation;
-using Avalonia.Automation.Peers;
-using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
 namespace Tereditor.Plugins.UI.Kit;
 
-/// <summary>A labelled switch whose caller owns the checked state and handles requests to change it.</summary>
-public sealed partial class Switch : Button
+/// <summary>
+/// A labelled <see cref="ToggleSwitch"/> whose caller owns the checked state: activation asks for the next value through
+/// <see cref="CheckedChange"/> instead of flipping <see cref="Avalonia.Controls.Primitives.ToggleButton.IsChecked"/>.
+/// </summary>
+public sealed partial class Switch : ToggleSwitch
 {
-    /// <summary>The controlled checked state.</summary>
-    public static readonly StyledProperty<bool> IsCheckedProperty = AvaloniaProperty.Register<Switch, bool>(nameof(IsChecked));
     /// <summary>The accessible label.</summary>
     public static readonly StyledProperty<string> LabelProperty = AvaloniaProperty.Register<Switch, string>(nameof(Label), "");
 
@@ -33,39 +32,20 @@ public sealed partial class Switch : Button
     /// <summary>Requests the next checked value on activation; the caller applies the new state.</summary>
     public event Action<bool>? CheckedChange;
 
-    /// <summary>Whether the switch is checked. Setting it does not invoke the callback.</summary>
-    public bool IsChecked { get => GetValue(IsCheckedProperty); set => SetValue(IsCheckedProperty, value); }
-
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (change.Property == LabelProperty) AutomationProperties.SetName(this, Label);
-        if (change.Property == IsCheckedProperty)
-        {
-            PseudoClasses.Set(":checked", IsChecked);
-            ControlAutomationPeer.FromElement(this)?.RaisePropertyChangedEvent(TogglePatternIdentifiers.ToggleStateProperty,
-                IsChecked ? ToggleState.Off : ToggleState.On, IsChecked ? ToggleState.On : ToggleState.Off);
-        }
     }
 
-    /// <inheritdoc />
+    /// <summary>Raises Click, then requests the next value unless a handler handled it; the checked state stays the owner's.</summary>
     protected override void OnClick()
     {
         if (!IsEffectivelyEnabled) return;
-        var next = !IsChecked;
+        var next = IsChecked != true;
         var args = new RoutedEventArgs(ClickEvent);
         RaiseEvent(args);
         if (!args.Handled) CheckedChange?.Invoke(next);
-    }
-
-    /// <inheritdoc />
-    protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
-
-    private sealed class SwitchPeer(Switch owner) : ControlAutomationPeer(owner), IToggleProvider
-    {
-        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.CheckBox;
-        public ToggleState ToggleState => owner.IsChecked ? ToggleState.On : ToggleState.Off;
-        public void Toggle() => owner.OnClick();
     }
 }

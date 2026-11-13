@@ -159,7 +159,7 @@ internal static class TerminalSignalUiChecks
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
         T Named<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-        Require(Named<Tereditor.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled").IsChecked && Named<CheckBox>("BellSystem").IsChecked == true &&
+        Require(Named<Tereditor.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled").IsChecked == true && Named<CheckBox>("BellSystem").IsChecked == true &&
             Named<CheckBox>("BellTitle").IsChecked == false, "Settings show the host's terminal notification and bell choices.");
         Named<CheckBox>("BellTitle").IsChecked = true;
         Until(() => app.State.Current.Settings.BellFeatures == "system,title", "a bell box changes the host's bell features");

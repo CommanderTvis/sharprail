@@ -100,13 +100,13 @@ internal static class RoleChecks
         var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(toggle);
         Avalonia.Automation.Provider.IToggleProvider state() => peer.GetProvider<Avalonia.Automation.Provider.IToggleProvider>()!;
         Require(Part("Track").Bounds.Size == new Avalonia.Size(36, 20) && ReferenceEquals(Part("Track").Background, Ui.BorderBrush) &&
-            Part("Thumb").HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Left && state().ToggleState == Avalonia.Automation.Provider.ToggleState.Off,
+            Part("Thumb").TranslatePoint(default, Part("Track"))!.Value.X == 2 && state().ToggleState == Avalonia.Automation.Provider.ToggleState.Off,
             "An unchecked switch rests its thumb at the left of a border-role track and reports Off to assistive technology.");
         var point = toggle.TranslatePoint(new Avalonia.Point(10, toggle.Bounds.Height / 2), window)!.Value;
         Avalonia.Headless.HeadlessWindowExtensions.MouseDown(window, point, Avalonia.Input.MouseButton.Left);
         Avalonia.Headless.HeadlessWindowExtensions.MouseUp(window, point, Avalonia.Input.MouseButton.Left); Settle();
         Require(toggle.IsChecked == true && ReferenceEquals(Part("Track").Background, Ui.Accent) &&
-            Part("Thumb").Margin.Left == 18 && ReferenceEquals(Part("Thumb").Background, Ui.OnPrimary) &&
+            Part("Thumb").TranslatePoint(default, Part("Track"))!.Value.X == 18 && ReferenceEquals(Part("Thumb").Background, Ui.OnPrimary) &&
             state().ToggleState == Avalonia.Automation.Provider.ToggleState.On,
             "Clicking the track checks the switch: primary track, thumb at the right, On for assistive technology.");
         Require(toggle.GetVisualDescendants().OfType<TextBlock>().All(text => text.Text is not ("On" or "Off")),

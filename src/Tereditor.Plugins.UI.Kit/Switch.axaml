@@ -1,6 +1,7 @@
 <kit:Switch xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             xmlns:kit="using:Tereditor.Plugins.UI.Kit" x:Class="Tereditor.Plugins.UI.Kit.Switch"
-            Width="40" Height="24" MinWidth="0" MinHeight="0" Padding="0" Background="Transparent">
+            Width="40" Height="24" MinWidth="0" MinHeight="0" Padding="0" Background="Transparent" Cursor="Hand"
+            OnContent="{x:Null}" OffContent="{x:Null}">
   <kit:Switch.Styles>
     <Style Selector="kit|Switch /template/ Border#Target">
       <Setter Property="Background" Value="Transparent" />
@@ -10,7 +11,6 @@
     </Style>
     <Style Selector="kit|Switch /template/ Border#Thumb">
       <Setter Property="Background" Value="{x:Static kit:Ui.Workspace}" />
-      <Setter Property="Margin" Value="2" />
     </Style>
     <Style Selector="kit|Switch:pointerover /template/ Border#Target">
       <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
@@ -24,7 +24,6 @@
     </Style>
     <Style Selector="kit|Switch:checked /template/ Border#Thumb">
       <Setter Property="Background" Value="{x:Static kit:Ui.OnPrimary}" />
-      <Setter Property="Margin" Value="18,2,2,2" />
     </Style>
     <Style Selector="kit|Switch:disabled /template/ Border#Target">
       <Setter Property="Background" Value="Transparent" />
@@ -44,7 +43,13 @@
       <Border Name="Target" CornerRadius="12">
         <Border Name="Track" Width="36" Height="20"
                 CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-          <Border Name="Thumb" Width="16" Height="16" CornerRadius="8" HorizontalAlignment="Left" />
+          <!-- ToggleSwitch slides PART_MovingKnobs by PART_SwitchKnob's width (16) when checked. The knob ignores the
+               pointer, so a drag cannot set the owner's state: every press is a click that only requests it. -->
+          <Canvas Name="PART_SwitchKnob" Width="16" Height="16" Margin="2" HorizontalAlignment="Left">
+            <Panel Name="PART_MovingKnobs" IsHitTestVisible="False">
+              <Border Name="Thumb" Width="16" Height="16" CornerRadius="8" />
+            </Panel>
+          </Canvas>
         </Border>
       </Border>
     </ControlTemplate>

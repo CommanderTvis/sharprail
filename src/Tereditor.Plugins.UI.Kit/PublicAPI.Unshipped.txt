@@ -169,9 +169,6 @@ Tereditor.Plugins.UI.Kit.Switch.Label.get -> string!
 Tereditor.Plugins.UI.Kit.Switch.Label.set -> void
 Tereditor.Plugins.UI.Kit.Switch.CheckedChange -> System.Action<bool>?
 static readonly Tereditor.Plugins.UI.Kit.Switch.LabelProperty -> Avalonia.StyledProperty<string!>!
-Tereditor.Plugins.UI.Kit.Switch.IsChecked.get -> bool
-Tereditor.Plugins.UI.Kit.Switch.IsChecked.set -> void
-static readonly Tereditor.Plugins.UI.Kit.Switch.IsCheckedProperty -> Avalonia.StyledProperty<bool>!
 static readonly Tereditor.Plugins.UI.Kit.Ui.CodeFont -> Avalonia.Media.FontFamily!
 static readonly Tereditor.Plugins.UI.Kit.Ui.Danger -> Avalonia.Media.SolidColorBrush!
 static readonly Tereditor.Plugins.UI.Kit.Ui.DangerWash -> Avalonia.Media.SolidColorBrush!
