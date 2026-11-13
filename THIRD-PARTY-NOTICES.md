@@ -57,9 +57,8 @@ the original notice is in
 and accompanies build/publish outputs.
 
 The visual layout follows Thinkrail's original-workspace.png and current
-workspace specification. The "TR" monogram (`brand.png`) and scripts/window-probe.m were written by tereditor's
-author in the fork's `apps/native` prototype (commit 8229ed8c6) and are licensed as tereditor; the monogram
-remains a ThinkRail mark (see `NOTICE`). The custom file-diff icon is ThinkRail's
+workspace specification. scripts/window-probe.m was written by tereditor's
+author in the fork's `apps/native` prototype (commit 8229ed8c6) and is licensed as tereditor. The custom file-diff icon is ThinkRail's
 `apps/web/public/custom-icons/file-diff-line.svg` (Apache-2.0; licenses/Thinkrail-Apache-2.0.txt).
 
 The workflow skills in src/Tereditor.Plugins.Agent.Skills are adapted from Thinkrail's
@@ -88,8 +87,7 @@ The 78 core SVG icons in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Re
 extracted as a standalone icon set. They use the original paths from
 @remixicon/react 4.9.0, including the server glyph for Host settings. The alias map is
 Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's
-apps/web/public/custom-icons/file-diff-line.svg (Apache-2.0). The prototype's brand.png
-remains a raster asset because its original vector source is unavailable.
+apps/web/public/custom-icons/file-diff-line.svg (Apache-2.0).
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
 Branch Graph's bundled commit and code-file SVG menu glyphs use the same 4.9.0 release and license.
 

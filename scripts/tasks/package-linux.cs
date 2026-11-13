@@ -53,7 +53,7 @@ return Guard(() =>
     MakeExecutable($"{payload}/Tereditor.UI");
     foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" }) File.Copy(file, $"{doc}/{file}", true);
     CopyInto("licenses", doc);
-    File.Copy("src/Tereditor.Plugins.UI.Kit/Assets/Icons/brand.png", $"{app}/tereditor.png", true);
+    File.Copy("src/Tereditor.Android/Resources/mipmap-xxhdpi/icon.png", $"{app}/tereditor.png", true);
     File.Copy($"{app}/tereditor.png", $"{app}/.DirIcon", true);
     File.Copy($"{app}/tereditor.png", $"{app}/usr/share/icons/hicolor/96x96/apps/tereditor.png", true);
     WriteLf($"{app}/tereditor.desktop", """

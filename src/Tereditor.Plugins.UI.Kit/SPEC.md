@@ -118,7 +118,7 @@ publish toggle automation changes without requesting another update.
   - Core glyphs use original Remix SVG paths as shared vector masks with a full 24×24 viewbox.
     `Ui.Icon` retains its Border and live Background tint, so geometry stays sharp at fractional sizes
     and display scales without caching raster or tint variants. The cache holds only bundled geometry,
-    never mounted controls. The prototype brand mark remains raster until its original vector is available.
+    never mounted controls.
     Workbench tree expanders use the same original chevron mask, rotated when expanded, in their
     existing compact slot; stock Fluent's thin stretched chevrons do not substitute for the icon set.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://Tereditor.Plugins.UI.Kit/Assets/…`.
