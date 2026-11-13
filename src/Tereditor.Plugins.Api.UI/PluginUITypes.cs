@@ -66,6 +66,7 @@ public sealed record TerminalTabInfo(string TabKey, string Title, TerminalAgentR
 /// <param name="WorkspaceRevisions">Filesystem revision counters by workspace id, bumped on a watched change.</param>
 /// <param name="Roster">The plugin roster.</param>
 /// <param name="HostPlatform">The host's platform, or <see langword="null"/> before it is known.</param>
+/// <param name="HostHome">The host's user home folder, or <see langword="null"/> before it is known.</param>
 public sealed record PluginHostProjection(
     IReadOnlyList<HostProject> Projects,
     IReadOnlyDictionary<string, IReadOnlyList<HostWorkspace>> Workspaces,
@@ -77,7 +78,8 @@ public sealed record PluginHostProjection(
     IReadOnlyDictionary<string, IReadOnlyList<string>> ShownTerminalTabKeys,
     IReadOnlyDictionary<string, int> WorkspaceRevisions,
     IReadOnlyList<PluginRosterEntry> Roster,
-    HostPlatform? HostPlatform);
+    HostPlatform? HostPlatform,
+    string? HostHome = null);
 
 /// <summary>What an editor shows.</summary>
 public enum EditorKind

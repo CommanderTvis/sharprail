@@ -506,6 +506,8 @@ Tereditor.Host.Abstractions.HostState.<Clone>$() -> Tereditor.Host.Abstractions.
 Tereditor.Host.Abstractions.HostState.DiffBase(string! workspace) -> string!
 Tereditor.Host.Abstractions.HostState.Equals(Tereditor.Host.Abstractions.HostState? other) -> bool
 Tereditor.Host.Abstractions.HostState.HostState() -> void
+Tereditor.Host.Abstractions.HostState.HomeDirectory.get -> string?
+Tereditor.Host.Abstractions.HostState.HomeDirectory.init -> void
 Tereditor.Host.Abstractions.HostState.Platform.get -> Tereditor.Plugins.Api.HostPlatform?
 Tereditor.Host.Abstractions.HostState.Platform.init -> void
 Tereditor.Host.Abstractions.HostState.PluginPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!

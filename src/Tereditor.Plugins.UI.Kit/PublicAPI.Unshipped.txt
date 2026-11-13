@@ -252,6 +252,8 @@ static Tereditor.Plugins.UI.Kit.InterfaceZoom.Normalize(double factor) -> double
 static Tereditor.Plugins.UI.Kit.InterfaceZoom.Apply(Avalonia.Application! app, double factor) -> void
 Tereditor.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedText.get -> string!
 Tereditor.Plugins.UI.Kit.ScopedSetting
+static Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome.get -> string?
+static Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome.set -> void
 Tereditor.Plugins.UI.Kit.ScopedSettingShadow
 Tereditor.Plugins.UI.Kit.ScopedSettingShadow.<Clone>$() -> Tereditor.Plugins.UI.Kit.ScopedSettingShadow!
 Tereditor.Plugins.UI.Kit.ScopedSettingShadow.Deconstruct(out string! Scope, out string? Path, out string! ValueText) -> void

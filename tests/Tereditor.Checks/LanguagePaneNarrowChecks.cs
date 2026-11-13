@@ -366,19 +366,31 @@ internal static class LanguagePaneNarrowChecks
         Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home, home, false) == "~" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/", home, false) == "~/", "The home itself must read ~.");
         Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "2/x", home, false) == home + "2/x", "A sibling that only shares the home's text must stay as it is.");
         Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/opt/x", home, false) == "/opt/x", "A path outside the home must stay as it is.");
-        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/a", null, false) == "~/a" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/home/me", null, false) == "~", "Without the host's home the /Users/name and /home/name prefixes stand for it.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(home + "/a", null, false) == home + "/a" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/home/me", null, false) == "/home/me", "Without the host's home nothing is guessed: the path stays in full.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/Users/other/x", home, false) == "/Users/other/x" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/home/someone/x", home, false) == "/home/someone/x", "Another user's home stays in full.");
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate("/srv/h/p", "/srv/h/", false) == "~/p", "A trailing separator on the host's home does not matter.");
         const string windows = @"C:\Users\someone\Projects\x";
         Require(Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateWindowsHome == false && Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(windows) == windows
             && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"C:\Users\someone", false) == windows, "A Windows path must stay untouched while the switch is off.");
-        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, null, true) == @"~\Projects\x" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"c:\users\SOMEONE", true) == @"~\Projects\x"
+        Require(Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"C:\Users\someone", true) == @"~\Projects\x" && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(windows, @"c:\users\SOMEONE", true) == @"~\Projects\x"
             && Tereditor.Plugins.UI.Kit.ScopedSetting.Abbreviate(@"C:\Users\someone2\x", @"C:\Users\someone", true) == @"C:\Users\someone2\x", "With the switch on a Windows path must read ~\\Projects\\x, case-blind, whole segments only.");
-        Require(Tereditor.Plugins.UI.Kit.PathLine.Label("/Users/someone/p") == "~/p", "The one-line label must show the home as ~.");
+        var before = Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome;
+        try
+        {
+            Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome = null;
+            Require(Tereditor.Plugins.UI.Kit.PathLine.Label("/Users/someone/p") == "/Users/someone/p" && Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath("/Users/someone/p") == "/Users/someone/p", "With no host home known the label shows the full path.");
+            Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome = home;
+            Require(Tereditor.Plugins.UI.Kit.PathLine.Label("/Users/someone/p") == "~/p" && Tereditor.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath("/Users/other/p") == "/Users/other/p", "The one-line label must show the host's home as ~.");
+        }
+        finally { Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome = before; }
     }
 
     /// <summary>The path line prints the whole path and trims whole middle segments to its width, keeping the last segment and the full path as tooltip.</summary>
     private static void PathLineTrims()
     {
         const string path = "/Users/someone/Projects/a-rather-long-organisation-name/nested/deeper/still-deeper/the-project";
+        var previousHome = Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome;
+        Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome = "/Users/someone";
         var line = new Tereditor.Plugins.UI.Kit.PathLine { Path = path, Width = 220 };
         var window = new Window { Width = 300, Height = 60, Content = line };
         window.Show();
@@ -394,7 +406,7 @@ internal static class LanguagePaneNarrowChecks
             HomeAbbreviation();
             Console.WriteLine("PASS the path line trims a long path's middle segments to its width and keeps the full path as tooltip");
         }
-        finally { window.Close(); }
+        finally { window.Close(); Tereditor.Plugins.UI.Kit.ScopedSetting.HostHome = previousHome; }
     }
 
     /// <summary>Rows are dense and aligned: every detail line starts at the name's left edge, Hide shares the suggested-by line, a plain suggested row fits its height budget, and the path line is the shared control.</summary>

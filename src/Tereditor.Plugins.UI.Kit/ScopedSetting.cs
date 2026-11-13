@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -21,11 +19,8 @@ public sealed record ScopedSettingShadow(string Scope, string? Path, string Valu
 /// </summary>
 public static partial class ScopedSetting
 {
-    [GeneratedRegex("^/Users/[^/]+|^/home/[^/]+")]
-    private static partial Regex HomePrefix();
-
-    [GeneratedRegex(@"^[A-Za-z]:[\\/]Users[\\/][^\\/]+", RegexOptions.IgnoreCase)]
-    private static partial Regex WindowsHomePrefix();
+    /// <summary>The connected host's own home folder, set by the app from the host state; null while unknown, and then no path is abbreviated.</summary>
+    public static string? HostHome { get; set; }
 
     /// <summary>
     /// The one switch for Windows paths: off, a Windows path (drive letter or backslashes) is shown as it is, because cmd and
@@ -35,17 +30,16 @@ public static partial class ScopedSetting
     internal const bool AbbreviateWindowsHome = false;
 
     /// <summary>
-    /// A path with the user's home written as <c>~</c>, for display only (tooltips and copies keep the full path). With the host's
-    /// <paramref name="home"/> only that folder, as a whole-segment prefix, becomes <c>~</c>; without it (the state does not carry the
-    /// host's home yet) the usual <c>/Users/name</c> and <c>/home/name</c> prefixes are taken for it.
+    /// A path with the host's home folder written as <c>~</c>, for display only (tooltips and copies keep the full path). Only
+    /// the host's home (<see cref="HostHome"/>, or <paramref name="home"/> when given), as a whole-segment prefix, becomes <c>~</c>;
+    /// with no home known, another user's home or a path outside it the path is shown in full.
     /// </summary>
-    public static string AbbreviateHomePath(string path, string? home = null) => Abbreviate(path, home, AbbreviateWindowsHome);
+    public static string AbbreviateHomePath(string path, string? home = null) => Abbreviate(path, home ?? HostHome, AbbreviateWindowsHome);
 
     internal static string Abbreviate(string path, string? home, bool windows)
     {
         var isWindows = path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is '\\' or '/' || path.Contains('\\');
-        if (isWindows && !windows) return path;
-        if (string.IsNullOrEmpty(home)) return (isWindows ? WindowsHomePrefix() : HomePrefix()).Replace(path, "~", 1);
+        if (isWindows && !windows || string.IsNullOrEmpty(home)) return path;
         var folder = home.TrimEnd('/', '\\');
         if (folder.Length == 0) return path;
         var comparison = isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;

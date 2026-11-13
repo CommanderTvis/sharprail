@@ -137,6 +137,8 @@ public sealed class StateReply
     /// <summary>Custom keymap presets, <see cref="PresetMessage.Layout"/> carrying the bindings document.</summary>
     [ProtoMember(32)] public List<PresetMessage> KeymapPresets { get; set; } = [];
     [ProtoMember(33)] public List<WorkspaceCreatorMessage> WorkspaceCreators { get; set; } = [];
+    // Empty when the host does not report its home folder.
+    [ProtoMember(34)] public string HomeDirectory { get; set; } = "";
 }
 
 [ProtoContract]

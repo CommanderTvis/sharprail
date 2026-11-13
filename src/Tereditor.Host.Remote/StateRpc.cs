@@ -134,6 +134,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         WorkspaceCreators = state.WorkspaceCreators.Select(entry => new WorkspaceCreatorMessage
         { Path = entry.Workspace, WorkspaceId = entry.Creator.WorkspaceId, TabKey = entry.Creator.TabKey }).ToList(),
         Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : "",
+        HomeDirectory = state.HomeDirectory ?? "",
         ConnectedThroughTailscale = RpcConnection.ThroughTailscale,
         PendingEmigrations = state.PendingEmigrations.Select(request => new TerminalEmigrationMessage
         { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),

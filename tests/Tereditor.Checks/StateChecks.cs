@@ -31,7 +31,7 @@ internal static class StateChecks
         string.Join(",", state.WorkspaceBases.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)),
         string.Join(",", state.WorkspaceDiffBases.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)),
         string.Join(",", state.PluginSettings.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value.GetRawText())),
-        string.Join(",", state.PluginPaths), state.Platform.ToString());
+        string.Join(",", state.PluginPaths), state.Platform.ToString(), state.HomeDirectory);
 
     internal static async Task Run(string root)
     {
@@ -212,6 +212,9 @@ internal static class StateChecks
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&
             state.PluginPaths.Single().EndsWith("state-plugins", StringComparison.Ordinal) && state.Platform is not null,
             "Plugin namespaces merge member by member, roots replace, and the host names its platform.");
+        var homeFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Require(state.HomeDirectory == homeFolder && (await remote.GetStateAsync()).HomeDirectory == homeFolder,
+            "The host names its own home folder and a remote client receives it over the wire.");
         Require(Describe(new HostStateStore(localDirectory).Current) == expected && Describe(new HostStateStore(remoteDirectory).Current) == expected,
             "Both hosts persist their state beside themselves.");
         var remoteRecords = (await remote.GetStateAsync()).ProjectRecords;

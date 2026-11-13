@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using Tereditor.Host.Abstractions;
+using Tereditor.Plugins.UI.Kit;
 using Tereditor.UI.Panels;
 using Tereditor.UI.State;
 
@@ -45,6 +46,7 @@ public sealed partial class WorkbenchWindow
     {
         hydratedGeneration = Math.Max(1, state.Generation);
         Ghostty.Avalonia.TerminalKeyboard.OptionAsAlt = state.Current.Settings.TerminalOptionAsAlt;
+        ScopedSetting.HostHome = state.Current.HomeDirectory;
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
         state.ConnectionFailed += Report;
@@ -112,6 +114,7 @@ public sealed partial class WorkbenchWindow
 
     private void SharedStateChanged(HostState previous, HostState next)
     {
+        if (next.HomeDirectory != previous.HomeDirectory) ScopedSetting.HostHome = next.HomeDirectory;
         NotifyLanguageDeaths(previous, next);
         if (!next.OwnedProcesses.SequenceEqual(previous.OwnedProcesses)) NotifyOwnedProcesses(previous, next);
         if (!ReferenceEquals(next.PendingEmigrations, previous.PendingEmigrations)) PromptEmigrations(next);

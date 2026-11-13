@@ -41,6 +41,7 @@ internal static class PluginProjection
             shown.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<string>)pair.Value),
             workbench.WorkspaceRevisions,
             loader.Registry.Roster,
-            state.Platform);
+            state.Platform,
+            state.HomeDirectory);
     }
 }

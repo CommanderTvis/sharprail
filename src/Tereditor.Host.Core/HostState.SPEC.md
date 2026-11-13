@@ -208,6 +208,9 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   follows `PtyTerminalService.Owned`. See [Terminals SPEC](Terminals.SPEC.md#owned-processes).
 - `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
   `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
+- `HomeDirectory` is the host's own user home folder (`Environment.SpecialFolder.UserProfile`), set at snapshot time and never
+  persisted. It rides the snapshot as additive `StateReply` field 34 (empty is null), so the protocol version stays 19: an older
+  host sends none and a client then abbreviates no path. Clients show exactly that folder as `~` (see the UI Kit SPEC).
 - Namespaces are kept as compact JSON objects, so a reloaded file and a fresh change compare equal; a
   stored namespace that is not an object, or whose `enabled` is not a boolean, is dropped on load.
 

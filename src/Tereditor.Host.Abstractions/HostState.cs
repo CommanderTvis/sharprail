@@ -197,6 +197,8 @@ public sealed record HostState
     public IReadOnlyList<TerminalResumeOffer> ResumeOffers { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
+    /// <summary>The host's own user home folder, so a client shows exactly that folder as <c>~</c>; null from a host that does not report it, and then no path is abbreviated.</summary>
+    public string? HomeDirectory { get; init; }
     /// <summary>Whether this client's own connection to the host runs over Tailscale, as the host saw it; false for embedded and other transports.</summary>
     public bool ConnectedThroughTailscale { get; init; }
 }

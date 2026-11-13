@@ -156,6 +156,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             Enum.IsDefined((TerminalTitleSource)title.Source) ? (TerminalTitleSource)title.Source : TerminalTitleSource.User)).ToArray(),
         WorkspaceCreators = reply.WorkspaceCreators.Select(entry => new WorkspaceCreatorEntry(entry.Path, new(entry.WorkspaceId, entry.TabKey))).ToArray(),
         Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null,
+        HomeDirectory = reply.HomeDirectory.Length == 0 ? null : reply.HomeDirectory,
         ConnectedThroughTailscale = reply.ConnectedThroughTailscale,
         PendingEmigrations = reply.PendingEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
         OwnedProcesses = reply.OwnedProcesses.Select(owned => new OwnedProcessInfo(new(owned.WorkspaceId, owned.TabKey), owned.Pid, owned.Description)).ToArray(),

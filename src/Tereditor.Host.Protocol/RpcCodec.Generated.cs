@@ -3883,6 +3883,7 @@ internal static class RpcCodec
                 if (item is not null) WriteWorkspaceCreatorMessage(writer, item);
                 writer.EndMessage(start);
             }
+        if (value.HomeDirectory is { } field34) writer.String(34, field34);
     }
 
     private static StateReply ReadStateReply(ref ProtoReader reader, StateReply? value)
@@ -4067,6 +4068,7 @@ internal static class RpcCodec
                     reader.Leave(outer);
                     break;
                 }
+                case 34: value.HomeDirectory = reader.String(); break;
                 default: reader.Skip(); break;
             }
         }

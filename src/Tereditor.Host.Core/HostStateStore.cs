@@ -674,6 +674,7 @@ public sealed partial class HostStateStore : IHostStateService
                 agent.Record is { Kind: not null, Command: not null }).DistinctBy(agent => agent.Terminal).ToArray(),
             TerminalTitles = value.TerminalTitles.Where(title => title?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
                 !string.IsNullOrWhiteSpace(title.Title)).DistinctBy(title => title.Terminal).ToArray(),
+            HomeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) is { Length: > 0 } home ? home : null,
             Platform = OperatingSystem.IsMacOS() ? HostPlatform.MacOS : OperatingSystem.IsWindows() ? HostPlatform.Windows : HostPlatform.Linux,
             Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray(),
         };
