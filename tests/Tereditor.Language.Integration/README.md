@@ -4,8 +4,9 @@ This suite is explicitly opt-in. It is not registered in Tereditor.Checks or the
 It launches the standalone host with TEREDITOR_HEADLESS_MCP=1, sends prewritten MCP calls,
 and uses the production language provisioners. No AI process, graphical app or fake LSP is involved.
 
-Build Release first, then run `node tests/Tereditor.Language.Integration/run.mjs --all`.
-Use `--server typescript` to select one provider. Project revisions and scenarios live in corpus.json.
+Build Release first, then run `scripts/mise run lsp:integration -- --all`
+(`dotnet run --file tests/Tereditor.Language.Integration/run.cs -- --all`). The scripts are C# file-based
+apps sharing `Integration.cs`. Use `--server typescript` to select one provider, or a comma-separated list. Project revisions and scenarios live in corpus.json.
 Repositories and managed servers are cached under $TEREDITOR_CACHE_DIR/lsp-validation; reports are written under
 artifacts/lsp-validation. Dependencies may be downloaded by project package managers/build importers.
 The runner never accepts license agreements. Missing prerequisites or user acceptance are BLOCKED,
@@ -47,12 +48,15 @@ they are not independently downloadable pinned servers. `runtime-pins.json`
 records publisher URLs and SHA-256 for the optional macOS ARM64 Go, Coursier,
 PowerShell and Dart runtimes used for validation. Install these into a disposable
 local tool directory and put their `bin` paths on PATH; the runner does not change
-the machine's SDK selection. The JDK is the repository's pinned Temurin 21
+the machine's SDK selection. Each case names the runtime the runner checks first; a
+missing one is BLOCKED. The TypeScript, Python, PHP, CSS and shell servers run on Bun,
+which the host provisions at its pinned version when no `bun` is on PATH, so a missing
+`bun` blocks nothing. The JDK is the repository's pinned Temurin 21
 (`scripts/tool jdk`); the runner passes it to the
 host as JAVA_HOME and ignores any machine JDK manager. Set JAVA_HOME to run against
 another JDK. IntelliJ/Kotlin's project JDK is separate from its bundled server runtime. No IntelliJ acceptance record is created or imported by this suite.
 
-`node tests/Tereditor.Language.Integration/check.mjs` validates the manifest without
+`dotnet run --file tests/Tereditor.Language.Integration/check.cs` validates the manifest without
 network, server launch or downloads. Diagnostic-probe cases temporarily append a
 known syntax error to their downloaded fixture file and restore the original bytes
 in `finally`; this verifies an actual analyzer response when a provider does not
@@ -72,7 +76,7 @@ See [RESULTS.md](RESULTS.md) for the recorded run and explicit coverage limits.
 
 ## Shared semantic caches
 
-`node tests/Tereditor.Language.Integration/shared-cache.mjs --inventory` classifies all
+`dotnet run --file tests/Tereditor.Language.Integration/shared-cache.cs -- --inventory` classifies all
 18 catalog servers before a cache claim is made. It distinguishes a semantic index from
 downloads, compiler artifacts and process memory. The native opt-in probes use two Git
 worktrees on different branches, warm one workspace, restart in the other and compare
@@ -80,7 +84,7 @@ cache records against an independently cold run. They also prove branch diagnost
 post-edit invalidation. Run one or more with:
 
 ```sh
-node tests/Tereditor.Language.Integration/shared-cache.mjs --server go,dart
+dotnet run --file tests/Tereditor.Language.Integration/shared-cache.cs -- --server go,dart
 ```
 
 The probes require an already built Release host. Dart additionally requires

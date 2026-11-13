@@ -762,7 +762,7 @@ explicit per-project importer overrides remain intact. Logs identify selection
 provenance without claiming it explains a build-import failure. The bundled JVM
 that runs the server is unchanged.
 
-`tests/Tereditor.Language.Integration` is an opt-in Node runner using actual MCP
+`tests/Tereditor.Language.Integration` is an opt-in runner (C# file-based scripts) using actual MCP
 calls against the standalone host, pinned third-party project revisions and real
 provisioners. It is never registered in the argument-free check gate. Its manifest
 states whether a scenario proves cross-file references or document-only behavior;

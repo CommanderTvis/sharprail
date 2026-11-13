@@ -161,8 +161,8 @@ run = "dotnet restore Tereditor.slnx"
 [tasks."restore:update"]
 description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
 env = { RestoreLockedMode = "false" }
-run = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate", "dotnet restore scripts/ci-run.cs --force-evaluate", "dotnet restore scripts/tasks/dev.cs --force-evaluate", "dotnet restore benchmarks/ghostty/run.cs --force-evaluate"]
-run_windows = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate", "dotnet restore scripts\\ci-run.cs --force-evaluate", "dotnet restore scripts\\tasks\\dev.cs --force-evaluate", "dotnet restore benchmarks\\ghostty\\run.cs --force-evaluate"]
+run = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate", "dotnet restore scripts/ci-run.cs --force-evaluate", "dotnet restore scripts/tasks/dev.cs --force-evaluate", "dotnet restore benchmarks/ghostty/run.cs --force-evaluate", "dotnet restore tests/Tereditor.Language.Integration/run.cs --force-evaluate"]
+run_windows = ["dotnet restore Tereditor.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate", "dotnet restore scripts\\ci-run.cs --force-evaluate", "dotnet restore scripts\\tasks\\dev.cs --force-evaluate", "dotnet restore benchmarks\\ghostty\\run.cs --force-evaluate", "dotnet restore tests\\Tereditor.Language.Integration\\run.cs --force-evaluate"]
 
 [tasks.audit]
 description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
@@ -252,3 +252,7 @@ run = "dotnet run --file scripts/tasks/check-terminal.cs --"
 [tasks."check:fsevents"]
 description = "Run the FSEvents resource-lifetime check with the checks' interposer (macOS)"
 run = "dotnet run --file scripts/tasks/check-fsevents.cs --"
+
+[tasks."lsp:integration"]
+description = "Opt-in real language-server matrix against the built Release host (-- --all, or --server <id>[,<id>]); downloads projects and servers, never part of the gate or CI"
+run = "dotnet run --file tests/Tereditor.Language.Integration/run.cs --"

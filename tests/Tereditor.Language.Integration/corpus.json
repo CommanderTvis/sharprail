@@ -8,7 +8,7 @@
         ".ts"
       ],
       "path": "src/compiler/parser.ts",
-      "runtime": "node",
+      "runtime": "bun",
       "minimumSourceFiles": 25,
       "calls": [
         {
@@ -67,7 +67,7 @@
         ".py"
       ],
       "path": "src/flask/app.py",
-      "runtime": "uv",
+      "runtime": "bun",
       "minimumSourceFiles": 25,
       "calls": [
         {
@@ -691,7 +691,7 @@
         ".php"
       ],
       "path": "src/Illuminate/Container/Container.php",
-      "runtime": "node",
+      "runtime": "bun",
       "minimumSourceFiles": 25,
       "calls": [
         {
@@ -850,7 +850,7 @@
         ".sh"
       ],
       "path": "t/test-lib.sh",
-      "runtime": "node",
+      "runtime": "bun",
       "minimumSourceFiles": 25,
       "calls": [
         {
@@ -900,7 +900,7 @@
         ".css"
       ],
       "path": "site/src/scss/_variables.scss",
-      "runtime": "node",
+      "runtime": "bun",
       "minimumSourceFiles": 25,
       "calls": [
         {
