@@ -1638,6 +1638,9 @@ internal static class ClaudeChatUiChecks
             Chord(KeyModifiers.Control, Key.OemPlus); Require(view.Zoom == 1.25, "Ctrl+= does the same.");
             Chord(KeyModifiers.Meta, Key.OemMinus); Chord(KeyModifiers.Meta, Key.OemMinus); Require(view.Zoom == 1, "Mod+- steps back down.");
             Chord(KeyModifiers.Meta, Key.OemPlus); Chord(KeyModifiers.Meta, Key.D0); Require(view.Zoom == 1, "Mod+0 resets the chat.");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.None, PhysicalKey = PhysicalKey.Equal, KeyModifiers = KeyModifiers.Control });
+            Require(view.Zoom == 1.1, "Android's Ctrl+= (Key.None on the Equal physical key) zooms the chat in.");
+            Chord(KeyModifiers.Control, Key.D0);
             Require(InterfaceZoom.Current == page, "The page zoom did not change.");
 
             window.MouseWheel(new Point(300, 300), new Vector(0, 3), RawInputModifiers.Meta); Frame(window);

@@ -548,8 +548,37 @@ internal static class ShellChecks
         Require(Zoomed(1), "Mod+- zooms the app out with a terminal focused.");
         window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null); window.KeyPress(Key.D0, command, PhysicalKey.Digit0, null); Dispatcher.UIThread.RunJobs();
         Require(Zoomed(1) && terminal.FontSizeOffset == 3, "Mod+0 resets the app zoom, not the terminal's font.");
+        AndroidZoomChords("a terminal");
+        Require(terminal.FontSizeOffset == 3, "Android's zoom chords leave the terminal's font alone.");
         terminal.ResetFontSize(); terminal.Dispose(); host.Children.Remove(terminal);
         Settle(400);
+        var opened = window.OpenDocumentAsync("notes.txt", true);
+        Until(() => opened.IsCompleted); opened.GetAwaiter().GetResult();
+        var editor = window.GetVisualDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single().Editor;
+        editor.Focus(); Settle();
+        Require(editor.IsKeyboardFocusWithin, "The editor holds the keyboard.");
+        AndroidZoomChords("an editor");
+
+        // The key data Avalonia.Android 12.1.4 delivers for a hardware keyboard: KEYCODE_EQUALS has no Avalonia key, so = and Shift+=
+        // arrive as Key.None on PhysicalKey.Equal; minus, the numpad keys and 0 map. With Ctrl held the key has no character, so no KeySymbol.
+        void AndroidZoomChords(string focus)
+        {
+            void Press(Key key, PhysicalKey physical, RawInputModifiers extra = RawInputModifiers.None) { window.KeyPress(key, command | extra, physical, null); Dispatcher.UIThread.RunJobs(); }
+            Press(Key.None, PhysicalKey.Equal);
+            Require(Zoomed(1.1), $"Android's Ctrl+= zooms in with {focus} focused: {window.Preferences.Zoom}.");
+            Press(Key.None, PhysicalKey.Equal, RawInputModifiers.Shift);
+            Require(Zoomed(1.25), $"Android's Ctrl+Shift+= (plus) zooms in with {focus} focused.");
+            Press(Key.Add, PhysicalKey.NumPadAdd);
+            Require(Zoomed(1.5), $"Android's Ctrl+numpad plus zooms in with {focus} focused.");
+            Press(Key.OemMinus, PhysicalKey.Minus);
+            Require(Zoomed(1.25), $"Android's Ctrl+- zooms out with {focus} focused.");
+            Press(Key.Subtract, PhysicalKey.NumPadSubtract);
+            Require(Zoomed(1.1), $"Android's Ctrl+numpad minus zooms out with {focus} focused.");
+            Press(Key.D0, PhysicalKey.Digit0);
+            Require(Zoomed(1), $"Android's Ctrl+0 resets the zoom with {focus} focused.");
+            Press(Key.None, PhysicalKey.Equal); Press(Key.NumPad0, PhysicalKey.NumPad0);
+            Require(Zoomed(1), $"Android's Ctrl+numpad 0 resets the zoom with {focus} focused.");
+        }
         Console.WriteLine("PASS shell: full-screen inset, title-bar double-click preference, pinch zoom and terminal font zoom");
     }
 

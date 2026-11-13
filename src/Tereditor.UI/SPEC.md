@@ -389,7 +389,10 @@ derive their pixel density from the ancestor transform as well as the render sca
 stay sharp. The native title bar does not zoom: the title-bar height hint follows the zoomed header while
 the traffic-light inset stays physical. Zoom is independent of the Settings interface font size. The zoom chords
 are taken on the way down (tunnelling), so they zoom the app whatever has focus, a terminal or editor included;
-the window's other chords bubble, so a focused control that claims them keeps them.
+the window's other chords bubble, so a focused control that claims them keeps them. Chords match on the layout's
+key, except that a key-down with no key on the Equal physical key is the plus key: Avalonia.Android maps no key for
+a hardware keyboard's `=` (KEYCODE_EQUALS), so Ctrl+= and Ctrl+Shift+= arrive that way there (a chat's own zoom
+chords read it the same way).
 
 A trackpad pinch drives the same factor continuously. Avalonia reports magnification as deltas with no
 phases, so a gesture starts at the first delta after 250ms of quiet: the factor is captured there and the

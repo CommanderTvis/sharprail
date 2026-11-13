@@ -237,6 +237,12 @@ next key or committed text and show as checked while pending.
 The keys preserve terminal focus and use Ghostty's negotiated encoding. Read-only watched terminals
 show no key bar.
 
+A hardware keyboard reaches the same window chords as on a desktop, Ctrl being the command key. Avalonia.Android
+has no key for KEYCODE_EQUALS, so Ctrl+= and Ctrl+Shift+= arrive as no key on the Equal physical key and the
+keymap reads that as the plus key: Ctrl+=, Ctrl+-, the numpad's plus and minus and Ctrl+0 zoom the interface
+whatever has focus ([../Tereditor.UI/SPEC.md](../Tereditor.UI/SPEC.md)). With Ctrl held Android gives the key no
+character, so no text reaches a focused terminal.
+
 On Android, every terminal-tab removal asks for confirmation, including idle, exited,
 failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
 the requested close. Desktop terminals retain their foreground-process confirmation.

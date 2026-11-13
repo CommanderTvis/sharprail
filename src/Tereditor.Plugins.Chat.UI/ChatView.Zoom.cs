@@ -152,7 +152,8 @@ internal sealed partial class ChatView
     private void ZoomKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyModifiers is not (KeyModifiers.Control or KeyModifiers.Meta or (KeyModifiers.Control | KeyModifiers.Shift) or (KeyModifiers.Meta | KeyModifiers.Shift))) return;
-        var step = e.Key is Key.OemPlus or Key.Add ? 1 : e.Key is Key.OemMinus or Key.Subtract ? -1 : e.Key is Key.D0 or Key.NumPad0 ? 0 : (int?)null;
+        // Android delivers the = key as Key.None (see KeyboardChords.FromEvent).
+        var step = e.Key is Key.OemPlus or Key.Add || (e.Key == Key.None && e.PhysicalKey == PhysicalKey.Equal) ? 1 : e.Key is Key.OemMinus or Key.Subtract ? -1 : e.Key is Key.D0 or Key.NumPad0 ? 0 : (int?)null;
         if (step is not { } direction) return;
         StepZoom(direction);
         e.Handled = true;

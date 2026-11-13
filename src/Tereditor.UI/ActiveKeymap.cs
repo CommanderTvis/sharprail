@@ -131,7 +131,9 @@ public static class KeyboardChords
     /// <summary>The chord a key-down is, with the command key folded for this platform; null for modifier-only and unknown keys.</summary>
     public static KeyChord? FromEvent(KeyEventArgs e)
     {
-        if (Token(e.Key) is not { Length: > 0 } token) return null;
+        // Avalonia.Android has no key for KEYCODE_EQUALS, so Ctrl+= arrives as Key.None on the Equal physical key.
+        var key = e.Key == Key.None && e.PhysicalKey == PhysicalKey.Equal ? Key.OemPlus : e.Key;
+        if (Token(key) is not { Length: > 0 } token) return null;
         var mods = KeyMods.None;
         var modifiers = e.KeyModifiers;
         // The plus key is a shifted equals key on most layouts; Mod+Plus is the same press with or without Shift.
