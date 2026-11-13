@@ -1466,6 +1466,13 @@ internal static class Program
             ButtonCenteringChecks.RunUi();
             return;
         }
+        if (args.SequenceEqual(["--number-box-centering"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            NumberBoxCenteringChecks.RunUi();
+            return;
+        }
         if (args.SequenceEqual(["--section-headers"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -1596,6 +1603,7 @@ internal static class Program
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
         Gate.Case("button-centering", ButtonCenteringChecks.RunUi);
+        Gate.Case("number-box-centering", NumberBoxCenteringChecks.RunUi);
         Gate.Case("section-headers", () => SectionHeaderAlignmentChecks.RunUi(root));
         Gate.Case("air-gateway-ui", () => AirGatewayChecks.RunUi(root));
         Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));

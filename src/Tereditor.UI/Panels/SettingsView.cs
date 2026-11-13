@@ -983,16 +983,17 @@ public sealed partial class SettingsView : UserControl
         return Math.Ceiling(digits * input.FontSize * 0.62 + 10 + input.Padding.Left + input.Padding.Right + 2 * stepper + 2);
     }
 
-    private static void FitDigits(NumericUpDown input, double stepper)
+    // The digits keep a text box's side padding, set here because the width is computed before the page is styled;
+    // the kit styles centre them vertically, so no vertical padding squeezes a fixed-height box.
+    internal static void FitDigits(NumericUpDown input, double stepper)
     {
-        input.Padding = new Thickness(8, 0);
+        if (Application.Current?.TryFindResource("TextControlThemePadding", out var padding) == true && padding is Thickness text) input.Padding = new Thickness(text.Left, 0, text.Right, 0);
         input.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
-        input.HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center;
         input.Width = DigitFieldWidth(input, stepper);
     }
 
     // The spinner's template draws its own large chevrons; small muted ones of the app's icon set replace them.
-    private static void CompactSteppers(NumericUpDown input, double width)
+    internal static void CompactSteppers(NumericUpDown input, double width)
     {
         input.TemplateApplied += (_, outer) =>
         {
@@ -1018,7 +1019,6 @@ public sealed partial class SettingsView : UserControl
         var input = new NumericUpDown
         {
             Name = "GroupLimit_" + region,
-            Classes = { "compact-number" },
             Minimum = 1,
             Maximum = 32,
             Value = value,

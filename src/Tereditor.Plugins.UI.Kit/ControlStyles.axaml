@@ -28,6 +28,15 @@
   <Style Selector="Button">
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+  <!-- Fluent stretches a number box's text vertically, so its value draws at the top of the field, and its inner text
+       box and spinner keep a text box's minimum height, which overflows a fixed-height box. The value is centred and
+       the box's own MinHeight (a text box's) sets its height. -->
+  <Style Selector="NumericUpDown">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="NumericUpDown /template/ ButtonSpinner#PART_Spinner, NumericUpDown /template/ TextBox#PART_TextBox">
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
   <!-- Window controls of the Linux integrated header: flat, header-high, muted until hovered; Close turns red. -->
   <Style Selector="Button.caption-button">
     <Setter Property="Width" Value="40" />

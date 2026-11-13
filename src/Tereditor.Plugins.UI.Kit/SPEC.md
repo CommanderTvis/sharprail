@@ -46,7 +46,9 @@ raw read-only text and never rewritten. Parsing and edits are in-memory; the hos
 and its plugins, including compiled layouts and controls created from code. Primary, link, quiet and
 Welcome card variants share these rules; panes do not copy Fluent state resources. Button content
 is vertically centered by default (Fluent leaves it stretched, which tops the text of fixed-height buttons);
-a control that wants otherwise sets it locally. An `Expander` header is plain text with a chevron and a hover fill only; the expanded (checked)
+a control that wants otherwise sets it locally. A number box (`NumericUpDown`) centres its value vertically and keeps
+a text box's padding, so its digits start where a text box's text does; its inner text box and spinner take no minimum
+height of their own, so a fixed-height box holds them, and an unconstrained one is as high as a text box. An `Expander` header is plain text with a chevron and a hover fill only; the expanded (checked)
 toggle never takes the primary fill. `FlyoutPresenter.flat-list` with `Button.option-row` is the flat
 option list (no per-option frame, hover/selected fill, flush with its anchor), used by Blueprint choices. Selected toggles
 retain an accent outline when hovered or pressed. Checkbox glyphs use the same contrast-safe foreground
