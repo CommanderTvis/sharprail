@@ -46,6 +46,19 @@ project folder itself. Agents can create them too.
 New workspaces can start with git-ignored paths such as `node_modules` cloned from the Default workspace. List them in
 `.tereditor/workspace.toml` at the project root.
 
+## Processes
+
+The Processes pane (Ctrl/Cmd+Alt+Shift+P) lists language servers, AI agents and the processes they started as a tree,
+with CPU and memory for each row. Select a row and choose Stop selected, or choose Stop group. The project's processes
+show by default; turn on All projects to see every project's.
+
+The memory guard protects your machine from runaway programs in terminals. macOS has no out-of-memory killer, and a
+compiler or test run can take the whole machine down. The guard checks each terminal's processes every few seconds.
+From 80% of the terminal's memory limit it warns. Over the limit it asks the biggest program to stop, and ends it if it
+does not. It never ends the shell, and it ends an agent only when the agent alone is over the limit. Every step shows
+in a banner above the terminal and in the Processes pane, so you can tell the guard stopped a program and not a crash.
+Limits are in Settings › Terminal.
+
 ## Environments
 
 A new worktree starts without what the main checkout had set up. The environment plugins apply it to every shell, so

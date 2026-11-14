@@ -34,6 +34,16 @@ Create a <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> for a 
 </tr>
 <tr>
 <td width="38%" valign="top">
+<b>See what your agents are running</b><br><br>
+The Processes pane shows language servers, agents and everything they started as a tree, with CPU and memory for each row. You can stop one process or a whole group. tereditor also guards against runaway programs, because macOS has no out-of-memory killer of its own. It warns when a terminal nears its memory limit, then stops the biggest program and tells you what it stopped and why. Your shell stays alive, and your agent is the last thing it stops.<br><br>
+<a href="docs/agents.md#processes">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/processes.png" alt="The Processes pane with a tree of language servers, AI agents and the processes they started, CPU and memory for each row, and buttons to stop the selected process or its group" width="100%">
+</td>
+</tr>
+<tr>
+<td width="38%" valign="top">
 <b>Your PC from your phone</b><br><br>
 The Android app is a thin client for the controlling Tereditor on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account (Tailscale app not needed).<br><br>
 <a href="docs/android.md">Docs →</a>
