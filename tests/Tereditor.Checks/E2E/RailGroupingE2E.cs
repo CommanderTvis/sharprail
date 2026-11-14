@@ -122,6 +122,9 @@ internal static class RailGroupingE2E
             using var unified = OpenFixtureProject(Path.Combine(root, "rail-grouping-unified"));
             var home = unified.Window.ProjectRoot;
             TurnOnGrouping(unified);
+            // The creator lives in the Default workspace, not on the project's home page.
+            unified.Click(Select(unified, home));
+            Until(() => Active(unified, home));
             unified.Window.Layout.NewTerminal(unified.Center);
             var creator = unified.Window.Layout.Tabs(unified.Center).Last(tab => tab.Kind == "terminal").Id;
             unified.Window.Layout.NewTerminal(unified.Center);
@@ -173,7 +176,8 @@ internal static class RailGroupingE2E
     {
         var live = "DockTab_" + tab.Replace(':', '_').Replace('/', '_');
         var scroller = Controls(app).OfType<ScrollViewer>().First(item => item.Content is StackPanel { Name: "ProjectsTree" });
-        var bar = scroller.GetVisualDescendants().OfType<ScrollBar>().First(item => item.Name == "PART_VerticalScrollBar");
+        // The rail's own bar: the tab strips inside its rows have scrollers of their own, found first in a depth-first walk.
+        var bar = scroller.GetVisualDescendants().OfType<ScrollBar>().First(item => item.Name == "PART_VerticalScrollBar" && ReferenceEquals(item.TemplatedParent, scroller));
         var zoom = app.Window.FindControl<LayoutTransformControl>("ZoomRoot")!;
         var panel = Controls(app).First(control => control.Name == "ProjectsPanel");
         bool Overflows() => scroller.Extent.Height > scroller.Viewport.Height + 1;
