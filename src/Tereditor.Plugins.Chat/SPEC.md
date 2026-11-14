@@ -48,6 +48,18 @@ The finished cards are not a turn: the host carries them in front of the user's 
 
 `Files` searches the workspace for an `@` query. `CompletePath` (`ChatPathParams`: workspace, chat, the text as typed) lists one directory for a path query (`/`, `~`, `./`, `../`, a drive): directories first, then files, filtered by the last segment, at most 50, resolved against the chat's working directory and the host user's home; a missing directory is an empty list. A host that cannot serve it fails the call and the view uses `Files`. The method is additive, so the host protocol version does not change.
 
+## Pasted text
+
+A text paste of more than 10 lines or more than 1,000 characters goes into the composer as one token, `[Pasted text #N +K lines]`
+(`+1 line` for one), and the view keeps the text beside the draft (per chat, client-local, like the local draft copy). N counts the
+draft's big pastes from 1 and starts again after a send; K is the paste's line count. A send replaces every token by its text, so the
+agent and the transcript get what was pasted (the whole message is trimmed, as before), and history recalls that text. The token is one unit: Backspace after it and Delete
+before it remove it whole, and a caret moved into it goes on to its edge (a selection is left alone). A token edited by hand no longer
+matches and is plain text. Cmd+Shift+V (Ctrl+Shift+V), and "Paste as plain text" in the box's menu, paste the text itself; "Expand
+pasted text" in that menu puts back the token at the caret, or every token when the caret is on none. Bash mode always pastes plainly.
+The shared draft carries the expanded text, so a host restart or another client shows the pasted text in full; a rebuilt view in the same
+process keeps the tokens.
+
 ## Shared draft
 
 The composer's unsent text is host state, so one user on several clients (a desktop and a phone) sees and edits the same draft. It is

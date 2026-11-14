@@ -24,6 +24,8 @@ internal sealed partial class ChatView
     internal static readonly Dictionary<(string, string), List<string>> Histories = [];
     /// <summary>The shell commands a chat's bash mode has run, newest last: what Up recalls there.</summary>
     internal static readonly Dictionary<(string, string), List<string>> ShellHistories = [];
+    // The big pastes a draft holds as tokens, kept beside the draft so a rebuilt view still sends their text.
+    private static readonly Dictionary<(string, string), PastedTexts> Pastes = [];
 
     private TextBox input = null!;
     private Button send = null!;
@@ -49,22 +51,26 @@ internal sealed partial class ChatView
     internal TextBlock ShellMark => shellMark;
 
     /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
-    internal static int LocalChatStates => Drafts.Count + DraftSyncs.Count + Histories.Count + ShellHistories.Count + Navigators.Count + ShellNavigators.Count;
+    internal static int LocalChatStates => Drafts.Count + DraftSyncs.Count + Histories.Count + ShellHistories.Count + Navigators.Count + ShellNavigators.Count + Pastes.Count;
 
     /// <summary>Drops what the client keeps for a chat whose tab is closed for good; a tab merely hidden or left behind by a workspace switch keeps its draft and history.</summary>
     internal static void ForgetChat(string workspaceId, string chatId)
     {
         var key = (workspaceId, chatId);
-        Drafts.Remove(key); DraftSyncs.Remove(key); Histories.Remove(key); ShellHistories.Remove(key); Navigators.Remove(key); ShellNavigators.Remove(key);
+        Drafts.Remove(key); DraftSyncs.Remove(key); Histories.Remove(key); ShellHistories.Remove(key); Navigators.Remove(key); ShellNavigators.Remove(key); Pastes.Remove(key);
         ChatLaunches.Forget(workspaceId, chatId);
     }
 
-    internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); Navigators.Clear(); ShellNavigators.Clear(); }
+    internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); Navigators.Clear(); ShellNavigators.Clear(); Pastes.Clear(); }
     internal string? DraftNote => pasteNote.IsVisible ? pasteNote.Text : null;
     internal TextBox Input => input;
     internal ListBox Menu => menuList;
     internal bool MenuOpen => menu.IsOpen;
     internal Button SendButton => send;
+    internal PastedTexts? Pasted => Pastes.GetValueOrDefault((workspaceId, chatId));
+
+    /// <summary>The draft as it is sent: the box's text with each pasted-text token replaced by its text. The host's draft is this text.</summary>
+    private string DraftText => Pasted is { } pastes ? pastes.Expand(input.Text ?? "") : input.Text ?? "";
 
     private sealed record MenuEntry(string Label, string Detail, string Insert, int From, int To)
     {
@@ -269,6 +275,9 @@ internal sealed partial class ChatView
         input.AddHandler(KeyDownEvent, InputKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The box's own Paste (its context menu) takes the same road.
         input.PastingFromClipboard += (_, e) => { e.Handled = true; _ = PasteAttachments(); };
+        input.ContextFlyout = InputMenu();
+        // A pasted-text token is one unit: a caret moved into it goes on to its far edge.
+        input.PropertyChanged += (_, e) => { if (e.Property == TextBox.CaretIndexProperty) Dispatcher.UIThread.Post(SnapCaret); };
         SetValue(FileDrop.AcceptsProperty, () => true);
         SetValue(FileDrop.AttachProperty, paths => { foreach (var path in paths) AddAttachment(path); });
         UpdateSend();
@@ -350,9 +359,9 @@ internal sealed partial class ChatView
 
     private async Task SendDrafts()
     {
-        while (draftSync && ((input.Text ?? "") != baseText || repush))
+        while (draftSync && (DraftText != baseText || repush))
         {
-            var text = input.Text ?? "";
+            var text = DraftText;
             var before = baseText;
             repush = false;
             draftInFlight = true;
@@ -382,7 +391,7 @@ internal sealed partial class ChatView
         hostRevision = draft.Revision;
         RememberSync();
         if (draft.Origin == clientId) return;
-        var text = input.Text ?? "";
+        var text = DraftText;
         if (draftInFlight || text != baseText)
         {
             deferred = null;
@@ -409,7 +418,7 @@ internal sealed partial class ChatView
         deferTimer?.Stop();
         if (deferred is not { } draft) return;
         deferred = null;
-        if (draftInFlight || (input.Text ?? "") != baseText) { repush = true; ScheduleDraft(); return; }
+        if (draftInFlight || DraftText != baseText) { repush = true; ScheduleDraft(); return; }
         ApplyRemote(draft.Text);
     }
 
@@ -942,7 +951,7 @@ internal sealed partial class ChatView
     internal async Task Submit()
     {
         if (bashMode) { await RunShell(); return; }
-        var text = (input.Text ?? "").Trim();
+        var text = DraftText.Trim();
         if (text.Length == 0 && attachments.Count == 0)
         {
             if (!Busy) return;
@@ -961,6 +970,7 @@ internal sealed partial class ChatView
             if (text.Length > 0) { history.Add(text); RememberPrompt(text); }
             Navigators.Remove((workspaceId, chatId));
             input.Text = "";
+            Pastes.Remove((workspaceId, chatId));
             baseText = "";
             RememberSync();
             attachments.Clear();
@@ -1038,12 +1048,14 @@ internal sealed partial class ChatView
         if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Navigator.Escape() is { Step: not InputHistoryStep.None } restored) { ApplyHistoryMove(restored, e); return; }
         if (bashMode && e.Key == Key.Escape) { LeaveShellMode(); e.Handled = true; return; }
         if (bashMode && e.Key == Key.Back && string.IsNullOrEmpty(input.Text) && e.KeyModifiers == KeyModifiers.None) { LeaveShellMode(); e.Handled = true; return; }
+        // Backspace and Delete next to a pasted-text token remove the whole token.
+        if (e.Key is Key.Back or Key.Delete && e.KeyModifiers == KeyModifiers.None && RemovePastedToken(e.Key == Key.Back)) { e.Handled = true; return; }
         // Paste is ours, before the box sees it: a clipboard may hold an image or files and no text at all, which the box would silently ignore.
-        // Text-only clipboards are inserted below; everything else becomes attachments.
+        // Text-only clipboards are inserted below; everything else becomes attachments. With Shift, Cmd+V (Ctrl+V) pastes big text plainly.
         if (e.Key == Key.V && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) || e.Key == Key.Insert && e.KeyModifiers == KeyModifiers.Shift)
         {
             e.Handled = true;
-            _ = PasteAttachments();
+            _ = PasteAttachments(plain: e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             return;
         }
         var primary = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta);
@@ -1327,8 +1339,9 @@ internal sealed partial class ChatView
     /// <summary>
     /// What a paste does, in this order: files become attachments, an image (Avalonia reads PNG and, on macOS, TIFF) becomes a PNG attachment,
     /// and text is inserted where the caret is. Every paste path (the key, Shift+Insert and the box's own Paste menu) comes here.
+    /// Big text goes in as a pasted-text token unless <paramref name="plain"/> is set or the box is in bash mode.
     /// </summary>
-    internal async Task PasteAttachments()
+    internal async Task PasteAttachments(bool plain = false)
     {
         try
         {
@@ -1354,7 +1367,7 @@ internal sealed partial class ChatView
                 }
                 return;
             }
-            if (await Avalonia.Input.Platform.ClipboardExtensions.TryGetTextAsync(clipboard) is { Length: > 0 } text) { input.SelectedText = text; return; }
+            if (await Avalonia.Input.Platform.ClipboardExtensions.TryGetTextAsync(clipboard) is { Length: > 0 } text) { InsertPasted(text, plain); return; }
             // Nothing the box can use: say what the clipboard did hold, so a failure can be told from an empty clipboard.
             var formats = (await Avalonia.Input.Platform.ClipboardExtensions.GetDataFormatsAsync(clipboard)).Select(format => format.Identifier).ToList();
             pasteNote.Text = formats.Count == 0 ? "Nothing to paste. The clipboard is empty." : "Nothing to paste. The clipboard has: " + string.Join(", ", formats);
@@ -1364,6 +1377,91 @@ internal sealed partial class ChatView
         {
             env.Notify(PluginNotificationKind.Error, "Couldn't attach the pasted content", ChatErrors.Text(error));
         }
+    }
+
+    /// <summary>Puts pasted text at the caret: big text as a token (its text kept for the send), the rest as it is.</summary>
+    private void InsertPasted(string text, bool plain)
+    {
+        if (plain || bashMode || !PastedTexts.Collapses(text)) { input.SelectedText = text; return; }
+        var key = (workspaceId, chatId);
+        var pastes = Pastes.TryGetValue(key, out var found) ? found : Pastes[key] = new PastedTexts();
+        input.SelectedText = pastes.Add(text);
+    }
+
+    /// <summary>Removes the whole pasted-text token before the caret (Backspace) or after it (Delete); false when there is none.</summary>
+    private bool RemovePastedToken(bool back)
+    {
+        if (Pasted is not { } pastes || input.SelectionStart != input.SelectionEnd) return false;
+        var caret = input.CaretIndex;
+        foreach (var (start, end, _) in pastes.Tokens(input.Text ?? ""))
+        {
+            if (back ? start < caret && caret <= end : start <= caret && caret < end)
+            {
+                input.SelectionStart = start;
+                input.SelectionEnd = end;
+                input.SelectedText = "";
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int lastCaret;
+
+    // The caret never rests inside a token: moving right it goes to the token's end, moving left (or clicked in) to its start.
+    // A selection is left alone, so Shift+arrows still select; a selection that cuts a token makes it plain text when edited.
+    private void SnapCaret()
+    {
+        var caret = input.CaretIndex;
+        var previous = lastCaret;
+        lastCaret = caret;
+        if (input.SelectionStart != input.SelectionEnd || Pasted?.At(input.Text ?? "", caret) is not { } token || caret == token.Start || caret == token.End) return;
+        var target = caret > previous && previous >= token.Start ? token.End : token.Start;
+        input.SelectionStart = input.SelectionEnd = input.CaretIndex = lastCaret = target;
+    }
+
+    /// <summary>Puts back the text of the token at the caret, or of every token when the caret is on none; false when the box has no token.</summary>
+    internal bool ExpandPasted()
+    {
+        if (Pasted is not { } pastes) return false;
+        var text = input.Text ?? "";
+        var tokens = pastes.Tokens(text).ToList();
+        if (tokens.Count == 0) return false;
+        var caret = input.CaretIndex;
+        var chosen = tokens.Where(token => token.Start <= caret && caret <= token.End).Take(1).ToList() is { Count: > 0 } at ? at : tokens;
+        // From the last to the first, so the earlier spans stay where they are.
+        for (var index = chosen.Count - 1; index >= 0; index--)
+        {
+            input.SelectionStart = chosen[index].Start;
+            input.SelectionEnd = chosen[index].End;
+            input.SelectedText = pastes.Text(chosen[index].Number) ?? "";
+        }
+        return true;
+    }
+
+    // The box's own menu, with a plain paste and the way back from a token.
+    private MenuFlyout InputMenu()
+    {
+        MenuItem Item(string name, string header, Action action)
+        {
+            var item = new MenuItem { Name = name, Header = header };
+            item.Click += (_, _) => action();
+            return item;
+        }
+        var cut = Item("ChatInputCut", "Cut", () => input.Cut());
+        var copy = Item("ChatInputCopy", "Copy", () => input.Copy());
+        var paste = Item("ChatInputPaste", "Paste", () => _ = PasteAttachments());
+        var plain = Item("ChatInputPastePlain", "Paste as plain text", () => _ = PasteAttachments(plain: true));
+        var expand = Item("ChatExpandPasted", "Expand pasted text", () => ExpandPasted());
+        var flyout = new MenuFlyout { Items = { cut, copy, paste, plain, expand } };
+        flyout.Opening += (_, _) =>
+        {
+            cut.IsEnabled = input.CanCut;
+            copy.IsEnabled = input.CanCopy;
+            paste.IsEnabled = plain.IsEnabled = input.CanPaste;
+            expand.IsVisible = Pasted is { } pastes && pastes.Tokens(input.Text ?? "").Any();
+        };
+        return flyout;
     }
 
     private bool OnEdgeLine(bool up)

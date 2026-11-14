@@ -235,7 +235,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         subscription = env.Client.Subscribe(key, Enqueue);
         ResumeWorking();
         // Text kept from before this view existed (typed offline, or on a host that lost it) goes to the host once it can.
-        if (draftSync && (input.Text ?? "") != baseText) ScheduleDraft();
+        if (draftSync && DraftText != baseText) ScheduleDraft();
         WatchEditorSelection();
         if (!started)
         {

@@ -279,6 +279,7 @@ internal static class ClaudeChatUiChecks
         SelectedThoughtRow();
         AttachmentChipsContained();
         PasteImages();
+        PasteCollapse();
         WrappedHistory();
         DraftSurvivesHistory();
         DraftWithoutHost();
@@ -1208,6 +1209,80 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); File.Delete(file); }
+    }
+
+    // A big paste goes into the box as one token and is sent as what was pasted. Cmd+Shift+V pastes plainly, Backspace and Delete take the whole
+    // token, the caret never rests inside one, the box's menu puts the text back, and a rebuilt view keeps the token and its text.
+    private static void PasteCollapse()
+    {
+        static string Lines(int count) => string.Join('\n', Enumerable.Range(1, count).Select(line => "line " + line));
+        Require(!PastedTexts.Collapses(Lines(10)) && PastedTexts.Collapses(Lines(11)) && !PastedTexts.Collapses(Lines(10) + "\n")
+            && !PastedTexts.Collapses(new string('x', 1000)) && PastedTexts.Collapses(new string('x', 1001)),
+            "A paste collapses over 10 lines or over 1000 characters; a final line break starts no line.");
+        Require(PastedTexts.Token(3, 12) == "[Pasted text #3 +12 lines]" && PastedTexts.Token(1, 1) == "[Pasted text #1 +1 line]", "The token names the paste and its lines.");
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        ChatView.ForgetLocalDrafts();
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        var big = Lines(12);
+        string Token(int number) => PastedTexts.Token(number, 12);
+        void Press(Key key, KeyModifiers modifiers = KeyModifiers.None) { view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers }); Frame(window); }
+        try
+        {
+            Frame(window);
+            Await(Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(window.Clipboard!, big));
+            view.Input.Focus();
+            view.Input.Text = "see "; view.Input.SelectionStart = view.Input.SelectionEnd = view.Input.CaretIndex = 4; Frame(window);
+            Press(Key.V, KeyModifiers.Meta);
+            E2eWorkspace.Until(() => view.Input.Text == "see " + Token(1));
+            Press(Key.V, KeyModifiers.Control);
+            E2eWorkspace.Until(() => view.Input.Text == "see " + Token(1) + Token(2));
+
+            // Delete before a token and Backspace after one take it whole.
+            view.Input.SelectionStart = view.Input.SelectionEnd = view.Input.CaretIndex = ("see " + Token(1)).Length; Frame(window);
+            Press(Key.Delete);
+            Require(view.Input.Text == "see " + Token(1), $"Delete before a token removes the whole token (got '{view.Input.Text}').");
+            Press(Key.V, KeyModifiers.Meta);
+            E2eWorkspace.Until(() => view.Input.Text == "see " + Token(1) + Token(3));
+            Press(Key.Back);
+            Require(view.Input.Text == "see " + Token(1), $"Backspace after a token removes the whole token (got '{view.Input.Text}').");
+
+            // A caret put inside a token goes to one of its edges.
+            view.Input.SelectionStart = view.Input.SelectionEnd = view.Input.CaretIndex = 6; Frame(window); Frame(window);
+            Require(view.Input.CaretIndex is 4 || view.Input.CaretIndex == 4 + Token(1).Length, $"The caret never rests inside a token (at {view.Input.CaretIndex}).");
+
+            // The override: Cmd+Shift+V puts the text itself in the box.
+            view.Input.SelectionStart = view.Input.SelectionEnd = view.Input.CaretIndex = view.Input.Text!.Length; Frame(window);
+            Press(Key.V, KeyModifiers.Meta | KeyModifiers.Shift);
+            E2eWorkspace.Until(() => view.Input.Text == "see " + Token(1) + big);
+            Require(view.Input.ContextFlyout is MenuFlyout { Items: var items } && items.OfType<MenuItem>().Any(item => item.Name == "ChatInputPastePlain") && items.OfType<MenuItem>().Any(item => item.Name == "ChatExpandPasted"),
+                "The box's menu offers a plain paste and expanding a token.");
+
+            // A rebuilt view keeps the token and its text, and the send carries the text.
+            window.Close();
+            view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+            window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+            window.Show();
+            Frame(window);
+            Require(view.Input.Text == "see " + Token(1) + big, $"A rebuilt view restores the draft with its token (got '{view.Input.Text}').");
+            Await(view.Submit()); Frame(window);
+            Require(chat.Sends.LastOrDefault() == "see " + big + big, $"The send replaces the token by the pasted text (sent '{chat.Sends.LastOrDefault()}').");
+            Require(chat.DraftWrites.LastOrDefault() == "see " + big + big, "The draft that goes to the host carries the pasted text, not the token.");
+            Require(view.Input.Text is null or "" && view.Pasted is null, "A send clears the draft's pastes.");
+
+            // Numbering starts again with the next draft, and the menu's Expand puts the text back.
+            Await(Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(window.Clipboard!, big));
+            view.Input.Focus();
+            Press(Key.V, KeyModifiers.Meta);
+            E2eWorkspace.Until(() => view.Input.Text == Token(1));
+            Require(view.ExpandPasted() && view.Input.Text == big, $"Expand puts the pasted text back in the box (got '{view.Input.Text}').");
+            view.Input.Text = Token(1).Replace("12", "13", StringComparison.Ordinal); Frame(window);
+            Require(!view.ExpandPasted(), "A token edited by hand is plain text.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); ChatView.ForgetLocalDrafts(); }
     }
 
     // Every clickable text in the drawn list shows it: a hand, a wash and an underline under the pointer, and a ring on the target keyboard focus is on.
