@@ -89,7 +89,7 @@ ids), no live controls, so a stale entry costs memory and profile size rather th
 With a unified-chrome window (`LayoutSession.FixedLeft`; see [UI](../SPEC.md#unified-chrome)) the left side is the Projects rail alone and
 every transition ends by pinning it: other tools in left groups move to the right side, documents to the centre, extra left
 groups go, the side is shown and unfolded. It draws no edge rail, no pane header and no drag or drop target, Project Home composes the same
-rail, and Mod+1 does nothing. Other windows keep the left side as a dock column.
+rail, and Mod+1 does nothing. Android desktop windows are unified too. `DockSurface.TopRightReserve` keeps the top right strip clear of a caption bar's system buttons. Other windows keep the left side as a dock column.
 
 ## Layout grammar
 

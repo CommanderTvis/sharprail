@@ -226,8 +226,11 @@ confirmation gesture. Other platforms have no menu bar and keep their chords.
 
 ## Unified chrome
 
-On macOS and in the browser (`UnifiedChrome`; the other platforms keep the top bar and the dock's left column until they are moved over) the window has no top bar, so the
+On macOS, on Android (wide windows) and in the browser (`UnifiedChrome`; the other platforms keep the top bar and the dock's left column until they are moved over) the window has no top bar, so the
 main column starts at the top edge. A phone-sized workbench keeps its own pages and is never unified.
+
+- Where there is no native application menu (Android, the browser) the rail header's top row also holds a Settings gear after the add button, then the overflow button. A Mac has no gear.
+- In an Android desktop window the rail header's first row is the caption bar's row: as tall as the caption, clear of the system's app chip at the left, with the add button, gear and overflow button after it. The strip at the top right of the window (the first strip of the right side, or the main column's top while the right side is hidden) keeps clear of the system's buttons (`DockSurface.TopRightReserve`). The system keeps the blank part of the row and drags the window; only our buttons take touches there. Without a caption the row is the usual 40 high. When the system reports no control positions, `CaptionBar` assumes 140 dp at the left and 180 dp at the right.
 
 - The rail never disappears, at any page zoom: a large zoom shrinks the window's width in layout units, and the columns then give way in a fixed order. The right side shrinks to its minimum, then folds away (its tool strip stays to reopen it), then the rail shrinks to its own minimum (220 units, at most 40% of the frame), and only last does the main column go under 320. The rail's width keeps the traffic lights' inset, so they never overlap the main column.
 - The left column is the fixed Projects rail alone: no title, icon, tool tabs, drag handle or drop target, not part of presets,

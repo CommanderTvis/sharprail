@@ -82,10 +82,10 @@ public sealed partial class WorkbenchWindow
     private bool? lightCaption;
 
     /// <summary>
-    /// Whether this window's header can be the title bar of an Android desktop window: the desktop frame's header can,
+    /// Whether this window's top row can be the title bar of an Android desktop window: the desktop frame's can,
     /// the phone pages have none.
     /// </summary>
-    internal bool DrawsIntoCaption => !unified && !workbench.Compact;
+    internal bool DrawsIntoCaption => !workbench.Compact;
 
     /// <summary>The caption bar the header draws into; null keeps the header below the system's title bar.</summary>
     internal CaptionBar? Caption
@@ -115,19 +115,21 @@ public sealed partial class WorkbenchWindow
 
     /// <summary>
     /// The header's buttons and text boxes, in window coordinates: what <see cref="LinuxWindowChrome.StartsMove"/> keeps
-    /// clickable, so a press anywhere else in the header is a title-bar press.
+    /// clickable, so a press anywhere else in the header is a title-bar press. Without a top bar these are the controls of
+    /// the rail's header and of the top right strip, the two places that share the caption's row.
     /// </summary>
     internal IEnumerable<Rect> HeaderTargets()
     {
-        var header = this.FindControl<Grid>("MainHeader")!;
-        foreach (var control in header.GetVisualDescendants().OfType<Control>())
-        {
-            if (control is not (Button or TextBox) || !control.IsEffectivelyVisible || !control.IsHitTestVisible || !control.IsEffectivelyEnabled) continue;
-            if (control.GetVisualAncestors().TakeWhile(ancestor => ancestor != header).Any(ancestor => ancestor is Button or TextBox)) continue;
-            if (control.TransformToVisual(this) is not { } transform) continue;
-            var bounds = new Rect(control.Bounds.Size).TransformToAABB(transform);
-            if (bounds.Width > 0 && bounds.Height > 0) yield return bounds;
-        }
+        IEnumerable<Control> roots = unified ? [.. new[] { surface.LeftHeader, surface.TopRightStrip }.OfType<Control>()] : [this.FindControl<Grid>("MainHeader")!];
+        foreach (var header in roots)
+            foreach (var control in header.GetVisualDescendants().OfType<Control>())
+            {
+                if (control is not (Button or TextBox) || !control.IsEffectivelyVisible || !control.IsHitTestVisible || !control.IsEffectivelyEnabled) continue;
+                if (control.GetVisualAncestors().TakeWhile(ancestor => ancestor != header).Any(ancestor => ancestor is Button or TextBox)) continue;
+                if (control.TransformToVisual(this) is not { } transform) continue;
+                var bounds = new Rect(control.Bounds.Size).TransformToAABB(transform);
+                if (bounds.Width > 0 && bounds.Height > 0) yield return bounds;
+            }
     }
 
     private void ReportCaption()

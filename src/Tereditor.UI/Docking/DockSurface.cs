@@ -24,6 +24,27 @@ public sealed partial class DockSurface : Grid
     public LayoutSession Session { get; }
     /// <summary>With <see cref="LayoutSession.FixedLeft"/>: the controls above the Projects rail in the left column.</summary>
     public Control? LeftHeader { get; set; }
+
+    private (double Height, double Width) topRightReserve;
+    private Border? topRightStrip;
+
+    /// <summary>
+    /// The room the system's window controls take at the top right (a caption bar's height and the controls' width): the
+    /// top right strip keeps clear of them, or the main column starts below them while no side strip is there.
+    /// </summary>
+    public (double Height, double Width) TopRightReserve
+    {
+        get => topRightReserve;
+        set
+        {
+            if (topRightReserve == value) return;
+            topRightReserve = value;
+            if (Children.Count > 0 && !Drawers) Rebuild();
+        }
+    }
+
+    /// <summary>The tab strip that is the top right of the surface, whose controls share the row with the system's window controls; null when none.</summary>
+    public Border? TopRightStrip => topRightStrip;
     public event Action? GestureCanceled;
     /// <summary>Requests a shared title change for a terminal tab.</summary>
     public Action<string, DockTab>? RenameTerminal { get; set; }
@@ -185,9 +206,27 @@ public sealed partial class DockSurface : Grid
         if (right) PlaceAuxiliary(BuildAuxiliary("right"), "right", 4, 1);
         if (left) OuterSeparator("left", 1, 1);
         if (right) OuterSeparator("right", 3, 1);
+        ReserveTopRight(right);
         RebuildRails();
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
+    }
+
+    // The strip at the top of the right column gets the system controls' width as padding; with no right column the centre starts below them.
+    private void ReserveTopRight(bool right)
+    {
+        topRightStrip = null;
+        centerRegion.Margin = default;
+        foreach (var region in auxiliaryRegions.Values) region.Margin = default;
+        if (topRightReserve.Width <= 0) return;
+        if (!right) { centerRegion.Margin = new Thickness(0, topRightReserve.Height, 0, 0); return; }
+        var side = auxiliaryRegions["right"];
+        if (side.GetLogicalDescendants().OfType<Border>().FirstOrDefault(border => border.Name?.StartsWith("TabStrip_", StringComparison.Ordinal) == true) is { } strip)
+        {
+            strip.Padding = new Thickness(strip.Padding.Left, strip.Padding.Top, strip.Padding.Right + topRightReserve.Width, strip.Padding.Bottom);
+            topRightStrip = strip;
+        }
+        else side.Margin = new Thickness(0, topRightReserve.Height, 0, 0);
     }
 
     private bool Side(string region) => (region == "left" ? Session.State.LeftVisible : Session.State.RightVisible) &&

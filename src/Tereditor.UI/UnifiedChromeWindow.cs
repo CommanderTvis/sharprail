@@ -29,24 +29,31 @@ public sealed partial class WorkbenchWindow
         this.FindControl<Border>("WindowTitleBar")!.IsVisible = false;
         rootGrid.RowDefinitions[0].Height = new GridLength(0);
 
-        // A Mac has the native application menu (About, Settings), so only the browser draws the overflow button.
-        Button? more = null;
+        // A Mac has the native application menu (About, Settings), so only the other platforms draw the Settings gear and the overflow button.
+        Button? more = null, gear = null;
         if (!OperatingSystem.IsMacOS())
         {
-            more = new Button
+            Button IconButton(string name, string icon, string tip)
             {
-                Name = "AppMenuButton",
-                Content = Ui.Icon("moreHorizontal", null, 14),
-                Width = 32,
-                Height = 32,
-                Padding = new Thickness(0),
-                Background = Avalonia.Media.Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            ((Border)more.Content!).Bind(Border.BackgroundProperty, more.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
-            ToolTip.SetTip(more, "More"); AutomationProperties.SetName(more, "More");
+                var button = new Button
+                {
+                    Name = name,
+                    Content = Ui.Icon(icon, null, 14),
+                    Width = 32,
+                    Height = 32,
+                    Padding = new Thickness(0),
+                    Background = Avalonia.Media.Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    CornerRadius = new CornerRadius(0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ((Border)button.Content!).Bind(Border.BackgroundProperty, button.GetObservable(Avalonia.Controls.Primitives.TemplatedControl.ForegroundProperty));
+                ToolTip.SetTip(button, tip); AutomationProperties.SetName(button, tip);
+                return button;
+            }
+            gear = IconButton("RailSettingsButton", "settings", "Settings");
+            gear.Click += (_, _) => ShowSettings();
+            more = IconButton("AppMenuButton", "moreHorizontal", "More");
             // The View menu belongs to this button; a right-click on the header's empty space opens it as well.
             // A context menu opens only on the control it is attached to: the button and the rail header each carry their own.
             viewMenu = more.ContextMenu = NewViewMenu();
@@ -56,12 +63,13 @@ public sealed partial class WorkbenchWindow
 
         // The add-project button leaves the rail's caption row (there is none) and sits beside the overflow button where there is one.
         var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { NewAddProjectButton() } };
+        if (gear is not null) actions.Children.Add(gear);
         if (more is not null) actions.Children.Add(more);
 
         var header = new StackPanel { Name = "RailHeader", Spacing = 4, Margin = new Thickness(0, 0, 0, 8) };
-        if (OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsAndroid())
         {
-            // The traffic lights sit over the top-left of this row, which is the window's draggable title region.
+            // The traffic lights (or an Android desktop window's app chip) sit over the top-left of this row, which is the window's draggable title region.
             railLightsRow = new Grid { Name = "RailLightsRow", ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             Ui.Place(railLightsRow, actions, 0, 1);
             header.Children.Add(railLightsRow);
@@ -150,6 +158,8 @@ public sealed partial class WorkbenchWindow
         header.ContextMenu = NewViewMenu();
         if (more is null) viewMenu = header.ContextMenu;
         surface.LeftHeader = header;
+        // The strip at the top right shares the caption's row with the system's controls; its buttons take their touches there too.
+        surface.LayoutUpdated += (_, _) => ReportCaption();
         ApplyChromeZoom();
     }
 
@@ -160,7 +170,18 @@ public sealed partial class WorkbenchWindow
     private void ApplyUnifiedChromeZoom(double zoom)
     {
         this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height = new GridLength(0);
+        if (railLightsRow is not null && (OperatingSystem.IsAndroid() || captionBar is not null))
+        {
+            // An Android desktop window's caption bar does not zoom either: the row is as tall as it, clear of the app chip at the
+            // left, and the strip at the top right keeps clear of the system's buttons.
+            railLightsRow.Height = captionBar is { } bar ? bar.RowHeight(zoom, LayoutRoles.TopbarRow) : LayoutRoles.TopbarRow;
+            railLightsRow.Margin = new Thickness(captionBar is { } chip ? chip.Left / zoom : 0, 0, 0, 0);
+            if (surface is { } dock) dock.TopRightReserve = captionBar is { } controls ? (controls.Height / zoom, controls.Right / zoom) : default;
+            return;
+        }
+        if (surface is { } plain) plain.TopRightReserve = default;
         if (!OperatingSystem.IsMacOS()) return;
+        if (railLightsRow is not null) railLightsRow.Margin = default;
         var height = Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom);
         ExtendClientAreaTitleBarHeightHint = height * zoom;
         if (railLightsRow is not null) railLightsRow.Height = height;

@@ -308,6 +308,37 @@ internal static class UnifiedChromeChecks
         Console.WriteLine("PASS unified chrome: old layouts migrate, presets keep the rail, the rail cannot be hidden");
     }
 
+    /// <summary>
+    /// The Settings gear sits beside the add button in the rail header where there is no native application menu, and nowhere on
+    /// a Mac. Under an Android desktop window's caption bar the rail header's first row clears the system's app chip, and the strip
+    /// at the top right clears its buttons, so one row holds both the system's controls and ours.
+    /// </summary>
+    private static void CaptionRow(E2eWorkspace app, StackPanel header, Control[] all)
+    {
+        var gear = all.OfType<Button>().SingleOrDefault(button => button.Name == "RailSettingsButton");
+        if (OperatingSystem.IsMacOS()) Require(gear is null, "A Mac keeps Settings in its application menu: the rail header has no gear.");
+        else
+        {
+            var add = app.Find<Button>("AddProjectMenu");
+            Require(gear is not null && header.IsLogicalAncestorOf(gear) && ReferenceEquals(gear.Parent, add.Parent), "The Settings gear sits beside the add button in the rail header.");
+            Require(Math.Abs(gear!.TranslatePoint(default, app.Window)!.Value.Y - add.TranslatePoint(default, app.Window)!.Value.Y) <= 1 &&
+                gear!.TranslatePoint(default, app.Window)!.Value.X > add.TranslatePoint(default, app.Window)!.Value.X, "The gear shares the add button's row, after it.");
+        }
+        var lights = app.Find<Grid>("RailLightsRow");
+        var surface = app.Find<DockSurface>("WorkspaceWorkbench");
+        app.Window.Caption = new CaptionBar(40, 140, 180);
+        try
+        {
+            Dispatcher.UIThread.RunJobs(); app.Window.UpdateLayout();
+            Require(lights.Height >= 40 && lights.Margin.Left == 140, "Under a caption bar the rail header's first row is as tall as it and clears the app chip.");
+            Require(surface.TopRightReserve == (40, 180) && (surface.TopRightStrip is not { } strip || strip.Padding.Right >= 180) &&
+                (surface.TopRightStrip is not null || surface.Margin.Top >= 0), "The top right clears the system's buttons.");
+            Require(!app.Find<Border>("WindowTitleBar").IsVisible && surface.Bounds.Top == 0, "No separate top bar or strip appears under the caption.");
+        }
+        finally { app.Window.Caption = null; Dispatcher.UIThread.RunJobs(); }
+        Require(surface.TopRightReserve == default, "Without a caption bar nothing is reserved.");
+    }
+
     private static void Window(string directory)
     {
         UnifiedChrome.Override = true;
@@ -329,6 +360,7 @@ internal static class UnifiedChromeChecks
             Require(InHeader(app.Find<Button>("AddProjectMenu")) && !all.OfType<TextBlock>().Any(text => text.Text == "PROJECTS"),
                 "The add button sits in the rail header and there is no caption row.");
             AddMenuUnderButton(app);
+            CaptionRow(app, header, all);
             var panel = app.Find<Grid>("ProjectsPanel");
             Require(panel.RowDefinitions.Count == 1 && panel.Margin.Top == 0, "The project list starts right below the header blocks.");
             Require(all.OfType<StackPanel>().Where(panel => panel.Name == "ProjectWorkspaces").All(panel => panel.IsVisible == panel.Children.Any(child => child.IsVisible)),
