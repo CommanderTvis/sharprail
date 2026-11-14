@@ -99,8 +99,9 @@
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,4,0" />
     </Style>
-    <!-- The Host block's loader turns while it connects, with the same style animation as the other spinners: nothing ticks once it stops. -->
-    <Style Selector="ContentControl.location-icon.turning">
+    <!-- The Host block's loader turns while it connects, with the same style animation as the other spinners: nothing ticks once it stops.
+         The name keeps the animation to that icon: a transform animation gives every control its selector could match a transform. -->
+    <Style Selector="ContentControl#ConnectionIcon.turning">
       <Setter Property="RenderTransformOrigin" Value="50%,50%" />
       <Style.Animations>
         <Animation Duration="0:0:1" IterationCount="Infinite">
