@@ -67,6 +67,61 @@ internal static class EditorWorkbenchChecks
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }
 
+    // A trackpad pinch (or a zooming wheel, a browser's pinch) over the code sizes the editor text continuously, not the window's page zoom, and the size it settles on is reported once.
+    private static void EditorPinch(string fixture)
+    {
+        var root = Path.Combine(fixture, "pinch-editor");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "missing"));
+        File.WriteAllText(Path.Combine(root, "pinch.cs"), "class Pinch {}\n");
+        var window = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root,
+            new ProfileStore(Path.Combine(root, ".profile")), E2E.E2eTerminals.Plain);
+        var chosen = 0;
+        void Chosen() => chosen++;
+        ScintillaEditor.TextSizeChosen += Chosen;
+        window.Show(); Pump(() => window.WorkspaceMounted);
+        try
+        {
+            Await(window.OpenDocumentAsync("pinch.cs", true, raw: true));
+            window.UpdateLayout();
+            var editor = Editor(window);
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize;
+            var page = window.Preferences.Zoom;
+            bool Magnify(double delta)
+            {
+                var pinch = new PointerDeltaEventArgs(InputElement.PointerTouchPadGestureMagnifyEvent, editor,
+                    new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true), window, default, 0,
+                    new PointerPointProperties(), KeyModifiers.None, new Vector(delta, 0));
+                editor.RaiseEvent(pinch);
+                return pinch.Handled;
+            }
+            Require(Magnify(0.25) && Magnify(0.25), "The editor claims a trackpad pinch over the code.");
+            Require(ScintillaEditor.TextSize == ScintillaEditor.DefaultTextSize * 1.5 && window.Preferences.Zoom == page,
+                $"A pinch over the code sizes the editor text against its starting size and leaves the page zoom alone ({ScintillaEditor.TextSize}, {window.Preferences.Zoom}).");
+            Magnify(10);
+            Require(ScintillaEditor.TextSize == ScintillaEditor.MaximumTextSize, "A pinch stops at the largest text size.");
+            Magnify(-0.1);
+            Require(ScintillaEditor.TextSize < ScintillaEditor.MaximumTextSize, "Pinching back from the limit responds at once.");
+            Require(chosen == 0, "The size is not reported while the pinch goes on.");
+            E2E.E2eWorkspace.Settle(400);
+            Require(chosen == 1, $"The size a pinch settles on is reported once ({chosen}).");
+            var size = ScintillaEditor.TextSize;
+            var top = editor.VerticalPixelOffset;
+            TerminalFontZoomChecks.Wheel(window, editor, -2, KeyModifiers.Control);
+            Require(ScintillaEditor.TextSize < size && editor.VerticalPixelOffset == top,
+                $"Control with the wheel sizes the code instead of scrolling it ({size} then {ScintillaEditor.TextSize}).");
+            E2E.E2eWorkspace.Settle(400);
+            Require(chosen == 2 && window.Preferences.Zoom == page, $"A zooming wheel settles like a pinch, and the page zoom never moved ({chosen}, {window.Preferences.Zoom}).");
+            Console.WriteLine("PASS workbench editor: a trackpad pinch and a zooming wheel size the code, not the page, and report the size they settle on");
+        }
+        finally
+        {
+            ScintillaEditor.TextSizeChosen -= Chosen;
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize;
+            window.Close(); Dispatcher.UIThread.RunJobs();
+        }
+    }
+
     // The four answers to "the file changed on disk", driven with canned answers instead of dialogs.
     private static void SaveConflictChoices(string fixture)
     {
@@ -114,6 +169,7 @@ internal static class EditorWorkbenchChecks
     {
         if (!OperatingSystem.IsMacOS()) return;
         FileLinkPosition(fixture);
+        EditorPinch(fixture);
         SaveConflictChoices(fixture);
         LargeDiff(fixture);
         Limits(fixture);

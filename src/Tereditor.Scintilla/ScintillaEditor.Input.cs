@@ -232,6 +232,13 @@ public sealed partial class ScintillaEditor
         HideDiagnosticHover();
         base.OnPointerWheelChanged(e);
         if (disposed) return;
+        // Control or Command with the wheel zooms, as a browser reports a trackpad pinch; a notch is a tenth of magnification.
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+        {
+            Magnify(e.Delta.Y / 10);
+            e.Handled = true;
+            return;
+        }
         // Trackpads report fractional deltas on both axes; carry remainders so slow
         // gestures still scroll and slight sideways drift does not swallow vertical motion.
         var delta = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? new Vector(e.Delta.Y, 0) : e.Delta;

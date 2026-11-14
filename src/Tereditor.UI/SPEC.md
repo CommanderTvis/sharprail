@@ -412,6 +412,9 @@ factor may rest between the steps (a persisted factor is clamped, not snapped) a
 adjacent factor from wherever it rests. The profile is saved once, when the gesture ends. The handler
 bubbles, so content that claims the gesture keeps it, and pinch writes the window shell's zoom preference. A terminal claims
 pinches and Control/Command-wheel over its surface for its own font size ([Terminal/SPEC.md](Terminal/SPEC.md#font-size)).
+A code editor, a diff's sides included, claims pinches and Control/Command-wheel for the editor font size,
+which the profile keeps (`Preferences.CodeFontSize`); a rendered Markdown preview's text has no pinch of its
+own, so a pinch there zooms the page.
 
 ## Locations, history and links
 

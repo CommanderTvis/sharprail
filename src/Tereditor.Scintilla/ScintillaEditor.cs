@@ -36,6 +36,8 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private readonly ScintillaDocument document;
     private readonly DispatcherTimer timer;
     private readonly DispatcherTimer idle;
+    private readonly DispatcherTimer magnifyEnd;
+    private double magnifyStart, magnifyScale;
     private readonly InputClient inputClient;
     private bool disposed;
     private ScintillaColors colors = ScintillaColors.Light;
@@ -86,6 +88,10 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         var pinched = 0d;
         AddHandler(PinchEvent, (_, e) => { if (pinched == 0) pinched = TextSize; tapping = false; TextSize = pinched * e.Scale; e.Handled = true; });
         AddHandler(PinchEndedEvent, (_, _) => { if (pinched == 0) return; pinched = 0; TextSizeChosen?.Invoke(); });
+        // A trackpad pinch (macOS magnify) sizes them too, and claims the gesture so the window's page zoom stays put.
+        magnifyEnd = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        magnifyEnd.Tick += (_, _) => EndMagnify();
+        AddHandler(PointerTouchPadGestureMagnifyEvent, (_, e) => { Magnify(e.Delta.X); e.Handled = true; });
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
         { if (IsFocused && !disposed) { document.Tick(); InvalidateVisual(); } });
         timer.Stop();
@@ -147,6 +153,29 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     /// <summary>Raised when <see cref="TextSize"/> or <see cref="LineSpacing"/> changes, a pinch in progress included.</summary>
     public static event Action? TextSizeChanged;
+
+    /// <summary>
+    /// One step of a trackpad pinch. Magnification arrives as deltas with no phases, so a gesture starts at the first
+    /// delta after 250ms of quiet: the size is captured there and the accumulated scale applies against it, so steps
+    /// never compound, and the scale is bounded so pinching back from a limit responds at once.
+    /// </summary>
+    public void Magnify(double delta)
+    {
+        if (!double.IsFinite(delta) || disposed) return;
+        if (magnifyStart == 0) { magnifyStart = TextSize; magnifyScale = 1; }
+        magnifyScale = Math.Clamp(magnifyScale + delta, MinimumTextSize / magnifyStart, MaximumTextSize / magnifyStart);
+        tapping = false;
+        TextSize = magnifyStart * magnifyScale;
+        magnifyEnd.Stop(); magnifyEnd.Start();
+    }
+
+    private void EndMagnify()
+    {
+        magnifyEnd.Stop();
+        if (magnifyStart == 0) return;
+        magnifyStart = 0;
+        TextSizeChosen?.Invoke();
+    }
 
     /// <summary>Raised when a pinch settles on a size, for whoever remembers it.</summary>
     public static event Action? TextSizeChosen;
@@ -367,12 +396,12 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     { base.OnAttachedToVisualTree(e); TextSizeChanged += TextSized; InvalidateVisual(); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { HideDiagnosticHover(); TextSizeChanged -= TextSized; timer.Stop(); base.OnDetachedFromVisualTree(e); }
+    { HideDiagnosticHover(); TextSizeChanged -= TextSized; timer.Stop(); EndMagnify(); base.OnDetachedFromVisualTree(e); }
 
     public void Dispose()
     {
         if (disposed) return;
-        HideDiagnosticHover(); diagnosticHoverTimer.Tick -= ShowDiagnosticHover;
+        HideDiagnosticHover(); diagnosticHoverTimer.Tick -= ShowDiagnosticHover; EndMagnify();
         disposed = true; Disposed?.Invoke(this, EventArgs.Empty); timer.Stop(); idle.Stop(); document.Dispose();
     }
 

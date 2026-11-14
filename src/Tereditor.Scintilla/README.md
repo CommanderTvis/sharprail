@@ -120,7 +120,11 @@ licenses.
 ## Text size and wrapping
 
 `ScintillaEditor.TextSize` is one size for every editor (6 to 40, default 13). A two-finger pinch on any
-editor changes it live and raises `TextSizeChosen` when it settles, for the host to remember. `WrapWidth`
+editor, on a touch screen or a trackpad, changes it live and raises `TextSizeChosen` when it settles, for the
+host to remember. A trackpad pinch arrives as magnify deltas with no phases, so it starts at the first delta
+after 250ms of quiet and ends after 250ms more; the size is captured at the start and the accumulated scale
+applies against it. Control or Command with the wheel (how a browser reports a trackpad pinch) takes the
+same path, a tenth of magnification per notch. The editor claims both, so the window's page zoom does not move. `WrapWidth`
 is given at the default size and keeps its count of characters at any other. `WrapAlways` wraps at the
 pane's edge even with no wrap width, for screens where sideways scrolling is a chore.
 
