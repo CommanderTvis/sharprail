@@ -192,6 +192,7 @@ internal static class PluginWatchChecks
         public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => inner.SaveFileAsync(request, cancellationToken);
         public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => inner.ReadFileAsync(relativePath, cancellationToken);
         public ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default) => inner.SearchAsync(query, cancellationToken);
+        public ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken cancellationToken = default) => inner.FindFilesAsync(query, cancellationToken);
         public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => inner.GetGitAsync(comparisonBranch, cancellationToken, scope);
         public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => inner.ListCommitsAsync(comparisonBranch, cancellationToken);
         public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default) => inner.GetCommitAsync(sha, cancellationToken);

@@ -333,6 +333,7 @@ internal static class StartupChecks
         public ValueTask<HostDirectoryListing> ListHostDirectoryAsync(string path, CancellationToken ct = default) => inner.ListHostDirectoryAsync(path, ct);
         public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
         public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
+        public ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken ct = default) => inner.FindFilesAsync(query, ct);
         public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
         public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
         public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);

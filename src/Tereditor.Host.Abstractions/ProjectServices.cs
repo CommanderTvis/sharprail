@@ -178,6 +178,8 @@ public partial interface IProjectServices
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);
     ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default);
+    /// <summary>Go to file: files whose path matches <paramref name="query"/> (<see cref="FileNameMatch"/>), best first, at most 200; each hit has line 0 and no text. Since <see cref="HostProtocol.FileNameSearch"/>.</summary>
+    ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all");
     ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default);
     /// <summary>Reads one commit by hexadecimal id, independently of the comparison catalog; null when it no longer exists.</summary>

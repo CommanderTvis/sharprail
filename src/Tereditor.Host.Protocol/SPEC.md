@@ -38,7 +38,8 @@ project: local adapters call Core directly, with no serialization.
 - Project: open a project (resolving the workspace/project roots), classify a
   host path before opening it (`InspectProjectReply.Kind`: repository, initable,
   missing, not a directory), list and
-  read files, save a file with its original text for conflict detection, list
+  read files, search their content and (protocol 23, `FindFilesAsync`, reusing `SearchReply` with line 0) their
+  names, save a file with its original text for conflict detection, list
   specs, the spec graph (`SpecGraphReply`: specs, edges, dangling links, duplicate
   ids, parent cycles) and whether the workspace has durable specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
   open pull request lookup (neutral `PullRequest`, no GitHub RPC), pull request draft and opening, branch catalog (optional default-base fetch; local, per-remote rows, the

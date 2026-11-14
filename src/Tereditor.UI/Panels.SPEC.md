@@ -227,7 +227,7 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
 
 ## Files
 
-Files is one tool with a fixed header row: an **All | Changed** switch and, at its right, Collapse all folders
+Files is one tool with a fixed header row: an **All | Changed** switch and, at its right, Go to file and Collapse all folders
 (ThinkRail #779, `FilesModes.cs`). **Changed** is the [Changes](#changes) view itself, unchanged (scope, target,
 List | Tree, diff opening, row actions, review-tab activation), built on first use and kept in the tool-content map
 under `changes`; the separate Changes tool is retired. **All** is the file tree below. The mode is window-wide and
@@ -247,7 +247,20 @@ reveal Files and select Changed in one step. The Changed label carries the scope
   keeps the tree its project's previous workspace showed (the retained pane below), rather than upstream's empty one. A folder reopens when it or a folder inside it
   was left expanded (so a splitting compact chain keeps its expansion); collapsing a folder forgets the folders
   inside it. Collapse all folders collapses All, or
-  every folder of Changed's Tree view when it has a change; it is disabled in Changed's List view.
+  every folder of Changed's Tree view when it has a change; it is disabled in Changed's List view and while Go to
+  file shows matches.
+- Go to file (`FilesFind.cs`; the magnifier button, Mod+P or Edit › Go to File…) opens a one-line filter box under
+  the header row; Mod+P reveals Files first. Typing matches file paths by name (the host's `FindFilesAsync` rule,
+  see [host files](../Tereditor.Host.Core/Files.SPEC.md#search)): best first, at most 200, ignored files left out. The
+  matches show as a flat list in place of the tree or Changed, each row the icon, the file name and its folder
+  dimmed, the matched characters in the accent colour. It is a flat list rather than a pruned tree because the tree
+  is listed lazily one folder at a time and its expansion is remembered state, which a filter must not touch; the
+  tree underneath is never rebuilt. All asks the host, debounced, cancelling the previous query; a reply to an older
+  query, another workspace or a closed box is dropped. Changed ranks the window's Git snapshot in memory by the same
+  rule, deletions left out, and runs again when the snapshot or the mode changes. Up and Down move the selection,
+  Enter opens it kept and closes the box, a click opens it as a preview and a double click keeps it. Clearing the
+  query, Escape, the button again or a workspace switch closes the box and shows the tree or Changed exactly as it
+  was. A host below protocol 23 offers no button and the chord does nothing.
 - Not ported from #779: auto-reveal and highlight of the active editor tab's file, per-view scroll memory across
   reloads (scroll survives within a session through pane retention), and the host-side `/` path fix and
   `git check-ignore` reader (tereditor's host already lists `/`-compatible relative paths on macOS and Linux and

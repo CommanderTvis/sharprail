@@ -1,5 +1,27 @@
 <Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:panels="using:Tereditor.UI.Panels" x:Class="Tereditor.UI.Panels.FilesPaneFrame"
-      RowDefinitions="Auto,Auto,*">
+      xmlns:panels="using:Tereditor.UI.Panels" xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+      x:Class="Tereditor.UI.Panels.FilesPaneFrame"
+      RowDefinitions="Auto,Auto,Auto,*">
+  <Grid.Styles>
+    <Style Selector="ListBox#FilesFindResults ListBoxItem">
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="ListBox#FilesFindResults ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBox#FilesFindResults ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
+    </Style>
+  </Grid.Styles>
   <panels:FileTransferProgress x:Name="TransferProgress" Grid.Row="0" />
+  <!-- Go to file: a filter box under the header row and a flat list of matches, shown in place of the tree. -->
+  <TextBox x:Name="FilesFindQuery" Grid.Row="2" IsVisible="False" Margin="12,0,8,4" MinHeight="26" Padding="6,3"
+           PlaceholderText="Go to file" AutomationProperties.Name="Go to file"
+           PlaceholderForeground="{x:Static rendering:Ui.Muted}" Foreground="{x:Static rendering:Ui.TextBrush}"
+           VerticalContentAlignment="Center" />
+  <DockPanel x:Name="FilesFindPanel" Grid.Row="3" IsVisible="False" Margin="4,4,12,12">
+    <TextBlock x:Name="FilesFindStatus" DockPanel.Dock="Top" Margin="8,4" FontSize="12" IsVisible="False"
+               Foreground="{x:Static rendering:Ui.Hint}" />
+    <ListBox x:Name="FilesFindResults" Background="Transparent" BorderThickness="0" Padding="0"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Matching files" />
+  </DockPanel>
 </Grid>

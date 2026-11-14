@@ -50,9 +50,9 @@ internal static class AppCommandChecks
         {
             var chord = shortcut.Gesture;
             var reached = window.ShortcutFor(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = chord.Key, KeyModifiers = chord.KeyModifiers });
-            // Search is disabled at the Welcome screen, where its chord reaches nothing.
+            // Search and Go to file are disabled at the Welcome screen, where its chord reaches nothing.
             // Preferences has its own chord on macOS only. Undo and redo close act only with a closed tab to reopen.
-            Require(reached == shortcut || (shortcut == WindowShortcuts.SearchWorkspace || shortcut == WindowShortcuts.Settings && !mac ||
+            Require(reached == shortcut || (shortcut == WindowShortcuts.SearchWorkspace || shortcut == WindowShortcuts.GoToFile || shortcut == WindowShortcuts.Settings && !mac ||
                 shortcut == WindowShortcuts.UndoClose || shortcut == WindowShortcuts.RedoClose) && reached is null, $"The {shortcut.Id} chord must reach its own command, reached {reached?.Id ?? "none"}.");
         }
         Require(window.ShortcutFor(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.O, KeyModifiers = KeyModifiers.None }) is null, "A bare letter is not a window chord.");

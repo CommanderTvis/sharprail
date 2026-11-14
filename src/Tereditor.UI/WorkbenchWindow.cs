@@ -168,6 +168,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         (WindowShortcuts.OpenProject, () => true, () => _ = PickProjectAsync()),
         (WindowShortcuts.NewWindow, () => true, () => NewWindow()),
         (WindowShortcuts.SearchWorkspace, () => WorkspaceMounted && !atHome, () => _ = SearchWorkspaceAsync()),
+        (WindowShortcuts.GoToFile, () => WorkspaceMounted && !atHome && state.Supports(HostProtocol.FileNameSearch), GoToFile),
         (WindowShortcuts.NewWorkspace, () => true, () => _ = CreateWorkspaceDialogAsync()),
         (WindowShortcuts.Settings, () => true, ShowSettings),
         (WindowShortcuts.ToggleLeft, () => true, surface.ToggleLeft),
@@ -528,6 +529,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             WorkspaceMounted = true; restorePending = false;
             // The header's branch status starts with the switch, from the last facts seen here, not after the git read.
             RequestBranchStatus(false);
+            // Go to file's matches belong to the workspace they were found in.
+            if (filesPanel is FilesPaneFrame findFrame && FilesFindOpen) CloseFilesFind(findFrame);
             if (!sameProject && filesPanel is FilesPaneFrame frame)
             {
                 var filesTree = frame.Children.OfType<DrawnTree>().Single();

@@ -115,7 +115,8 @@ public sealed partial class WorkbenchWindow
         WireFileDragging(tree, panel);
         tree.SetRoots(FileEntries([], folderCache.GetValueOrDefault("") ?? [], tree));
         Ui.Place(panel, FilesHeader(), 1);
-        Ui.Place(panel, tree, 2);
+        Ui.Place(panel, tree, 3);
+        WireFilesFind(panel);
         // The panel is registered by the caller; mode and marks look it up there once it is.
         Dispatcher.UIThread.Post(() => { if (ReferenceEquals(toolContent.GetValueOrDefault("files"), panel)) ApplyFilesMode(panel); });
         return panel;

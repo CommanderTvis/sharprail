@@ -149,6 +149,7 @@ public static class ApplicationMenu
         edit.Items.Add(Follow(Item("Undo Close Tab", WindowShortcuts.UndoClose.Gesture, () => window.UndoClose()), WindowShortcuts.UndoClose, window));
         edit.Items.Add(new NativeMenuItemSeparator());
         edit.Items.Add(Item("Find", Key.F, Command, () => Edit(window, Key.F, Command, _ => { })));
+        edit.Items.Add(Shortcut("Go to File…", WindowShortcuts.GoToFile));
         edit.Items.Add(new NativeMenuItemSeparator());
         var language = Language(window);
         foreach (var item in language) edit.Items.Add(item);

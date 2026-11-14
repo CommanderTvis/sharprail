@@ -249,6 +249,8 @@ public partial interface IProjectRpc
     ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default);
     /// <summary>Searches the workspace for <see cref="ProjectRequest.Path"/> as a plain substring.</summary>
     ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default);
+    /// <summary>Go to file: files whose path matches <see cref="ProjectRequest.Path"/>, best first; each hit has line 0 (protocol 23).</summary>
+    ValueTask<SearchReply> FindFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default);
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);

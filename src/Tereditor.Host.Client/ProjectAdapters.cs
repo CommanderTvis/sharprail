@@ -25,6 +25,7 @@ public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjec
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListFilesAsync(relativePath, cancellationToken));
     public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ReadFileAsync(relativePath, cancellationToken));
     public ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.SearchAsync(query, cancellationToken));
+    public ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.FindFilesAsync(query, cancellationToken));
     public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => OffDispatcher.Run(() => host.GetGitAsync(comparisonBranch, cancellationToken, scope));
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListCommitsAsync(comparisonBranch, cancellationToken));
     public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetCommitAsync(sha, cancellationToken));
@@ -138,6 +139,12 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         var reply = await service.SearchAsync(new() { Path = query }, Context(cancellationToken));
         return new(reply.Hits.Select(hit => new SearchHit(hit.Path, hit.Line, hit.Text)).ToArray(), reply.Truncated);
+    }
+
+    public async ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.FindFilesAsync(new() { Path = query }, Context(cancellationToken));
+        return new(reply.Hits.Select(hit => new SearchHit(hit.Path, 0, "")).ToArray(), reply.Truncated);
     }
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)

@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
@@ -121,6 +123,106 @@ internal static class FilesModesE2E
             Require(Row(app, "src").Dot, "A collapsed folder keeps its mark.");
             Console.WriteLine("PASS upstream #779: the tree's expanded and collapsed folders survive a reload; Collapse all folders collapses All");
         }
+        GoToFile(root);
+    }
+
+    /// <summary>
+    /// Go to file: the name match ranks a whole name over a spread one over a folder one, a slash matches path segments,
+    /// Changed searches only changes, Enter opens the selected match, Escape brings the tree back as it was, and a
+    /// reply to a superseded query never replaces a newer one.
+    /// </summary>
+    private static void GoToFile(string root)
+    {
+        Require(FileNameMatch.Score("src/fm.txt", "fm") > FileNameMatch.Score("src/FilesModes.cs", "fm") &&
+            FileNameMatch.Score("src/FilesModes.cs", "fm") > FileNameMatch.Score("fm/readme.md", "fm") &&
+            FileNameMatch.Score("src/FilesModes.cs", "FM") == FileNameMatch.Score("src/FilesModes.cs", "fm") &&
+            FileNameMatch.Score("src/fm.txt", "xyz") is null, "A whole name must rank over a spread one over a folder one, ignoring case.");
+        var positions = new List<int>();
+        Require(FileNameMatch.Score("scripts/tasks/dmg.cs", "tasks/dmg", positions) is not null && positions.SequenceEqual(Enumerable.Range(8, 9)) &&
+            FileNameMatch.Score("scripts/tasks/dmg.cs", "scr/dmg") is not null && FileNameMatch.Score("scripts/tasks/dmg.cs", "dmg/tasks") is null,
+            "A slash must match path segments in order.");
+
+        var project = IsolatedGit.Repository(Path.Combine(root, "files-find"), (".gitignore", "build/\n"));
+        foreach (var path in new[] { "src/fm.txt", "src/FilesModes.cs", "fm/readme.md", "scripts/tasks/dmg.cs", "docs/guide.md", "build/fm.js" })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(project, path))!);
+            File.WriteAllText(Path.Combine(project, path), path + "\n");
+        }
+        IsolatedGit.Run(project, "add", "-A");
+        IsolatedGit.Run(project, "commit", "-m", "files");
+        File.AppendAllText(Path.Combine(project, "src/FilesModes.cs"), "changed\n");
+
+        using var app = new E2eWorkspace(project, profileRoot: project + "-profile");
+        Until(() => app.Window.WorkspaceMounted);
+        app.ShowTool("files");
+        Expand(app, "src");
+        var box = app.Find<TextBox>("FilesFindQuery");
+        string[] Matches() => app.Find<ListBox>("FilesFindResults").Items.OfType<Control>().Select(row => (string)row.Tag!).ToArray();
+
+        // Mod+P opens the box with focus; the tree hides only while matches show.
+        app.Window.Focus();
+        var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        app.Window.KeyPress(Key.P, command, PhysicalKey.P, "p");
+        app.Window.KeyRelease(Key.P, command, PhysicalKey.P, "p");
+        Until(() => box.IsEffectivelyVisible && box.IsFocused);
+        Require(Tree(app).IsEffectivelyVisible, "An empty query must leave the tree in view.");
+        box.Text = "fm";
+        Until(() => Matches().Length == 3);
+        Require(Matches().SequenceEqual(["src/fm.txt", "src/FilesModes.cs", "fm/readme.md"]) && !Tree(app).IsEffectivelyVisible,
+            $"Matches must show best first in place of the tree, Git-ignored files left out: {string.Join(", ", Matches())}.");
+
+        // Changed searches the changes alone; All again searches every file.
+        app.Click(app.Find<ToggleButton>("FilesModeChanged"));
+        Until(() => Matches().SequenceEqual(["src/FilesModes.cs"]));
+        Require(!app.Find<Grid>("ChangesPanel").IsEffectivelyVisible, "Changed's list must hide while matches show.");
+        app.Click(app.Find<ToggleButton>("FilesModeAll"));
+        Until(() => Matches().Length == 3);
+
+        // A reply to a superseded query arrives after the newer one's and is dropped.
+        var late = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.Host.FindGate = query => query == "guide" ? late.Task : null;
+        box.Text = "guide";
+        Until(() => { lock (app.Host.FindHeld) return app.Host.FindHeld.Contains("guide"); });
+        box.Text = "tasks/dmg";
+        Until(() => Matches().SequenceEqual(["scripts/tasks/dmg.cs"]));
+        late.SetResult();
+        Settle();
+        Require(Matches().SequenceEqual(["scripts/tasks/dmg.cs"]), "A late reply to an older query must not replace the newer matches.");
+        app.Host.FindGate = null;
+
+        // Enter opens the selected match and closes the box; the tree is back with its folders as they were.
+        box.Focus();
+        Until(() => box.IsFocused);
+        Press(box, Key.Enter);
+        Until(() => app.Tabs.Any(tab => tab.Path == "scripts/tasks/dmg.cs"));
+        Require(!box.IsVisible && Tree(app).IsEffectivelyVisible && Expanded(app, "src"), "Enter must close the box and restore the tree.");
+
+        // Escape closes the box and restores the tree too.
+        app.Click(app.Find<Button>("FilesFind"));
+        Until(() => box.IsEffectivelyVisible && box.IsFocused);
+        box.Text = "readme";
+        Until(() => Matches().SequenceEqual(["fm/readme.md"]));
+        Press(box, Key.Escape);
+        Until(() => !box.IsVisible && Tree(app).IsEffectivelyVisible);
+        Require(Expanded(app, "src") && box.Text == "" && Matches().Length == 0, "Escape must clear the box and bring the tree back as it was.");
+
+        // Clearing the query closes the box as well.
+        app.Click(app.Find<Button>("FilesFind"));
+        Until(() => box.IsEffectivelyVisible && box.IsFocused);
+        box.Text = "guide";
+        Until(() => Matches().SequenceEqual(["docs/guide.md"]));
+        box.Text = "";
+        Until(() => !box.IsVisible && Tree(app).IsEffectivelyVisible && Expanded(app, "src"));
+
+        // From another side tab, Mod+P brings Files back with the box focused.
+        var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tab => tab.Id == "files")).Id;
+        app.Window.Layout.Select(group, DockState.SpecsTool); Settle();
+        Require(!Tree(app).IsEffectivelyVisible, "Another side tab must hide Files.");
+        app.Window.Focus();
+        app.Window.KeyPress(Key.P, command, PhysicalKey.P, "p");
+        app.Window.KeyRelease(Key.P, command, PhysicalKey.P, "p");
+        Until(() => box.IsEffectivelyVisible && box.IsFocused && Tree(app).IsEffectivelyVisible);
+        Console.WriteLine("PASS Go to file: name matches rank best first, a slash matches folders, Changed narrows, Enter opens, Escape restores, late replies drop");
     }
 
     private static DrawnTree Tree(E2eWorkspace app) => app.Find<DrawnTree>("FilesTree");

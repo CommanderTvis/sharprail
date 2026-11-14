@@ -41,6 +41,27 @@ public sealed partial class ProjectServices
         return new(hits, false);
     }
 
+    /// <summary>
+    /// Go to file: the files content search sweeps whose path matches <paramref name="query"/> (<see cref="FileNameMatch"/>),
+    /// best first, stopping at <see cref="SearchHitLimit"/>. Each hit names a file, with line 0 and no text.
+    /// </summary>
+    public async ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var currentRoot = root;
+        var hits = new List<SearchHit>();
+        if (query.Trim().Length == 0) return new(hits, false);
+        var paths = (await SearchablePathsAsync(currentRoot, cancellationToken)).Select(path => path.Replace('\\', '/'));
+        foreach (var path in FileNameMatch.Rank(paths, query))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            // The index still lists a file deleted from the worktree; it has nothing to open.
+            if (!File.Exists(Path.Combine(currentRoot, path))) continue;
+            if (hits.Count >= SearchHitLimit) return new(hits, true);
+            hits.Add(new(path, 0, ""));
+        }
+        return new(hits, false);
+    }
+
     /// <summary>Tracked and untracked-but-not-ignored files; a folder without Git has nothing ignored.</summary>
     internal static async Task<IEnumerable<string>> SearchablePathsAsync(string currentRoot, CancellationToken cancellationToken)
     {

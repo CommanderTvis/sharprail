@@ -71,6 +71,8 @@ public sealed partial class WorkbenchWindow
                 foreach (var root in tree.Roots) MarkEntry(root);
                 tree.RefreshRows();
             }
+            // Go to file in Changed searches this snapshot, so a new one runs the open query again.
+            if (filesChanged && FilesFindOpen) RestartFilesFind();
         }
         UpdateFilesHeader();
     }
@@ -94,7 +96,7 @@ public sealed partial class WorkbenchWindow
 
     private Grid FilesHeader()
     {
-        var header = new Grid { Name = "FilesHeader", ColumnDefinitions = new ColumnDefinitions("Auto,4,Auto,*,Auto"), Height = 32, Margin = new Thickness(12, 0, 8, 0) };
+        var header = new Grid { Name = "FilesHeader", ColumnDefinitions = new ColumnDefinitions("Auto,4,Auto,*,Auto,2,Auto"), Height = 32, Margin = new Thickness(12, 0, 8, 0) };
         Ui.Place(header, FilesModeToggle("All", false));
         Ui.Place(header, FilesModeToggle("Changed", true), 0, 2);
         var collapse = new Button
@@ -112,7 +114,8 @@ public sealed partial class WorkbenchWindow
         AutomationProperties.SetName(collapse, "Collapse all folders");
         ToolTip.SetTip(collapse, "Collapse all folders");
         collapse.Click += (_, _) => CollapseAllFolders();
-        Ui.Place(header, collapse, 0, 4);
+        Ui.Place(header, FilesFindButton(), 0, 4);
+        Ui.Place(header, collapse, 0, 6);
         return header;
     }
 
@@ -148,20 +151,30 @@ public sealed partial class WorkbenchWindow
             text.Text = changed && count > 0 ? $"Changed {count}" : changed ? "Changed" : "All";
             text.Foreground = selected ? Ui.TextBrush : Ui.Muted;
         }
-        // Collapse all applies to All, and to Changed only in its Tree view with at least one change.
-        if (header.Children.OfType<Button>().FirstOrDefault(child => child.Name == "FilesCollapseAll") is { } collapse) collapse.IsEnabled = !filesChanged || changeTree && count > 0;
+        // Collapse all applies to All, and to Changed only in its Tree view with at least one change, never over Go to file's matches.
+        if (header.Children.OfType<Button>().FirstOrDefault(child => child.Name == "FilesCollapseAll") is { } collapse)
+            collapse.IsEnabled = !panel.FindControl<DockPanel>("FilesFindPanel")!.IsVisible && (!filesChanged || changeTree && count > 0);
+        // A host older than file-name search answers none, so it offers none.
+        if (header.Children.OfType<Button>().FirstOrDefault(child => child.Name == "FilesFind") is { } find) find.IsVisible = state.Supports(HostProtocol.FileNameSearch);
     }
 
     /// <summary>Shows All or Changed in the Files tool; Changed is the Changes view itself, built on first use.</summary>
     internal void SetFilesMode(bool changed)
     {
         filesChanged = changed;
-        if (toolContent.GetValueOrDefault("files") is FilesPaneFrame panel) ApplyFilesMode(panel);
+        if (toolContent.GetValueOrDefault("files") is not FilesPaneFrame panel) return;
+        ApplyFilesMode(panel);
+        // Go to file searches what the mode shows, so an open query runs again over the other set, and keeps the keyboard.
+        if (!FilesFindOpen) return;
+        panel.FindControl<TextBox>("FilesFindQuery")!.Focus();
+        RestartFilesFind();
     }
 
     private void ApplyFilesMode(FilesPaneFrame panel)
     {
-        panel.Children.OfType<DrawnTree>().Single().IsVisible = !filesChanged;
+        // Go to file's matches stand in for either view while they show.
+        var finding = panel.FindControl<DockPanel>("FilesFindPanel")!.IsVisible;
+        panel.Children.OfType<DrawnTree>().Single().IsVisible = !filesChanged && !finding;
         var changes = toolContent.GetValueOrDefault("changes");
         if (filesChanged && changes is null && WorkspaceMounted) toolContent["changes"] = changes = ChangesPanel();
         if (changes is not null)
@@ -169,10 +182,10 @@ public sealed partial class WorkbenchWindow
             if (!ReferenceEquals(changes.Parent, panel))
             {
                 (changes.Parent as Panel)?.Children.Remove(changes);
-                Grid.SetRow(changes, 2);
+                Grid.SetRow(changes, 3);
                 panel.Children.Add(changes);
             }
-            changes.IsVisible = filesChanged;
+            changes.IsVisible = filesChanged && !finding;
         }
         UpdateFilesHeader();
     }

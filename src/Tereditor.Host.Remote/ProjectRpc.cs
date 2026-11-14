@@ -79,6 +79,12 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         return new SearchReply { Hits = result.Hits.Select(hit => new SearchHitReply { Path = hit.Path, Line = hit.Line, Text = hit.Text }).ToList(), Truncated = result.Truncated };
     });
 
+    public ValueTask<SearchReply> FindFilesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).FindFilesAsync(request.Path, context.CancellationToken);
+        return new SearchReply { Hits = result.Hits.Select(hit => new SearchHitReply { Path = hit.Path }).ToList(), Truncated = result.Truncated };
+    });
+
     public ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => new DocumentReply { Path = request.Path, Text = await Host(context).GetDiffAsync(request.Path, request.Scope, request.Branch, context.CancellationToken) });
 

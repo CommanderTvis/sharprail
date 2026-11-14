@@ -73,6 +73,15 @@ names, so ignored files are skipped; a folder without Git has nothing ignored an
 skipped. Each hit is a path, a 1-based line and that line's text cut at 400 characters; the sweep stops at
 200 hits and says it was truncated.
 
+`FindFilesAsync` is Go to file: the same file list, matched by name instead of content
+(`FileNameMatch` in Host.Abstractions, which a client also uses to highlight and to rank its in-memory Changed list).
+The query's characters must appear in order, ignoring case. A query without a slash ranks the whole file name, then
+a name that starts with it, then one that contains it, then one it is spread over, and only then a match in the
+folders; a query with a slash matches the whole path, so `tasks/dmg` finds `scripts/tasks/dmg.cs`. Ties go to the
+shorter path, then ordinal order. Files the index lists but the worktree lost are skipped; ignored files are not
+searched. Each hit is a path with line 0; the list stops at 200 and says it was truncated. Over the wire it is
+`IProjectRpc.FindFilesAsync` (protocol 23, `HostProtocol.FileNameSearch`), reusing the search request and reply.
+
 ## Saves
 
 A save names the workspace root it was edited in and the text it started from. It is refused when

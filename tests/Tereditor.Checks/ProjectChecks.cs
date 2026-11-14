@@ -152,6 +152,11 @@ internal static class ProjectChecks
             var remoteFound = await remote.SearchAsync("needle");
             Require(remoteFound.Hits.SequenceEqual(found.Hits) && remoteFound.Truncated == found.Truncated, "Remote search differs.");
             Require((await remote.SearchAsync("")).Hits.Count == 0, "An empty query must find nothing.");
+            var named = await local.FindFilesAsync("HAYstack");
+            Require(named.Hits.FirstOrDefault() is { Path: "haystack.txt", Line: 0 } && !named.Truncated, "Go to file must find a file by its name, ignoring case.");
+            var remoteNamed = await remote.FindFilesAsync("HAYstack");
+            Require(remoteNamed.Hits.SequenceEqual(named.Hits) && remoteNamed.Truncated == named.Truncated, "Remote Go to file differs.");
+            Require((await remote.FindFilesAsync(" ")).Hits.Count == 0, "An empty Go to file query must find nothing.");
             foreach (var (service, label) in new[] { (local, "local"), ((IProjectServices)remote, "remote") })
             {
                 var folder = Path.Combine("created-" + label, "inner");

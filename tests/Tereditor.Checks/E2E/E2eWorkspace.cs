@@ -559,6 +559,19 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<HostDirectoryListing> ListHostDirectoryAsync(string path, CancellationToken ct = default) => inner.ListHostDirectoryAsync(path, ct);
     public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
     public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
+    /// <summary>While set, a Go to file query waits on the gate this returns for it (checks reply out of order with it).</summary>
+    internal Func<string, Task?>? FindGate { get; set; }
+    /// <summary>The Go to file queries held at their gate, in order.</summary>
+    internal List<string> FindHeld { get; } = [];
+    public async ValueTask<SearchHits> FindFilesAsync(string query, CancellationToken ct = default)
+    {
+        if (FindGate?.Invoke(query) is not { } gate) return await inner.FindFilesAsync(query, ct);
+        // A held query ignores cancellation, so a superseded one still answers late, as a slow remote host would.
+        var found = await inner.FindFilesAsync(query, CancellationToken.None);
+        lock (FindHeld) FindHeld.Add(query);
+        await gate;
+        return found;
+    }
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
     public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
     public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);

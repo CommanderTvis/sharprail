@@ -9,7 +9,10 @@ namespace Tereditor.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 22;
+    public const int Current = 23;
+
+    /// <summary>Go to file (<c>IProjectRpc.FindFilesAsync</c>): files matched by name. A host below it answers <c>Unimplemented</c>, so a client offers no file-name search there.</summary>
+    public const int FileNameSearch = 23;
 
     /// <summary>The terminal chips the user hid (<c>terminal-hidden-chips</c>). A host below it rejects the setting, so a client offers no chip choice there.</summary>
     public const int TerminalHiddenChips = 22;

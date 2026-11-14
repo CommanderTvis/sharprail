@@ -25,6 +25,7 @@ public static class RpcServices
         public IAsyncEnumerable<WorkspaceFileChangesReply> WatchFilesAsync(ProjectRequest request, CallContext context = default) => client.Stream<ProjectRequest, WorkspaceFileChangesReply>("IProjectRpc/WatchFilesAsync", request, context);
         public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, DocumentReply>("IProjectRpc/ReadFileAsync", request, context);
         public ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, SearchReply>("IProjectRpc/SearchAsync", request, context);
+        public ValueTask<SearchReply> FindFilesAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, SearchReply>("IProjectRpc/FindFilesAsync", request, context);
         public ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, SpecsReply>("IProjectRpc/ListSpecsAsync", request, context);
         public ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitReply>("IProjectRpc/GetGitAsync", request, context);
         public ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, CommitsReply>("IProjectRpc/ListCommitsAsync", request, context);

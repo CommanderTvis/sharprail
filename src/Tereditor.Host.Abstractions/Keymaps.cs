@@ -120,7 +120,7 @@ public sealed record KeymapAction(string Id, string Title, string Group, string 
 /// <summary>The commands with bindable chords, in the order the keymap page lists them.</summary>
 public static class KeymapActions
 {
-    public const string OpenProject = "OpenProject", NewWindow = "NewWindow", SearchWorkspace = "SearchWorkspace", NewWorkspace = "NewWorkspace",
+    public const string OpenProject = "OpenProject", NewWindow = "NewWindow", SearchWorkspace = "SearchWorkspace", GoToFile = "GoToFile", NewWorkspace = "NewWorkspace",
         Settings = "Settings", ToggleLeft = "ToggleLeft", ToggleRight = "ToggleRight", ZoomIn = "ZoomIn", ZoomOut = "ZoomOut", ZoomReset = "ZoomReset",
         Refresh = "Refresh", Back = "Back", Forward = "Forward", UndoClose = "UndoClose", RedoClose = "RedoClose",
         GoToDeclaration = "GoToDeclaration", GoToTypeDeclaration = "GoToTypeDeclaration", GoToImplementation = "GoToImplementation",
@@ -137,6 +137,7 @@ public static class KeymapActions
         new(NewWorkspace, "New workspace", "General"),
         new(NewWindow, "New window", "General"),
         new(SearchWorkspace, "Search in workspace", "Navigation"),
+        new(GoToFile, "Go to file", "Navigation"),
         new(Back, "Back", "Navigation"),
         new(Forward, "Forward", "Navigation"),
         new(Refresh, "Refresh", "Navigation"),
@@ -267,6 +268,8 @@ public sealed class KeymapBindings
         (KeymapActions.OpenProject, ["Mod+O"], ["Mod+O"]),
         (KeymapActions.NewWindow, ["Mod+Shift+N"], ["Mod+Shift+N"]),
         (KeymapActions.SearchWorkspace, ["Mod+Shift+F"], ["Mod+Shift+F"]),
+        // IntelliJ's Go to File is Mod+Shift+O on macOS and Mod+Shift+N elsewhere, which is New window here; Mod+P is VS Code's and free.
+        (KeymapActions.GoToFile, ["Mod+P"], ["Mod+P"]),
         (KeymapActions.NewWorkspace, ["Mod+N"], ["Mod+N"]),
         (KeymapActions.Settings, ["Mod+Comma"], ["Mod+Alt+S"]),
         (KeymapActions.ToggleLeft, ["Mod+1"], ["Mod+1"]),

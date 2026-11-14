@@ -358,6 +358,7 @@ Tereditor.Host.Abstractions.FileEntry.IsDirectory.init -> void
 Tereditor.Host.Abstractions.FileEntry.Name.get -> string!
 Tereditor.Host.Abstractions.FileEntry.Name.init -> void
 Tereditor.Host.Abstractions.FileLimits
+Tereditor.Host.Abstractions.FileNameMatch
 Tereditor.Host.Abstractions.FileSaveRequest
 Tereditor.Host.Abstractions.FileSaveRequest.Deconstruct(out string! WorkspaceRoot, out string! Path, out string! OriginalText, out string! Text, out bool Overwrite) -> void
 Tereditor.Host.Abstractions.FileSaveRequest.Overwrite.get -> bool
@@ -601,6 +602,7 @@ Tereditor.Host.Abstractions.IProjectServices.RevertChangeAsync(string! path, str
 Tereditor.Host.Abstractions.IProjectServices.SaveFileAsync(Tereditor.Host.Abstractions.FileSaveRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
 Tereditor.Host.Abstractions.IProjectServices.SavePromptImageAsync(byte[]! data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string!>
 Tereditor.Host.Abstractions.IProjectServices.SearchAsync(string! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Tereditor.Host.Abstractions.SearchHits!>
+Tereditor.Host.Abstractions.IProjectServices.FindFilesAsync(string! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Tereditor.Host.Abstractions.SearchHits!>
 Tereditor.Host.Abstractions.IProjectServices.UndoChangeAsync(string! receiptId, string? expectModifiedHash, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Tereditor.Host.Abstractions.ChangeReceipt!>
 Tereditor.Host.Abstractions.IProjectServices.WatchFilesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Tereditor.Host.Abstractions.WorkspaceFileChanges!>!
 Tereditor.Host.Abstractions.ITerminalCatalogService
@@ -1313,6 +1315,7 @@ const Tereditor.Host.Abstractions.HostProtocol.FileTypeIcons = 7 -> int
 const Tereditor.Host.Abstractions.HostProtocol.FileTypeIconStyle = 14 -> int
 const Tereditor.Host.Abstractions.HostProtocol.FileTypeIconsHidden = 20 -> int
 const Tereditor.Host.Abstractions.HostProtocol.TerminalHiddenChips = 22 -> int
+const Tereditor.Host.Abstractions.HostProtocol.FileNameSearch = 23 -> int
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconStyle.get -> string!
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconStyle.set -> void
 Tereditor.Host.Abstractions.HostSettings.FileTypeIconsEnabled.get -> bool
@@ -2160,6 +2163,7 @@ const Tereditor.Host.Abstractions.KeymapActions.OpenProject = "OpenProject" -> s
 const Tereditor.Host.Abstractions.KeymapActions.RedoClose = "RedoClose" -> string!
 const Tereditor.Host.Abstractions.KeymapActions.Refresh = "Refresh" -> string!
 const Tereditor.Host.Abstractions.KeymapActions.SearchWorkspace = "SearchWorkspace" -> string!
+const Tereditor.Host.Abstractions.KeymapActions.GoToFile = "GoToFile" -> string!
 const Tereditor.Host.Abstractions.KeymapActions.Settings = "Settings" -> string!
 const Tereditor.Host.Abstractions.KeymapActions.ToggleLeft = "ToggleLeft" -> string!
 const Tereditor.Host.Abstractions.KeymapActions.ToggleRight = "ToggleRight" -> string!
@@ -2194,6 +2198,8 @@ static Tereditor.Host.Abstractions.KeymapBindings.Parse(string? json) -> Teredit
 static Tereditor.Host.Abstractions.KeymapPreset.operator !=(Tereditor.Host.Abstractions.KeymapPreset? left, Tereditor.Host.Abstractions.KeymapPreset? right) -> bool
 static Tereditor.Host.Abstractions.KeymapPreset.operator ==(Tereditor.Host.Abstractions.KeymapPreset? left, Tereditor.Host.Abstractions.KeymapPreset? right) -> bool
 static Tereditor.Host.Abstractions.Keymaps.IsBuiltin(string! name) -> bool
+static Tereditor.Host.Abstractions.FileNameMatch.Score(string! path, string! query, System.Collections.Generic.List<int>? positions = null) -> int?
+static Tereditor.Host.Abstractions.FileNameMatch.Rank(System.Collections.Generic.IEnumerable<string!>! paths, string! query) -> System.Collections.Generic.IEnumerable<string!>!
 static Tereditor.Host.Abstractions.Keymaps.Reserved(Tereditor.Host.Abstractions.KeyChord chord, Tereditor.Host.Abstractions.KeymapPlatform platform) -> string?
 static Tereditor.Host.Abstractions.Keymaps.Reset(Tereditor.Host.Abstractions.KeymapBindings! bindings, Tereditor.Host.Abstractions.KeymapBindings! source, string! actionId, Tereditor.Host.Abstractions.KeymapPlatform platform) -> Tereditor.Host.Abstractions.KeymapBindings!
 static Tereditor.Host.Abstractions.Keymaps.ValidateName(string? name, System.Collections.Generic.IEnumerable<string!>! existing, string? except = null) -> string?
@@ -2203,7 +2209,7 @@ Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
 Tereditor.Host.Abstractions.HostSettings.ActiveKeymap.set -> void
 Tereditor.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<Tereditor.Host.Abstractions.KeymapPreset!>!
 Tereditor.Host.Abstractions.HostState.KeymapPresets.init -> void
-const Tereditor.Host.Abstractions.HostProtocol.Current = 22 -> int
+const Tereditor.Host.Abstractions.HostProtocol.Current = 23 -> int
 const Tereditor.Host.Abstractions.HostProtocol.IsolatedSurfaces = 19 -> int
 const Tereditor.Host.Abstractions.HostProtocol.Keymaps = 18 -> int
 static Tereditor.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> Tereditor.Host.Abstractions.HostStateChange!

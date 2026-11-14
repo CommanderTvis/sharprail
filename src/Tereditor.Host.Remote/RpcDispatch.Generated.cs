@@ -80,6 +80,13 @@ internal static class RpcDispatch
                 await stream.Send(await service.SearchAsync(request, context));
                 break;
             }
+            case "IProjectRpc/FindFilesAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ProjectRequest>(stream);
+                await stream.Send(await service.FindFilesAsync(request, context));
+                break;
+            }
             case "IProjectRpc/ListSpecsAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);

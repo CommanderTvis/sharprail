@@ -30,6 +30,7 @@ public static class WindowShortcuts
     public static readonly WindowShortcut OpenProject = new(KeymapActions.OpenProject);
     public static readonly WindowShortcut NewWindow = new(KeymapActions.NewWindow);
     public static readonly WindowShortcut SearchWorkspace = new(KeymapActions.SearchWorkspace);
+    public static readonly WindowShortcut GoToFile = new(KeymapActions.GoToFile);
     public static readonly WindowShortcut NewWorkspace = new(KeymapActions.NewWorkspace);
     /// <summary>Preferences: Cmd+, on macOS, Ctrl+Alt+S elsewhere in the IntelliJ preset.</summary>
     public static readonly WindowShortcut Settings = new(KeymapActions.Settings);
@@ -55,5 +56,5 @@ public static class WindowShortcuts
 
     /// <summary>Every chord, in dispatch order: a more specific chord precedes the one it would also match.</summary>
     public static IReadOnlyList<WindowShortcut> All { get; } =
-    [OpenProject, NewWindow, SearchWorkspace, NewWorkspace, Settings, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, Refresh, Back, Forward, UndoClose, RedoClose];
+    [OpenProject, NewWindow, SearchWorkspace, GoToFile, NewWorkspace, Settings, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, Refresh, Back, Forward, UndoClose, RedoClose];
 }
