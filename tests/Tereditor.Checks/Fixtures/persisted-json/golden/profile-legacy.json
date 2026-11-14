@@ -52,6 +52,7 @@
     "FontSize": 15,
     "CodeFontSize": 13,
     "Zoom": 1.1,
+    "CompactZoom": 1,
     "ChangesSingle": true,
     "TerminalRenderer": "skia",
     "SecureInputForPasswords": false,

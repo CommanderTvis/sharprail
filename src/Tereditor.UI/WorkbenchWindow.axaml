@@ -31,8 +31,8 @@
     <Style Selector="Button.rail-edge-pill">
       <Setter Property="Height" Value="22" />
       <Setter Property="MinHeight" Value="22" />
-      <Setter Property="Padding" Value="8,0,10,0" />
-      <Setter Property="Margin" Value="8,6,20,6" />
+      <Setter Property="Padding" Value="8,0,12,0" />
+      <Setter Property="Margin" Value="8,4,16,4" />
       <Setter Property="CornerRadius" Value="11" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="HorizontalAlignment" Value="Center" />

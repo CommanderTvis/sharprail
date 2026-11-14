@@ -6,6 +6,7 @@
     "FontSize": 13,
     "CodeFontSize": 12.5,
     "Zoom": 1,
+    "CompactZoom": 1,
     "ChangesSingle": false,
     "TerminalRenderer": "texture",
     "SecureInputForPasswords": true,
