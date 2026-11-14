@@ -136,7 +136,7 @@ internal static class ReconnectE2E
                 !plug.Classes.Contains("turning"), "The window shows the restored connection with the plug glyph.");
 
             // A save attempted while the host is away fails once, out loud, and the header stays on the retry.
-            app.Open("README.md", keep: true);
+            app.Open("online-3.txt", keep: true);
             Until(() => app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Any());
             var view = app.Window.GetLogicalDescendants().OfType<Tereditor.UI.Editor.CodeDocumentView>().Single();
             view.Editor.ReplaceRange(0, 0, "edited offline ");
@@ -144,7 +144,7 @@ internal static class ReconnectE2E
             Until(() => view.HasPendingChanges && app.Window.CanSave);
             proxy.Cut();
             Until(() => app.Find<TextBlock>("ConnectionStatus").Text == "Reconnecting");
-            const string lostSave = "Couldn't save README.md: the host is not connected.";
+            const string lostSave = "Couldn't save online-3.txt: the host is not connected.";
             _ = app.Window.SaveSelectedAsync();
             Until(() => app.Window.Toasts.Items.Any(toast => toast.Title == lostSave));
             Settle(600);
@@ -156,7 +156,7 @@ internal static class ReconnectE2E
             Until(() => app.Find<TextBlock>("ConnectionStatus").Text == "Remote");
             view.Editor.Focus();
             _ = app.Window.SaveSelectedAsync();
-            Until(() => !view.HasPendingChanges && File.ReadAllText(Path.Combine(project, "README.md")).StartsWith("edited offline ", StringComparison.Ordinal));
+            Until(() => !view.HasPendingChanges && File.ReadAllText(Path.Combine(project, "online-3.txt")).StartsWith("edited offline ", StringComparison.Ordinal));
 
             // An Error that is not about the connection outlives the retries that follow it.
             proxy.Cut();

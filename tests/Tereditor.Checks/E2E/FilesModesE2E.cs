@@ -200,7 +200,7 @@ internal static class FilesModesE2E
         // Escape closes the box and restores the tree too.
         app.Click(app.Find<Button>("FilesFind"));
         Until(() => box.IsEffectivelyVisible && box.IsFocused);
-        box.Text = "readme";
+        box.Text = "fm/readme"; // the workspace fixture has a README.md of its own
         Until(() => Matches().SequenceEqual(["fm/readme.md"]));
         WorkspaceFixture.Press(box, Key.Escape);
         Until(() => !box.IsVisible && Tree(app).IsEffectivelyVisible);
@@ -217,15 +217,19 @@ internal static class FilesModesE2E
         // From another side tab, Mod+P brings Files back with the box focused.
         var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tab => tab.Id == "files")).Id;
         app.Window.Layout.Select(group, DockState.SpecsTool); Settle();
-        Require(!Tree(app).IsEffectivelyVisible, "Another side tab must hide Files.");
+        Require(!TreeShown(app), "Another side tab must hide Files.");
         app.Window.Focus();
         app.Window.KeyPress(Key.P, command, PhysicalKey.P, "p");
         app.Window.KeyRelease(Key.P, command, PhysicalKey.P, "p");
-        Until(() => box.IsEffectivelyVisible && box.IsFocused && Tree(app).IsEffectivelyVisible);
+        Until(() => box.IsEffectivelyVisible && box.IsFocused && TreeShown(app));
         Console.WriteLine("PASS Go to file: name matches rank best first, a slash matches folders, Changed narrows, Enter opens, Escape restores, late replies drop");
     }
 
     private static DrawnTree Tree(E2eWorkspace app) => app.Find<DrawnTree>("FilesTree");
+
+    // A side tab that is not selected leaves the logical tree, so a hidden Files has no tree to find.
+    private static bool TreeShown(E2eWorkspace app) =>
+        app.Window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "FilesTree" && tree.IsEffectivelyVisible);
 
     private static DrawnTreeEntry Row(E2eWorkspace app, string path)
     {
