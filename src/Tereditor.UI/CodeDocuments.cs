@@ -136,7 +136,7 @@ public sealed partial class WorkbenchWindow
     /// <summary>Saves one editor; a file changed on disk opens the Compare / Overwrite / Reload / Cancel question, any other failure goes to the status bar.</summary>
     internal async Task SaveEditorAsync(CodeDocumentView view)
     {
-        if (await SaveResolvingAsync(view) is { } error && error is not SaveDeclinedException && !view.IsDisposed) Report(error);
+        if (await SaveResolvingAsync(view) is { } error && error is not SaveDeclinedException && !view.IsDisposed) ReportSave(error, view.FileName);
     }
 
     private Task<Exception?> SaveResolvingAsync(CodeDocumentView view)

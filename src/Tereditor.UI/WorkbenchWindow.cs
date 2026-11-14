@@ -643,7 +643,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            if (request == projectRequest) Report(error);
+            if (request == projectRequest) ReportRead(error);
         }
     }
 
@@ -877,30 +877,41 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OperationCanceledException)
-        { if (request == projectRequest) Report(error); }
+        { if (request == projectRequest) ReportRead(error); }
     }
 
     /// <summary>
-    /// A host call failed. While a remote host is away, a transport failure is part of the drop the subscription is retrying,
-    /// not an Error of its own; a host that refused this client is final.
+    /// A one-off action failed (a save, an open, a git or file action). While a remote host is away its transport failure is part
+    /// of the drop the subscription is retrying, not an Error of its own, but nothing runs the action again, so it is told once
+    /// in a toast. A host that refused this client is final.
     /// </summary>
-    internal void Report(Exception error) =>
-        ShowFailure(error, retrying: remote && !state.Connected && RemoteErrors.IsTransport(error) && !RemoteErrors.IsUnauthenticated(error));
+    internal void Report(Exception error) => ShowFailure(error, "Couldn't finish that: the host is not connected.");
+
+    /// <summary>A save failed; while the host is away the toast names the file, so a lost save is never silent.</summary>
+    private void ReportSave(Exception error, string file) => ShowFailure(error, $"Couldn't save {file}: the host is not connected.");
+
+    /// <summary>A read that the window repeats by itself once the host returns (the file tree, a refresh): no toast.</summary>
+    private void ReportRead(Exception error) => ShowFailure(error, null);
 
     /// <summary>The host subscription dropped and is retried by itself, unless the host refused this client.</summary>
-    private void ConnectionLost(Exception error) => ShowFailure(error, retrying: remote && !RemoteErrors.IsUnauthenticated(error));
+    private void ConnectionLost(Exception error) => ShowFailure(error, null, retrying: remote && !RemoteErrors.IsUnauthenticated(error));
+
+    private bool finalError;
+    // Set while the startup restore runs: it is retried when the host reconnects, so its failures are not toasted.
+    private bool restoring;
 
     /// <summary>
-    /// A failure that is <paramref name="retrying"/> turns the header's loader (Connecting until the host first answered, then
-    /// Reconnecting) with the cause on hover; any other shows Error in the danger colour with the unplugged glyph.
+    /// A failure that is retrying turns the header's loader (Connecting until the host first answered, then Reconnecting) with the
+    /// cause on hover; any other shows Error in the danger colour with the unplugged glyph. A transport failure of a one-off action
+    /// also raises its <paramref name="notice"/> once, whichever the header shows, since nothing retries the action.
     /// </summary>
-    private bool finalError;
-
-    private void ShowFailure(Exception error, bool retrying)
+    private void ShowFailure(Exception error, string? notice, bool? retrying = null)
     {
         var problem = workbench.RedactError(error.Message);
         Console.Error.WriteLine(error);
-        if (!retrying)
+        var transport = remote && RemoteErrors.IsTransport(error) && !RemoteErrors.IsUnauthenticated(error);
+        if (notice is not null && transport && !restoring) Toasts.Push(ToastVariant.Error, problem, notice);
+        if (!(retrying ?? (transport && !state.Connected)))
         {
             errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem);
             finalError = !RemoteErrors.IsTransport(error) || RemoteErrors.IsUnauthenticated(error);

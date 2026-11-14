@@ -60,13 +60,18 @@ public sealed partial class WorkbenchWindow
         var data = slot;
         // A failed restore keeps the remembered location and retries when the host reconnects.
         restorePending = false;
-        if (initialRoot.Length > 0 && (remote || Directory.Exists(initialRoot)))
+        restoring = true;
+        try
         {
-            if (data.LastAtHome && initialRoot == data.LastProjectRoot) await OpenProjectHomeAsync(initialRoot);
-            else await OpenProjectAsync(initialRoot);
+            if (initialRoot.Length > 0 && (remote || Directory.Exists(initialRoot)))
+            {
+                if (data.LastAtHome && initialRoot == data.LastProjectRoot) await OpenProjectHomeAsync(initialRoot);
+                else await OpenProjectAsync(initialRoot);
+            }
+            else if (data.LastProjectRoot.Length > 0 && (remote || Directory.Exists(data.LastProjectRoot))) await OpenProjectHomeAsync(data.LastProjectRoot);
+            else ShowWelcome();
         }
-        else if (data.LastProjectRoot.Length > 0 && (remote || Directory.Exists(data.LastProjectRoot))) await OpenProjectHomeAsync(data.LastProjectRoot);
-        else ShowWelcome();
+        finally { restoring = false; }
         restorePending = !WorkspaceMounted && !cleanWelcome;
         if (StartLink is { } link && !restorePending) { StartLink = null; await NavigateAsync(link); }
     }

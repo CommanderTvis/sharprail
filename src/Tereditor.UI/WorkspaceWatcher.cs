@@ -136,7 +136,7 @@ public sealed partial class WorkbenchWindow
                 if (request == projectRequest)
                 {
                     startupMilestones?.Complete(request, "files", error.Message);
-                    Report(error);
+                    ReportRead(error);
                 }
                 return;
             }
