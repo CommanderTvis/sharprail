@@ -242,8 +242,10 @@ icon, the client under `usr/lib/tereditor`) written as a squashfs image behind t
 `dmg [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to
 `artifacts/tereditor.dmg`; it replaces an existing image at the chosen path. The image's Finder window
-(layout in `scripts/dmg/settings.py`, background drawn by `uv run --script scripts/dmg/background.py`) is written
-by dmgbuild through the pinned uv, without Finder.
+layout is the committed `scripts/dmg/DS_Store`, copied in with `hdiutil` and system tools only: no Python and no
+Finder. After changing the layout in `scripts/dmg/settings.py`, regenerate it with
+`uv run --script scripts/dmg/layout.py` (uv from your machine; it runs dmgbuild once). The background is drawn by
+`uv run --script scripts/dmg/background.py`.
 
 `check:terminal` builds the native Ghostty bridge and a macOS
 shell/Metal probe at `.bench/terminal-check`, then runs the probe. It requires

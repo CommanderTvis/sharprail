@@ -1,7 +1,8 @@
-# dmgbuild settings for scripts/tasks/dmg.cs, which passes the bundle and the background image as
-# `-D app=...` and `-D background=...`. They describe the Finder window
+# dmgbuild settings from which scripts/dmg/layout.py regenerates scripts/dmg/DS_Store, the layout that
+# scripts/tasks/dmg.cs copies into the disk image; the build itself does not read this file. layout.py passes a stub
+# bundle and the background image as `-D app=...` and `-D background=...`. They describe the Finder window
 # the image opens in: 540x380, the app on the left and Applications on the right over background.png (with its @2x),
-# 128 pt icons, no toolbar, sidebar, path bar or status bar. dmgbuild writes the .DS_Store itself, without Finder.
+# 128 pt icons, no toolbar, sidebar, path bar or status bar. Rerun layout.py after changing them.
 import os.path
 
 app = defines["app"]

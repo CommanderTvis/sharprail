@@ -4,7 +4,8 @@
 # ///
 # Draws the disk image's window background, background.png (540x380) and background@2x.png, into this directory:
 # `uv run --script scripts/dmg/background.py`. The images are committed; rerun this after changing the layout here
-# or the icon positions in settings.py, which must agree (icons centred at y=170, x=140 and x=400).
+# or the icon positions in settings.py, which must agree (icons centred at y=170, x=140 and x=400). A change to
+# settings.py also needs `uv run --script scripts/dmg/layout.py`; a new image alone does not.
 # The background stays light because Finder draws icon labels in the viewer's text colour (black in light mode),
 # which no .DS_Store setting changes.
 from pathlib import Path
