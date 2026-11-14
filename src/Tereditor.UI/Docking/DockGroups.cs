@@ -166,11 +166,7 @@ public sealed partial class DockSurface
             var title = Ui.Text(Session.ToolTitle(tab), foreground, 14);
             title.LineHeight = 20;
             title.Classes.Add("dock-tab-title");
-            if (tab.Preview)
-            {
-                title.FontStyle = FontStyle.Italic;
-                title.Padding = new Thickness(0, 0, 3, 0);
-            }
+            if (tab.Preview) title.FontStyle = FontStyle.Italic;
             label.Add(title, RowRole.Title);
             if (subtitle is not null)
             {

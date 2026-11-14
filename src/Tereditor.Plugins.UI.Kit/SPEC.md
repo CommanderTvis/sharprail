@@ -46,7 +46,8 @@ raw read-only text and never rewritten. Parsing and edits are in-memory; the hos
 and its plugins, including compiled layouts and controls created from code. Primary, link, quiet and
 Welcome card variants share these rules; panes do not copy Fluent state resources. Button content
 is vertically centered by default (Fluent leaves it stretched, which tops the text of fixed-height buttons);
-a control that wants otherwise sets it locally. A number box (`NumericUpDown`) centres its value vertically and keeps
+a control that wants otherwise sets it locally. Italic text in a `TextBlock` is not clipped to its layout box, so the
+slant of its last letter stays visible; its width, and every indicator after it, is the same as upright text. A number box (`NumericUpDown`) centres its value vertically and keeps
 a text box's padding, so its digits start where a text box's text does; its inner text box and spinner take no minimum
 height of their own, so a fixed-height box holds them, and an unconstrained one is as high as a text box. An `Expander` header is plain text with a chevron and a hover fill only; the expanded (checked)
 toggle never takes the primary fill. `FlyoutPresenter.flat-list` with `Button.option-row` is the flat

@@ -368,7 +368,7 @@ internal static class UiChecks
         Require(window.Layout.Selected(primary)?.Preview == true, "File preview slot failed.");
         var previewTab = Find<Button>(window, "Tab_markdown_README.md");
         var previewTitle = previewTab.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Text == "README.md");
-        Require(previewTitle.FontSize == 14 && previewTitle.FontStyle == FontStyle.Italic && previewTitle.Padding.Right >= 3 &&
+        Require(previewTitle.FontSize == 14 && previewTitle.FontStyle == FontStyle.Italic && !previewTitle.ClipToBounds &&
             previewTitle.Bounds.Height < previewTab.Bounds.Height,
             "Italic preview label does not fit within its fixed-height tab.");
         var preview = Find<MarkdownPreview>(window, "MarkdownPreview");

@@ -24,6 +24,12 @@
     <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
+  <!-- A TextBlock clips to its layout box, which ends at the last glyph's advance; an italic glyph leans past that edge, so
+       a title such as "README.md" lost the top of its "d". Italic text draws its overhang instead; trimming still keeps
+       its glyphs inside the column, and the layout box (and so every indicator after it) stays where it was. -->
+  <Style Selector="TextBlock[FontStyle=Italic]">
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
   <!-- Fluent leaves a Button's vertical content alignment at Stretch, which draws the text of a fixed-height button at its top. -->
   <Style Selector="Button">
     <Setter Property="VerticalContentAlignment" Value="Center" />

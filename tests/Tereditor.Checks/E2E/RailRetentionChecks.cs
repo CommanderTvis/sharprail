@@ -69,9 +69,34 @@ internal static class RailRetentionChecks
         Console.WriteLine("PASS Projects tab geometry and retained routing views");
     }
 
+    /// <summary>An italic preview title draws its last letter whole, in the tab strip and in the rail: nothing clips the slant past its advance.</summary>
+    private static void ItalicTitleInk(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "rail-italic-ink"));
+        app.Open("README.md");
+        app.ShowTool("projects");
+        Settle();
+        var titles = app.Window.GetVisualDescendants().OfType<TextBlock>()
+            .Where(text => text.Text == "README.md" && text.FontStyle == FontStyle.Italic && text.IsEffectivelyVisible && text.Bounds.Width > 0).ToArray();
+        Require(titles.Any(text => text.GetLogicalAncestors().OfType<ContentControl>().Any(control => control.Name == "WorkspaceTabs")),
+            "The rail must list the italic preview tab.");
+        foreach (var title in titles)
+        {
+            // The ink's right edge: the advance plus the overhang (a negative trailing overhang is ink past the advance).
+            var line = title.TextLayout.TextLines[0];
+            var ink = new Point(title.Padding.Left + line.Start + line.WidthIncludingTrailingWhitespace - Math.Min(0, line.OverhangTrailing), title.Bounds.Height / 2);
+            Require(!title.ClipToBounds, "An italic title must not clip its slant to its layout box.");
+            foreach (var clip in title.GetVisualAncestors().Where(visual => visual.ClipToBounds))
+                Require(title.TranslatePoint(ink, clip) is { } point && point.X <= clip.Bounds.Width + .5,
+                    $"An italic title's last letter must not be clipped by {clip.GetType().Name} {(clip as Control)?.Name}.");
+        }
+        Console.WriteLine("PASS italic preview titles keep their last letter");
+    }
+
     internal static void Run(string root)
     {
         TreeChevrons();
+        ItalicTitleInk(root);
         TabGeometry(root);
         using var git = new IsolatedGit(Path.Combine(root, "rail-retention-git"));
         using var app = OpenFixtureProject(Path.Combine(root, "rail-retention"));
