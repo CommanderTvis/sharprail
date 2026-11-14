@@ -67,6 +67,7 @@ public sealed partial class WorkbenchWindow
         }
         var children = new List<Control>();
         railTabTails.Clear();
+        railPreviewTails.Clear();
         foreach (var project in RailProjectOrder())
         {
             if (!projectRailRows.TryGetValue(project, out var entry))
@@ -104,10 +105,12 @@ public sealed partial class WorkbenchWindow
                 if (pair.Row is not null) target.Add(pair.Row);
                 target.Add(pair.Tabs);
                 // A created workspace sits right below the creator's tab row. In a closed workspace the tab list is cut after
-                // that row into segments; in the open one the row's slot inside the live strip holds it.
+                // that row into segments, or, for a pane member, the member's slot inside the pane's bubble holds it; in the open
+                // one the row's slot inside the live strip holds it, inside the bubble for a pane member.
                 var kids = nesting.GetValueOrDefault(worktree.Path) ?? [];
                 var open = worktree.Path == Layout.State.ActiveWorkspace;
-                var units = kids.Select(child => (Child: child, Unit: open ? null : NestedUnit(worktree.Path, child.Path), Tab: open ? OpenCreatorTab(child.Path) : null)).ToArray();
+                var units = kids.Select(child => (Child: child, Unit: open ? null : NestedUnit(worktree.Path, child.Path), Tab: open ? OpenCreatorTab(child.Path) : null,
+                    Member: open ? null : PreviewPaneCreator(worktree.Path, child.Path))).ToArray();
                 var breaks = units.Where(kid => kid.Unit is not null).Select(kid => kid.Unit!.Value).Distinct().Order().ToArray();
                 SetTabBreaks(worktree.Path, breaks);
                 var next = relative < 0 ? 1 : relative + 1;
@@ -121,7 +124,14 @@ public sealed partial class WorkbenchWindow
                     if (!railTabTails.TryGetValue(kid.Tab!, out var tail)) railTabTails[kid.Tab!] = tail = [];
                     Add(kid.Child, depth + 1, tail, 0);
                 }
-                foreach (var kid in units.Where(kid => kid.Unit is null && kid.Tab is null)) Add(kid.Child, depth + 1, target, relative < 0 ? -1 : next);
+                // In a closed workspace a pane member's slot inside the pane's bubble holds what that member created.
+                foreach (var kid in units.Where(kid => kid.Member is not null))
+                {
+                    if (!railPreviewTails.TryGetValue(worktree.Path, out var members)) railPreviewTails[worktree.Path] = members = [];
+                    if (!members.TryGetValue(kid.Member!, out var tail)) members[kid.Member!] = tail = [];
+                    Add(kid.Child, depth + 1, tail, 0);
+                }
+                foreach (var kid in units.Where(kid => kid.Unit is null && kid.Tab is null && kid.Member is null)) Add(kid.Child, depth + 1, target, relative < 0 ? -1 : next);
             }
             var nested = nesting.Values.SelectMany(children => children).Select(child => child.Path).ToHashSet();
             foreach (var worktree in ordered.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree, 0, rows, -1);
@@ -167,6 +177,8 @@ public sealed partial class WorkbenchWindow
 
     // Rows listed under a tab of the open workspace, by tab id, and filled into that tab's slot in the live strip.
     private readonly Dictionary<string, List<Control>> railTabTails = [];
+    // Rows listed under a pane member of a closed workspace's preview, by workspace and tab id.
+    private readonly Dictionary<string, Dictionary<string, List<Control>>> railPreviewTails = [];
 
     internal void FillTabTails()
     {
@@ -175,6 +187,23 @@ public sealed partial class WorkbenchWindow
             ReconcileRailChildren(slot, railTabTails.GetValueOrDefault(tab) ?? []);
             slot.IsVisible = slot.Children.Count > 0;
         }
+        foreach (var (workspace, slots) in previewTabTails)
+            foreach (var (tab, slot) in slots)
+            {
+                ReconcileRailChildren(slot, railPreviewTails.GetValueOrDefault(workspace)?.GetValueOrDefault(tab) ?? []);
+                slot.IsVisible = slot.Children.Count > 0;
+            }
+    }
+
+    /// <summary>The pane member of a closed parent's preview that created a nested workspace; null when the parent is open or the creator is not in a pane.</summary>
+    private string? PreviewPaneCreator(string parent, string child)
+    {
+        if (parent == Layout.State.ActiveWorkspace || Layout.State.Workspaces.GetValueOrDefault(parent) is not { } view ||
+            state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator) return null;
+        foreach (var group in Layout.State.Center.Leaves())
+            foreach (var (members, pane) in GroupUnits(view, group))
+                if (pane is not null && members.FirstOrDefault(tab => IsCreatorTab(tab, creator.TabKey)) is { } member) return member.Id;
+        return null;
     }
 
     /// <summary>The open workspace's tab that created a workspace, if its row is in the live strip.</summary>
@@ -240,10 +269,11 @@ public sealed partial class WorkbenchWindow
     internal static bool IsCreatorTab(Docking.DockTab tab, string key) =>
         tab.Kind == "plugin" && tab.Path.IndexOf(':') is var split and >= 0 && tab.Path[(split + 1)..] == key || tab.Kind == "terminal" && tab.Id == key;
 
-    /// <summary>The preview unit (a tab or a pane's bubble) of a parent's tab list that created a nested workspace; null when the parent's list is live or the row is not drawn there.</summary>
+    /// <summary>The preview unit (a lone tab) of a parent's tab list that created a nested workspace; null when the parent's list is live, the creator is a pane member or the row is not drawn there.</summary>
     private int? NestedUnit(string parent, string child)
     {
-        if (parent == Layout.State.ActiveWorkspace || state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator) return null;
+        if (parent == Layout.State.ActiveWorkspace || state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator ||
+            PreviewPaneCreator(parent, child) is not null) return null;
         var units = PreviewUnits(parent);
         var index = units.FindIndex(unit => unit.Any(tab => IsCreatorTab(tab, creator.TabKey)));
         return index < 0 ? null : index;
@@ -254,7 +284,7 @@ public sealed partial class WorkbenchWindow
     {
         if (projectsTree is null) return;
         var signature = Preferences.GroupWorkspacesUnderCreator
-            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(RailOrder(project)).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path + "\t" + NestedUnit(pair.Key, child.Path) + "\t" + (pair.Key == Layout.State.ActiveWorkspace ? OpenCreatorTab(child.Path) : null)))))
+            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(RailOrder(project)).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path + "\t" + NestedUnit(pair.Key, child.Path) + "\t" + PreviewPaneCreator(pair.Key, child.Path) + "\t" + (pair.Key == Layout.State.ActiveWorkspace ? OpenCreatorTab(child.Path) : null)))))
             : "";
         if (signature == railNestingSignature) return;
         railNestingSignature = signature;
@@ -299,6 +329,7 @@ public sealed partial class WorkbenchWindow
         workspaceTabBreaks.Remove(path);
         workspaceTabSegments.Remove(path);
         workspaceTabPreviewSignatures.Remove(path);
+        previewTabTails.Remove(path);
     }
 
     private static void ReconcileRailChildren(Panel panel, IReadOnlyList<Control> desired)

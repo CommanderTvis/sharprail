@@ -20,6 +20,9 @@ public sealed partial class WorkbenchWindow
     // hosts holding the list's later segments.
     private readonly Dictionary<string, int[]> workspaceTabBreaks = [];
     private readonly Dictionary<string, List<ContentControl>> workspaceTabSegments = [];
+    // The slots under each pane member of a closed workspace's preview, by workspace and tab id, which hold the workspaces
+    // that member created inside the pane's bubble.
+    private readonly Dictionary<string, Dictionary<string, StackPanel>> previewTabTails = [];
     private IReadOnlyDictionary<string, Control> centerStripsInProjects = new Dictionary<string, Control>();
     private string tabLayoutSignature = "";
 
@@ -103,6 +106,7 @@ public sealed partial class WorkbenchWindow
             if (workspace == Layout.State.ActiveWorkspace && !workspace.StartsWith("home:", StringComparison.Ordinal))
             {
                 workspaceTabPreviewSignatures.Remove(workspace);
+                previewTabTails.Remove(workspace);
                 var strips = host.Content as StackPanel;
                 if (strips?.Name != "CenterTabsInProjects") strips = new StackPanel { Name = "CenterTabsInProjects", Spacing = 8 };
                 var children = new List<Control>();
@@ -142,6 +146,7 @@ public sealed partial class WorkbenchWindow
                 }
             }
         }
+        FillTabTails();
         ShowOccupiedWorkspaces();
     }
 
@@ -187,6 +192,8 @@ public sealed partial class WorkbenchWindow
     {
         var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
         var segments = new List<Control?>();
+        var tails = new Dictionary<string, StackPanel>();
+        previewTabTails[workspace] = tails;
         StackPanel? terminals = null;
         var groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
         var unit = 0;
@@ -219,7 +226,14 @@ public sealed partial class WorkbenchWindow
                     // A pane's members sit in one bubble, boxed together when one of them is selected.
                     var active = members.Any(member => member.Id == selected);
                     var bubble = new StackPanel { Spacing = 2 };
-                    foreach (var member in members) bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false, subtitles.GetValueOrDefault(member.Id)));
+                    foreach (var member in members)
+                    {
+                        bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false, subtitles.GetValueOrDefault(member.Id)));
+                        // A workspace this member created sits here, inside the bubble, before the next member.
+                        var tail = new StackPanel { Name = "TabTail", Tag = member.Id, IsVisible = false, Focusable = false };
+                        tails[member.Id] = tail;
+                        bubble.Children.Add(tail);
+                    }
                     section.Children.Add(new Border
                     {
                         Name = "WorkspaceTabsPreviewPane",

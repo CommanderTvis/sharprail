@@ -409,15 +409,20 @@ public sealed partial class DockSurface
                     Background = Brushes.Transparent,
                     ClipToBounds = true
                 };
+                // Only the members light the box on hover; the workspaces nested under a member inside it do not.
+                var box = bubble;
+                bool Hovered() => box.Children.Any(child => child.Name != "TabTail" && child.IsPointerOver);
                 void Paint()
                 {
                     var active = Session.State.Groups.Any(item => item.Id == group.Id) && memberIds.Contains(Session.Selected(group.Id)?.Id);
-                    frame.Background = active || NestedHoverEnabled && frame.IsPointerOver ? Ui.Hover : Brushes.Transparent;
+                    frame.Background = active || NestedHoverEnabled && Hovered() ? Ui.Hover : Brushes.Transparent;
                     frame.BorderBrush = active ? Ui.BorderBrush : Brushes.Transparent;
                     frame.Tag = active ? "active" : null;
                 }
                 frame.PointerEntered += (_, _) => Paint();
                 frame.PointerExited += (_, _) => Paint();
+                // Moving between a member and a nested row stays inside the box, so the move repaints it, even when a row handled it.
+                frame.AddHandler(PointerMovedEvent, (_, _) => Paint(), RoutingStrategies.Tunnel);
                 updates.Add(Paint);
                 Paint();
                 tabs.Children.Add(frame);
@@ -427,11 +432,9 @@ public sealed partial class DockSurface
             {
                 var tail = new StackPanel { Name = "TabTail", Tag = tab.Id, IsVisible = false, Focusable = false };
                 tabTails[tab.Id] = tail;
-                // A bubble's tail follows the whole bubble, after the tails of its earlier members.
-                var anchor = bubble is null ? (Control)chrome : (Control)bubble.Parent!.Parent!;
-                var at = tabs.Children.IndexOf(anchor) + 1;
-                while (at < tabs.Children.Count && tabs.Children[at].Name == "TabTail") at++;
-                tabs.Children.Insert(at, tail);
+                // A pane member's tail stays inside the bubble, right below the member and before the next one.
+                if (bubble is not null) bubble.Children.Add(tail);
+                else tabs.Children.Add(tail);
             }
             tabSites[group.Id].Add((chrome, tab.Id));
             if (tab.Id == selected?.Id) Dispatcher.UIThread.Post(() => chrome.BringIntoView(), DispatcherPriority.Loaded);

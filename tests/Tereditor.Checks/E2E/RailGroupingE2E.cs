@@ -106,6 +106,38 @@ internal static class RailGroupingE2E
         OverflowColumns(app, project, orchestrator, [first, last]);
         Console.WriteLine("PASS rail grouping: an overflowing or scrolled rail keeps every column of the rail that shows all its rows");
 
+        // A creator inside a tab group keeps its workspaces inside the group's box, right under it and before the next member,
+        // with its workspace open (live strip) or not (preview).
+        app.Click(Select(app, creatorWorkspace));
+        Until(() => Active(app, creatorWorkspace));
+        const string member = "plugin:claude:chat-2";
+        app.Window.Layout.Open(new(member, "Second chat", "plugin", "claude:chat-2"), true, app.Center);
+        Require(app.Window.Layout.GroupTabs(app.Center, member, terminal, "vertical") &&
+            app.Window.Layout.PaneFor(app.Center, terminal)?.TabIds.SequenceEqual([terminal, member]) == true, "The terminal leads a tab group with the second chat.");
+        Control? TabRow(string id) => Controls(app).FirstOrDefault(control => control.IsEffectivelyVisible &&
+            (control.Name == "WorkspaceTabPreview" && (string?)control.Tag == id || control.Name == Live(id)));
+        Rect Box(Control control) => new(control.TranslatePoint(default, app.Window) ?? default, control.Bounds.Size);
+        bool InsideGroup(string boxName)
+        {
+            if (TabRow(terminal) is not { } creatorRow || TabRow(member) is not { } nextRow ||
+                creatorRow.GetVisualAncestors().OfType<Border>().FirstOrDefault(border => border.Name == boxName) is not { } box ||
+                !nextRow.GetVisualAncestors().Contains(box)) return false;
+            return new[] { child, second }.All(path => Item(app, path) is var item && item.IsEffectivelyVisible && item.GetVisualAncestors().Contains(box) &&
+                Box(box).Inflate(0.5).Contains(Box(item)) && Box(item).Top >= Box(creatorRow).Bottom - 0.5 && Box(item).Bottom <= Box(nextRow).Top + 0.5);
+        }
+        Until(() => InsideGroup("TabPaneGroup"));
+        Until(() => GuidesJoin(app, creatorWorkspace, terminal, child, second));
+        app.Click(Select(app, project));
+        Until(() => Active(app, project));
+        Until(() => InsideGroup("WorkspaceTabsPreviewPane"));
+        Until(() => GuidesJoin(app, creatorWorkspace, terminal, child, second));
+        // A creator outside any group keeps its place right under its own row, outside the group.
+        Until(() => TabRow("plugin:claude:chat-1") is { } chatRow && GuideUnderIcon(app, chatChild, chatRow) &&
+            !Item(app, chatChild).GetVisualAncestors().OfType<Border>().Any(border => border.Name == "WorkspaceTabsPreviewPane"));
+        // Inside a group, too, the rows keep their columns whether the creator's workspace is open or not.
+        SteadyColumns(app, creatorWorkspace, terminal, [child, second], project);
+        Console.WriteLine("PASS rail grouping: a workspace made by a tab in a tab group sits inside the group, under that tab");
+
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
         Require(reloaded.Data.Preferences.GroupWorkspacesUnderCreator, "The preference must be stored and restored.");
         Require(new HostStateStore(app.State.DirectoryPath).Current.WorkspaceCreators.Any(entry => entry.Workspace == child && entry.Creator.TabKey == terminal),
