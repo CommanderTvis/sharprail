@@ -278,7 +278,8 @@ selection and deliberate taps retain their feedback and behavior.
 ## Build
 
 `scripts/mise run android [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
-needs the Android SDK in `ANDROID_HOME` and runs with the pinned Temurin JDK 21 that mise installs on first use (`scripts/tool jdk`) (a set `JAVA_HOME` overrides it), and installs the `android` workload
+uses the pinned Android SDK (`scripts/tool android-sdk`; a set `ANDROID_HOME` overrides it), installs the platform, build
+and platform tools it needs into it, and runs with the pinned Temurin JDK 21 that mise installs on first use (`scripts/tool jdk`) (a set `JAVA_HOME` overrides it), and installs the `android` workload
 into the shared SDK when missing. `build` and `run` use Debug unless `TEREDITOR_CONFIGURATION` says
 otherwise; `run` also installs on the connected device or emulator and launches the app. `apk` builds Release
 and copies the signed package to `artifacts/android/tereditor.apk`. No release keystore is configured, so the

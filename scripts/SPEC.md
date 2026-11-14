@@ -32,17 +32,16 @@ only when a benchmark is requested) stays outside the task set.
 
 The artifact matrix, the one statement of which native libraries, terminal renderer and publish task each
 target has, is the header comment of the tasks in `mise.toml` (`scripts/mise run targets` prints it). The
-nightly and CI workflows call those tasks and nothing else: they add caching of the tool store, the Java
-and Android SDK setup, the macOS retry loop around the terminal library build, signing secrets and artifact
-upload.
+nightly and CI workflows call those tasks and nothing else: they add caching of the tool store, the
+macOS retry loop around the terminal library build, signing secrets and artifact upload.
 
 Their public surface is the task list, [scripts/README.md](README.md), `AGENTS.md` and the root
 `README.md`. Native libraries belong to the project that ships them and are MSBuild targets there (see
 Invariants): Merman and notifications in `Tereditor.UI.csproj`, the Ghostty libraries in
 `src/Ghostty.Avalonia` (`build-native.sh`, `build-android.sh`, `build-windows.ps1`), the WASM libraries in `Tereditor.Browser.csproj` (`wasm-native.sh`) and the file
 icons in the kit. The Ghostty recipes apply the checked-in texture export and scrollback memory patches to
-the pinned Ghostty source. `android` needs the Android SDK (`ANDROID_HOME`, default `~/Library/Android/sdk`)
-and a JDK 17 or 21 (the pinned one `scripts/tool jdk` prints, or `JAVA_HOME` when set), fails with a message when either is missing, and installs the `android`
+the pinned Ghostty source. `android` uses the pinned Android SDK (`scripts/tool android-sdk`, or `ANDROID_HOME` when set),
+installs its pinned packages with the pinned licence hash when they are missing, and needs a JDK 17 or 21 (the pinned one `scripts/tool jdk` prints, or `JAVA_HOME` when set), fails with a message when either is missing, and installs the `android`
 workload into the SDK when absent. Recipes may depend on POSIX `sh`, Git, `shasum`, clang/Xcode tools and,
 for the benchmark only, Node. They read source trees and write only to the machine-wide cache (`TEREDITOR_CACHE_DIR`), `obj`, `.bench` and
 `artifacts`; never to a repo-local `.tools`. Product logic, a second source of package versions, and editing sources are forbidden.

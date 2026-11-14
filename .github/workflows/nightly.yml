@@ -58,20 +58,20 @@ jobs:
           path: |
             ~/.local/share/mise
             ~/.cache/tereditor
-          key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
-      # The Android workload compiles against this platform, which the runner image may not carry yet.
-      - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
-      # The build uses the repo's pinned JDK (`scripts/tool jdk`); the image's JAVA_HOME would override it.
+          key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock', 'scripts/tasks/android.cs') }}
+      # The build uses the repo's pinned JDK and Android SDK (`scripts/tool jdk`, `scripts/tool android-sdk`), which installs
+      # its pinned packages; the image's JAVA_HOME and ANDROID_HOME would override them.
       - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Package Android" sh scripts/mise run package:android
         env:
           JAVA_HOME: ""
+          ANDROID_HOME: ""
       # One key for every night, so a newer package installs over an older one. The build signs with the debug key; apksigner replaces that signature.
       - env:
           SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
         run: |
           [ -n "$SIGNING_KEY" ] || { echo "::error::ANDROID_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/android-key.pk8"
-          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          apksigner="$(sh scripts/tool android-sdk)/build-tools/36.0.0/apksigner"
           "$apksigner" sign --key "$RUNNER_TEMP/android-key.pk8" --cert signing/android-cert.pem artifacts/android/tereditor.apk
           rm -f "$RUNNER_TEMP/android-key.pk8"
           "$apksigner" verify --print-certs artifacts/android/tereditor.apk | tee "$RUNNER_TEMP/certs.txt"

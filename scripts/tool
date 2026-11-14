@@ -1,7 +1,7 @@
 #!/bin/sh
 # scripts/tool <name>: prints the directory mise keeps a pinned tool in (installing it first when it is missing), so
 # scripts and builds find a tool without a link in the checkout. A macOS JDK bundle prints its Contents/Home.
-# Names: dotnet, zig-0.17.1, merman, jdk, appimagetool, appimage-runtime, android-ndk, merman-android,
+# Names: dotnet, zig-0.17.1, merman, jdk, appimagetool, appimage-runtime, android-sdk, android-ndk, merman-android,
 # node, pnpm, binaryen, pdfium-wasm, zig-windows. The android and browser tools come from their own mise files.
 set -eu
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,6 +13,7 @@ case "${1:?usage: scripts/tool <name>}" in
   jdk) spec=http:jdk ;;
   appimagetool) spec=http:appimagetool ;;
   appimage-runtime) spec=http:appimage-runtime ;;
+  android-sdk) spec=android-sdk; env_name=android ;;
   android-ndk) spec=http:android-ndk; env_name=android ;;
   merman-android) spec=http:merman-android; env_name=android ;;
   node|pnpm) spec="$1"; env_name=browser ;;

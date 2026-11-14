@@ -49,8 +49,8 @@ The app remembers the host and connects by itself on the next launch. Settings â
 
 ## Build from source
 
-Building needs the Android SDK at `ANDROID_HOME`. The tasks install the .NET `android` workload, the pinned NDK and the
-pinned JDK into mise's shared data directory.
+Building needs macOS or Linux. The tasks install the .NET `android` workload, the pinned Android SDK, NDK and JDK into
+mise's shared data directory.
 
 ```sh
 scripts/mise run android run   # build, install on the connected device or emulator, and start

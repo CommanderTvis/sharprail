@@ -181,8 +181,9 @@ and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 ## Android
 
-Set `ANDROID_HOME` to an installed Android SDK (default:
-`~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: mise installs the pinned Temurin 21
+mise installs the pinned Android SDK from `mise.android.toml`, and `scripts/tool android-sdk` prints it. The task installs
+the SDK packages it needs into it on first use. It writes the pinned licence hash from `scripts/tasks/android.cs`
+first, so sdkmanager never asks. A set `ANDROID_HOME` names another SDK, used as it is. The JDK is provisioned like the .NET SDK: mise installs the pinned Temurin 21
 from `mise.toml` on first use and `scripts/tool jdk` prints it (on macOS, at the bundle's `Contents/Home`; Windows has no pin, see `mise.toml`); `scripts/tool merman-android`
 prints Merman's Android archive, whose per-ABI `.so` the APK packages as `libTereditorMermaid.so`. A
 `JAVA_HOME` in the environment, when set, names another JDK 17 or 21 instead. The task installs the .NET

@@ -1,7 +1,14 @@
-# Loaded with MISE_ENV=android (`scripts/tool android-ndk`): the NDK the Android client's native libraries are
-# built with, kept out of the default install because they are large.
+# Loaded with MISE_ENV=android (`scripts/tool android-sdk`, `scripts/tool android-ndk`): the Android SDK and the NDK the
+# Android client's native libraries are built with, kept out of the default install because they are large.
 [settings]
 lockfile = true
+
+# The Android SDK command-line tools. mise sets ANDROID_HOME to this install and puts sdkmanager on PATH;
+# scripts/tasks/android.cs installs the platform and build tools into it. 22.0 is the newest release whose sdkmanager
+# is the Java tool that honours recorded licences; in 23.0 it hands over to the new Android CLI, which installs itself
+# into ~/.android and collects usage data.
+[tools]
+android-sdk = { version = "22.0", os = ["macos", "linux"] }
 
 [tools."http:android-ndk"]
 version = "r27d"

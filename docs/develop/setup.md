@@ -67,8 +67,11 @@ managed language servers at runtime, not the build.
 
 ### Android (`android`, `package:android`; macOS or Linux)
 
-- The Android SDK with `platforms;android-36` and `build-tools;36.0.0` (as the nightly installs with `sdkmanager`), at
-  `ANDROID_HOME` (default `~/Library/Android/sdk`).
-- Nothing else: the JDK, NDK and Merman's prebuilt `.so` come from mise, and the .NET `android` workload installs into
-  the SDK on first use. Set `JAVA_HOME` only to build with another JDK 17 or 21.
-- `adb` (SDK platform-tools) and a device or emulator for `android run`.
+- Nothing to install: the Android SDK, JDK, NDK and Merman's prebuilt `.so` come from mise, and the .NET `android`
+  workload installs into the .NET SDK on first use.
+- The Android SDK is pinned in `mise.android.toml` (`scripts/tool android-sdk`). On first use the task installs
+  `platforms;android-36`, `build-tools;36.0.0` and `platform-tools` into it. It records the accepted SDK licence from a
+  pinned hash in `scripts/tasks/android.cs`, so it never asks you to accept it.
+- Set `ANDROID_HOME` only to build with another SDK. The task then uses it as it is and installs nothing. Set
+  `JAVA_HOME` only to build with another JDK 17 or 21.
+- A device or emulator for `android run`.

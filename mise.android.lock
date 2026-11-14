@@ -2,6 +2,31 @@
 
 lockfile_version = 3
 
+[[tools.android-sdk]]
+version = "22.0"
+backend = "vfox:jdx/vfox-android-sdk"
+specifiers = ["22.0"]
+
+[tools.android-sdk."platforms.linux-arm64"]
+checksum = "sha256:4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
+url = "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip"
+
+[tools.android-sdk."platforms.linux-x64"]
+checksum = "sha256:4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
+url = "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip"
+
+[tools.android-sdk."platforms.linux-x64-musl"]
+checksum = "sha256:4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
+url = "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip"
+
+[tools.android-sdk."platforms.macos-arm64"]
+checksum = "sha256:835b62a26162b229b441d1f6d4680383815a270809eb33522c0d480fa5002c4e"
+url = "https://dl.google.com/android/repository/commandlinetools-mac_arm64-15859902_latest.zip"
+
+[tools.android-sdk."platforms.macos-x64"]
+checksum = "sha256:c5a6378ab5cf7e0d5701921405115befff13e9ff7417fb588389338f8bd050f3"
+url = "https://dl.google.com/android/repository/commandlinetools-mac_x86_64-15859902_latest.zip"
+
 [[tools."http:android-ndk"]]
 version = "r27d"
 backend = "http:android-ndk"
