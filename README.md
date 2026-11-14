@@ -82,7 +82,7 @@ Nightly builds are on the [releases page](https://github.com/CommanderTvis/tered
   ```
 
 - On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).
-- On Android, install the APK, a client for a tereditor host on another machine ([Remote hosts and clients](docs/android.md)).
+- On Android, install the APK, a client for a tereditor host on another machine ([Remote hosts and clients](docs/android.md)). It even works in Android's desktop mode, with the same layout as the macOS app.
 
 To build from source and run it, use one of these (or `mise run …` if you have mise):
 
