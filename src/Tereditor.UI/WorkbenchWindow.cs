@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using Tereditor.Host.Abstractions;
+using Tereditor.Host.Client;
 using Tereditor.UI.Docking;
 using Tereditor.UI.Panels;
 using Tereditor.UI.Rendering;
@@ -879,11 +880,30 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         { if (request == projectRequest) Report(error); }
     }
 
-    internal void Report(Exception error)
+    /// <summary>
+    /// A host call failed. While a remote host is away, a transport failure is part of the drop the subscription is retrying,
+    /// not an Error of its own; a host that refused this client is final.
+    /// </summary>
+    internal void Report(Exception error) =>
+        ShowFailure(error, retrying: remote && !state.Connected && RemoteErrors.IsTransport(error) && !RemoteErrors.IsUnauthenticated(error));
+
+    /// <summary>The host subscription dropped and is retried by itself, unless the host refused this client.</summary>
+    private void ConnectionLost(Exception error) => ShowFailure(error, retrying: remote && !RemoteErrors.IsUnauthenticated(error));
+
+    /// <summary>
+    /// A failure that is <paramref name="retrying"/> turns the header's loader (Connecting until the host first answered, then
+    /// Reconnecting) with the cause on hover; any other shows Error in the danger colour with the unplugged glyph.
+    /// </summary>
+    private void ShowFailure(Exception error, bool retrying)
     {
         var problem = workbench.RedactError(error.Message);
-        errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem);
         Console.Error.WriteLine(error);
+        if (!retrying) { errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem); return; }
+        // The lost host supersedes the error line: what failed while it went away is read again once it returns.
+        errorText.IsVisible = false;
+        SetStatus(state.Generation > 0 ? "Reconnecting" : "Connecting");
+        ToolTip.SetTip(status, problem);
+        ToolTip.SetTip(statusIcon, problem);
     }
 
     private void SaveProfile()

@@ -219,10 +219,10 @@ internal static class MultiClientE2E
 
         proxy.Cut();
         using var reloaded = RemoteClient(proxy.Endpoint, project, profile, workspace);
-        Until(() => Status(reloaded) == "Error");
-        Require(ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } problem && problem == reloaded.Find<TextBlock>("WorkspaceError").Text
-            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionStatus").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover in the danger colour.");
-        Require(Equals(reloaded.Find<ContentControl>("ConnectionIcon").Tag, "unplug"), "A failed client wears the unplugged glyph.");
+        // The host is away, not failed: the client keeps retrying, so the header turns its loader with the cause on hover.
+        Until(() => ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } && Status(reloaded) == "Connecting" &&
+            !reloaded.Find<TextBlock>("WorkspaceError").IsVisible && reloaded.Find<ContentControl>("ConnectionIcon") is { Tag: "loader" } loader && loader.Classes.Contains("turning"),
+            "A client whose host is unreachable turns the loader while it retries, with the cause on hover, not an Error.");
         Require(!reloaded.Window.WorkspaceMounted && new ProfileStore(profile).Data.Windows[0].LastProject == workspace,
             "A failed restore read must keep the remembered workspace.");
         proxy.Allow();

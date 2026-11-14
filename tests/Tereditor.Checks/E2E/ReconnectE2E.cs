@@ -25,6 +25,7 @@ internal static class ReconnectE2E
     {
         using var git = new IsolatedGit(Path.Combine(root, "reconnect-e2e-git"));
         Generations(Path.Combine(root, "reconnect-generations"));
+        Refused(Path.Combine(root, "reconnect-refused"));
         Rows(Path.Combine(root, "reconnect-rows"));
     }
 
@@ -68,6 +69,25 @@ internal static class ReconnectE2E
         Console.WriteLine("PASS known workspace rows are read again after a reconnect");
     }
 
+    /// <summary>A host that refuses this client's token is a final failure: no retry fixes it, so the header shows Error, not the loader.</summary>
+    private static void Refused(string directory)
+    {
+        var project = IsolatedGit.Repository(Path.Combine(directory, "sample-project"));
+        var server = Serve(project);
+        try
+        {
+            using var app = new E2eWorkspace(new Uri($"http://127.0.0.1:{Port(server)}"), "not-" + Token, project, project + "-profile", project, plugins: false);
+            var status = app.Find<TextBlock>("ConnectionStatus");
+            Until(() => status.Text == "Error");
+            Settle(600);
+            var icon = app.Find<ContentControl>("ConnectionIcon");
+            Require(status.Text == "Error" && Equals(icon.Tag, "unplug") && !icon.Classes.Contains("turning") && ReferenceEquals(status.Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger),
+                $"A refused client shows the unplugged glyph and the Error in the danger colour, and keeps it while retrying ({status.Text}, {icon.Tag}).");
+        }
+        finally { Task.Run(() => server.StopAsync()).GetAwaiter().GetResult(); }
+        Console.WriteLine("PASS a host that refuses the client's token is a final Error, not a reconnect");
+    }
+
     private static bool HasFile(E2eWorkspace app, string path) =>
         app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is ProjectFile file && file.Path == path);
 
@@ -95,10 +115,11 @@ internal static class ReconnectE2E
                 Until(() => state.Connection.Status == HostConnectionStatus.Disconnected);
                 Require(state.Generation == generation - 1, "Losing the host does not start a generation.");
                 Require(!state.Supports(HostProtocol.ChangeWritePath), "No feature is assumed of a host that has not answered.");
-                Until(() => app.Find<TextBlock>("ConnectionStatus").Text is "Error" or "Reconnecting");
+                Until(() => app.Find<TextBlock>("ConnectionStatus").Text == "Reconnecting");
                 var dropped = app.Find<ContentControl>("ConnectionIcon");
-                Require(app.Find<TextBlock>("ConnectionStatus").Text == "Error" ? Equals(dropped.Tag, "unplug") : Equals(dropped.Tag, "loader") && dropped.Classes.Contains("turning"),
-                    $"A dropped connection wears unplug for Error or the turning loader while reconnecting ({dropped.Tag}).");
+                Require(Equals(dropped.Tag, "loader") && dropped.Classes.Contains("turning") && !app.Find<TextBlock>("WorkspaceError").IsVisible &&
+                    !ReferenceEquals(app.Find<TextBlock>("ConnectionStatus").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger),
+                    $"A dropped connection that is retried turns the loader, not an Error ({dropped.Tag}).");
                 File.WriteAllText(Path.Combine(project, $"offline-{generation}.txt"), "written while disconnected\n");
                 Settle(600);
                 proxy.Allow();

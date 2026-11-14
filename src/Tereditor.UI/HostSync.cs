@@ -49,9 +49,9 @@ public sealed partial class WorkbenchWindow
         ScopedSetting.HostHome = state.Current.HomeDirectory;
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
-        state.ConnectionFailed += Report;
+        state.ConnectionFailed += ConnectionLost;
         state.HandshakeChanged += HandshakeChanged;
-        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.ConnectionFailed -= Report; state.HandshakeChanged -= HandshakeChanged; };
+        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.ConnectionFailed -= ConnectionLost; state.HandshakeChanged -= HandshakeChanged; };
 #if !ANDROID && !BROWSER
         if (workbench.Listener is { } listener)
         {
@@ -214,11 +214,11 @@ public sealed partial class WorkbenchWindow
     {
         if (!connected)
         {
-            if (remote && (status.Text == workbench.HostLabel || status.Text == "Connected")) status.Text = "Reconnecting";
+            if (remote && (status.Text == workbench.HostLabel || status.Text == "Connected")) SetStatus("Reconnecting");
             return;
         }
         // Back to the host's name even when nothing below re-reads (Project Home), so the loader stops turning.
-        if (status.Text == "Reconnecting") ShowReady();
+        if (status.Text is "Reconnecting" or "Connecting") ShowReady();
         var generation = state.Generation;
         if (restorePending) _ = StartAsync();
         else if (generation != hydratedGeneration && WorkspaceMounted)
