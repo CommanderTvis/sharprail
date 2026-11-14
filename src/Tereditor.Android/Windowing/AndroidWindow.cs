@@ -330,18 +330,28 @@ internal sealed class AndroidWindow : IWindowImpl
     {
         var workbench = topLevel as WorkbenchWindow;
         (lastInsets, lastSides) = (insets, (left, right));
-        var caption = OperatingSystem.IsAndroidVersionAtLeast(35) && workbench is { DrawsIntoCaption: true } ? Caption(insets, left, right) : null;
-        // The caption's appearance is the activity's, so a window that does not draw into it clears what one before it set.
-        if (caption is null) windows.CaptionAppearance(transparent: false, light: false);
+        var draws = OperatingSystem.IsAndroidVersionAtLeast(35) && workbench is { DrawsIntoCaption: true };
+        var wants = draws && RawCaptionHeight() > 0;
+        // The system hands the app no caption inset while the caption's background is opaque (its decor view consumes the
+        // inset), so the transparent background is asked for from the window's own caption, not from the inset the frame gets.
+        // A window that does not draw into the caption clears what one before it set: the appearance is the activity's.
+        windows.CaptionAppearance(transparent: wants, light: wants && captionLight);
+        var caption = draws ? Caption(insets, left, right) : null;
         if (workbench is null || caption is null && workbench.Caption is null) return caption is not null;
         workbench.CaptionClaimed = caption is null ? null : Claim;
         workbench.CaptionLight = caption is null ? null : light => windows.CaptionAppearance(transparent: true, captionLight = light);
-        // The transparent background is asked for as soon as the header draws into the caption, not when its colour is first read.
-        if (caption is not null) windows.CaptionAppearance(transparent: true, captionLight);
         workbench.Caption = caption;
         if (caption is null) Claim([]);
         return caption is not null;
     }
+
+    /// <summary>
+    /// The caption bar's height as the window system gave it to the window, before the decor view takes it out of what the
+    /// views get (it does while the caption's background is opaque); 0 when the window has no caption bar.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("android35.0")]
+    private int RawCaptionHeight() =>
+        activity.Window?.DecorView.RootWindowInsets?.GetInsets(WindowInsets.Type.CaptionBar())?.Top ?? 0;
 
     /// <summary>
     /// The caption bar's height and its controls' room at each side, from the platform insets: the controls' bounding
@@ -360,7 +370,7 @@ internal sealed class AndroidWindow : IWindowImpl
         var bar = CaptionBar.FromPixels(height, width, controls, RenderScaling, out var branch);
         // One line per change, so the next report from a device shows what the system told the window.
         var sdk = (int)global::Android.OS.Build.VERSION.SdkInt;
-        var line = $"Caption: api {sdk}, caption inset {height}px, rects [{string.Join(' ', raw.Select(rect => $"{rect!.Left},{rect.Top},{rect.Right},{rect.Bottom}"))}], "
+        var line = $"Caption: api {sdk}, caption inset {height}px (window's own {RawCaptionHeight()}px), rects [{string.Join(' ', raw.Select(rect => $"{rect!.Left},{rect.Top},{rect.Right},{rect.Bottom}"))}], "
             + $"frame {platform.Frame.Width}x{platform.Frame.Height}px, side insets {left}/{right}px, density {RenderScaling:0.##}, "
             + $"{branch}, {(bar is { } b ? $"header in the caption {b.Height:0.#} dp tall, {b.Left:0.#} dp left, {b.Right:0.#} dp right" : "header below the caption")}";
         if (line != lastDiagnostics)

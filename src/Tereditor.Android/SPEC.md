@@ -87,8 +87,8 @@ Contract:
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
 - In an Android desktop window (desktop windowing, Android 15 / API 35 and later) the desktop frame's header is the
-  window's title bar, as on a Mac. A wide workbench wears the unified chrome (`UnifiedChrome`): the same rail header, fixed Projects rail, single main group and right side as the Mac and browser windows, with a Settings gear in the rail header. When the root is a wide workbench and the insets report a caption bar
-  (`WindowInsets.Type.captionBar()`), the activity's caption bar turns transparent
+  window's title bar, as on a Mac. A wide workbench wears the unified chrome (`UnifiedChrome`): the same rail header, fixed Projects rail, single main group and right side as the Mac and browser windows, with a Settings gear in the rail header. When the root is a wide workbench and the window has a caption bar
+  (`WindowInsets.Type.captionBar()` of the decor view's root insets), the activity's caption bar turns transparent
   (`WindowInsetsController.setSystemBarsAppearance` with `APPEARANCE_TRANSPARENT_CAPTION_BAR_BACKGROUND`), the frame
   drops the caption from its top padding, and the header takes its row: never shorter than the caption, and clear
   of the system's controls by their bounding rects (`WindowInsets.getBoundingRects(captionBar())`, relative to the
@@ -97,9 +97,11 @@ Contract:
   reports a caption height but no rects, the header still draws into the caption and reserves 140 dp at the left and
   180 dp at the right (each at most 40% of the width), a wide guess for the chip and the buttons. Only a rect across
   the centre line, or no caption at all, keeps the header below it. The window turns the caption transparent as soon
-  as the header draws into it, makes the activity's window edge-to-edge, and asks for the insets again after a
+  as its decor view has a caption bar, and not when the frame sees one: while the caption is opaque the decor view takes
+  the caption out of the insets the views get (`DecorView.updateColorViews`, `FLAG_FORCE_CONSUMING_OPAQUE_CAPTION_BAR`), so the frame
+  sees a height of 0 until the background is transparent. It also makes the activity's window edge-to-edge, and asks for the insets again after a
   layout when its shell changed since they arrived. One log line (tag `tereditor`, starting `Caption:`) records, on
-  each change, the API level, caption height, raw rects, frame, density, the branch taken and the result. There is no
+  each change, the API level, caption height (the frame's and the window's own), raw rects, frame, density, the branch taken and the result. There is no
   About page on Android to show it in.
   `APPEARANCE_LIGHT_CAPTION_BARS` follows the header's colour (set on a light header, cleared on a dark one) and
   follows theme changes, so the system's buttons stay readable. The system keeps the caption's touches and drags
