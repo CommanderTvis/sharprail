@@ -338,7 +338,7 @@ internal static class RailGroupingE2E
         }
         var tops = nested.Select(path => (Item(app, path).TranslatePoint(default, app.Window) ?? default).Y).Order().ToArray();
         columns.Add(("tab height", row.Bounds.Height));
-        columns.Add(("gap under tab", tops[0] - ((row.TranslatePoint(default, app.Window) ?? default).Y + row.Bounds.Height)));
+        if (tops.Length > 0) columns.Add(("gap under tab", tops[0] - ((row.TranslatePoint(default, app.Window) ?? default).Y + row.Bounds.Height)));
         for (var index = 1; index < tops.Length; index++) columns.Add(("pitch " + index, tops[index] - tops[index - 1]));
         return [.. columns];
     }
