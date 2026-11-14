@@ -19,12 +19,12 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    ```
 
    `github.com` and the two `githubusercontent.com` hosts serve the setup script's download, a release asset of the repository. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub (not on linux/arm64, where only the Docker image carries it), and the Kotlin server from JetBrains. `ghcr.io` and `pkg-containers.githubusercontent.com` are no longer needed: the script does not use the container image. Drop `pkg-containers.githubusercontent.com` from an older setup; `ghcr.io` is in the default list and can stay. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
-3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. The commit shown contains `scripts/headless-cloud-setup.sh`; use a newer one to get later fixes.
+3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. Replace `<commit>` with a commit at or after the change that made the script download the release archive (an older script needs `ghcr.io`); a newer commit gives later fixes.
 
    ```bash
    #!/bin/bash
    export TEREDITOR_WARM=1
-   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/tereditor/101a12c2c7e1a1705aeef282658b4d4786b5ec17/scripts/headless-cloud-setup.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/tereditor/<commit>/scripts/headless-cloud-setup.sh | bash
    ```
 
    Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is about 150 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
