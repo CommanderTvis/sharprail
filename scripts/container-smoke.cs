@@ -33,7 +33,8 @@ static int Smoke(string image, string tmp)
         UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
         StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
     };
-    foreach (var argument in new[] { "run", "-i", "--rm", "--init", "-v", $"{workspace}:/workspace", image }) info.ArgumentList.Add(argument);
+    // The spec_* tools and blueprint_check are opt-in; turn them on so the smoke test covers every tool the image can serve.
+    foreach (var argument in new[] { "run", "-i", "--rm", "--init", "-e", "TEREDITOR_TOOLS_ENABLE=spec,blueprint", "-v", $"{workspace}:/workspace", image }) info.ArgumentList.Add(argument);
     string output, error;
     int exit;
     using (var child = Process.Start(info)!)
