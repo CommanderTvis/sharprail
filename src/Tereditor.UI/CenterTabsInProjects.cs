@@ -40,6 +40,9 @@ public sealed partial class WorkbenchWindow
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); RefreshRailNesting(); FillTabTails(); };
         tabLayoutSignature = TabLayoutSignature();
         Layout.Changed += RefreshRailNesting;
+        // A selection or focus change moves which row is current without a layout change.
+        Layout.Changed += QueueRailEdgePill;
+        Layout.Focused += QueueRailEdgePill;
         surface.Rebuild();
     }
 

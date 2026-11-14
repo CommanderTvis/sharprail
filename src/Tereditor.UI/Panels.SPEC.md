@@ -103,9 +103,17 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   removed or changes kind or lock; selection, branch text and what Git allows are restyled in place, so
   rows, focus and pointer targets survive a mount, a Git refresh and a checkout. A reconcile keeps the topmost
   visible row where it was: removing or adding rows above the viewport shifts the scroll offset by their height
-  instead of moving the visible content (clamped to the new extent). That anchor is the only writer of the
-  rail's offset: a tab strip inside a row reveals its active tab within the strip and its bring-into-view request
-  stops at the rail, so a switch never scrolls the rail out and back.
+  instead of moving the visible content (clamped to the new extent). That anchor and the edge pill below are the only
+  writers of the rail's offset: a tab strip inside a row reveals its active tab within the strip and its bring-into-view
+  request stops at the rail, so a switch never scrolls the rail out and back.
+- While the focused row is scrolled out of the rail's view, an edge pill floats over the list at the top edge (the row is
+  above) or the bottom edge (below): an accent pill, centred, with a chevron pointing that way and the row's name on one
+  line, trimmed to the rail's width, with the full name in its tooltip. The focused row is the open workspace's current
+  tab row when the rail marks one, otherwise the open workspace's row; Project Home has none. The pill hides once at
+  least half of the row's height shows, and during a tab drag. Clicking it scrolls the rail at once just far enough to
+  show the row whole and moves keyboard focus to it. It is a button like the rows, so the keyboard reaches it as it
+  reaches them. It never moves a row: it sits over the scroller, not in the list. It follows scrolling, resizing,
+  focus changes and rail rebuilds by reading layout only.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
 - Right-click, or the menu key or Shift+F10 on the focused row, opens the workspace menu (rows have no three-dots button): Copy absolute path (first, with the CopyAbsolutePath icon), Copy link (enabled for the active workspace only), “Open in” (editors from

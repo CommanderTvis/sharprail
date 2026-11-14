@@ -27,6 +27,20 @@
         </Transitions>
       </Setter>
     </Style>
+    <!-- The Projects rail's edge pill: an accent pill centred over the rows, pointing to the focused row scrolled out of view. -->
+    <Style Selector="Button.rail-edge-pill">
+      <Setter Property="Height" Value="22" />
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="Padding" Value="8,0,10,0" />
+      <Setter Property="Margin" Value="8,6,20,6" />
+      <Setter Property="CornerRadius" Value="11" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.rail-edge-pill.above ContentControl.rail-edge-chevron">
+      <Setter Property="RenderTransform" Value="rotate(180deg)" />
+    </Style>
     <Style Selector="Border#ActiveWorkspaceTab">
       <Setter Property="Margin" Value="4,8,4,8" />
     </Style>

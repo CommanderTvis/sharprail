@@ -191,6 +191,7 @@ public sealed partial class WorkbenchWindow
                 ReconcileRailChildren(slot, railPreviewTails.GetValueOrDefault(workspace)?.GetValueOrDefault(tab) ?? []);
                 slot.IsVisible = slot.Children.Count > 0;
             }
+        QueueRailEdgePill();
     }
 
     /// <summary>The centre tab of a closed parent's preview that created a nested workspace; null when the parent is open or the creator is not a centre tab there.</summary>
@@ -392,6 +393,8 @@ public sealed partial class WorkbenchWindow
         };
         UpdateRailSelection();
         Ui.Place(panel, railScroller = new ScrollViewer { Content = projectsTree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, unified ? 0 : 2);
+        // The pill shares the scroller's cell, so it floats over the rows and moves none of them.
+        Ui.Place(panel, NewRailEdgePill(railScroller), unified ? 0 : 2);
         return panel;
     }
 

@@ -432,6 +432,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.RailGroupingE2E.Run(Path.Combine(root, "upstream-e2e"));
+            E2E.RailEdgePillE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
         if (args.SequenceEqual(["--vertical-tabs"]))

@@ -20,6 +20,8 @@ public sealed partial class DockSurface
     private IPointer? capturedPointer;
     private bool dragging;
     public bool IsDragging => dragging;
+    /// <summary>Raised when a tab drag starts or ends.</summary>
+    public event Action? DraggingChanged;
 
     private void InstallPointerGestures()
     {
@@ -32,6 +34,7 @@ public sealed partial class DockSurface
                 if (Math.Abs(position.X - draft.Origin.X) + Math.Abs(position.Y - draft.Origin.Y) < 5) return;
                 if (Environment.TickCount64 < draft.ReadyAt) { CancelDrag(); return; }
                 dragging = true; capturedPointer = e.Pointer; e.Pointer.Capture(this);
+                DraggingChanged?.Invoke();
             }
             PaintTargets(position);
             PaintPreview(position);
@@ -84,10 +87,12 @@ public sealed partial class DockSurface
 
     private void CancelDrag()
     {
+        var wasDragging = dragging;
         draft = null; drop = null; dragging = false; overlay.Children.Clear(); dropValidity.Clear(); Cursor = null;
         var pointer = capturedPointer; capturedPointer = null;
         pointer?.Capture(null);
         FlushRefresh();
+        if (wasDragging) DraggingChanged?.Invoke();
     }
 
     // The dragged tab follows the pointer, as the browser's drag image does in the reference. It is a panel rather than a
