@@ -193,7 +193,7 @@ internal static class FilesModesE2E
         // Enter opens the selected match and closes the box; the tree is back with its folders as they were.
         box.Focus();
         Until(() => box.IsFocused);
-        Press(box, Key.Enter);
+        WorkspaceFixture.Press(box, Key.Enter);
         Until(() => app.Tabs.Any(tab => tab.Path == "scripts/tasks/dmg.cs"));
         Require(!box.IsVisible && Tree(app).IsEffectivelyVisible && Expanded(app, "src"), "Enter must close the box and restore the tree.");
 
@@ -202,7 +202,7 @@ internal static class FilesModesE2E
         Until(() => box.IsEffectivelyVisible && box.IsFocused);
         box.Text = "readme";
         Until(() => Matches().SequenceEqual(["fm/readme.md"]));
-        Press(box, Key.Escape);
+        WorkspaceFixture.Press(box, Key.Escape);
         Until(() => !box.IsVisible && Tree(app).IsEffectivelyVisible);
         Require(Expanded(app, "src") && box.Text == "" && Matches().Length == 0, "Escape must clear the box and bring the tree back as it was.");
 
