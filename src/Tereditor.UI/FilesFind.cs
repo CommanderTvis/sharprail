@@ -208,7 +208,7 @@ public sealed partial class WorkbenchWindow
         var row = new DockPanel { Name = "FilesFindMatch", Tag = path };
         if (FileIcon(path, false, "fileText", null) is { } icon)
         {
-            icon.Margin = new Thickness(0, 0, 6, 0);
+            icon.Margin = new Thickness(0, 0, 8, 0);
             icon.VerticalAlignment = VerticalAlignment.Center;
             DockPanel.SetDock(icon, Dock.Left);
             row.Children.Add(icon);

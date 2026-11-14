@@ -4,7 +4,7 @@
       RowDefinitions="Auto,Auto,Auto,*">
   <Grid.Styles>
     <Style Selector="ListBox#FilesFindResults ListBoxItem">
-      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="Padding" Value="8,4" />
       <Setter Property="MinHeight" Value="24" />
       <Setter Property="CornerRadius" Value="4" />
     </Style>
@@ -14,7 +14,7 @@
   </Grid.Styles>
   <panels:FileTransferProgress x:Name="TransferProgress" Grid.Row="0" />
   <!-- Go to file: a filter box under the header row and a flat list of matches, shown in place of the tree. -->
-  <TextBox x:Name="FilesFindQuery" Grid.Row="2" IsVisible="False" Margin="12,0,8,4" MinHeight="26" Padding="6,3"
+  <TextBox x:Name="FilesFindQuery" Grid.Row="2" IsVisible="False" Margin="12,0,8,4" MinHeight="26" Padding="8,4"
            PlaceholderText="Go to file" AutomationProperties.Name="Go to file"
            PlaceholderForeground="{x:Static rendering:Ui.Muted}" Foreground="{x:Static rendering:Ui.TextBrush}"
            VerticalContentAlignment="Center" />
