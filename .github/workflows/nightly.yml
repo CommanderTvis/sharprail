@@ -159,6 +159,65 @@ jobs:
         with:
           name: appimage-arm64
 
+  # The headless host as one archive per architecture, for the cloud setup script (docs/headless-cloud.md). The publish and its
+  # NativeAOT gate are the ones container.yml runs for the image, and the archive holds the same files the image holds in
+  # /opt/tereditor. Like the ARM64 AppImage this does not gate the release: the release job attaches what exists.
+  headless:
+    name: headless (${{ matrix.rid }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            runner: ubuntu-24.04
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/mise
+            ~/.cache/tereditor
+          key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/Tereditor.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
+      # The archive has no .NET runtime and no external plugins: fail unless the publish is one NativeAOT binary.
+      - run: sh scripts/mise x -- dotnet run --file scripts/ci-run.cs -- "Require NativeAOT headless ${{ matrix.rid }}" env TEREDITOR_PACKAGED_HEADLESS="$PWD/artifacts/headless/${{ matrix.rid }}" sh scripts/mise x -- dotnet run --project tests/Tereditor.Checks -c Release -- --case packaged-binaries
+      # One top-level folder, readable by everyone like the image's COPY --chmod=a+rX, owner root, sorted, no timestamp in the gzip header.
+      - name: Archive
+        run: |
+          set -eu
+          stage="$RUNNER_TEMP/stage"
+          rm -rf "$stage" && mkdir -p "$stage" artifacts
+          cp -a artifacts/headless/${{ matrix.rid }} "$stage/tereditor-headless"
+          chmod -R a+rX,go-w "$stage/tereditor-headless"
+          tar -C "$stage" --sort=name --owner=0 --group=0 --numeric-owner -cf - tereditor-headless | gzip -9n > artifacts/tereditor-headless-${{ matrix.rid }}.tar.gz
+          ls -l artifacts/tereditor-headless-${{ matrix.rid }}.tar.gz
+      # The archive must unpack and answer on this architecture, as the setup script will use it.
+      - name: Smoke test the archive
+        env:
+          TEREDITOR_STATE_DIR: ${{ runner.temp }}/headless-state
+        run: |
+          set -eu
+          check="$RUNNER_TEMP/unpacked"
+          rm -rf "$check" && mkdir -p "$check"
+          tar -xzf artifacts/tereditor-headless-${{ matrix.rid }}.tar.gz -C "$check"
+          test -x "$check/tereditor-headless/tereditor-headless"
+          "$check/tereditor-headless/tereditor-headless" languages | grep -q '^csharp'
+          "$check/tereditor-headless/tereditor-headless" check-config --workspace "$check" > /dev/null
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tereditor-nightly-headless-${{ matrix.rid }}
+          path: artifacts/tereditor-headless-${{ matrix.rid }}.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: headless-${{ matrix.rid }}
+
   windows:
     runs-on: windows-2025
     timeout-minutes: 90
@@ -289,8 +348,8 @@ jobs:
           name: windows-arm64
 
   release:
-    needs: [dmg, apk, appimage, appimage-arm64, windows, windows-arm64]
-    # Only the three packages the nightly exists for gate the release. The ARM64 AppImage and both Windows ZIPs attach when
+    needs: [dmg, apk, appimage, appimage-arm64, headless, windows, windows-arm64]
+    # Only the three packages the nightly exists for gate the release. The ARM64 AppImage, both headless archives and both Windows ZIPs attach when
     # they were built and are listed as missing in the notes when not, so a red Windows job never withholds the release.
     if: ${{ !cancelled() && needs.dmg.result == 'success' && needs.apk.result == 'success' && needs.appimage.result == 'success' }}
     runs-on: ubuntu-24.04
@@ -315,7 +374,7 @@ jobs:
           mv packages/tereditor-linux-x64.AppImage tereditor-nightly-linux-x64.AppImage
           assets="tereditor-nightly.dmg tereditor-nightly.apk tereditor-nightly-linux-x64.AppImage"
           missing=""
-          for pair in tereditor-linux-arm64.AppImage:tereditor-nightly-linux-arm64.AppImage tereditor-win-x64.zip:tereditor-nightly-win-x64.zip tereditor-win-arm64.zip:tereditor-nightly-win-arm64.zip; do
+          for pair in tereditor-linux-arm64.AppImage:tereditor-nightly-linux-arm64.AppImage tereditor-headless-linux-x64.tar.gz:tereditor-headless-nightly-linux-x64.tar.gz tereditor-headless-linux-arm64.tar.gz:tereditor-headless-nightly-linux-arm64.tar.gz tereditor-win-x64.zip:tereditor-nightly-win-x64.zip tereditor-win-arm64.zip:tereditor-nightly-win-arm64.zip; do
             src="packages/${pair%%:*}"
             dst="${pair##*:}"
             if [ -f "$src" ]; then
@@ -326,7 +385,11 @@ jobs:
               echo "::warning::$dst was not built tonight; releasing without it"
             fi
           done
-          notes="Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a tereditor host; the Linux AppImages are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+          # One checksum file for every file above. The headless setup script verifies its archive against it.
+          # shellcheck disable=SC2086
+          sha256sum $assets > SHA256SUMS
+          assets="$assets SHA256SUMS"
+          notes="Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a tereditor host; the Linux AppImages are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the tereditor-headless archives hold the headless host for Linux x64 and ARM64, which scripts/headless-cloud-setup.sh installs; SHA256SUMS lists the checksum of every other file; the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
           if [ -n "$missing" ]; then
             notes="$notes
 

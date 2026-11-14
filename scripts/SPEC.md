@@ -129,7 +129,7 @@ the image is ad-hoc signed; the image itself is neither signed nor
 notarized. `.github/workflows/nightly.yml` builds it on a macOS runner, the Android package on a Linux
 one and the Windows x64 and ARM64 packages on Windows runners every day at 03:00 UTC (and on demand), each uploaded as a workflow artifact named
 `tereditor-nightly-<date>-<commit>`. When all succeed it replaces the `nightly` prerelease: the tag moves to
-the built commit and the files keep the names `tereditor-nightly.dmg`, `tereditor-nightly.apk` and the two Windows ZIPs.
+the built commit and the files keep the names `tereditor-nightly.dmg`, `tereditor-nightly.apk` and the two Windows ZIPs. The Linux AppImages and the headless archives `tereditor-headless-nightly-linux-<x64|arm64>.tar.gz` (see the headless host's SPEC) are attached when they were built, and `SHA256SUMS` lists every file; the release job deletes any asset it does not list.
 
 `package:android` signs with the key named by `TEREDITOR_ANDROID_KEYSTORE`, `TEREDITOR_ANDROID_KEY_ALIAS` and
 `TEREDITOR_ANDROID_KEY_PASSWORD` (one password for the store and the key, passed to the build by name rather
