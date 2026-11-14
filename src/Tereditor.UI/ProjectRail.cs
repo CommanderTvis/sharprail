@@ -72,7 +72,7 @@ public sealed partial class WorkbenchWindow
         {
             if (!projectRailRows.TryGetValue(project, out var entry))
             {
-                var workspaces = new StackPanel { Name = "ProjectWorkspaces", Tag = project, Spacing = 4 };
+                var workspaces = new StackPanel { Name = "ProjectWorkspaces", Tag = project, Spacing = RailRowSpacing };
                 entry = new(ProjectHeader(project, workspaces), workspaces);
                 projectRailRows[project] = entry;
             }
@@ -179,17 +179,21 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, List<Control>> railTabTails = [];
     // Rows listed under a pane member of a closed workspace's preview, by workspace and tab id.
     private readonly Dictionary<string, Dictionary<string, List<Control>>> railPreviewTails = [];
+    // The space between a project's workspace rows, also kept between rows nested in a tab's slot, so focus moves none of them.
+    private const double RailRowSpacing = 4;
 
     internal void FillTabTails()
     {
         foreach (var (tab, slot) in surface.TabTails)
         {
+            slot.Spacing = RailRowSpacing;
             ReconcileRailChildren(slot, railTabTails.GetValueOrDefault(tab) ?? []);
             slot.IsVisible = slot.Children.Count > 0;
         }
         foreach (var (workspace, slots) in previewTabTails)
             foreach (var (tab, slot) in slots)
             {
+                slot.Spacing = RailRowSpacing;
                 ReconcileRailChildren(slot, railPreviewTails.GetValueOrDefault(workspace)?.GetValueOrDefault(tab) ?? []);
                 slot.IsVisible = slot.Children.Count > 0;
             }

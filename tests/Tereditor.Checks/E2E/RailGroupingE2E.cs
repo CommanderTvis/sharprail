@@ -220,7 +220,7 @@ internal static class RailGroupingE2E
         static string Show((string Name, double X)[] items) => string.Join(", ", items.Select(item => $"{item.Name} {item.X:0.#}"));
         (string Name, double X)[] Columns(string open)
         {
-            var columns = RailColumns(app, tab, live, [creator, .. children]).ToList();
+            var columns = RailColumns(app, tab, live, [creator, .. children], []).ToList();
             var row = Controls(app).First(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceTabPreview" && (string?)control.Tag == tab || control.Name == live));
             columns.Add(("tab box left", X(row)));
             columns.Add(("tab box right", X(row) + row.Bounds.Width));
@@ -289,25 +289,32 @@ internal static class RailGroupingE2E
         }
     }
 
-    /// <summary>Opens an unrelated workspace, then the creator with its tab selected by a click, then a nested workspace, and requires every column to stay within half a pixel.</summary>
+    /// <summary>
+    /// Opens an unrelated workspace, then the creator with its tab selected by a click, then a nested workspace, then the creator's
+    /// tab again, and requires every column and the pitch between the nested rows to stay within half a pixel.
+    /// </summary>
     private static void SteadyColumns(E2eWorkspace app, string creator, string tab, string[] children, string unrelated)
     {
         var live = "DockTab_" + tab.Replace(':', '_').Replace('/', '_');
         (string Name, double X)[]? baseline = null;
-        foreach (var (open, state) in new[] { (unrelated, "neither selected"), (creator, "terminal selected"), (children[0], "workspace selected") })
+        // The lowest nested row is the one opened, so its own tab strip, which shows under it, stays out of the measured pitch.
+        string? lowest = null;
+        foreach (var (choice, state) in new (string? Open, string State)[] { (unrelated, "neither selected"), (creator, "terminal selected"), (null, "workspace selected"), (creator, "terminal selected again") })
         {
+            var open = choice ?? lowest!;
             Choose(app, open, creator, tab);
             Until(() => GuidesJoin(app, creator, tab, children[0], children[1]));
-            var columns = RailColumns(app, tab, live, [creator, .. children]);
+            var columns = RailColumns(app, tab, live, [creator, .. children], children);
             baseline ??= columns;
+            lowest ??= children.OrderBy(path => Item(app, path).TranslatePoint(default, app.Window).GetValueOrDefault().Y).Last();
             static string Show((string Name, double X)[] items) => string.Join(", ", items.Select(item => $"{item.Name} {item.X:0.#}"));
             Require(columns.Length == baseline.Length && columns.Zip(baseline).All(pair => pair.First.Name == pair.Second.Name && Math.Abs(pair.First.X - pair.Second.X) <= 0.5),
                 $"Rail rows keep their columns whichever row is selected ({state}): {Show(columns)}; expected {Show(baseline)}");
         }
     }
 
-    /// <summary>The window X of the creator tab's icon and title and of each workspace's icon, title and guide line.</summary>
-    private static (string Name, double X)[] RailColumns(E2eWorkspace app, string tab, string live, string[] workspaces)
+    /// <summary>The window X of the creator tab's icon and title and of each workspace's icon, title and guide line, then the vertical pitch between the nested rows.</summary>
+    private static (string Name, double X)[] RailColumns(E2eWorkspace app, string tab, string live, string[] workspaces, string[] nested)
     {
         double X(Control control) => (control.TranslatePoint(default, app.Window) ?? default).X;
         static Control Role(Control row, RowRole role) => row.GetVisualDescendants().OfType<MarkedRow>().First().Children.First(child => child.GetValue(MarkedRow.RoleProperty) == role);
@@ -322,6 +329,8 @@ internal static class RailGroupingE2E
             var guide = Named<Border>(item, "WorkspaceNestGuide");
             if (guide.IsEffectivelyVisible) columns.Add((name + " guide", X(guide)));
         }
+        var tops = nested.Select(path => (Item(app, path).TranslatePoint(default, app.Window) ?? default).Y).Order().ToArray();
+        for (var index = 1; index < tops.Length; index++) columns.Add(("pitch " + index, tops[index] - tops[index - 1]));
         return [.. columns];
     }
 
