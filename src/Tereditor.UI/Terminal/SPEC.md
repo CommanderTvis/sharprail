@@ -28,9 +28,13 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view.
 
-A gear chip ("Choose chips") trails the accessory rows, bottom-aligned at the strip's right edge beside the last row. It opens
-a menu with one check row per chip kind the terminal's rows can show, present now or not (each row declares its kinds and tags
-its chips with `TerminalChips`), then Show all. Unchecking a kind hides it at once in this terminal and, through the
+A gear chip ("Choose chips") is the last chip of the strip: it sits right after the last visible chip, on that chip's line, one
+chip gap after it, and moves with the flow as chips show, hide or wrap. When that line has no room left it wraps to a line of its
+own at the row's start; with every chip hidden it is the strip's only chip, where the first chip would be. It opens a popup with
+one check per chip kind the terminal's rows can show, present now or not (each row declares its kinds and tags its chips with
+`TerminalChips`), then Show all. The popup stays open while the user toggles, so several chips change in one go; it closes on a
+click outside, Escape or the gear. Its checks update in place, also when the set changes from another client, and it stays
+where it opened when the gear moves. Unchecking a kind hides it at once in this terminal and, through the
 `terminal-hidden-chips` host setting every client shares, in every terminal; Show all clears the set. The setting stores hidden
 ids, so a kind no one hid, a new one included, shows. Agent chips share ids across agents (`cwd`, `model`, `effort`, `ide`,
 `chrome`, `plan`, `usage`, `advisor`, `attach`); a plugin's own chip is `pluginId/chipId`, such as `env/env-mise` for the

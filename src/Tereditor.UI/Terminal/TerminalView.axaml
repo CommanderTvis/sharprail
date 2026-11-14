@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:Tereditor.Plugins.UI.Kit"
+             xmlns:terminal="using:Tereditor.UI.Terminal"
              x:Class="Tereditor.UI.Terminal.TerminalView"
              Background="Transparent"
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
@@ -40,12 +41,12 @@
     </StackPanel>
     <!-- The strip behind the accessory chips is the terminal's own background, with no border: it is part of the terminal's box. Beside a companion it spans the surface's column only, so the companion runs down to the bottom edge. -->
     <!-- Padded only while a row shows: 8 px above the first row and, with the chips' own 4 px gap, 8 px below the last. -->
-    <!-- The gear trails the last row and chooses which chips show; it stays when every chip is hidden, so the strip keeps one row. -->
+    <!-- The gear sits right after the last visible chip, as one more chip of the flow, and chooses which chips show; it stays when every chip is hidden, so the strip keeps one row. -->
     <Border x:Name="TerminalAccessoriesStrip" Grid.Row="5" Grid.ColumnSpan="3" Background="{x:Static rendering:Ui.Terminal}">
-      <Grid x:Name="TerminalChipStrip" ColumnDefinitions="*,Auto">
+      <terminal:TerminalChipStrip x:Name="TerminalChipStrip">
         <StackPanel x:Name="TerminalAccessories" />
-        <ContentControl x:Name="TerminalChipSettingsSlot" Grid.Column="1" VerticalAlignment="Bottom" />
-      </Grid>
+        <ContentControl x:Name="TerminalChipSettingsSlot" />
+      </terminal:TerminalChipStrip>
     </Border>
     <ContentControl x:Name="TerminalBody" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="1" Grid.Column="1" Width="1" IsVisible="False"

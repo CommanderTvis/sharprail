@@ -10,7 +10,7 @@ using Tereditor.Plugins.UI.Kit;
 namespace Tereditor.UI.Terminal;
 
 /// <summary>
-/// The gear chip that trails the chip strip and chooses which chips show. The rows declare the chip kinds they can show and
+/// The gear chip that sits after the last chip of the strip and chooses which chips show. The rows declare the chip kinds they can show and
 /// tag their chips (<see cref="TerminalChips"/>); the strip hides a tagged chip whose id the user unchecked, so a kind no one
 /// hid, a new one included, shows.
 /// </summary>
@@ -36,8 +36,12 @@ public sealed partial class TerminalView
 
     private bool chipChoiceSupported = true;
 
-    /// <summary>The menu the gear opened last.</summary>
-    internal ContextMenu? ChipMenu { get; private set; }
+    /// <summary>The popup the gear opened last: one check per chip kind, then Show all. It stays open while the user toggles.</summary>
+    internal Flyout? ChipMenu { get; private set; }
+
+    private readonly Dictionary<string, CheckBox> chipToggles = [];
+    private Button? showAllChips;
+    private bool syncingChipToggles;
 
     /// <summary>The ids of a stored hidden-chips setting: comma-separated, empty for none.</summary>
     internal static IReadOnlyList<string> HiddenChipIds(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -61,7 +65,7 @@ public sealed partial class TerminalView
         strut.Width = 0;
         var content = new Panel { Children = { strut, Ui.Icon("settings", Ui.Muted, 14) } };
         var gear = Chips.Button("TerminalChipSettings", content, "Choose chips", OpenChipMenu);
-        gear.Margin = new Thickness(0, 0, 8, LayoutRoles.ChipGap);
+        gear.Margin = Chips.Gap;
         gear.IsVisible = false;
         slot.Content = gear;
         Accessories.Children.CollectionChanged += (_, _) => RefreshChipSettings();
@@ -96,41 +100,64 @@ public sealed partial class TerminalView
             foreach (var id in hidden)
                 Accessories.Styles.Add(new Style(selector => selector.Is<Control>().PropertyEquals(TerminalChips.IdProperty, id)) { Setters = { new Setter(IsVisibleProperty, false) } });
         }
+        RefreshChipToggles();
         RefreshChipSettings();
     }
 
     // A terminal with nothing to choose (a plain shell with no environment) shows no gear, so it grows no strip.
     private void RefreshChipSettings() => ChipSettings.IsVisible = chipChoiceSupported && ChipKinds().Count > 0;
 
+    // A click on the gear while its popup shows closes it; the popup is built once per opening and updated in place after.
     private void OpenChipMenu()
     {
-        ChipMenu = BuildChipMenu();
-        ChipMenu.Open(ChipSettings);
+        if (ChipMenu is { IsOpen: true } open) { open.Hide(); return; }
+        ChipMenu = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft, Content = BuildChipMenu() };
+        ChipMenu.ShowAt(ChipSettings);
     }
 
-    /// <summary>One check row per chip kind of this terminal, then Show all.</summary>
-    internal ContextMenu BuildChipMenu()
+    /// <summary>One check per chip kind of this terminal, then Show all. Each change applies at once and leaves the popup open.</summary>
+    internal Control BuildChipMenu()
     {
-        var menu = new ContextMenu { Name = "TerminalChipMenu", Placement = Avalonia.Controls.PlacementMode.TopEdgeAlignedRight, PlacementTarget = ChipSettings };
+        chipToggles.Clear();
+        var list = new StackPanel { Name = "TerminalChipMenu", Spacing = 2 };
+        Avalonia.Controls.Documents.TextElement.SetFontFamily(list, Ui.InterfaceFont);
         foreach (var kind in ChipKinds())
         {
-            var shown = !hiddenChips.Contains(kind.Id);
-            var item = Ui.Menu(kind.Label, () => ChooseChips(shown ? [.. hiddenChips, kind.Id] : [.. hiddenChips.Where(id => id != kind.Id)]));
-            item.Name = "TerminalChipToggle_" + kind.Id;
-            item.ToggleType = MenuItemToggleType.CheckBox;
-            item.IsChecked = shown;
-            menu.Items.Add(item);
+            var box = new CheckBox { Name = "TerminalChipToggle_" + kind.Id, Content = kind.Label, IsChecked = !hiddenChips.Contains(kind.Id) };
+            var id = kind.Id;
+            box.IsCheckedChanged += (_, _) =>
+            {
+                if (syncingChipToggles) return;
+                ChooseChips(box.IsChecked == true ? [.. hiddenChips.Where(hidden => hidden != id)] : [.. hiddenChips.Where(hidden => hidden != id), id]);
+            };
+            chipToggles[id] = box;
+            list.Children.Add(box);
         }
-        menu.Items.Add(new Separator());
-        var all = Ui.Menu("Show all", () => ChooseChips([]), hiddenChips.Count > 0);
-        all.Name = "TerminalChipShowAll";
-        menu.Items.Add(all);
-        return menu;
+        list.Children.Add(new Border { Height = 1, Margin = new Thickness(0, 2), Background = Ui.BorderBrush });
+        showAllChips = Ui.Button("Show all", () => ChooseChips([]));
+        showAllChips.Name = "TerminalChipShowAll";
+        showAllChips.HorizontalAlignment = HorizontalAlignment.Stretch;
+        list.Children.Add(showAllChips);
+        RefreshChipToggles();
+        return list;
+    }
+
+    // The open popup follows the hidden set in place, whether this terminal or another client changed it.
+    private void RefreshChipToggles()
+    {
+        syncingChipToggles = true;
+        try
+        {
+            foreach (var (id, box) in chipToggles) box.IsChecked = !hiddenChips.Contains(id);
+        }
+        finally { syncingChipToggles = false; }
+        if (showAllChips is not null) showAllChips.IsEnabled = hiddenChips.Count > 0;
     }
 
     // This terminal follows at once; the others follow the shared setting.
     private void ChooseChips(IReadOnlyList<string> hidden)
     {
+        if (hidden.SequenceEqual(hiddenChips)) return;
         ShowChips(hidden);
         SaveHiddenChips?.Invoke(hidden);
     }
