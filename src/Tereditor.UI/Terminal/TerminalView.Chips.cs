@@ -108,11 +108,21 @@ public sealed partial class TerminalView
     private void RefreshChipSettings() => ChipSettings.IsVisible = chipChoiceSupported && ChipKinds().Count > 0;
 
     // A click on the gear while its popup shows closes it; the popup is built once per opening and updated in place after.
+    // It opens above the gear but is pinned to the view, not the gear: a toggle reflows the row and moves the gear, the popup stays under the pointer.
     private void OpenChipMenu()
     {
         if (ChipMenu is { IsOpen: true } open) { open.Hide(); return; }
-        ChipMenu = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft, Content = BuildChipMenu() };
-        ChipMenu.ShowAt(ChipSettings);
+        var at = ChipSettings.TranslatePoint(default, this) ?? default;
+        ChipMenu = new Flyout
+        {
+            Placement = PlacementMode.AnchorAndGravity,
+            PlacementAnchor = Avalonia.Controls.Primitives.PopupPositioning.PopupAnchor.TopLeft,
+            PlacementGravity = Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.TopRight,
+            HorizontalOffset = at.X,
+            VerticalOffset = at.Y,
+            Content = BuildChipMenu()
+        };
+        ChipMenu.ShowAt(this);
     }
 
     /// <summary>One check per chip kind of this terminal, then Show all. Each change applies at once and leaves the popup open.</summary>

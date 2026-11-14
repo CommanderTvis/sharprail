@@ -68,9 +68,14 @@ internal static class TerminalChipChecks
                 toggles.All(box => box.IsChecked == true) && !showAll.IsEnabled,
                 "The popup lists every kind the rows can show, all checked; Show all is idle while none is hidden.");
 
-            // Two toggles in a row: the popup stays open, keeps its rows and applies both.
+            // Two toggles in a row: the popup stays open, keeps its rows and applies both; it stays put while the gear moves.
+            var popupAt = TopLevel.GetTopLevel(list)!.PointToScreen(new Point(0, 0));
+            var gearBefore = gear.TranslatePoint(new Point(0, 0), flow)!.Value;
             Toggle("env/env-mise").IsChecked = false;
             Settle(); window.UpdateLayout(); window.UpdateLayout();
+            var popupNow = TopLevel.GetTopLevel(list)!.PointToScreen(new Point(0, 0));
+            Require(Point.Distance(gearBefore, gear.TranslatePoint(new Point(0, 0), flow)!.Value) > 5 && Math.Abs(popupNow.X - popupAt.X) <= 1 && Math.Abs(popupNow.Y - popupAt.Y) <= 1,
+                $"The row reflows and the gear moves, but the open popup stays where it opened ({popupAt} against {popupNow}).");
             Require(popup.IsOpen && !mise.IsVisible && model.IsVisible && saved[^1].SequenceEqual(["env/env-mise"]), "Unchecking a plugin chip hides it at once, saves its id and leaves the popup open.");
             Require(Math.Abs(strip.Bounds.Height - twoRows) > 1 && gear.IsVisible, $"The hidden chip's row folds away and the gear stays ({strip.Bounds.Height} against {twoRows}).");
             RequireGearAfter(effort, "With the last row gone the gear moves up after the chip that is now last");

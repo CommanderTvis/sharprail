@@ -35,7 +35,8 @@ one check per chip kind the terminal's rows can show, present now or not (each r
 `TerminalChips`), then Show all. The popup stays open while the user toggles, so several chips change in one go; it closes on a
 click outside, Escape or the gear. Its checks update in place, also when the set changes from another client, and it stays
 where it opened when the gear moves. Unchecking a kind hides it at once in this terminal and, through the
-`terminal-hidden-chips` host setting every client shares, in every terminal; Show all clears the set. The setting stores hidden
+`terminal-hidden-chips` host setting every client shares, in every terminal; Show all clears the set. A window skips the
+broadcast of its own earlier save while a later one is still on its way, so quick toggles are not undone by their echoes. The setting stores hidden
 ids, so a kind no one hid, a new one included, shows. Agent chips share ids across agents (`cwd`, `model`, `effort`, `ide`,
 `chrome`, `plan`, `usage`, `advisor`, `attach`); a plugin's own chip is `pluginId/chipId`, such as `env/env-mise` for the
 mise environment. The strip hides a chip with a style on the rows, so a row's rebuild cannot bring it back. The gear itself

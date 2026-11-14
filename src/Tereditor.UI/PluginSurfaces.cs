@@ -114,14 +114,30 @@ public sealed partial class WorkbenchWindow
     private void HostStateChanged(HostState previous, HostState next)
     {
         if (!previous.Projects.SequenceEqual(next.Projects)) ResolveRailDefaults();
-        if (previous.Settings.TerminalHiddenChips != next.Settings.TerminalHiddenChips)
+        if (previous.Settings.TerminalHiddenChips != next.Settings.TerminalHiddenChips && !StaleChipEcho(next.Settings.TerminalHiddenChips))
             foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.ShowChips(Terminal.TerminalView.HiddenChipIds(next.Settings.TerminalHiddenChips));
+    }
+
+    // The hidden-chip sets this window saved whose broadcast has not come back yet, oldest first.
+    private readonly List<string> chipSaves = [];
+
+    // Several toggles in one popup save one after another: the echo of an earlier save, arriving after a later toggle, would undo it.
+    private bool StaleChipEcho(string value)
+    {
+        var index = chipSaves.IndexOf(value);
+        if (index < 0) return false;
+        chipSaves.RemoveRange(0, index + 1);
+        return chipSaves.Count > 0;
     }
 
     // The chips hidden in one terminal are hidden in all: the set is a host setting every client shares.
     private async void SaveHiddenChips(IReadOnlyList<string> hidden)
     {
-        if (await ShareAsync(HostStateChange.Setting("terminal-hidden-chips", string.Join(",", hidden)))) return;
+        var value = string.Join(",", hidden);
+        // The host keeps the set in canonical order, and that is the form its broadcast echoes.
+        chipSaves.Add(HostSettings.NormalizeTerminalHiddenChips(value) ?? value);
+        if (await ShareAsync(HostStateChange.Setting("terminal-hidden-chips", value))) return;
+        chipSaves.Clear();
         foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.ShowChips(Terminal.TerminalView.HiddenChipIds(state.Current.Settings.TerminalHiddenChips));
     }
 
