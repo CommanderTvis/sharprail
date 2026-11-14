@@ -291,7 +291,8 @@ internal static class RailGroupingE2E
 
     /// <summary>
     /// Opens an unrelated workspace, then the creator with its tab selected by a click, then a nested workspace, then the creator's
-    /// tab again, and requires every column and the pitch between the nested rows to stay within half a pixel.
+    /// tab again, and requires every column, the rows' right edges, the gap under the tab and the pitch between the nested rows
+    /// to stay within half a pixel.
     /// </summary>
     private static void SteadyColumns(E2eWorkspace app, string creator, string tab, string[] children, string unrelated)
     {
@@ -313,7 +314,11 @@ internal static class RailGroupingE2E
         }
     }
 
-    /// <summary>The window X of the creator tab's icon and title and of each workspace's icon, title and guide line, then the vertical pitch between the nested rows.</summary>
+    /// <summary>
+    /// The window X of the creator tab's icon and title and of each workspace's icon, title, guide line and right edge (where a
+    /// trimmed title's indicator column ends), then the tab row's height, the gap from it to its first nested row and the
+    /// vertical pitch between the nested rows.
+    /// </summary>
     private static (string Name, double X)[] RailColumns(E2eWorkspace app, string tab, string live, string[] workspaces, string[] nested)
     {
         double X(Control control) => (control.TranslatePoint(default, app.Window) ?? default).X;
@@ -328,8 +333,12 @@ internal static class RailGroupingE2E
             columns.Add((name + " title", X(Role(item, RowRole.Title))));
             var guide = Named<Border>(item, "WorkspaceNestGuide");
             if (guide.IsEffectivelyVisible) columns.Add((name + " guide", X(guide)));
+            var select = item.GetVisualDescendants().OfType<Button>().First(button => button.Name == "WorkspaceSelect");
+            columns.Add((name + " right", X(select) + select.Bounds.Width));
         }
         var tops = nested.Select(path => (Item(app, path).TranslatePoint(default, app.Window) ?? default).Y).Order().ToArray();
+        columns.Add(("tab height", row.Bounds.Height));
+        columns.Add(("gap under tab", tops[0] - ((row.TranslatePoint(default, app.Window) ?? default).Y + row.Bounds.Height)));
         for (var index = 1; index < tops.Length; index++) columns.Add(("pitch " + index, tops[index] - tops[index - 1]));
         return [.. columns];
     }

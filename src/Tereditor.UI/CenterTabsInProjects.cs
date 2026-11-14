@@ -16,12 +16,8 @@ public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, ContentControl> workspaceTabHosts = [];
     private readonly Dictionary<string, string> workspaceTabPreviewSignatures = [];
-    // Preview units after which a workspace's tab list is cut so a workspace made by that tab nests right below it, and the
-    // hosts holding the list's later segments.
-    private readonly Dictionary<string, int[]> workspaceTabBreaks = [];
-    private readonly Dictionary<string, List<ContentControl>> workspaceTabSegments = [];
-    // The slots under each pane member of a closed workspace's preview, by workspace and tab id, which hold the workspaces
-    // that member created inside the pane's bubble.
+    // The slots under each centre tab of a closed workspace's preview, by workspace and tab id, which hold the workspaces
+    // that tab created, as the live strip's slots do (inside the pane's bubble for a pane member).
     private readonly Dictionary<string, Dictionary<string, StackPanel>> previewTabTails = [];
     private IReadOnlyDictionary<string, Control> centerStripsInProjects = new Dictionary<string, Control>();
     private string tabLayoutSignature = "";
@@ -69,33 +65,6 @@ public sealed partial class WorkbenchWindow
         return host;
     }
 
-    private void SetTabBreaks(string workspace, int[] breaks)
-    {
-        if (breaks.Length == 0) workspaceTabBreaks.Remove(workspace);
-        else workspaceTabBreaks[workspace] = breaks;
-        if (workspaceTabSegments.GetValueOrDefault(workspace) is { } hosts && hosts.Count > breaks.Length)
-        {
-            foreach (var host in hosts.Skip(breaks.Length)) host.Content = null;
-            hosts.RemoveRange(breaks.Length, hosts.Count - breaks.Length);
-            workspaceTabPreviewSignatures.Remove(workspace);
-        }
-    }
-
-    /// <summary>The host of a tab list's segment after its first, which sits below the nested workspaces of the tab the previous segment ends with.</summary>
-    private ContentControl WorkspaceTabSegment(string workspace, int segment)
-    {
-        if (!workspaceTabSegments.TryGetValue(workspace, out var hosts)) workspaceTabSegments[workspace] = hosts = [];
-        while (hosts.Count < segment)
-        {
-            hosts.Add(new ContentControl { Name = "WorkspaceTabs", Tag = workspace, IsVisible = false });
-            workspaceTabPreviewSignatures.Remove(workspace);
-            Avalonia.Threading.Dispatcher.UIThread.Post(PlaceWorkspaceTabs);
-        }
-        var host = hosts[segment - 1];
-        host.Margin = workspaceTabHosts[workspace].Margin;
-        return host;
-    }
-
     private void PlaceWorkspaceTabs()
     {
         // Keep the outgoing rail intact while another workspace mounts. At startup there is no
@@ -119,13 +88,11 @@ public sealed partial class WorkbenchWindow
                 ReconcileRailChildren(strips, children);
                 if (!ReferenceEquals(host.Content, strips)) host.Content = strips;
                 host.IsVisible = children.Count > 0;
-                foreach (var extra in workspaceTabSegments.GetValueOrDefault(workspace) ?? []) { extra.Content = null; extra.IsVisible = false; }
             }
             else
             {
                 var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
-                var breaks = workspaceTabBreaks.GetValueOrDefault(workspace) ?? [];
-                var signature = string.Join(",", breaks) + System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new PreviewGroupSignature(
+                var signature = System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new PreviewGroupSignature(
                     group,
                     view?.Documents.GetValueOrDefault(group),
                     view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)).ToArray(),
@@ -134,16 +101,9 @@ public sealed partial class WorkbenchWindow
                     System.Text.Json.JsonSerializer.Serialize(TerminalsOutsidePreview(workspace).Select(tab => new PreviewTerminalSignature(tab, TabDecorationSignature(tab, workspace))).ToArray(), AppJson.Default.PreviewTerminalSignatureArray);
                 if (workspaceTabPreviewSignatures.GetValueOrDefault(workspace) == signature) continue;
                 workspaceTabPreviewSignatures[workspace] = signature;
-                var segments = WorkspaceTabsPreview(workspace, breaks);
-                host.Content = segments[0];
+                host.Content = WorkspaceTabsPreview(workspace);
                 // An empty list takes no room, its bottom margin and the rail's spacing included.
                 host.IsVisible = host.Content is not null;
-                var hosts = workspaceTabSegments.GetValueOrDefault(workspace) ?? [];
-                for (var index = 0; index < hosts.Count; index++)
-                {
-                    hosts[index].Content = segments.ElementAtOrDefault(index + 1);
-                    hosts[index].IsVisible = hosts[index].Content is not null;
-                }
             }
         }
         FillTabTails();
@@ -160,17 +120,6 @@ public sealed partial class WorkbenchWindow
     // Another workspace's tabs, read-only, from its retained documents, drawn like the live strip: one section per group,
     // a pane's members together, the selected tab boxed, and the icons and badges plugins give tabs (an agent's chat
     // mark among them). Choosing one selects it there and switches to it.
-    // The preview's units in order, each a lone tab or a pane's members drawn in one bubble; a unit is the finest place to cut the list.
-    private List<DockTab[]> PreviewUnits(string workspace)
-    {
-        var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
-        var units = new List<DockTab[]>();
-        foreach (var group in view is null ? [] : Layout.State.Center.Leaves())
-            units.AddRange(GroupUnits(view!, group).Select(unit => unit.Members));
-        units.AddRange(TerminalsOutsidePreview(workspace).Select(tab => new[] { tab }));
-        return units;
-    }
-
     private static IEnumerable<(DockTab[] Members, DockPane? Pane)> GroupUnits(WorkspaceView view, string group)
     {
         var tabs = view.Documents.GetValueOrDefault(group) ?? [];
@@ -186,22 +135,15 @@ public sealed partial class WorkbenchWindow
 
     // Another workspace's tabs, read-only, from its retained documents, drawn like the live strip: one section per group,
     // a pane's members together, the selected tab boxed, and the icons and badges plugins give tabs (an agent's chat
-    // mark among them). Choosing one selects it there and switches to it. Cut after each unit in breaks, the list comes back
-    // as that many plus one segments (a segment is null when nothing follows the last cut).
-    private List<Control?> WorkspaceTabsPreview(string workspace, int[] breaks)
+    // mark among them). Choosing one selects it there and switches to it. Like the live strip, each centre tab keeps a
+    // slot right below it for the workspaces it created. Null when the workspace has no tabs to show.
+    private Control? WorkspaceTabsPreview(string workspace)
     {
         var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
-        var segments = new List<Control?>();
         var tails = new Dictionary<string, StackPanel>();
         previewTabTails[workspace] = tails;
         StackPanel? terminals = null;
         var groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
-        var unit = 0;
-        void Cut()
-        {
-            segments.Add(groups.Children.Count == 0 ? null : groups);
-            groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
-        }
         StackPanel Section(StackPanel? section, string name, string? tag)
         {
             if (section is not null) return section;
@@ -209,7 +151,12 @@ public sealed partial class WorkbenchWindow
             groups.Children.Add(section);
             return section;
         }
-        void EndUnit() { if (breaks.Contains(unit)) Cut(); unit++; }
+        StackPanel Tail(string tab)
+        {
+            var tail = new StackPanel { Name = "TabTail", Tag = tab, IsVisible = false, Focusable = false };
+            tails[tab] = tail;
+            return tail;
+        }
         foreach (var group in view is null ? [] : Layout.State.Center.Leaves())
         {
             var tabs = view!.Documents.GetValueOrDefault(group) ?? [];
@@ -220,19 +167,22 @@ public sealed partial class WorkbenchWindow
             foreach (var (members, pane) in GroupUnits(view, group))
             {
                 section = Section(section, "WorkspaceTabsPreviewGroup", group);
-                if (pane is null) section.Children.Add(PreviewTab(workspace, group, members[0], members[0].Id == selected, boxed: true, subtitles.GetValueOrDefault(members[0].Id)));
+                if (pane is null)
+                {
+                    section.Children.Add(PreviewTab(workspace, group, members[0], members[0].Id == selected, boxed: true, subtitles.GetValueOrDefault(members[0].Id)));
+                    section.Children.Add(Tail(members[0].Id));
+                }
                 else
                 {
-                    // A pane's members sit in one bubble, boxed together when one of them is selected.
+                    // A pane's members sit in one bubble, boxed together when one of them is selected, with no space between
+                    // them, as in the live strip.
                     var active = members.Any(member => member.Id == selected);
-                    var bubble = new StackPanel { Spacing = 2 };
+                    var bubble = new StackPanel();
                     foreach (var member in members)
                     {
                         bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false, subtitles.GetValueOrDefault(member.Id)));
                         // A workspace this member created sits here, inside the bubble, before the next member.
-                        var tail = new StackPanel { Name = "TabTail", Tag = member.Id, IsVisible = false, Focusable = false };
-                        tails[member.Id] = tail;
-                        bubble.Children.Add(tail);
+                        bubble.Children.Add(Tail(member.Id));
                     }
                     section.Children.Add(new Border
                     {
@@ -244,19 +194,14 @@ public sealed partial class WorkbenchWindow
                         Background = active ? Ui.Hover : Avalonia.Media.Brushes.Transparent
                     });
                 }
-                if (breaks.Contains(unit)) section = null;
-                EndUnit();
             }
         }
         foreach (var tab in TerminalsOutsidePreview(workspace))
         {
             terminals = Section(terminals, "WorkspaceTabsPreviewTerminals", null);
             terminals.Children.Add(PreviewTab(workspace, null, tab, selected: false, boxed: true));
-            if (breaks.Contains(unit)) terminals = null;
-            EndUnit();
         }
-        segments.Add(groups.Children.Count == 0 ? null : groups);
-        return segments;
+        return groups.Children.Count == 0 ? null : groups;
     }
 
     // The terminals of a workspace that its centre tabs do not show: those its view keeps in another region, and
