@@ -44,6 +44,8 @@ internal sealed class ChatList : ScrollViewer
     private double width = 600;
     private string? anchorId;
     private double anchorIntra;
+    private bool reflowed;
+    private double availableHeight;
     private bool programmatic;
     private bool passScheduled;
     private bool followScheduled;
@@ -102,6 +104,9 @@ internal sealed class ChatList : ScrollViewer
 
     internal int StaleFrames { get; private set; }
 
+    /// <summary>Frames that found a row's height wrong and had to settle again: a zoom step or a resize must leave none, or the rows build down the view over several frames.</summary>
+    internal int Corrections { get; private set; }
+
     internal ScrollViewer Scroller => this;
 
     internal double TotalHeight { get { EnsureTops(); return tops[^1]; } }
@@ -137,7 +142,9 @@ internal sealed class ChatList : ScrollViewer
     };
 
     // The line below the viewport's top that names what is being read, after upstream's turn inset: a tenth of the viewport, 48 to 80 pixels.
-    private double Inset => Math.Clamp(ViewportHeight * 0.1, 48, 80);
+    private double Inset => InsetFor(ViewportHeight);
+
+    private static double InsetFor(double viewport) => Math.Clamp(viewport * 0.1, 48, 80);
 
     private double ViewportHeight => base.Viewport.Height > 0 ? base.Viewport.Height : surface.Bounds.Height;
 
@@ -198,16 +205,20 @@ internal sealed class ChatList : ScrollViewer
     }
 
     // The rows in and near the viewport, laid out at the current width before the first frame: their heights are exact, not estimates to be
-    // corrected by a second pass. Twice, since the first corrections move the tops the range is taken from.
+    // corrected by a second pass. The range is where the view is going (the end it follows, or the reading row), not the old offset, which
+    // means another place once a new width has changed the heights above it; it is taken again until the corrections stop moving it.
     private void Prelayout()
     {
         if (rows.Count == 0) return;
         var w = (int)Math.Round(width);
-        for (var round = 0; round < 2; round++)
+        // While the pane changes size the viewport still has its old height; the height the list was just measured with is the new one.
+        var height = Math.Max(ViewportHeight, availableHeight);
+        for (var round = 0; round < 4; round++)
         {
             EnsureTops();
-            var from = Offset.Y - ViewportHeight / 4;
-            var to = Offset.Y + ViewportHeight * 1.25;
+            var top = TargetOffset(height);
+            var from = top - height / 4;
+            var to = top + height * 1.25;
             var changed = false;
             for (var i = Math.Max(0, RowAt(from)); i < rows.Count && tops[i] <= to; i++)
             {
@@ -261,6 +272,53 @@ internal sealed class ChatList : ScrollViewer
         if (index < 0) return;
         anchorId = rows[index].Id;
         anchorIntra = line - tops[index];
+    }
+
+    // The offset the view settles at: the end while following, else the reading row back on the reading band, else where it is.
+    private double TargetOffset(double height)
+    {
+        EnsureTops();
+        if (Stuck) return Math.Max(0, tops[^1] - height);
+        if (anchorId is not null && IndexOfId(anchorId) is var index and >= 0) return Math.Max(0, tops[index] + anchorIntra - InsetFor(height));
+        return Offset.Y;
+    }
+
+    // After a new width the row being read has a new height: the band keeps its place in the row's text, not its distance from the row's top.
+    private void RescaleAnchor(double before)
+    {
+        if (Stuck || anchorId is null || before <= 0) return;
+        var index = IndexOfId(anchorId);
+        if (index < 0) return;
+        anchorIntra = Math.Min(anchorIntra * current[index] / before, current[index]);
+    }
+
+    private double AnchorHeight() => anchorId is not null && IndexOfId(anchorId) is var index and >= 0 ? current[index] : 0;
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (availableSize.Height is > 0 and < double.PositiveInfinity) availableHeight = availableSize.Height;
+        return base.MeasureOverride(availableSize);
+    }
+
+    // A new width (a zoom step, a resize) puts the end or the reading row back in the same layout pass, once the viewport and the extent are
+    // the new ones, so the first frame at the new width already shows the rows where they belong; the pass that follows finds nothing to move.
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+        if (!reflowed) return size;
+        reflowed = false;
+        if (Stuck || anchorId is not null)
+        {
+            var viewport = finalSize.Height - Padding.Top - Padding.Bottom;
+            var target = Math.Clamp(TargetOffset(viewport), 0, Math.Max(0, tops[^1] - viewport));
+            if (Math.Abs(target - Offset.Y) >= 0.5)
+            {
+                programmatic = true;
+                Offset = new Vector(Offset.X, target);
+                Dispatcher.UIThread.Post(() => programmatic = false, DispatcherPriority.Background);
+            }
+        }
+        return size;
     }
 
     private void RestoreAnchor()
@@ -432,7 +490,7 @@ internal sealed class ChatList : ScrollViewer
             }
         }
         Trim(used);
-        if (changed) { topsDirty = true; SchedulePass(); }
+        if (changed) { Corrections++; topsDirty = true; SchedulePass(); }
     }
 
     /// <summary>Lays out rows <paramref name="count"/> from <paramref name="first"/> without drawing them, as scrolling past them would.</summary>
@@ -895,11 +953,14 @@ internal sealed class ChatList : ScrollViewer
             if (Math.Abs(w - owner.width) >= 1)
             {
                 owner.CaptureAnchor();
+                var before = owner.AnchorHeight();
                 owner.width = w;
                 // Layouts are keyed by width, so the old ones simply stop matching and are trimmed after the next draw: nothing is dropped
                 // here, and the rows in view are laid out now, once, so the first frame at the new width already has their true heights.
                 owner.Reset();
                 owner.Prelayout();
+                owner.RescaleAnchor(before);
+                owner.reflowed = true;
                 owner.SchedulePass();
             }
             owner.EnsureTops();

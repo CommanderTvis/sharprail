@@ -34,6 +34,9 @@ internal sealed partial class ChatView
 
     internal string ZoomLabelText => zoomLabel.Text ?? "";
 
+    /// <summary>The view's width in the chat's own units, the width the footer and the list are laid out in.</summary>
+    private double ZoomedWidth => Bounds.Width / zoom;
+
     // The content grid goes inside the transform; the level label floats over it, outside, so showing it moves nothing.
     private void InitZoom()
     {

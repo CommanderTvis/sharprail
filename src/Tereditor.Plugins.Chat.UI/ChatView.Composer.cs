@@ -1308,16 +1308,16 @@ internal sealed partial class ChatView
     /// <summary>Finds the lowest level that fits. A header push only ever raises the level; a wider view, or a smaller footer, tries from the start, but a wider view relaxes only to a level that fits and that failed at least <see cref="RelaxMargin"/> narrower.</summary>
     private void ApplyDensity(bool relax = false)
     {
-        if (applyingDensity || footerPanel is null || Bounds.Width <= 0) return;
+        if (applyingDensity || footerPanel is null || ZoomedWidth <= 0) return;
         applyingDensity = true;
         try
         {
-            var available = Bounds.Width - 24 - 2 * Space.Inset;
-            var wider = !relax && Bounds.Width > densityWidth + 0.5;
+            var available = ZoomedWidth - 24 - 2 * Space.Inset;
+            var wider = !relax && ZoomedWidth > densityWidth + 0.5;
             var from = relax || wider ? 0 : densityLevel;
             var held = densityLevel;
             if (relax) Array.Clear(failedAt);
-            densityWidth = Bounds.Width;
+            densityWidth = ZoomedWidth;
             for (var level = from; level <= LastDensity; level++)
             {
                 SetDensity(level);
@@ -1328,9 +1328,9 @@ internal sealed partial class ChatView
                 var relaxing = wider && level < held;
                 var room = relaxing ? available - RelaxMargin : available;
                 var fits = FooterNeeds() <= room
-                    && (!relaxing || Bounds.Width >= failedAt[level] + RelaxMargin);
+                    && (!relaxing || ZoomedWidth >= failedAt[level] + RelaxMargin);
                 if (fits) break;
-                if (!relaxing && level < LastDensity) failedAt[level] = Math.Max(failedAt[level], Bounds.Width);
+                if (!relaxing && level < LastDensity) failedAt[level] = Math.Max(failedAt[level], ZoomedWidth);
             }
         }
         finally { applyingDensity = false; }

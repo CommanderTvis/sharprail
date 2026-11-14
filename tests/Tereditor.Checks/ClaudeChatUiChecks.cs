@@ -268,6 +268,7 @@ internal static class ClaudeChatUiChecks
         PageZoomSteps();
         ResizeDrag();
         ChatZoom();
+        ChatZoomOnePass();
         BottomPinned();
         QuestionStable();
         PastConversations();
@@ -1799,6 +1800,65 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
     }
 
+    // A chat zoom step reflows the whole visible chat in the layout pass that applies it: no control of the chat is made again, no frame after it
+    // finds a row's height wrong (the rows would build down the view one frame at a time), the view does not move once that pass is done, and the
+    // end (while following) or the row being read stays where it was.
+    private static void ChatZoomOnePass()
+    {
+        var chat = new FakeChat();
+        for (var index = 0; index < 400; index++) chat.Snapshot.Add(Item(Sample(index)));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { ZoomPreference = new MemoryZoomStore() }, Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var list = view.List;
+            var surface = list.Content;
+            var input = view.Input;
+            // The row stubs for assistive technology follow the rows in range; every other control must be the same one after any zoom.
+            var controls = view.GetVisualDescendants().OfType<Control>().Where(control => !ReferenceEquals(control.GetVisualParent(), surface)).ToList();
+            void Step(double zoom, string when)
+            {
+                var corrections = list.Corrections;
+                var stuck = list.Stuck;
+                var reading = stuck ? null : list.ReadingPosition();
+                var passes = list.Passes;
+                view.SetZoom(zoom);
+                // The one layout pass that applies the step; nothing posted runs before the view is checked.
+                window.UpdateLayout();
+                var scroller = list.Scroller;
+                var offset = scroller.Offset.Y;
+                var atEnd = offset >= scroller.Extent.Height - scroller.Viewport.Height - 4;
+                var built = ChatRowLayout.Built;
+                Frame(window); Frame(window); Frame(window);
+                Require(ChatRowLayout.Built - built <= 4, $"{when}: the first layout pass laid out the rows in view; the frames after it laid out {ChatRowLayout.Built - built} more.");
+                Require(list.Passes - passes <= 1, $"{when}: a zoom step costs one settling pass ({list.Passes - passes}).");
+                Require(Math.Abs(list.Bounds.Width * zoom - view.Bounds.Width) < 2, $"{when}: the list reflows at the new zoom ({list.Bounds.Width:0} wide in a {view.Bounds.Width:0} view).");
+                Require(list.Corrections == corrections, $"{when}: no frame after the zoom step found a row's height wrong ({list.Corrections - corrections} corrections).");
+                Require(Math.Abs(scroller.Offset.Y - offset) < 1, $"{when}: the first layout pass already puts the view where it settles ({offset:0.#} then {scroller.Offset.Y:0.#}).");
+                Require(list.Stuck == stuck, $"{when}: following the end stays as it was ({stuck} then {list.Stuck}).");
+                if (stuck) Require(atEnd, $"{when}: a chat that follows the end is at the end in the first layout pass ({offset:0.#} of {scroller.Extent.Height:0.#}).");
+                else
+                {
+                    var now = list.ReadingPosition();
+                    Require(now is not null && now.Value.Id == reading!.Value.Id, $"{when}: the row being read stays the row being read ({reading!.Value.Id} then {now?.Id}).");
+                }
+                Require(ReferenceEquals(list.Content, surface) && ReferenceEquals(view.Input, input) && controls.All(control => TopLevel.GetTopLevel(control) == window),
+                    $"{when}: no control of the chat is made again ({controls.Count(control => TopLevel.GetTopLevel(control) != window)} gone).");
+                Require(list.RealizedRows is > 0 and < 60, $"{when}: only the rows in view are laid out ({list.RealizedRows}).");
+            }
+            foreach (var zoom in new[] { 1.25, 1.5, 0.8, 1.0 }) Step(zoom, $"following, zoom {zoom}");
+            var transcript = list.Scroller;
+            transcript.Offset = new Vector(0, transcript.Extent.Height * 0.5);
+            Frame(window); Frame(window); Frame(window);
+            Require(!list.Stuck, "Scrolling up lets go of the end.");
+            foreach (var zoom in new[] { 0.8, 1.0, 1.25, 1.5, 1.25, 1.0 }) Step(zoom, $"reading, zoom {zoom}");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
     // Zooming the whole page changes the chat's width in steps: the surface and the scroll position survive each one, only the rows in view are
     // laid out again (once, not once per pass), and the reading position does not move.
     private static void PageZoomSteps()
@@ -1823,8 +1883,10 @@ internal static class ClaudeChatUiChecks
             {
                 var before = ChatRowLayout.Built;
                 var passes = view.List.Passes;
+                var corrections = view.List.Corrections;
                 transform.LayoutTransform = new ScaleTransform(factor, factor);
                 Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+                var offset = scroller.Offset.Y;
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using (window.CaptureRenderedFrame()) { }
                 var first = ChatRowLayout.Built - before;
@@ -1832,6 +1894,8 @@ internal static class ClaudeChatUiChecks
                 var settled = ChatRowLayout.Built - before;
                 total += settled;
                 Require(view.List.Passes - passes <= 2, $"A zoom step costs at most two settling passes ({view.List.Passes - passes}, zoom {factor}).");
+                Require(view.List.Corrections == corrections, $"No frame after a page zoom step to {factor} found a row's height wrong ({view.List.Corrections - corrections}).");
+                Require(Math.Abs(scroller.Offset.Y - offset) < 1, $"The layout pass of a page zoom step to {factor} already puts the view where it settles ({offset:0.#} then {scroller.Offset.Y:0.#}).");
                 Require(ReferenceEquals(view.List.Content, content), $"The surface survives a zoom to {factor}.");
                 Require(settled - first <= 4, $"A zoom step settles in one pass: {first} layouts in the first frame, {settled} in all (zoom {factor}).");
                 Require(settled <= 70, $"A zoom step lays out only the rows in view ({settled} layouts, zoom {factor}).");

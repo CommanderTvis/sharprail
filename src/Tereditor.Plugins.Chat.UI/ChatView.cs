@@ -191,8 +191,9 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         Place(requestPanel, 4);
         Place(BuildComposer(), 5);
 
-        // Size changes arrive in steps while the page zooms: the footer is fitted once per frame, not once per step.
-        SizeChanged += (_, _) =>
+        // Size changes arrive in steps while the page or the chat zooms: the footer is fitted once per frame, not once per step. The content,
+        // not the view, changes size when only the chat zooms.
+        content.SizeChanged += (_, _) =>
         {
             if (densityPosted) return;
             densityPosted = true;
