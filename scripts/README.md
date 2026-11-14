@@ -142,7 +142,7 @@ and `windows-native.ps1` are called from them in the middle of a Zig build; `bui
 `build-android.sh`, `build-windows.ps1` and `wasm-native.sh` drive Zig, emscripten or the Android NDK and share those
 libraries; `tailscale-go.sh`, `build-tailscale-android.sh`, `build-tailscale-wasm.sh` and `build-headscale-test.sh`
 drive Go and share the same libraries; `aot-linux-cc.sh` is the C compiler wrapper ILCompiler runs, which must start
-without a .NET host; `headless-cloud-setup.sh` is pasted into a cloud environment before .NET exists. They move together
+without a .NET host; `headless-cloud-setup.sh` is pasted into a cloud environment before .NET exists (it downloads the nightly release's headless archive; `headless-cloud-setup.test.sh` tests it against a local `file://` release). They move together
 when the native toolchain drivers are ported.
 
 ### NuGet packages

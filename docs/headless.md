@@ -85,7 +85,7 @@ Claude Code starts MCP servers in the background, 3 stdio servers at a time, and
 Two rules follow:
 
 - `"alwaysLoad": true` puts the tools into the first prompt instead of leaving the agent to find them (startup waits for the server, capped by `MCP_CONNECT_TIMEOUT_MS`, 5 s by default). It needs a server that starts in that time: the installed binary does, `docker run` with an image pull does not.
-- Do not start the server with `docker run` in a cloud session unless the image is already on the VM. The pull takes many seconds to minutes and counts against the 30 s. Use the setup script from [headless-cloud.md](headless-cloud.md) (a binary, no Docker), or set `MCP_TIMEOUT=300000` in the environment variables of the cloud environment and run `docker pull ghcr.io/commandertvis/tereditor:nightly` in the setup script, so the first start only creates the container.
+- Do not start the server with `docker run` in a cloud session unless the image is already on the VM. The pull takes many seconds to minutes and counts against the 30 s. Use the setup script from [headless-cloud.md](headless-cloud.md) (one archive from the nightly release, no Docker), or set `MCP_TIMEOUT=300000` in the environment variables of the cloud environment and run `docker pull ghcr.io/commandertvis/tereditor:nightly` in the setup script, so the first start only creates the container.
 
 ```json
 {

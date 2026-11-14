@@ -96,6 +96,15 @@ Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, pu
 - Tags: `nightly` (overwritten each run) and `sha-<short>`, as multi-arch lists over `-amd64` and `-arm64` tags. arm64 may be missing.
 - No image is pushed unless `scripts/container-smoke.cs` passes on it.
 
+## Release archive
+
+`.github/workflows/nightly.yml` publishes the same NativeAOT output for `linux-x64` and `linux-arm64` as release assets of the `nightly` prerelease, for `scripts/headless-cloud-setup.sh` and anyone who does not use Docker.
+
+- Assets: `tereditor-headless-nightly-linux-x64.tar.gz` and `tereditor-headless-nightly-linux-arm64.tar.gz`, and `SHA256SUMS` (one line per release asset, `sha256sum` format).
+- Contents: a gzip tar of the publish directory under one folder, `tereditor-headless/`: the files of `/opt/tereditor` in the image, with the same `a+rX` modes, owner root and no `preinstalled/clangd` (the arm64 clangd stage is image-only).
+- Built on a native runner per architecture, with the same publish and the same `packaged-binaries` gate as the image; the job unpacks the archive and runs `languages` and `check-config` from it. It does not gate the release; an architecture that fails is missing and the script says so.
+- The setup script installs the archive into `~/.local/share/tereditor-headless/app` and records its sha256 in `archive.sha256`, so a second run with the same release downloads nothing. `TEREDITOR_HEADLESS_SHA256` pins the hash out of band; a mismatch fails and installs nothing.
+
 ## Plugins and security
 
 This is the third host composition, beside the app's own host and the remote host, and the

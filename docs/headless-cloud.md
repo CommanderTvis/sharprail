@@ -5,10 +5,9 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
 ## Steps
 
 1. On claude.ai/code open **New environment**, tab **Cloud**, and name it.
-2. Set **Network access** to **Custom**, tick **Also include default list of common package managers** and add these domains, one per line. `ghcr.io` and `api.nuget.org` are already in the default list. The others are not.
+2. Set **Network access** to **Custom**, tick **Also include default list of common package managers** and add these domains, one per line. `api.nuget.org` is already in the default list. The others are not.
 
    ```text
-   pkg-containers.githubusercontent.com
    builds.dotnet.microsoft.com
    globalcdn.nuget.org
    github.com
@@ -19,7 +18,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    download-cdn.jetbrains.com
    ```
 
-   `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub (not on linux/arm64, where the image carries it), and the Kotlin server from JetBrains. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
+   `github.com` and the two `githubusercontent.com` hosts serve the setup script's download, a release asset of the repository. The rest are for the runtimes and language servers, which download on the first `lsp_*` call for a language (or in `warm`): the .NET SDK and Roslyn for C#, Bun from GitHub releases and the npm packages for TypeScript, JavaScript, Python, CSS, shell and PHP, clangd from GitHub (not on linux/arm64, where only the Docker image carries it), and the Kotlin server from JetBrains. `ghcr.io` and `pkg-containers.githubusercontent.com` are no longer needed: the script does not use the container image. Drop `pkg-containers.githubusercontent.com` from an older setup; `ghcr.io` is in the default list and can stay. Add only the ones for the languages you use. Without them that language answers `initializing` and never becomes ready. Which languages ship, and which do not, is in [headless.md](headless.md#languages).
 3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. The commit shown contains `scripts/headless-cloud-setup.sh`; use a newer one to get later fixes.
 
    ```bash
@@ -29,15 +28,15 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*` tools of [he
    ```
 
    Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is about 150 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
-   - picks the image layer for the machine's architecture from the manifest on `ghcr.io`, with no Docker and no login,
-   - checks the layer's sha256 against the digest in the manifest,
+   - downloads one archive from the `nightly` release, `tereditor-headless-nightly-linux-x64.tar.gz` or `-arm64.tar.gz` for the machine, with no Docker and no login,
+   - checks the archive's sha256 against the release's `SHA256SUMS` (or against the hash you pin) and stops if it differs, with no fallback to another source,
    - installs the app in `~/.local/share/tereditor-headless` and links `~/.local/bin/tereditor-headless`,
    - installs `libicu74` with `apt-get` if the VM lacks it,
    - runs `warm csharp` if `TEREDITOR_WARM=1` (downloads about 650 MB),
    - writes the usage notes (below) into `~/.claude/CLAUDE.md`,
    - registers the MCP server `tereditor` in Claude Code's user config, and sets `MCP_TIMEOUT` in `~/.claude/settings.json`.
 
-   `TEREDITOR_IMAGE_TAG` picks the image. It is a tag or a `sha256:` digest and defaults to `nightly`. `nightly` moves, so pin a `sha-<commit>` tag or a digest for an experiment.
+   `TEREDITOR_HEADLESS_SHA256` pins the archive. Set it to the sha256 of the archive you checked, and the script installs exactly that file or fails. The `nightly` release is replaced every night and old archives are not kept, so a pin works while that archive is still on the release; keep your own copy and set `TEREDITOR_HEADLESS_URL_BASE` to where it is for an experiment that must run again later. That variable defaults to `https://github.com/CommanderTvis/tereditor/releases/download/nightly` and is also for mirrors. The archive holds the same files as the Docker image (the binary, `plugins`, `shell-integration` and the helper programs) under one folder, `tereditor-headless/`. The Docker image stays for Docker users, see [headless.md](headless.md).
 
    That is the whole setup: paste the script, nothing else. No `.mcp.json` in the repo and no Docker.
 4. The script runs before Claude Code starts, so the session picks up what it writes in the VM's home:
@@ -62,5 +61,5 @@ With `TEREDITOR_LOG=1` the server writes `.tereditor/runs/<session>.jsonl` insid
 
 ## Limits
 
-- The package on ghcr.io must be public. The script uses an anonymous token.
+- The nightly release must be public. The archive is the last night's build, and `SHA256SUMS` lists every file of the release. If the arm64 build failed that night, the release has no arm64 archive and the script says so.
 - LSP on a huge repository may not finish. The first `lsp_*` call may answer `initializing`.
