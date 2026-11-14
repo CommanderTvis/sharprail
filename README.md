@@ -29,7 +29,7 @@ Create a <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> for a 
 <a href="docs/agents.md#worktrees">Docs →</a>
 </td>
 <td width="62%">
-<img src="docs/screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main and a workspace name" width="100%">
+<img src="docs/screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main, a workspace name, the Claude Code command and a box for what to work on" width="100%">
 </td>
 </tr>
 <tr>

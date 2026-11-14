@@ -41,7 +41,7 @@ project folder itself. Agents can create them too.
   locked checkout, and it never removes the Default workspace or another workspace. The branch is kept.
 - Language servers can start in the background for a new workspace, and the result lists their state.
 
-<img src="screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main and a workspace name" width="520">
+<img src="screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main, a workspace name, the Claude Code command and a box for what to work on" width="520">
 
 New workspaces can start with git-ignored paths such as `node_modules` cloned from the Default workspace. List them in
 `.tereditor/workspace.toml` at the project root.
