@@ -62,6 +62,16 @@ Diagrams and option comparisons.<br><br>
 <img src="docs/screenshots/visualize-diagram.png" alt="A diagram of tereditor's layers drawn by Claude Code in the companion pane" width="100%">
 </td>
 </tr>
+<tr>
+<td width="38%" valign="top">
+<b>Language servers for cloud Claude Code</b><br><br>
+Headless tereditor runs inside a cloud session of Claude Code on claude.ai/code. The cloud agent gets the same code tools as an agent on your desktop: go to definition, find references and diagnostics from real language servers, so it does not have to guess with grep. Paste one setup script into a cloud environment. No Docker, no login and no config in your repository.<br><br>
+<a href="docs/headless-cloud.md">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/cloud-environment.png" alt="The cloud environment editor on claude.ai/code, named Tereditor, with a limited network list of 9 domains and a setup script of 136 lines" width="100%">
+</td>
+</tr>
 </table>
 
 ### Agents
