@@ -111,6 +111,7 @@ internal static class TerminalChipChecks
             // A last line with no room left: the gear wraps to a line of its own at the row's start.
             var before = strip.Bounds.Height;
             var wide = Chip(env, "future/wide", "wide");
+            wide.MaxWidth = double.PositiveInfinity; // fact chips cap at 256; this one has to fill the line
             wide.Width = flow.Bounds.Width - 16 - LayoutRoles.ChipGap - gear.Bounds.Width / 2;
             Settle(); window.UpdateLayout(); window.UpdateLayout();
             gearAt = gear.TranslatePoint(new Point(0, 0), flow)!.Value;
