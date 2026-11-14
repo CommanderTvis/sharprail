@@ -151,6 +151,7 @@ internal static class UnifiedChromeChecks
         var listTop = Top(list);
         Require(ReferenceEquals(host.Parent, header) && ReferenceEquals(header.Children[^1], host) && !host.IsVisible,
             "The Host block is the rail header's last block, and a healthy embedded host does not show it.");
+        Require(!app.Find<ContentControl>("ConnectionIcon").Classes.Contains("turning"), "A hidden connection state turns nothing.");
 
         app.Window.Report(new IOException("Host replied: permission denied"));
         Settle();
@@ -173,6 +174,16 @@ internal static class UnifiedChromeChecks
                 !host.GetLogicalDescendants().Any(control => control is Avalonia.Controls.Shapes.Ellipse || control is TextBlock { Text: "●" }),
                 $"The Host block's {mark.Name} is a plain glyph like the branch's, not a coloured dot.");
         Require(ReferenceEquals(status.Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The Host block's Error text carries the problem's colour.");
+        // One glyph per state: the listener's radio tower, unplug for Error, a turning loader while reconnecting.
+        Require(Equals(app.Find<ContentControl>("HostListeningIcon").Tag, "radioTower"), "The Listening mark wears the radio tower.");
+        Require(Equals(dot.Tag, "unplug") && !dot.Classes.Contains("turning"), $"Error wears the unplugged glyph, still ({dot.Tag}).");
+        status.Text = "Reconnecting";
+        Settle();
+        Require(Equals(dot.Tag, "loader") && dot.Classes.Contains("turning") && dot.Content is Border { OpacityMask: not null } loader &&
+            ReferenceEquals(loader.Background, branchGlyph.Background), $"Reconnecting wears the muted loader, turning ({dot.Tag}).");
+        status.Text = "Error";
+        Settle();
+        Require(Equals(dot.Tag, "unplug") && !dot.Classes.Contains("turning"), "The loader stops turning once the state moves on.");
         Require(Top(list) > listTop, "The Host block takes its own row above the project list.");
 
         var connection = app.Find<Button>("ConnectionButton");

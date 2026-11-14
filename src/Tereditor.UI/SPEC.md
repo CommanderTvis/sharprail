@@ -301,12 +301,14 @@ host state: it shows what the window already knows and calls the same methods as
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
   title bar.
 - Every field is a muted caption over a value whose first element is a `LayoutRoles.LocationIconSlot` icon column
-  (project badge, branch and pull-request icons, the Remote block's cloud, never the Processes plugin's node tree, the Host block's status dots; an empty state keeps its icon, muted, beside muted
+  (project badge, branch and pull-request icons, the Remote block's cloud, never the Processes plugin's node tree, the Host block's state glyphs; an empty state keeps its icon, muted, beside muted
   text), so the caption and the value's first element share one left edge in every field.
 - HOST, in the top bar's trailing group and as the rail header's last block, is captioned Host (the Settings section that starts and
-  stops the listener) over the Listening mark and the connection state (Connecting, Error in the danger colour, or a remote
-  host's name), each the muted 14px server glyph in the icon column beside `title.section` text, like the branch and cloud glyphs:
-  no colour dot, the text tells the state. It is hidden, holding no place, while neither shows.
+  stops the listener) over the Listening mark and the connection state (Connecting, Reconnecting, Error in the danger colour, or
+  a remote host's name), each a muted 14px glyph in the icon column beside `title.section` text, like the branch and cloud glyphs:
+  Listening wears a radio tower, a connected host's name a plug, Connecting and Reconnecting the loader turning like the other
+  spinners, and Error an unplugged plug. No colour dot. It is hidden, holding no place, while neither shows, and a hidden loader
+  does not turn. Settings' Host section keeps its plain Listening at / Not listening text.
 - `LocationStrip` lays the segments out. As width shrinks the provider items yield first, then the branch; a
   segment that would fall under 72px is dropped whole, and the project keeps what is left.
 

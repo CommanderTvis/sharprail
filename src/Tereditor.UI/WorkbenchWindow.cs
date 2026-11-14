@@ -108,9 +108,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
-        // The Host block's marks wear the same plain glyph as the other fields; their text tells the state.
-        statusIcon.Content = Ui.Icon("server", Ui.Muted, 14);
-        this.FindControl<ContentControl>("HostListeningIcon")!.Content = Ui.Icon("server", Ui.Muted, 14);
+        // The Host block's marks wear muted glyphs like the other fields, one per state; the Tag names the glyph for checks.
+        var listeningIcon = this.FindControl<ContentControl>("HostListeningIcon")!;
+        listeningIcon.Content = Ui.Icon("radioTower", Ui.Muted, 14);
+        listeningIcon.Tag = "radioTower";
+        status.PropertyChanged += (_, e) => { if (e.Property == TextBlock.TextProperty || e.Property == IsVisibleProperty) ShowConnectionIcon(); };
+        ShowConnectionIcon();
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout, unified);
@@ -834,6 +837,21 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         ToolTip.SetTip(status, problem);
         ToolTip.SetTip(statusIcon, problem);
         statusIcon.IsVisible = status.IsVisible = true;
+    }
+
+    /// <summary>
+    /// The connection state's glyph follows its text: unplug for Error, a turning loader while Connecting or Reconnecting, and
+    /// plug once connected (a remote host's name). The loader turns only while it shows.
+    /// </summary>
+    private void ShowConnectionIcon()
+    {
+        var icon = status.Text switch { "Error" => "unplug", "Connecting" or "Reconnecting" => "loader", _ => "plug" };
+        if (!Equals(statusIcon.Tag, icon))
+        {
+            statusIcon.Content = Ui.Icon(icon, Ui.Muted, 14);
+            statusIcon.Tag = icon;
+        }
+        statusIcon.Classes.Set("turning", icon == "loader" && status.IsVisible);
     }
 
     /// <summary>The header's Error never outlives the message it stands for.</summary>

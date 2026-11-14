@@ -6,4 +6,6 @@ The SVG glyphs use the original 24×24 paths from [`@remixicon/react` 4.9.0](htt
 
 These monochrome SVGs contain only filled paths in a 24×24 viewbox. `Ui.Icon` retains that full box and fills the parsed paths with a vector opacity mask, so its `Border.Background` controls tint at the final render scale. New assets must preserve this format or extend the parser explicitly; no bitmap conversion is used.
 
+`radioTower.svg`, `plug.svg` and `unplug.svg` are the Host block's state marks: Lucide's `radio-tower`, `plug` and `unplug` from [`lucide-static` 0.460.0](https://unpkg.com/lucide-static@0.460.0/icons/), under the [ISC License](../../../../licenses/Lucide-ISC.txt). Lucide draws 2px round strokes, so each was turned into filled outlines with `uvx picosvg <icon>.svg` (strokes and circles become nonzero-filled paths) and only its `<path d>` values were kept in this file format. They are not Remix glyphs, so `sources.json` has no entry for them.
+
 `chrome.svg` is the `googlechrome` mark from [Simple Icons](https://simpleicons.org/) (CC0 1.0), one 24×24 path, used by the Claude Code terminal's Chrome chip. It is not a Remix glyph, so `sources.json` has no entry for it.

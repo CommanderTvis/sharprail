@@ -32,7 +32,8 @@ Agent Client Protocol logomark
 
 Icon sets
   The Remix Icon SVGs in src/Tereditor.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0
-  (licenses/RemixIcon.txt). Do not extract them as a standalone icon set.
+  (licenses/RemixIcon.txt). Do not extract them as a standalone icon set. The radioTower, plug and unplug
+  SVGs there are Lucide icons under the ISC License (licenses/Lucide-ISC.txt).
 
 JetBrains software
   Air Context, Air Gateway (the central CLI) and the IntelliJ language server are separate JetBrains

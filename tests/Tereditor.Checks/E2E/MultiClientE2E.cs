@@ -222,10 +222,13 @@ internal static class MultiClientE2E
         Until(() => Status(reloaded) == "Error");
         Require(ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } problem && problem == reloaded.Find<TextBlock>("WorkspaceError").Text
             && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionStatus").Foreground, Tereditor.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover in the danger colour.");
+        Require(Equals(reloaded.Find<ContentControl>("ConnectionIcon").Tag, "unplug"), "A failed client wears the unplugged glyph.");
         Require(!reloaded.Window.WorkspaceMounted && new ProfileStore(profile).Data.Windows[0].LastProject == workspace,
             "A failed restore read must keep the remembered workspace.");
         proxy.Allow();
         Until(() => Active(reloaded, workspace) && Status(reloaded) == "Remote");
+        Require(reloaded.Find<ContentControl>("ConnectionIcon") is { Tag: "plug" } connected && !connected.Classes.Contains("turning"),
+            "A connected client wears the plug glyph.");
         Until(() => WorktreePaths(reloaded).Contains(workspace));
         Require(new ProfileStore(profile).Data.Windows[0].LastProject == workspace, "The restored window keeps its location.");
         Console.WriteLine("PASS upstream reload-navigation.spec.ts: a transient workspace read failure preserves the URL and restores after reconnect");

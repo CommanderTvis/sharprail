@@ -90,6 +90,8 @@ Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's
 apps/web/public/custom-icons/file-diff-line.svg (Apache-2.0).
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
 Branch Graph's bundled commit and code-file SVG menu glyphs use the same 4.9.0 release and license.
+The Host block's radio-tower, plug and unplug glyphs are Lucide 0.460.0 icons (lucide-static, ISC; Copyright Lucide
+Contributors, portions Cole Bemis as part of Feather), converted from strokes to filled paths. See licenses/Lucide-ISC.txt.
 
 Geist Regular, Medium, SemiBold and Bold came from the reference's bundled assets.
 Geist Book uses the reference native prototype's weight-370 NativeText face;

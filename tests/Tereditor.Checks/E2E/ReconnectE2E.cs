@@ -95,6 +95,10 @@ internal static class ReconnectE2E
                 Until(() => state.Connection.Status == HostConnectionStatus.Disconnected);
                 Require(state.Generation == generation - 1, "Losing the host does not start a generation.");
                 Require(!state.Supports(HostProtocol.ChangeWritePath), "No feature is assumed of a host that has not answered.");
+                Until(() => app.Find<TextBlock>("ConnectionStatus").Text is "Error" or "Reconnecting");
+                var dropped = app.Find<ContentControl>("ConnectionIcon");
+                Require(app.Find<TextBlock>("ConnectionStatus").Text == "Error" ? Equals(dropped.Tag, "unplug") : Equals(dropped.Tag, "loader") && dropped.Classes.Contains("turning"),
+                    $"A dropped connection wears unplug for Error or the turning loader while reconnecting ({dropped.Tag}).");
                 File.WriteAllText(Path.Combine(project, $"offline-{generation}.txt"), "written while disconnected\n");
                 Settle(600);
                 proxy.Allow();
@@ -107,7 +111,8 @@ internal static class ReconnectE2E
             Require(changes.Where(change => change is (HostConnectionStatus.Connected, > 1)).Select(change => change.Item2).SequenceEqual([2, 3]) &&
                 changes.Count(change => change.Item1 == HostConnectionStatus.Disconnected) == 2,
                 "The connection reports each transition once: " + string.Join(", ", changes));
-            Require(app.Find<TextBlock>("ConnectionStatus").Text == "Remote", "The window shows the restored connection.");
+            Require(app.Find<TextBlock>("ConnectionStatus").Text == "Remote" && app.Find<ContentControl>("ConnectionIcon") is { Tag: "plug" } plug &&
+                !plug.Classes.Contains("turning"), "The window shows the restored connection with the plug glyph.");
         }
         finally { Task.Run(() => server.StopAsync()).GetAwaiter().GetResult(); }
         Console.WriteLine("PASS a remote window re-reads its workspace and watches again under each new connection generation");

@@ -217,6 +217,8 @@ public sealed partial class WorkbenchWindow
             if (remote && (status.Text == workbench.HostLabel || status.Text == "Connected")) status.Text = "Reconnecting";
             return;
         }
+        // Back to the host's name even when nothing below re-reads (Project Home), so the loader stops turning.
+        if (status.Text == "Reconnecting") ShowReady();
         var generation = state.Generation;
         if (restorePending) _ = StartAsync();
         else if (generation != hydratedGeneration && WorkspaceMounted)

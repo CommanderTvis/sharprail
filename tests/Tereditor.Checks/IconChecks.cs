@@ -29,7 +29,7 @@ internal static class IconChecks
     {
         var root = new Uri("avares://Tereditor.Plugins.UI.Kit/Assets/Icons/");
         var assets = AssetLoader.GetAssets(root, null).Where(uri => uri.AbsolutePath.EndsWith(".svg", StringComparison.Ordinal)).ToArray();
-        Require(assets.Length == 81, "Every existing glyph alias plus Host's server, the terminal bell, the git Remote block's cloud and the Chrome mark must have a vector asset.");
+        Require(assets.Length == 84, "Every existing glyph alias plus Host's server, the terminal bell, the git Remote block's cloud, the Chrome mark and the Host block's Lucide radio tower, plug and unplug must have a vector asset.");
         foreach (var uri in assets)
         {
             var name = Path.GetFileNameWithoutExtension(uri.AbsolutePath);
@@ -38,7 +38,7 @@ internal static class IconChecks
             Require(ReferenceEquals(icon.OpacityMask, ((Border)Ui.Icon(name, Brushes.Blue, 31)).OpacityMask), name + " caches size or tint variants instead of shared geometry.");
         }
         Require(((Border)Ui.Icon("brand")).Background is ImageBrush, "The brand icon is shown in its own colours.");
-        foreach (var name in new[] { "discuss", "gitBranch", "server", "fileDiff", "alertImportant" })
+        foreach (var name in new[] { "discuss", "gitBranch", "server", "fileDiff", "alertImportant", "radioTower", "unplug" })
             foreach (var size in new[] { 15.5, 22.25 })
                 foreach (var scale in new[] { 1d, 2, 3 })
                     CompareOriginal(name, size, scale);
