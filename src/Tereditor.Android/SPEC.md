@@ -93,8 +93,14 @@ Contract:
   drops the caption from its top padding, and the header takes its row: never shorter than the caption, and clear
   of the system's controls by their bounding rects (`WindowInsets.getBoundingRects(captionBar())`, relative to the
   window frame): a rect left of the centre line reserves room at the left (the app chip), one right of it at the
-  right (minimize, maximize, close). A rect across the centre line leaves no room, and no rects at all leave the controls' place unknown, so in
-  either case the caption stays as before.
+  right (minimize, maximize, close); with several rects on a side the outermost edge counts. When the system
+  reports a caption height but no rects, the header still draws into the caption and reserves 140 dp at the left and
+  180 dp at the right (each at most 40% of the width), a wide guess for the chip and the buttons. Only a rect across
+  the centre line, or no caption at all, keeps the header below it. The window turns the caption transparent as soon
+  as the header draws into it, makes the activity's window edge-to-edge, and asks for the insets again after a
+  layout when its shell changed since they arrived. One log line (tag `tereditor`, starting `Caption:`) records, on
+  each change, the API level, caption height, raw rects, frame, density, the branch taken and the result. There is no
+  About page on Android to show it in.
   `APPEARANCE_LIGHT_CAPTION_BARS` follows the header's colour (set on a light header, cleared on a dark one) and
   follows theme changes, so the system's buttons stay readable. The system keeps the caption's touches and drags
   the window from them, so the header's buttons and text boxes claim theirs, cut to the caption's height, with

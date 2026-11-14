@@ -48,6 +48,11 @@ internal sealed class AndroidWindow : IWindowImpl
     private Screens? screens;
     private Size requested;
     private bool shown, hasSurface, rendering, disposed;
+    // The caption's last insets and its reading, so a layout can notice the header's side of it changed and ask again.
+    private WindowInsetsCompat? lastInsets;
+    private (int Left, int Right) lastSides;
+    private bool captionLight;
+    private string? lastDiagnostics;
 
     public AndroidWindow(AndroidWindows windows, AvaloniaActivity activity)
     {
@@ -161,6 +166,8 @@ internal sealed class AndroidWindow : IWindowImpl
         {
             // The view fills the activity, replacing whichever window did before, inside the system bars and keyboard.
             if (topLevel?.Content is Control content) content.SetValue(TopLevel.AutoSafeAreaPaddingProperty, false);
+            // Content reaches under the caption bar only when the window is edge-to-edge; targeting API 35 forces that.
+            if (OperatingSystem.IsAndroidVersionAtLeast(35) && activity.Window is { } activityWindow) WindowCompat.SetDecorFitsSystemWindows(activityWindow, false);
             frame = new InsetFrame(activity, this);
             frame.AddView(view);
             activity.SetContentView(frame);
@@ -322,12 +329,15 @@ internal sealed class AndroidWindow : IWindowImpl
     private bool DrawIntoCaption(WindowInsetsCompat insets, int left, int right)
     {
         var workbench = topLevel as WorkbenchWindow;
+        (lastInsets, lastSides) = (insets, (left, right));
         var caption = OperatingSystem.IsAndroidVersionAtLeast(35) && workbench is { DrawsIntoCaption: true } ? Caption(insets, left, right) : null;
         // The caption's appearance is the activity's, so a window that does not draw into it clears what one before it set.
         if (caption is null) windows.CaptionAppearance(transparent: false, light: false);
         if (workbench is null || caption is null && workbench.Caption is null) return caption is not null;
         workbench.CaptionClaimed = caption is null ? null : Claim;
-        workbench.CaptionLight = caption is null ? null : light => windows.CaptionAppearance(transparent: true, light);
+        workbench.CaptionLight = caption is null ? null : light => windows.CaptionAppearance(transparent: true, captionLight = light);
+        // The transparent background is asked for as soon as the header draws into the caption, not when its colour is first read.
+        if (caption is not null) windows.CaptionAppearance(transparent: true, captionLight);
         workbench.Caption = caption;
         if (caption is null) Claim([]);
         return caption is not null;
@@ -344,9 +354,33 @@ internal sealed class AndroidWindow : IWindowImpl
         if (insets.ToWindowInsets() is not { } platform) return null;
         var type = WindowInsets.Type.CaptionBar();
         var height = platform.GetInsets(type)!.Top;
-        if (height <= 0) return null;
-        var controls = platform.GetBoundingRects(type)!.Select(rect => (rect!.Left - left, rect.Right - left));
-        return CaptionBar.FromPixels(height, platform.Frame!.Width - left - right, controls, RenderScaling);
+        var raw = platform.GetBoundingRects(type)!.Where(rect => rect is not null).ToList();
+        var controls = raw.Select(rect => (rect!.Left - left, rect.Right - left)).ToList();
+        var width = platform.Frame!.Width - left - right;
+        var bar = CaptionBar.FromPixels(height, width, controls, RenderScaling, out var branch);
+        // One line per change, so the next report from a device shows what the system told the window.
+        var sdk = (int)global::Android.OS.Build.VERSION.SdkInt;
+        var line = $"Caption: api {sdk}, caption inset {height}px, rects [{string.Join(' ', raw.Select(rect => $"{rect!.Left},{rect.Top},{rect.Right},{rect.Bottom}"))}], "
+            + $"frame {platform.Frame.Width}x{platform.Frame.Height}px, side insets {left}/{right}px, density {RenderScaling:0.##}, "
+            + $"{branch}, {(bar is { } b ? $"header in the caption {b.Height:0.#} dp tall, {b.Left:0.#} dp left, {b.Right:0.#} dp right" : "header below the caption")}";
+        if (line != lastDiagnostics)
+        {
+            lastDiagnostics = line;
+            global::Android.Util.Log.Info("tereditor", line);
+        }
+        return bar;
+    }
+
+    /// <summary>
+    /// Asks the system for the insets again when the window's own state no longer matches what the last ones gave: the
+    /// shell may be set up only after they first arrived, and the system resends them only when they change.
+    /// </summary>
+    private void RecheckCaption()
+    {
+        if (frame is null || lastInsets is null || !OperatingSystem.IsAndroidVersionAtLeast(35)) return;
+        var workbench = topLevel as WorkbenchWindow;
+        var wanted = workbench is { DrawsIntoCaption: true } ? Caption(lastInsets, lastSides.Left, lastSides.Right) : null;
+        if (wanted != workbench?.Caption && (wanted is not null || workbench?.Caption is not null)) ViewCompat.RequestApplyInsets(frame);
     }
 
     /// <summary>
@@ -446,6 +480,6 @@ internal sealed class AndroidWindow : IWindowImpl
 
     private sealed class LayoutListener(AndroidWindow window) : Java.Lang.Object, ViewTreeObserver.IOnGlobalLayoutListener
     {
-        public void OnGlobalLayout() => window.Fit();
+        public void OnGlobalLayout() { window.Fit(); window.RecheckCaption(); }
     }
 }

@@ -495,7 +495,14 @@ internal static class ShellChecks
         // shorter than the caption, and only its buttons take the caption's touches, so its blank space still drags the window.
         Require(CaptionBar.FromPixels(0, 2560, [(2200, 2560)], 2) is null, "Without a caption bar the header stays as it is.");
         Require(CaptionBar.FromPixels(96, 2560, [(0, 2560)], 2) is null, "A caption whose controls leave no room keeps the header below it.");
-        Require(CaptionBar.FromPixels(96, 2560, [], 2) is null, "A caption that does not say where its controls are keeps the header below it.");
+        Require(CaptionBar.FromPixels(96, 2560, [(1000, 1600)], 2) is null, "Controls across the centre line keep the header below the caption.");
+        Require(CaptionBar.FromPixels(96, 2560, [(0, 200), (1200, 1400)], 2) is null, "Any control across the centre line keeps the header below the caption.");
+        Require(CaptionBar.FromPixels(96, 2560, [], 2) == new CaptionBar(48, CaptionBar.AssumedLeft, CaptionBar.AssumedRight),
+            "A caption that does not say where its controls are is drawn into with the usual room reserved at both sides.");
+        Require(CaptionBar.FromPixels(96, 400, [], 2) == new CaptionBar(48, 80, 80), "The assumed room never takes more than 40% of a narrow window per side.");
+        Require(CaptionBar.FromPixels(96, 2560, [(0, 100), (100, 200), (2000, 2100), (2100, 2560)], 2) == new CaptionBar(48, 100, 280),
+            "With several controls on a side the outermost edge decides.");
+        Require(CaptionBar.FromPixels(96, 2560, [(2200, 2560)], 2) == new CaptionBar(48, 0, 180), "Controls on one side only reserve nothing at the other.");
         var caption = CaptionBar.FromPixels(96, 2560, [(0, 200), (2200, 2380), (2380, 2560)], 2);
         Require(caption == new CaptionBar(48, 100, 180), "The caption's controls reserve their room at the side they sit on, in dp.");
         IReadOnlyList<Rect>? captionParts = null;

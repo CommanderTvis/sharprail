@@ -12,26 +12,46 @@ namespace Tereditor.UI;
 public readonly record struct CaptionBar(double Height, double Left, double Right)
 {
     /// <summary>
+    /// The room the system reserves at the left of a caption whose controls are not reported, in dp: the app chip
+    /// (icon, name and menu arrow). A guess that errs wide, so the header never sits under a control.
+    /// </summary>
+    public const double AssumedLeft = 140;
+
+    /// <summary>
+    /// The room reserved at the right of a caption whose controls are not reported, in dp: its small icons and the
+    /// minimize, maximize and close buttons, 40 dp each in the system's own caption. As small as is safe: the room is the header's own width.
+    /// </summary>
+    public const double AssumedRight = 180;
+
+    /// <summary>
     /// The caption bar from its height and its controls' bounding rects (left and right edges), in px across a window
     /// <paramref name="width"/> px wide, at <paramref name="scaling"/> px per dp. A control left of the centre line
-    /// reserves room at the left, one right of it at the right. Null when there is no caption, when it reports no
-    /// controls (their place is unknown), or when a rect crosses the centre line: that is a caption with no room to
-    /// draw into, so the header stays below it.
+    /// reserves room at the left, one right of it at the right; the outermost edge of each side counts. Null when there
+    /// is no caption, or when a rect crosses the centre line: that is a caption with no room to draw into, so the
+    /// header stays below it. A caption that reports no controls draws into with <see cref="AssumedLeft"/> and
+    /// <see cref="AssumedRight"/> reserved, each at most 40% of the width.
     /// </summary>
-    public static CaptionBar? FromPixels(int height, int width, IEnumerable<(int Left, int Right)> controls, double scaling)
+    public static CaptionBar? FromPixels(int height, int width, IEnumerable<(int Left, int Right)> controls, double scaling) =>
+        FromPixels(height, width, controls, scaling, out _);
+
+    /// <summary>As the overload without it, and says which reading was taken in <paramref name="branch"/>, for the diagnostics line.</summary>
+    public static CaptionBar? FromPixels(int height, int width, IEnumerable<(int Left, int Right)> controls, double scaling, out string branch)
     {
-        if (height <= 0 || width <= 0 || scaling <= 0) return null;
+        if (height <= 0 || width <= 0 || scaling <= 0) { branch = "no caption"; return null; }
         double centre = width / 2.0, left = 0, right = 0;
         var any = false;
         foreach (var (start, end) in controls)
         {
             if (end <= start) continue;
             any = true;
-            if (start < centre && end > centre) return null;
+            if (start < centre && end > centre) { branch = "controls cross the centre, header below"; return null; }
             if (end <= centre) left = Math.Max(left, end);
             else right = Math.Max(right, width - start);
         }
-        return any ? new(height / scaling, left / scaling, right / scaling) : null;
+        if (any) { branch = "measured controls"; return new(height / scaling, left / scaling, right / scaling); }
+        branch = "no control rects, assumed controls";
+        var cap = width / scaling * 0.4;
+        return new(height / scaling, Math.Min(AssumedLeft, cap), Math.Min(AssumedRight, cap));
     }
 
     /// <summary>
