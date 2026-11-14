@@ -47,11 +47,12 @@ internal static class RailGroupingE2E
 
         TurnOnGrouping(app);
         Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, child, chatChild]));
-        Require(Item(app, child).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Item(app, orphan).Margin.Left == Item(app, creatorWorkspace).Margin.Left &&
-            Named<Border>(Item(app, child), "WorkspaceNestGuide").IsEffectivelyVisible && !Named<Border>(Item(app, orphan), "WorkspaceNestGuide").IsVisible,
+        // A nested row sits in its creator tab's slot, so its own margin is relative to that slot: compare where the rows show.
+        Until(() => Left(app, child) > Left(app, creatorWorkspace) + 0.5 && Math.Abs(Left(app, orphan) - Left(app, creatorWorkspace)) <= 0.5 &&
+            Left(app, chatChild) > Left(app, creatorWorkspace) + 0.5);
+        Require(Named<Border>(Item(app, child), "WorkspaceNestGuide").IsEffectivelyVisible && !Named<Border>(Item(app, orphan), "WorkspaceNestGuide").IsVisible,
             "On, the created workspace sits indented under its creator's workspace; one whose creator tab is gone stays flat.");
-        Require(Item(app, chatChild).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Named<Border>(Item(app, chatChild), "WorkspaceNestGuide").IsEffectivelyVisible,
-            "A workspace made by a chat tab nests under its creator too.");
+        Require(Named<Border>(Item(app, chatChild), "WorkspaceNestGuide").IsEffectivelyVisible, "A workspace made by a chat tab nests under its creator too.");
         // The created workspace sits directly under the tab that made it, not below the creator's whole tab block.
         string[] Sequence() => Controls(app).Where(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceItem" && (string?)control.Tag is { } path && (path == child || path == chatChild || path == creatorWorkspace) ||
             control.Name == "WorkspaceTabPreview" && (string?)control.Tag is { } tab && (tab == terminal || tab == "plugin:claude:chat-1")))
@@ -77,7 +78,7 @@ internal static class RailGroupingE2E
         // Two workspaces from one tab share one unbroken line from the tab's icon, whichever workspace is open.
         var second = CreateWorkspaceViaDialog(app);
         app.State.RecordWorkspaceCreator(second, new TerminalRef(creatorWorkspace, terminal));
-        Until(() => app.State.Current.WorkspaceCreators.Count == 4 && Item(app, second).Margin.Left > Item(app, creatorWorkspace).Margin.Left);
+        Until(() => app.State.Current.WorkspaceCreators.Count == 4 && Left(app, second) > Left(app, creatorWorkspace) + 0.5);
         foreach (var open in new[] { creatorWorkspace, project })
         {
             app.Click(Select(app, open));
@@ -100,7 +101,7 @@ internal static class RailGroupingE2E
         var last = CreateWorkspaceViaDialog(app);
         app.State.RecordWorkspaceCreator(first, new TerminalRef(project, orchestrator));
         app.State.RecordWorkspaceCreator(last, new TerminalRef(project, orchestrator));
-        Until(() => app.State.Current.WorkspaceCreators.Count == 6 && Item(app, last).Margin.Left > Item(app, project).Margin.Left);
+        Until(() => app.State.Current.WorkspaceCreators.Count == 6 && Left(app, last) > Left(app, project) + 0.5);
         SteadyColumns(app, project, orchestrator, [first, last], orphan);
         Console.WriteLine("PASS rail grouping: selecting a terminal or a workspace moves no row, icon, title or guide line");
         OverflowColumns(app, project, orchestrator, [first, last]);
@@ -164,12 +165,15 @@ internal static class RailGroupingE2E
             // More rows than a short window holds once a workspace's tab rows open under it.
             for (var extra = 0; extra < 4; extra++) CreateWorkspaceViaDialog(unified);
             foreach (var path in made) unified.State!.RecordWorkspaceCreator(path, new TerminalRef(home, creator));
-            Until(() => unified.State!.Current.WorkspaceCreators.Count == 2 && Item(unified, made[1]).Margin.Left > Item(unified, home).Margin.Left);
+            Until(() => unified.State!.Current.WorkspaceCreators.Count == 2 && Left(unified, made[1]) > Left(unified, home) + 0.5);
             OverflowColumns(unified, home, creator, made);
         }
         finally { UnifiedChrome.Override = false; }
         Console.WriteLine("PASS rail grouping: the unified rail keeps its columns when it overflows or scrolls");
     }
+
+    /// <summary>Where a workspace's rail row starts in the window.</summary>
+    private static double Left(E2eWorkspace app, string path) => (Item(app, path).TranslatePoint(default, app.Window) ?? default).X;
 
     /// <summary>Turns on "Group workspaces under the terminal or chat that created them" in Settings, as a user does.</summary>
     private static void TurnOnGrouping(E2eWorkspace app)

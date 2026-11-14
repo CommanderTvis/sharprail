@@ -21,7 +21,10 @@ internal static class RailEdgePillE2E
         for (var index = 0; index < 8; index++) made.Add(CreateWorkspaceViaDialog(app));
         var scroller = Controls(app).OfType<ScrollViewer>().Single(item => item.Content is StackPanel { Name: "ProjectsTree" });
         var tree = (StackPanel)scroller.Content!;
-        scroller.MaxHeight = 110;
+        // The pill shares the scroller's cell in the Projects panel, so the panel is cut short, not the scroller: a capped scroller
+        // would sit centred in a taller cell while the pill keeps to the cell's edges.
+        var panel = Controls(app).First(control => control.Name == "ProjectsPanel");
+        panel.MaxHeight = panel.Bounds.Height - scroller.Bounds.Height + 110;
         Until(() => scroller.Extent.Height > scroller.Viewport.Height + 200);
 
         // The newest workspace is listed first, so an older one has rows above and below it.
@@ -70,7 +73,7 @@ internal static class RailEdgePillE2E
         Until(() => pill.IsEffectivelyVisible && !pill.Classes.Contains("above") && pill.VerticalAlignment == VerticalAlignment.Bottom && PillText() == Focused().Name);
         Require(Shown(row) < 0.5, $"The focused row is below the fold: {Shown(row):0.##} of it shows.");
         Require(Math.Abs((pill.TranslatePoint(new Point(0, pill.Bounds.Height), scroller) ?? default).Y - scroller.Viewport.Height) <= 8,
-            "The bottom pill sits at the rail's bottom edge.");
+            $"The bottom pill sits at the rail's bottom edge.: pill {pill.Bounds} in a cell shared with the rail {scroller.Bounds}, viewport {scroller.Viewport}.");
         Require(Named<ContentControl>(pill, "RailEdgePillChevron").RenderTransform is null, "The bottom pill's chevron points down.");
         Require(Equals(ToolTip.GetTip(pill), PillText()), "The pill's tooltip carries the full name.");
         var withPill = Geometry();
