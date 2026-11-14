@@ -894,12 +894,20 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// A failure that is <paramref name="retrying"/> turns the header's loader (Connecting until the host first answered, then
     /// Reconnecting) with the cause on hover; any other shows Error in the danger colour with the unplugged glyph.
     /// </summary>
+    private bool finalError;
+
     private void ShowFailure(Exception error, bool retrying)
     {
         var problem = workbench.RedactError(error.Message);
         Console.Error.WriteLine(error);
-        if (!retrying) { errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem); return; }
-        // The lost host supersedes the error line: what failed while it went away is read again once it returns.
+        if (!retrying)
+        {
+            errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem);
+            finalError = !RemoteErrors.IsTransport(error) || RemoteErrors.IsUnauthenticated(error);
+            return;
+        }
+        // An Error that a reconnect cannot fix stays; a transport one is superseded by the lost host, and is read again once it returns.
+        if (finalError && status.Text == "Error") return;
         errorText.IsVisible = false;
         SetStatus(state.Generation > 0 ? "Reconnecting" : "Connecting");
         ToolTip.SetTip(status, problem);

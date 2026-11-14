@@ -134,6 +134,14 @@ internal static class ReconnectE2E
                 "The connection reports each transition once: " + string.Join(", ", changes));
             Require(app.Find<TextBlock>("ConnectionStatus").Text == "Remote" && app.Find<ContentControl>("ConnectionIcon") is { Tag: "plug" } plug &&
                 !plug.Classes.Contains("turning"), "The window shows the restored connection with the plug glyph.");
+
+            // An Error that is not about the connection outlives the retries that follow it.
+            proxy.Cut();
+            Until(() => app.Find<TextBlock>("ConnectionStatus").Text == "Reconnecting");
+            app.Window.Report(new IOException("Workspace settings could not be saved: disk full"));
+            Settle(600);
+            Require(app.Find<TextBlock>("ConnectionStatus").Text == "Error" && Equals(app.Find<ContentControl>("ConnectionIcon").Tag, "unplug") &&
+                app.Find<TextBlock>("WorkspaceError").IsVisible, "A failure that is not about the connection stays an Error while the host is retried.");
         }
         finally { Task.Run(() => server.StopAsync()).GetAwaiter().GetResult(); }
         Console.WriteLine("PASS a remote window re-reads its workspace and watches again under each new connection generation");
