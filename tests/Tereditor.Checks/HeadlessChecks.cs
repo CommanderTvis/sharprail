@@ -29,6 +29,7 @@ internal static partial class HeadlessChecks
         Languages();
         await Consent(fixture);
         CloudSetup();
+        NightlyAssets();
         var root = Path.Combine(fixture, "headless");
         var workspace = Path.Combine(root, "workspace");
         var state = Path.Combine(root, "state");
@@ -70,6 +71,30 @@ internal static partial class HeadlessChecks
         if (errors.Contains("jq: command not found", StringComparison.Ordinal)) { Console.WriteLine("SKIP headless cloud setup: jq is not installed"); return; }
         Require(process.ExitCode == 0, "The cloud setup script test failed:\n" + output + errors);
         Console.Write(output);
+    }
+
+    /// <summary>
+    /// The nightly release job keeps the headless archives and the checksum file: it deletes every release asset it does not list, so each name must be in its asset
+    /// list, the job must wait for the headless build, and the setup script must ask for the names the workflow publishes.
+    /// </summary>
+    private static void NightlyAssets()
+    {
+        if (BoundaryChecks.Checkout() is not { } checkout) { Console.WriteLine("SKIP headless nightly assets: no source checkout"); return; }
+        var workflow = File.ReadAllText(Path.Combine(checkout, ".github", "workflows", "nightly.yml"));
+        var release = workflow[workflow.IndexOf("\n  release:", StringComparison.Ordinal)..];
+        var script = File.ReadAllText(Path.Combine(checkout, "scripts", "headless-cloud-setup.sh"));
+        foreach (var arch in new[] { "x64", "arm64" })
+        {
+            var archive = $"tereditor-headless-nightly-linux-{arch}.tar.gz";
+            Require(release.Contains($"tereditor-headless-linux-{arch}.tar.gz:{archive}", StringComparison.Ordinal), $"The nightly release job does not rename and list {archive}.");
+            Require(workflow.Contains($"path: artifacts/tereditor-headless-linux-{arch}.tar.gz", StringComparison.Ordinal) || workflow.Contains("path: artifacts/tereditor-headless-${{ matrix.rid }}.tar.gz", StringComparison.Ordinal), "The nightly headless job uploads no archive.");
+        }
+        Require(workflow.Contains("rid: linux-x64", StringComparison.Ordinal) && workflow.Contains("rid: linux-arm64", StringComparison.Ordinal), "The nightly headless job does not build both architectures.");
+        Require(release.Contains("assets=\"$assets SHA256SUMS\"", StringComparison.Ordinal) && release.Contains("sha256sum $assets > SHA256SUMS", StringComparison.Ordinal), "The nightly release job does not compute and list SHA256SUMS.");
+        Require(Regex.IsMatch(release, @"needs: \[[^\]]*\bheadless\b[^\]]*\]"), "The nightly release job does not wait for the headless job.");
+        Require(Regex.IsMatch(release, @"\n    if: .*needs\.appimage\.result == 'success' \}\}\s*\n") && !release.Contains("needs.headless.result", StringComparison.Ordinal), "The headless archives must not gate the release.");
+        Require(script.Contains("tereditor-headless-nightly-linux-$arch.tar.gz", StringComparison.Ordinal) && script.Contains("arch=x64", StringComparison.Ordinal) && script.Contains("arch=arm64", StringComparison.Ordinal), "The setup script asks for other archive names than the nightly release publishes.");
+        Console.WriteLine("PASS headless nightly assets: the release job lists both headless archives and SHA256SUMS, waits for the headless job without being gated by it, and the setup script uses the same names");
     }
 
     /// <summary>The restore graph, transitive packages and projects included, holds no UI, Skia or web server package.</summary>

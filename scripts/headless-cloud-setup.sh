@@ -1,12 +1,14 @@
 #!/bin/bash
 # Installs the headless tereditor binary without Docker and registers it as an MCP server for Claude Code.
 # Made for the setup script of a cloud environment on claude.ai/code. See docs/headless-cloud.md.
-# Environment: TEREDITOR_IMAGE_TAG (tag or sha256 digest, default nightly), TEREDITOR_WARM=1 (pre-install the C# server, about 650 MB),
-# TEREDITOR_CLAUDE_MD=0 (do not write the usage notes into ~/.claude/CLAUDE.md). It also adds MCP_TIMEOUT=300000 to the env block of ~/.claude/settings.json unless set there.
+# It downloads tereditor-headless-nightly-linux-<x64|arm64>.tar.gz from the nightly GitHub release and checks it against the release's SHA256SUMS.
+# Environment: TEREDITOR_HEADLESS_SHA256 (pin the archive's sha256 out of band; the script fails if the download differs, and needs no SHA256SUMS),
+# TEREDITOR_HEADLESS_URL_BASE (where the archive and SHA256SUMS are, default the nightly release; for mirrors and tests),
+# TEREDITOR_WARM=1 (pre-install the C# server, about 650 MB), TEREDITOR_CLAUDE_MD=0 (do not write the usage notes into ~/.claude/CLAUDE.md).
+# It also adds MCP_TIMEOUT=300000 to the env block of ~/.claude/settings.json unless set there.
 set -euo pipefail
 
-repo=commandertvis/tereditor
-ref=${TEREDITOR_IMAGE_TAG:-nightly}
+url_base=${TEREDITOR_HEADLESS_URL_BASE:-https://github.com/CommanderTvis/tereditor/releases/download/nightly}
 dest=$HOME/.local/share/tereditor-headless
 bin=$HOME/.local/bin
 fail() { echo "headless-cloud-setup: $*" >&2; exit 1; }
@@ -82,41 +84,42 @@ NOTES
 if [ -n "${TEREDITOR_SETUP_SOURCE_ONLY:-}" ]; then return 0 2> /dev/null || exit 0; fi
 
 case "$(uname -m)" in
-  x86_64 | amd64) arch=amd64 ;;
+  x86_64 | amd64) arch=x64 ;;
   aarch64 | arm64) arch=arm64 ;;
-  *) fail "unsupported machine $(uname -m)" ;;
+  *) fail "unsupported machine $(uname -m): the archives are for x86_64 and aarch64 Linux" ;;
 esac
-for tool in curl jq tar sha256sum; do command -v "$tool" > /dev/null || fail "$tool is missing"; done
+for tool in curl jq tar; do command -v "$tool" > /dev/null || fail "$tool is missing"; done
+sha256() { if command -v sha256sum > /dev/null; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
 
-token=$(curl -fsS "https://ghcr.io/token?service=ghcr.io&scope=repository:$repo:pull" | jq -r .token)
-accept="application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json"
-fetch() { curl -fsS -H "Authorization: Bearer $token" -H "Accept: $accept" "https://ghcr.io/v2/$repo/$1"; }
+name=tereditor-headless-nightly-linux-$arch.tar.gz
+url_base=${url_base%/}
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
 
-manifest=$(fetch "manifests/$ref") || fail "cannot read $repo:$ref (is ghcr.io reachable and the package public?)"
-if [ "$(jq 'has("manifests")' <<< "$manifest")" = true ]; then
-  digest=$(jq -r --arg a "$arch" '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $a)][0].digest // empty' <<< "$manifest")
-  [ -n "$digest" ] || fail "$repo:$ref has no linux/$arch image (it has: $(jq -r '[.manifests[].platform.architecture] | join(", ")' <<< "$manifest")). Publish one or set TEREDITOR_IMAGE_TAG."
-  manifest=$(fetch "manifests/$digest")
+# The expected sha256: the pin if there is one, else the line of the release's SHA256SUMS for this archive.
+expected=$(printf '%s' "${TEREDITOR_HEADLESS_SHA256:-}" | tr 'A-F' 'a-f')
+if [ -z "$expected" ]; then
+  curl -fsSL --retry 3 -o "$tmp/SHA256SUMS" "$url_base/SHA256SUMS" || fail "cannot download $url_base/SHA256SUMS (is github.com allowed, and does the nightly release exist?)"
+  expected=$(awk -v n="$name" '$2 == n || $2 == "*" n { print $1; exit }' "$tmp/SHA256SUMS")
+  [ -n "$expected" ] || fail "SHA256SUMS lists no $name: the nightly release has no archive for linux/$arch (an arm64 build may have failed that night)"
 fi
-# The last layer is the COPY of the publish output (/opt/tereditor). Its digest is the sha256 of the blob.
-layer=$(jq -r '.layers[-1].digest' <<< "$manifest")
-echo "headless-cloud-setup: $repo:$ref linux/$arch, app layer $layer"
+case "$expected" in *[!0-9a-f]* | "") fail "not a sha256: $expected" ;; esac
+[ "${#expected}" = 64 ] || fail "not a sha256: $expected"
+echo "headless-cloud-setup: $name sha256 $expected"
 
-if [ "$(cat "$dest/layer" 2> /dev/null)" != "$layer" ] || [ ! -x "$dest/app/tereditor-headless" ]; then
-  tmp=$(mktemp -d)
-  trap 'rm -rf "$tmp"' EXIT
-  # curl drops the Authorization header on the redirect to the blob host.
-  curl -fsSL -H "Authorization: Bearer $token" -o "$tmp/layer.tgz" "https://ghcr.io/v2/$repo/blobs/$layer" || fail "layer download failed (is pkg-containers.githubusercontent.com allowed?)"
-  [ "$(sha256sum "$tmp/layer.tgz" | cut -d' ' -f1)" = "${layer#sha256:}" ] || fail "sha256 of the layer does not match $layer"
-  mkdir "$tmp/x" && tar -xzf "$tmp/layer.tgz" -C "$tmp/x"
-  [ -x "$tmp/x/opt/tereditor/tereditor-headless" ] || fail "the layer holds no opt/tereditor/tereditor-headless"
-  rm -rf "$dest" && mkdir -p "$dest" && mv "$tmp/x/opt/tereditor" "$dest/app" && echo "$layer" > "$dest/layer"
+if [ "$(cat "$dest/archive.sha256" 2> /dev/null)" != "$expected" ] || [ ! -x "$dest/app/tereditor-headless" ]; then
+  curl -fsSL --retry 3 -o "$tmp/archive.tar.gz" "$url_base/$name" || fail "cannot download $url_base/$name (is github.com allowed, and is the release asset there?)"
+  actual=$(sha256 "$tmp/archive.tar.gz")
+  [ "$actual" = "$expected" ] || fail "sha256 of $name is $actual but $expected was expected${TEREDITOR_HEADLESS_SHA256:+ (pinned by TEREDITOR_HEADLESS_SHA256; the nightly archive moves every night, so pin one you have checked)}"
+  mkdir "$tmp/x" && tar -xzf "$tmp/archive.tar.gz" -C "$tmp/x" || fail "cannot unpack $name"
+  [ -x "$tmp/x/tereditor-headless/tereditor-headless" ] || fail "$name holds no tereditor-headless/tereditor-headless"
+  rm -rf "$dest" && mkdir -p "$dest" && mv "$tmp/x/tereditor-headless" "$dest/app" && echo "$expected" > "$dest/archive.sha256"
 fi
 mkdir -p "$bin" && ln -sf "$dest/app/tereditor-headless" "$bin/tereditor-headless"
 echo "headless-cloud-setup: installed $bin/tereditor-headless"
 
-# The app needs libicu (the image's runtime-deps base has it, a bare Ubuntu does not).
-if ! ldconfig -p | grep -q libicuuc && command -v apt-get > /dev/null; then apt-get install -y --no-install-recommends libicu74 || echo "headless-cloud-setup: could not install libicu74" >&2; fi
+# The app needs libicu (a bare Ubuntu may not have it; the container image's runtime-deps base does).
+if command -v ldconfig > /dev/null && command -v apt-get > /dev/null && ! ldconfig -p | grep -q libicuuc; then apt-get install -y --no-install-recommends libicu74 || echo "headless-cloud-setup: could not install libicu74" >&2; fi
 
 # Outside the image the language servers need the managed .NET SDK, which downloads on first use.
 export TEREDITOR_TOOLCHAINS=managed
